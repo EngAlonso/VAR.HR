@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "VAR HR API"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "VAR HR Web"
+
 [[workflows.workflow]]
 name = "VAR HR API"
 author = "agent"
@@ -31,6 +35,18 @@ outputType = "console"
 task = "shell.exec"
 args = "export PORT=8080 && pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
+
+[[workflows.workflow]]
+name = "VAR HR Web"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/var-hr run dev -- --port 22077"
+waitForPort = 22077
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 stack = "PNPM_WORKSPACE"
