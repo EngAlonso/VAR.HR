@@ -3623,6 +3623,7 @@ function authLabel(
   key:
     | "title"
     | "detail"
+     | "mobileNumber"
     | "username"
     | "password"
     | "login"
@@ -3649,6 +3650,7 @@ function authLabel(
     en: {
       title: "Sign in to VAR HR",
       detail: "Use your account credentials to access the right workspace.",
+       mobileNumber: "Mobile number",
       username: "Username",
       password: "Password",
       login: "Sign in",
@@ -3675,6 +3677,7 @@ function authLabel(
     ar: {
       title: "تسجيل الدخول إلى VAR HR",
       detail: "استخدم بيانات حسابك للوصول إلى مساحة العمل المناسبة.",
+       mobileNumber: "رقم الهاتف المحمول",
       username: "اسم المستخدم",
       password: "كلمة المرور",
       login: "تسجيل الدخول",
@@ -3796,11 +3799,13 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
           </div>
           <form onSubmit={submit} className="mt-8 space-y-5">
             <Field
-              label={authLabel(locale, "username")}
+              label={authLabel(locale, "mobileNumber")}
               value={username}
               onChange={setUsername}
               required
               autoComplete="username"
+              placeholder="e.g. 01200229946"
+              authStyle
             />
             <Field
               label={authLabel(locale, "password")}
@@ -3809,6 +3814,8 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               onChange={setPassword}
               required
               autoComplete="current-password"
+              placeholder="Enter your password"
+              authStyle
             />
             {error && (
               <div
@@ -10118,6 +10125,8 @@ function Field({
   type = "text",
   required = false,
   autoComplete,
+  placeholder,
+  authStyle = false,
 }: {
   label: string;
   value: any;
@@ -10125,17 +10134,28 @@ function Field({
   type?: string;
   required?: boolean;
   autoComplete?: string;
+  placeholder?: string;
+  authStyle?: boolean;
 }) {
   return (
-    <label className="block text-sm font-semibold">
-      {label}
+    <label
+      className={`block text-sm font-semibold ${
+        authStyle ? "text-foreground" : ""
+      }`}
+    >
+      <span className="block">{label}</span>
       <input
         required={required}
         type={type}
         autoComplete={autoComplete}
+        placeholder={placeholder}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal outline-none focus:border-primary"
+        className={`mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal outline-none focus:border-primary ${
+          authStyle
+            ? "text-foreground placeholder:text-foreground/60"
+            : ""
+        }`}
       />
     </label>
   );
