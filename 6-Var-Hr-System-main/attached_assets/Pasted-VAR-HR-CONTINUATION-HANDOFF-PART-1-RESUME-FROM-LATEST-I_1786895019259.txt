@@ -1,0 +1,507 @@
+VAR HR — CONTINUATION HANDOFF
+PART 1 — RESUME FROM LATEST IMPLEMENTATION STATE
+
+You are taking over an EXISTING VAR HR implementation.
+
+DO NOT rebuild the project.
+DO NOT restart the architecture.
+DO NOT repeat completed work.
+DO NOT perform another generic project audit and stop.
+
+Use the existing codebase as the source of truth.
+
+A previous agent was already working from the VAR HR MASTER HANDOFF and has made additional verified progress.
+
+==================================================
+LATEST VERIFIED STATE
+==================================================
+
+The previous agent started by auditing:
+
+- Existing i18n system
+- Operational screens
+- API workflow failure
+- Attendance
+- Leave
+- Permissions
+- Payroll
+
+The API build itself was healthy.
+
+The API startup failure was caused by the development PostgreSQL database missing the existing VAR HR schema:
+
+var_hr_companies
+
+The agent applied the EXISTING Drizzle schema.
+
+IMPORTANT:
+This was a schema initialization issue, NOT a reason to redesign or recreate the database.
+
+After applying the existing schema:
+
+- The API workflow restarted successfully.
+- The existing architecture remained intact.
+
+The agent then split the remaining Part 1 work into two tracks:
+
+TRACK 1:
+Complete frontend localization using the EXISTING i18n system.
+
+TRACK 2:
+Verify server-side Attendance / Leave / Permission / Payroll state transitions against the REAL API contracts and fix only confirmed gaps.
+
+The previous agent then performed additional repository actions and reached the daily quota limit before reporting the final results.
+
+Therefore:
+
+DO NOT ASSUME the unfinished work is complete.
+
+Inspect the CURRENT CODE and determine exactly what the previous agent actually changed.
+
+==================================================
+PRIMARY TASK
+==================================================
+
+RESUME FROM THE CURRENT CODEBASE.
+
+Your job is to FINISH PART 1 of VAR HR.
+
+Do not restart the implementation.
+
+First determine:
+
+1. What localization changes from the previous pass actually landed.
+2. Which locale catalog entries now exist.
+3. Which operational screens are still hardcoded English.
+4. Which Attendance / Leave / Permission / Payroll workflow checks were actually completed.
+5. Which confirmed gaps remain.
+
+Then continue implementation immediately.
+
+==================================================
+1. LOCALIZATION — HIGH PRIORITY
+==================================================
+
+Supported locales:
+
+- English
+- Arabic
+- French
+- German
+
+Arabic:
+RTL
+
+English/French/German:
+LTR
+
+The existing i18n architecture MUST be preserved.
+
+Do NOT create a second translation system.
+
+Complete localization across the actual operational product, not only the navigation shell.
+
+Audit and translate:
+
+- Dashboard
+- Employees
+- Employee details
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll
+- Manager workspace
+- Employee workspace
+- Settings
+- Forms
+- Tables
+- Table headers
+- Filters
+- Buttons
+- Dialogs
+- Toasts
+- Notifications
+- Empty states
+- Loading states
+- Error states
+- Validation messages
+- Status labels
+- Accessibility labels
+- Tooltips
+
+The selected locale must actually change visible application text.
+
+Also verify:
+
+- Date formatting
+- Time formatting
+- Currency formatting
+- API locale propagation
+- RTL/LTR layout
+- Arabic text direction
+- Logical start/end positioning
+
+==================================================
+2. ATTENDANCE
+==================================================
+
+Verify against the real API implementation.
+
+Check:
+
+- Check-in
+- Check-out
+- Attendance history
+- Late calculation
+- Early departure
+- Worked duration
+- Overtime foundation
+- Absence
+- Manual correction
+- Audit trail
+- Rule application
+
+Check existing supported edge cases where applicable:
+
+- Missing checkout
+- Multiple check-ins
+- Overnight shifts
+- Cross-midnight work
+- Holidays
+- Grace periods
+- Rounding
+- Manual corrections
+- Time zones
+
+Do NOT invent unsupported business rules.
+
+Fix only confirmed implementation gaps.
+
+==================================================
+3. LEAVE
+==================================================
+
+Verify the real state machine.
+
+Expected lifecycle should be coherent:
+
+Draft
+→ Submitted
+→ Under Review
+→ Approved
+→ Rejected
+→ Cancelled
+
+Where supported by the current product.
+
+Verify:
+
+- Leave types
+- Leave balances
+- Leave requests
+- Submission
+- Approval
+- Rejection
+- Cancellation
+- Balance transitions
+- Approval history
+- Rejection reasons
+- Correct employee/manager/company scope
+
+Do not silently rewrite the business model.
+
+==================================================
+4. PERMISSIONS
+==================================================
+
+Verify:
+
+- Permission types
+- Request creation
+- Date
+- Start/end time
+- Reason
+- Approval
+- Rejection
+- Rejection reason
+- History
+- Employee scope
+- Manager approval scope
+
+Make sure the UI does not expose actions that the current role cannot perform.
+
+Backend authorization remains the real security boundary.
+
+==================================================
+5. PAYROLL FOUNDATION
+==================================================
+
+Verify the existing payroll foundation.
+
+Check:
+
+- Basic salary
+- Additions
+- Deductions
+- Overtime
+- Attendance deductions
+- Payroll period
+- Employee breakdown
+- Calculation result
+- Authorization
+
+Payroll must remain explainable.
+
+Do NOT invent country-specific tax or legal payroll rules.
+
+Do NOT turn this into a full Egypt legal payroll engine unless explicitly requested later.
+
+==================================================
+6. TENANT / ROLE SECURITY
+==================================================
+
+Preserve all existing security work.
+
+EMPLOYEE:
+- Own employee data only.
+- No access to other employees.
+- No company-wide payroll.
+- No company-wide reports.
+- No rules administration.
+- No devices.
+- No subscription administration.
+
+MANAGER:
+- Only authorized employees/branches/departments/direct reports.
+- Only permitted actions.
+
+COMPANY OWNER:
+- Own company only.
+
+PLATFORM OWNER:
+- Explicit platform-level privileges.
+
+Never trust frontend-only permissions.
+
+Never trust arbitrary client companyId/role/employee identity in production.
+
+The existing production fail-closed authentication boundary MUST remain.
+
+The provider-neutral development workspace adapter may remain for seeded development/review.
+
+Do not randomly install a new authentication provider.
+
+==================================================
+7. API WORKFLOW
+==================================================
+
+The development schema was already applied from the existing Drizzle definitions.
+
+Do NOT recreate the database.
+
+Do NOT drop existing data.
+
+Do NOT create duplicate tables.
+
+If the API fails again:
+
+1. Inspect the actual error.
+2. Determine whether it is schema, configuration, code, or runtime.
+3. Fix only the real cause.
+
+The existing API contract architecture must remain:
+
+- OpenAPI
+- Generated Zod
+- Generated React Query
+- Existing Express routes
+- Existing Drizzle models
+
+==================================================
+8. UI / UX
+==================================================
+
+Preserve the existing premium VAR HR visual direction.
+
+Do not turn it into a generic admin dashboard.
+
+Maintain:
+
+- Strong typography
+- High information quality
+- Clear hierarchy
+- Professional tables
+- Deliberate spacing
+- Restrained status colors
+- Premium enterprise appearance
+- Responsive behavior
+
+Do not make unnecessary redesigns.
+
+Fix only verified usability problems.
+
+Remember that a previous verified bug in the shared Button component caused children/icons/labels to disappear.
+
+That fix MUST remain intact.
+
+==================================================
+9. RESPONSIVE + RTL
+==================================================
+
+Check:
+
+Desktop
+Mobile
+Arabic RTL
+English/French/German LTR
+
+Pay special attention to:
+
+- Sidebar
+- Mobile navigation
+- Tables
+- Forms
+- Dialogs
+- Dropdowns
+- Filters
+- Charts
+- Toasts
+- Long Arabic text
+- Long German text
+- Overflow
+- Button content
+- Accessibility labels
+- Touch targets
+
+Use logical CSS/layout properties where possible.
+
+==================================================
+10. TESTING
+==================================================
+
+After implementation run as much validation as the environment allows:
+
+- Full workspace typecheck
+- API build
+- Frontend build
+- Relevant tests
+- API authorization checks
+- Tenant isolation checks
+- Localization checks
+- RTL/LTR checks
+- Attendance workflow checks
+- Leave workflow checks
+- Permission workflow checks
+- Payroll authorization checks
+- Browser validation if managed workflows are available
+
+Do NOT claim browser validation if the runtime does not provide a working workflow.
+
+==================================================
+11. IMPORTANT RUNTIME RULE
+==================================================
+
+The project previously had a Replit runtime issue where artifact/workflow registration was unavailable.
+
+However, the latest agent confirmed the API could be restored after applying the existing schema.
+
+Therefore inspect the CURRENT runtime state first.
+
+If workflows are available:
+- Use them.
+- Validate the real application.
+- Perform browser checks.
+
+If workflows are unavailable:
+- Continue code-level implementation.
+- Do not create duplicate workflows blindly.
+- Do not fake runtime validation.
+- Clearly report the limitation.
+
+==================================================
+12. DO NOT STOP AT AUDIT
+==================================================
+
+This is critical.
+
+Do NOT respond with:
+
+"I found these gaps."
+
+Instead:
+
+- Inspect
+- Implement
+- Typecheck
+- Test
+- Validate
+- Then report
+
+Only stop when the remaining work is genuinely blocked by a business decision, unavailable external provider, or runtime limitation.
+
+==================================================
+13. DO NOT START PART 2
+==================================================
+
+Do NOT move into:
+
+- Real biometric manufacturer integrations
+- Advanced GPS infrastructure
+- Payment gateway
+- Advanced subscription billing
+- Enterprise SSO
+- Country-specific legal payroll
+- Advanced analytics
+- Large notification infrastructure
+
+Part 1 comes first.
+
+==================================================
+14. FINAL REPORT
+==================================================
+
+When finished, provide:
+
+### Already Complete
+What was already implemented before your pass.
+
+### Implemented In This Pass
+Only changes actually made.
+
+### Validation
+Exactly what passed.
+
+### Remaining Part 1 Gaps
+Only genuinely unfinished items.
+
+### Runtime Limitations
+Only real blockers.
+
+### Part 1 Status
+Choose honestly:
+
+- Not complete
+- Nearly complete
+- Ready for manual review
+- Complete
+
+DO NOT call Part 1 complete unless the evidence supports it.
+
+==================================================
+FINAL OBJECTIVE
+==================================================
+
+Finish VAR HR PART 1 as a coherent, premium, secure, multilingual HR product.
+
+The product owner will manually review Part 1 after you finish.
+
+Do not start Part 2 automatically.
+
+RESUME FROM THE CURRENT CODE.
+DO NOT REBUILD.
+DO NOT REPEAT COMPLETED WORK.
+CONTINUE.

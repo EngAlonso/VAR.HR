@@ -1,0 +1,3 @@
+- [Imported artifact registration](imported-artifact-registration.md) — an imported artifact can retain `.replit-artifact/artifact.toml` files without being registered as a runtime artifact or workflow.
+- [Managed Vite build variables](managed-vite-build-variables.md) — standalone production builds need the workflow-provided PORT and BASE_PATH values.
+- [UUID route validation](uuid-route-validation.md) — validate generated string identifiers before Drizzle queries to avoid database-cast 500s.

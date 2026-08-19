@@ -1,0 +1,693 @@
+VAR HR — PART 1 COMPLETION HANDOFF
+CURRENT STATE + REMAINING WORK
+
+You are taking over an existing VAR HR project.
+
+This is NOT a new project.
+
+The project has already gone through multiple implementation, security, localization, runtime, and visual validation passes.
+
+Your job is to COMPLETE PART 1 of VAR HR from the current codebase.
+
+Do not rebuild the project.
+Do not restart the architecture.
+Do not recreate completed features.
+Do not assume that a feature is production-ready merely because a route or screen already exists.
+
+The current codebase is the source of truth.
+
+==================================================
+PRODUCT
+==================================================
+
+VAR HR is a premium multilingual multi-tenant HR SaaS platform.
+
+Core product concept:
+
+Review → Analyze → Decide
+
+The VAR/football reference is a subtle brand concept only.
+
+The UI must NOT look like a football application.
+
+The product should feel:
+
+- Premium
+- Enterprise-grade
+- Powerful
+- Precise
+- Modern
+- Sophisticated
+- Expensive
+- Operationally trustworthy
+
+Avoid generic admin-template styling, excessive rounded cards, excessive gradients, heavy shadows, decorative UI without purpose, and cheap-looking CRUD layouts.
+
+==================================================
+ROLES
+==================================================
+
+The platform has:
+
+1. Platform Owner
+2. Company Owner
+3. Manager
+4. Employee
+
+Authorization must always be enforced server-side.
+
+Frontend visibility is UX only, never security.
+
+==================================================
+SUPPORTED LANGUAGES
+==================================================
+
+The application supports:
+
+- English
+- Arabic
+- French
+- German
+
+Direction:
+
+- English → LTR
+- Arabic → RTL
+- French → LTR
+- German → LTR
+
+Localization must be real application localization.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+Existing architecture:
+
+- React frontend
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- OpenAPI contract
+- Generated Zod schemas
+- Generated React Query clients
+- pnpm workspace
+- Modular monolith
+- Tenant-aware backend
+- Existing localization architecture
+- Existing workspace-context authentication boundary
+
+Preserve this architecture.
+
+Do not introduce unnecessary dependencies.
+
+Do not introduce microservices.
+
+Do not introduce a second authorization system.
+
+Do not introduce a second i18n system.
+
+Do not replace generated contracts with handwritten duplicates.
+
+==================================================
+WHAT HAS ALREADY BEEN COMPLETED
+==================================================
+
+The following work has already been completed and verified.
+
+DO NOT REBUILD THESE.
+
+### Foundation
+
+- Dependencies restored from the existing frozen lockfile.
+- Workspace structure preserved.
+- PostgreSQL database connected.
+- Existing Drizzle schema applied.
+- VAR HR tables created.
+- Seeded Northstar tenant initialized.
+- API running.
+- Frontend running.
+- Sandbox running.
+- Full workspace typecheck passed.
+- Managed workflows validated as healthy.
+
+### API / Contract
+
+- OpenAPI contract exists.
+- Generated Zod schemas exist.
+- Generated React Query clients exist.
+- Date-only serialization boundary was fixed.
+- Date-only fields return YYYY-MM-DD.
+- Date-time fields remain ISO timestamps.
+
+### Core Product Areas Already Implemented
+
+The current codebase already contains implementation for:
+
+- Company onboarding context
+- Company workspace
+- Employees
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Attendance rules
+- Reports
+- Payroll foundation
+- Devices foundation
+- Subscription foundation
+- Platform Owner views
+- Manager workspace
+- Employee workspace
+
+Do not rebuild these from scratch.
+
+### Tenant / Security
+
+Server-side tenant and role authorization has already been improved and verified.
+
+Verified behavior includes:
+
+Company Owner:
+- Can access company data.
+
+Manager:
+- Is scoped to the authorized Operations scope.
+
+Employee:
+- Can access only their own employee data.
+
+Employee access to company reports/payroll is denied.
+
+Manager access to payroll is denied where not permitted.
+
+Manager/Employee access to rules, devices, and subscriptions is restricted.
+
+Leave balances and requests are scoped.
+
+Platform Owner routes have explicit privileged behavior.
+
+Preserve these security boundaries.
+
+### Localization / Shell
+
+The following has already been fixed:
+
+- Locale direction responses.
+- Arabic RTL.
+- English LTR.
+- French LTR.
+- German LTR.
+- Role-aware navigation improvements.
+- Logical RTL/LTR shell positioning.
+- Desktop shell.
+- Mobile shell.
+- Mobile navigation.
+- Sidebar behavior.
+
+### UI Regression
+
+A shared Button primitive had a bug where it was self-closing and discarded child content.
+
+That was fixed.
+
+This restored:
+
+- Mobile hamburger icon/label.
+- Desktop controls.
+- Other shared button content.
+
+Do not undo this fix.
+
+### Runtime Validation
+
+The API, frontend, and managed workflows have been successfully brought to a healthy state.
+
+The database schema should NOT be recreated unless inspection proves it is actually missing.
+
+==================================================
+CURRENT STATUS
+==================================================
+
+The project is NOT considered Part 1 complete yet.
+
+The previous agents correctly identified that the remaining work is now mostly:
+
+1. Complete localization coverage.
+2. Complete authentication boundary/workflow.
+3. Functional hardening of the already implemented HR workflows.
+4. Automated browser regression coverage.
+5. Final security/accessibility/responsive validation.
+
+Your task is to complete these areas to a level where the owner can manually review Part 1 confidently.
+
+==================================================
+PART 1 — DEFINITION OF DONE
+==================================================
+
+Part 1 should provide a coherent operational HR MVP containing:
+
+### Company Owner
+
+- Company onboarding
+- Company dashboard
+- Employees
+- Departments
+- Branches
+- Attendance overview
+- Leave approvals
+- Permission approvals
+- Rules
+- Basic reports
+- Payroll foundation
+- Company settings/context
+
+### Manager
+
+- Scoped team/workspace
+- Team attendance
+- Team employees
+- Leave approvals
+- Permission approvals
+- Relevant reports
+- Only permitted actions visible
+
+### Employee
+
+- Personal dashboard
+- Today attendance
+- Check-in/check-out where implemented
+- Attendance history
+- Leave
+- Permissions
+- Personal salary/payroll information
+- Notifications
+- Profile
+
+### Platform Owner
+
+The existing Platform Owner foundation should remain functional.
+
+Part 1 does NOT require every future platform-management feature to be fully expanded.
+
+==================================================
+REMAINING WORK #1
+REAL LOCALIZATION COVERAGE
+==================================================
+
+The last audit confirmed that the shell/navigation was improved, but broader localization coverage remains incomplete.
+
+Audit the entire Part 1 user-facing experience.
+
+Check:
+
+- Authentication screens where applicable
+- Onboarding
+- Dashboard
+- Employees
+- Employee details
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll
+- Manager workspace
+- Employee workspace
+- Settings
+- Dialogs
+- Forms
+- Validation messages
+- Empty states
+- Loading states
+- Error states
+- Toasts
+- Notifications
+- Tables
+- Filters
+- Buttons
+- Tooltips
+
+All user-facing text must use the existing localization system.
+
+Supported locales:
+
+English
+Arabic
+French
+German
+
+Do not merely translate the navigation.
+
+The actual operational UI must change language.
+
+Arabic must remain correctly RTL.
+
+English/French/German must remain correctly LTR.
+
+Use logical layout properties wherever possible.
+
+Do not hard-code translated strings into components.
+
+Do not create a second translation architecture.
+
+==================================================
+REMAINING WORK #2
+AUTHENTICATION
+==================================================
+
+The current project intentionally uses a replaceable workspace-context authentication boundary.
+
+Do NOT blindly install Clerk, Replit Auth, or another provider.
+
+First inspect the existing authentication boundary.
+
+Part 1 needs a coherent authentication workflow or a clearly production-safe authentication boundary.
+
+At minimum, determine and implement the appropriate current-stage behavior for:
+
+- Login
+- Logout
+- Session/user identity
+- Role identity
+- Company membership
+- Unauthorized access
+- Expired/invalid session behavior
+
+If a real external authentication provider is intentionally deferred by the existing architecture, preserve that boundary rather than inventing one.
+
+Do not fake security.
+
+Do not hard-code a permanent user identity.
+
+If implementation of the final provider requires a business decision, keep the architecture provider-neutral and document the exact remaining dependency instead of making up a provider.
+
+==================================================
+REMAINING WORK #3
+FUNCTIONAL HARDENING
+==================================================
+
+Existing screens/routes do NOT automatically mean the workflow is complete.
+
+Audit the actual behavior of the implemented Part 1 workflows.
+
+Focus on:
+
+--------------------------------
+ATTENDANCE
+--------------------------------
+
+Verify:
+
+- Check-in
+- Check-out
+- Attendance history
+- Late calculation
+- Early departure
+- Worked duration
+- Overtime foundation
+- Absence state
+- Manual correction
+- Attendance audit trail
+- Rules application
+
+Check edge cases where already supported:
+
+- Missing checkout
+- Multiple check-ins
+- Overnight shifts
+- Cross-midnight work
+- Holidays
+- Grace periods
+- Rounding
+- Manual corrections
+- Time zones
+
+Do not invent complex country-specific labor law.
+
+--------------------------------
+LEAVE
+--------------------------------
+
+Verify:
+
+- Leave types
+- Leave balances
+- Request creation
+- Request submission
+- Approval
+- Rejection
+- Cancellation where supported
+- Balance changes
+- Approval history
+- Rejection reason
+
+Leave balances should behave like a ledger/state transition, not an arbitrary editable number.
+
+--------------------------------
+PERMISSIONS
+--------------------------------
+
+Verify:
+
+- Permission types
+- Request creation
+- Date/time
+- Reason
+- Approval
+- Rejection
+- Rejection reason
+- History
+- Correct employee/manager scope
+
+--------------------------------
+RULES
+--------------------------------
+
+Verify:
+
+- Work schedule
+- Grace period
+- Late threshold
+- Early departure
+- Working days
+- Holidays
+- Overtime conditions
+- Deduction behavior
+- Permission treatment
+
+Ensure rule behavior is understandable.
+
+--------------------------------
+PAYROLL FOUNDATION
+--------------------------------
+
+Verify:
+
+- Basic salary
+- Additions
+- Deductions
+- Overtime
+- Attendance deductions
+- Payroll period
+- Employee payroll breakdown
+- Calculation result
+- Relevant authorization
+
+Do not implement country-specific tax/legal payroll rules unless explicitly required.
+
+Payroll must remain explainable.
+
+--------------------------------
+REPORTS
+--------------------------------
+
+Verify:
+
+- Attendance reports
+- Absence reports
+- Late reports
+- Overtime reports
+- Leave reports
+- Permission reports
+- Employee reports
+- Payroll reports
+
+Check:
+
+- Date filters
+- Employee filters
+- Department filters
+- Branch filters
+- Preview
+- Print
+- CSV
+- Excel-compatible export
+
+Do not create fake report data.
+
+==================================================
+REMAINING WORK #4
+ROLE / TENANT SECURITY REGRESSION
+==================================================
+
+Re-test the security boundaries after all changes.
+
+Employee:
+
+Must NEVER access:
+
+- Other employees
+- Company-wide attendance
+- Company reports
+- Company payroll periods
+- Company rules
+- Devices
+- Subscription administration
+
+Manager:
+
+Must only access authorized employees/branches/departments/direct reports according to current scope.
+
+Company Owner:
+
+Must remain restricted to their own company.
+
+Platform Owner:
+
+Must retain explicit platform-level privileges.
+
+Test both:
+
+- API authorization
+- UI visibility
+
+Do not confuse UI visibility with actual authorization.
+
+==================================================
+REMAINING WORK #5
+AUTOMATED REGRESSION COVERAGE
+==================================================
+
+The project has been manually validated in the browser.
+
+Add or improve automated browser/API regression coverage where practical.
+
+Prioritize critical workflows:
+
+1. Login/session boundary
+2. Company context
+3. Employee isolation
+4. Manager scope
+5. Company Owner access
+6. Attendance
+7. Leave
+8. Permission
+9. Payroll authorization
+10. Localization/RTL
+11. Mobile navigation
+
+Do not create a huge test framework unnecessarily.
+
+Add the smallest useful automated coverage compatible with the existing architecture.
+
+==================================================
+REMAINING WORK #6
+FINAL UX / ACCESSIBILITY / RESPONSIVE REVIEW
+==================================================
+
+Review Part 1 at:
+
+- Desktop
+- Tablet where applicable
+- Mobile
+
+Review:
+
+- Navigation
+- Sidebar
+- Tables
+- Forms
+- Dialogs
+- Dropdowns
+- Filters
+- Empty states
+- Error states
+- Loading states
+- Toasts
+- RTL
+- LTR
+- Keyboard focus
+- Button labels
+- Accessibility labels
+- Touch targets
+- Overflow
+- Long Arabic text
+- Long German text
+
+The mobile shell must remain usable.
+
+Do not introduce visual redesigns unless a verified usability issue requires it.
+
+==================================================
+IMPORTANT: DO NOT OVERBUILD
+==================================================
+
+Do NOT move into the next major phase yet.
+
+Do not prioritize:
+
+- Real biometric manufacturer integrations
+- Complex GPS infrastructure
+- Payment gateway
+- Advanced billing automation
+- Country-specific legal payroll
+- Enterprise SSO
+- Advanced analytics
+- Complex notification infrastructure
+
+Those belong to later phases unless a dependency is required to finish Part 1.
+
+==================================================
+IMPLEMENTATION RULE
+==================================================
+
+For every change:
+
+1. Inspect existing implementation.
+2. Verify the gap.
+3. Make the smallest coherent fix.
+4. Preserve the current architecture.
+5. Run typecheck.
+6. Run relevant API/frontend tests.
+7. Verify visually where UI changes are involved.
+
+Do not make speculative changes.
+
+Do not rebuild working features.
+
+==================================================
+FINAL DELIVERABLE
+==================================================
+
+Do not stop after an audit report.
+
+Complete as much of Part 1 as can be completed safely.
+
+At the end, provide a concise completion report containing:
+
+1. What was already complete and preserved.
+2. What you implemented.
+3. What you validated.
+4. Remaining Part 1 gaps, if any.
+5. Any external/business decision that is genuinely required.
+6. Exact commands/workflows needed to run and validate the project.
+
+The goal is:
+
+VAR HR PART 1 = coherent, secure, multilingual, responsive, operational HR MVP ready for manual owner review.
+
+Do not claim Part 1 is complete unless the actual implementation and validation support that conclusion.

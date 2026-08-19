@@ -1,0 +1,444 @@
+You are taking over the VAR HR project from another agent.
+
+This is a continuation of Part 6 implementation. Do NOT restart Part 6 and do NOT redo the previous audit.
+
+The previous agents already audited Part 6 and began implementing the missing work. The last agent also made actual code changes before the daily quota ended.
+
+Your first priority is to inspect the actual current source state and continue from exactly where the previous agent stopped.
+
+Current Part 6 Status
+
+Part 5 is complete and verified.
+
+Part 6 already contains the following groundwork:
+
+- OpenAPI reporting contracts
+- Generated report/import clients and hooks
+- "GET /api/reports/data"
+- Six report types:
+  - Employees
+  - Attendance
+  - Leave
+  - Permission
+  - Overtime
+  - Payroll
+- Server-side report authorization/scoping
+- "POST /api/employees/import"
+- Employee import validation
+- Duplicate detection
+- Four-locale API localization
+- "ReportPeriodId" query parameter fix
+
+The old Reports screen is still attendance-only and needs to be completed.
+
+Employee import was still row-by-row and needed to become transaction-safe.
+
+What the LAST Agent Actually Did
+
+The last agent:
+
+1. Read the continuation instructions.
+2. Inspected the current source and confirmed the previous Part 6 groundwork exists.
+3. Started making the employee import atomic.
+4. Installed the existing lockfile dependencies without changing package versions.
+5. Ran contract generation.
+6. Contract generation exposed a real existing contract problem:
+   "ReportRow" contains duplicate declarations for some fields.
+7. The duplicated fields include:
+   - overtime
+   - late
+   - early checkout
+   - overtime amount
+8. The agent began removing ONLY the duplicate declarations while preserving the richer versions of those fields.
+9. The daily quota ended immediately after that work began.
+
+CRITICAL FIRST STEP
+
+Before changing anything:
+
+- Inspect the current Git/project state.
+- Inspect the working tree/diff if available.
+- Read:
+  - "hand-off/MASTER-HANDOFF.md"
+  - latest Part 5 handoff
+  - relevant Part 6 notes
+- Inspect the current "ReportRow" contract.
+- Inspect the employee import changes already made.
+- Inspect whether the duplicate-field fix was successfully written to disk.
+
+Do NOT assume the previous agent's last message means every change was saved.
+
+Use the actual source tree as the authority.
+
+---
+
+Continue From Here
+
+1. Finish the ReportRow Contract Fix
+
+Complete the targeted fix for the duplicate "ReportRow" fields.
+
+Do NOT redesign the contract.
+
+Keep the richer/correct field definitions and remove only the duplicate declarations.
+
+Then regenerate:
+
+- OpenAPI-derived outputs
+- Generated API clients
+- Generated Zod schemas/types
+
+Verify that generation succeeds.
+
+---
+
+2. Complete Atomic Employee Import
+
+Continue the employee import work already started.
+
+The intended behavior is transaction-safe/all-or-nothing.
+
+Requirements:
+
+- Validate the complete import before mutation where practical.
+- Perform database inserts inside a transaction.
+- If an unexpected database failure occurs, roll back the entire import.
+- Do not leave earlier rows inserted when a later database operation fails.
+- Preserve existing duplicate validation.
+- Preserve row-level error reporting.
+- Do not change unrelated employee-management behavior.
+
+---
+
+3. Complete Report Backend
+
+Finish the report data identified by the previous audit.
+
+Ensure the report responses provide the data needed by the UI/export/print layers.
+
+Address the known gaps:
+
+Attendance
+
+- Employee
+- Date
+- Check-in
+- Check-out
+- Worked hours
+- Late minutes
+- Early checkout
+- Overtime
+- Status
+- Location status
+
+Leave
+
+- Employee
+- Leave type
+- Start date
+- End date
+- Days
+- Status
+- Reason
+
+Permission
+
+- Employee
+- Permission type
+- Date
+- Start/end or duration where available
+- Status
+- Reason
+
+Overtime
+
+Provide meaningful report-level overtime data.
+
+Payroll
+
+Include:
+
+- Employee
+- Payroll period
+- Gross
+- Additions
+- Deductions
+- Net
+- Payroll status
+- Relevant overtime information
+- Existing detailed payroll calculation information where appropriate
+
+Reuse existing business logic. Do not invent new payroll rules.
+
+---
+
+4. Complete Reports UI
+
+The existing Reports screen is still the old attendance-only implementation.
+
+Complete it in place.
+
+Support:
+
+Report types
+
+- Employees
+- Attendance
+- Leave
+- Permission
+- Overtime
+- Payroll
+
+Filters
+
+- Date range
+- Employee
+- Department
+- Status where applicable
+- Leave type
+- Permission type
+- Payroll period
+
+Use the existing generated React hooks.
+
+Do not create duplicate API clients or unnecessary manual fetch logic.
+
+---
+
+5. Complete Report Preview
+
+The selected report must render a proper preview with:
+
+- Correct columns
+- Appropriate totals
+- Selected filter summary
+- Loading state
+- Error state
+- Empty state
+- Arabic RTL
+- English
+- Arabic
+- French
+- German
+
+Keep the existing VAR HR design language.
+
+Do not redesign unrelated screens.
+
+---
+
+6. Printing
+
+Implement real report printing.
+
+Include:
+
+- Report title
+- Filters
+- Report data
+- Totals
+- Print-specific layout
+- Hidden navigation/actions during printing
+- "@media print"
+- Correct Arabic RTL output
+
+---
+
+7. CSV Export
+
+Implement real CSV export for the selected/filtered report.
+
+Requirements:
+
+- Correct headers
+- Correct report-specific columns
+- Current filters
+- Proper CSV escaping
+- UTF-8/Arabic support
+- Sensible filenames
+
+---
+
+8. Excel-Compatible Export
+
+Implement the required Excel-compatible export.
+
+Prefer existing project dependencies.
+
+Do not upgrade unrelated dependencies.
+
+If a new dependency is genuinely necessary, keep it minimal.
+
+Arabic text must remain readable.
+
+---
+
+9. Complete Employee File Import UI
+
+The backend currently accepts parsed JSON.
+
+Complete the actual user workflow:
+
+- Select CSV file
+- Select Excel-compatible file if supported
+- Parse file
+- Preview rows
+- Show validation errors
+- Show success/failure counts
+- Confirm import
+- Submit
+- Show final results
+
+Reuse backend validation rather than duplicating business rules unnecessarily.
+
+---
+
+10. Authorization Validation
+
+Actually test:
+
+- Employee report access
+- Manager report access
+- Owner/platform owner access
+- Employee scoping
+- Department scoping
+- Cross-company rejection
+- Payroll restrictions
+- Employee import permissions
+
+Do not weaken authorization to make tests pass.
+
+---
+
+11. Localization
+
+Use the existing four locale dictionaries:
+
+- English
+- Arabic
+- French
+- German
+
+Do not hardcode new UI strings.
+
+Verify RTL for:
+
+- Reports
+- Filters
+- Tables
+- Preview
+- Printing
+- Import
+- Export messages
+
+---
+
+12. Validation
+
+After implementation run:
+
+Typechecks
+
+- API
+- Frontend
+
+Builds
+
+- API production build
+- Frontend production build
+- Relevant preview/mockup build
+
+Use managed "PORT"/"BASE_PATH" values where required.
+
+Runtime tests
+
+Test:
+
+- All six reports
+- Major filters
+- Employee/manager/owner authorization
+- Cross-company protection
+- Payroll restrictions
+- Employee import
+- Duplicate handling
+- Transaction rollback
+- CSV export
+- Excel-compatible export
+- Print
+- Arabic RTL
+- All four locales
+
+Do not claim a test passed unless you actually ran it.
+
+---
+
+Protect Existing Work
+
+Do NOT regress:
+
+- Parts 1–4
+- Part 5 payroll
+- Authentication
+- Employee management
+- Attendance
+- Leave
+- Permissions
+- Overtime
+- Existing authorization
+- Existing localization
+
+Do not perform broad refactors.
+
+Use minimal targeted changes.
+
+---
+
+Handoff
+
+When Part 6 is genuinely complete:
+
+Create a dated Part 6 completion report under:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Document:
+
+- What was inherited
+- What was already implemented
+- What you completed
+- Backend changes
+- Reports UI
+- Import
+- Printing
+- CSV
+- Excel-compatible export
+- Authorization validation
+- Localization
+- Tests
+- Builds
+- Runtime validation
+- Remaining limitations/follow-ups
+
+Do NOT start Part 7.
+
+---
+
+Most Important Instruction
+
+The previous agent stopped mid-implementation, not at a clean milestone.
+
+Therefore:
+
+Inspect → preserve what landed → finish the ReportRow duplicate fix → regenerate contracts → continue the remaining Part 6 implementation → validate everything → update handoff.
+
+Do not restart the audit.
+
+Do not reset Git.
+
+Do not discard existing Part 6 work.
+
+Do not claim Part 6 is complete until the missing user-facing and validation work is actually finished.

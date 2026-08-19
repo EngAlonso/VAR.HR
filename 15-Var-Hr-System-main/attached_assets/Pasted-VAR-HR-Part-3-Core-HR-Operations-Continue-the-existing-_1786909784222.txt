@@ -1,0 +1,429 @@
+VAR HR — Part 3: Core HR Operations
+
+Continue the existing VAR HR project from its current state.
+
+1. Start from the project hand-off
+
+The project already contains a permanent "hand-off/" folder.
+
+Before making any changes:
+
+- Read "hand-off/MASTER-HANDOFF.md".
+- Read the most recent relevant hand-off/work-log files as needed.
+- Treat them as the source of truth for the current implementation.
+- Do NOT ask me to paste the handoff again.
+- Do NOT rebuild or repeat completed work.
+- Do NOT undo Part 1 or the completed Part 2 authentication foundation.
+
+Part 1 is complete.
+
+Part 2 has established the provider-neutral production authentication/security boundary and is currently blocked only where a real authentication provider/identity mapping is required. Do not invent an authentication provider.
+
+---
+
+PART 3 SCOPE
+
+This part is specifically for the first two Core HR operational modules:
+
+A. Attendance
+
+B. Leave & Permissions
+
+Do NOT start Biometric integrations, GPS enforcement, Attendance Rules, Overtime calculation, Payroll, or advanced Reports as separate feature work in this task unless an existing implementation dependency absolutely requires a small compatible change.
+
+Those will be handled in later stages.
+
+---
+
+A. ATTENDANCE
+
+Audit the existing Attendance implementation first.
+
+Do not assume it is missing just because the feature exists in the UI. Determine what is already implemented and what is incomplete.
+
+The goal is a reliable daily attendance foundation.
+
+Attendance records
+
+The system should support:
+
+- Employee attendance records.
+- Check-in.
+- Check-out.
+- Attendance history.
+- Date-based filtering.
+- Employee-based filtering.
+- Company/manager scope.
+- Correct role-based visibility.
+- Attendance status.
+- Missing check-in/check-out states.
+- Present/absent/late/early-leave concepts where already supported by the current data model.
+
+Do not invent complicated attendance rules yet.
+
+If late/early/absence calculations depend on the future Rules module, preserve the existing boundary and document the dependency rather than duplicating the rules engine here.
+
+Attendance corrections
+
+Where the existing system supports corrections:
+
+- Ensure authorized users can correct attendance.
+- Record who made the correction.
+- Preserve the original information where the current architecture supports audit history.
+- Prevent employees from modifying records they are not allowed to modify.
+- Preserve server-side authorization.
+
+Employee scope
+
+Verify:
+
+Employee
+
+- Can see only their own attendance data.
+- Cannot modify company-wide attendance.
+- Cannot access another employee's records.
+
+Manager
+
+- Can see only employees within their authorized management scope.
+- Can perform only the attendance actions allowed by their capabilities.
+
+Company Owner
+
+- Can manage attendance for their company according to existing capabilities.
+
+Platform Owner
+
+- Retains platform-level access according to the existing authorization model.
+
+Do not rely on frontend hiding alone.
+
+Every important boundary must be enforced by the API.
+
+---
+
+B. LEAVE & PERMISSIONS
+
+Audit the existing leave and permission implementation.
+
+The system should provide a coherent workflow for:
+
+Leave types
+
+Support the existing architecture for multiple leave types.
+
+Examples may include:
+
+- Annual leave
+- Sick leave
+- Unpaid leave
+- Other company-defined leave types
+
+Do not hard-code a fixed list if the current architecture already supports configurable types.
+
+Leave balances
+
+Each employee should have a leave balance where the existing data model supports it.
+
+Verify:
+
+- Balance visibility.
+- Used balance.
+- Remaining balance.
+- Correct employee scope.
+- Safe updates after approved requests.
+
+Do not invent payroll deductions or complicated leave accounting rules yet.
+
+Those belong to later stages if not already implemented.
+
+Leave requests
+
+Employee should be able to:
+
+- Create a leave request.
+- Select the appropriate leave type.
+- Select dates.
+- Provide a reason/notes where supported.
+- See request status.
+- See previous requests.
+
+Manager/authorized approver should be able to:
+
+- Review requests within their scope.
+- Approve.
+- Reject.
+- Provide/review rejection reason where supported.
+- See the resulting status.
+
+Company Owner should retain company-wide approval capabilities according to the existing authorization model.
+
+Permission requests
+
+Implement/audit the same coherent workflow for attendance permissions:
+
+Employee:
+
+- Submit permission request.
+- See status.
+- See previous requests.
+
+Manager/authorized approver:
+
+- Review.
+- Approve.
+- Reject.
+- Record rejection reason where supported.
+
+Owner:
+
+- Company-wide management according to existing permissions.
+
+Again, server-side authorization is mandatory.
+
+---
+
+3. DATA & BUSINESS RULE SAFETY
+
+Preserve the existing database and contract-first architecture.
+
+Before changing schemas:
+
+- Inspect the existing Drizzle schema.
+- Inspect generated API contracts.
+- Inspect existing routes/services.
+- Reuse existing tables and business logic where possible.
+- Do not create duplicate tables or parallel implementations.
+- Do not destroy or reset the development database.
+
+If schema changes are genuinely required:
+
+- Make the smallest additive migration/schema change.
+- Use the existing Drizzle workflow.
+- Never use drop/reset/truncate/recreate to solve an imported-environment problem.
+
+---
+
+4. API CONTRACTS
+
+Maintain the existing OpenAPI/generated-client architecture.
+
+For every changed endpoint:
+
+- Preserve existing contract compatibility where possible.
+- Update the contract first when a contract change is genuinely required.
+- Regenerate generated clients/types using the repository's existing process.
+- Validate both API and frontend consumers.
+
+Do not bypass the generated API layer with ad-hoc fetch implementations.
+
+---
+
+5. AUTHORIZATION
+
+Part 2 established the security boundary.
+
+Preserve it.
+
+Never trust:
+
+- Client-supplied company IDs.
+- Client-supplied roles.
+- Client-supplied employee IDs as proof of identity.
+- Development workspace headers in production.
+
+Production must continue to fail closed until the real authentication provider is connected.
+
+Do not invent authentication credentials or provider behavior as part of Part 3.
+
+For development/testing, use the existing documented development workspace mechanism.
+
+---
+
+6. UI / UX
+
+Use the existing VAR HR UI and design system.
+
+Do NOT redesign the application.
+
+Preserve:
+
+- Existing branding.
+- Existing responsive layout.
+- Arabic RTL.
+- English/French/German LTR.
+- Existing localization architecture.
+- Existing navigation.
+- Existing mobile navigation behavior.
+- Existing accessibility work.
+
+Any new user-facing text must go through the existing i18n system.
+
+Do not introduce another translation mechanism.
+
+Ensure the Attendance, Leave, and Permission screens work correctly in:
+
+- Arabic
+- English
+- French
+- German
+
+Pay special attention to:
+
+- Dates.
+- Status labels.
+- Empty states.
+- Validation errors.
+- Success/error messages.
+- Approval/rejection labels.
+- Mobile layouts.
+- RTL alignment.
+
+---
+
+7. VALIDATION
+
+Do not stop at typechecking.
+
+After implementation, validate the actual workflows.
+
+At minimum verify:
+
+Attendance
+
+- Employee sees own attendance.
+- Employee cannot access another employee's attendance.
+- Manager sees only authorized employees.
+- Owner sees company attendance.
+- Unauthorized modification is rejected.
+- Authorized correction works.
+- Check-in/check-out behavior works where already supported.
+
+Leave
+
+- Employee creates leave request.
+- Employee sees request status.
+- Manager receives/sees the request within scope.
+- Manager can approve.
+- Manager can reject.
+- Rejection reason works where supported.
+- Leave balance updates correctly where that behavior already exists.
+- Employee cannot approve their own request.
+- Cross-company access is rejected.
+
+Permission
+
+- Employee creates permission request.
+- Employee sees its status.
+- Manager sees the request within scope.
+- Manager can approve.
+- Manager can reject.
+- Unauthorized approval is rejected.
+- Cross-company access is rejected.
+
+Also validate:
+
+- API health.
+- Workspace authorization.
+- Arabic locale behavior.
+- Relevant frontend build.
+- Relevant workspace typechecks.
+- Production fail-closed authentication behavior remains intact.
+
+If managed workflows are unavailable, diagnose the runtime limitation accurately. Do not create duplicate workflows just to make the validation appear successful.
+
+---
+
+8. DO NOT EXPAND THE SCOPE
+
+Do NOT implement the following in this task:
+
+- New authentication provider.
+- Founder/Platform Owner credentials.
+- Biometric device integrations.
+- GPS attendance enforcement.
+- Attendance rules engine.
+- Overtime engine.
+- Payroll calculation engine.
+- New billing system.
+- Unrelated redesign.
+- Part 4 features.
+
+If you discover something belonging to a later phase, document it in the hand-off instead of implementing it prematurely.
+
+---
+
+9. HAND-OFF — REQUIRED
+
+The "hand-off/" folder is the permanent project memory.
+
+When this task is finished, you MUST create a new dated work log inside:
+
+"hand-off/"
+
+Use a name similar to:
+
+"YYYY-MM-DD-agent-part-3-attendance-leave-permissions.md"
+
+The report must document:
+
+- Starting state.
+- What was already complete.
+- What you changed.
+- Attendance changes.
+- Leave changes.
+- Permission changes.
+- API/contract changes.
+- Database/schema changes, if any.
+- Authorization changes.
+- UI/i18n changes.
+- Validation performed.
+- Runtime/browser results.
+- Any remaining bugs.
+- Any discovered dependencies for later phases.
+- Exact recommended next step.
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+with the new verified state.
+
+Never delete previous hand-off logs.
+
+Never overwrite historical logs.
+
+The history should remain chronological, for example:
+
+hand-off/
+├── MASTER-HANDOFF.md
+├── 2026-08-16-agent-hand-off-system-setup.md
+├── 2026-08-16-agent-preview-diagnosis.md
+├── 2026-08-16-agent-part-1-localization.md
+├── 2026-08-16-agent-part-2-authentication.md
+├── 2026-08-16-agent-part-3-attendance-leave-permissions.md
+└── ...
+
+At the end, explicitly mark Part 3 as:
+
+Complete
+or
+Partially Complete
+or
+Blocked
+
+and explain exactly why.
+
+Final rule
+
+Verify the current code before changing anything.
+
+Do not assume a feature is missing because an old handoff says it is incomplete.
+
+Do not claim a workflow passed unless you actually tested it.
+
+Do not rebuild completed functionality.
+
+Do not invent an authentication provider.
+
+Complete only the Attendance + Leave & Permissions scope of Part 3, document everything in "hand-off/", and leave the project ready for the next phase.

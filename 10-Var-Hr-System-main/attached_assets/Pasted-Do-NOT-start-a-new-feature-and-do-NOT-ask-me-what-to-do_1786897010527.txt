@@ -1,0 +1,259 @@
+Do NOT start a new feature and do NOT ask me what to do with the application.
+
+Your task now is specifically to establish the permanent VAR HR project hand-off system described below.
+
+I have already provided the current VAR HR MASTER HANDOFF. Treat it as the current source of truth and preserve it accurately.
+
+==================================================
+1. CREATE THE HAND-OFF DIRECTORY
+==================================================
+
+At the PROJECT ROOT, create:
+
+/hand-off
+
+This must be a permanent project directory and must NOT be placed inside the frontend, API, or another workspace.
+
+==================================================
+2. REQUIRED STRUCTURE
+==================================================
+
+Create:
+
+hand-off/
+├── MASTER-HANDOFF.md
+├── 2026-08-16-agent-hand-off-system-setup.md
+└── ...
+
+The exact date should use the current project date.
+
+MASTER-HANDOFF.md = current verified project state.
+
+Dated files = historical record of meaningful agent work.
+
+==================================================
+3. CREATE MASTER-HANDOFF.md
+==================================================
+
+Take the MASTER HANDOFF file I provided and place its content into:
+
+/hand-off/MASTER-HANDOFF.md
+
+Do not unnecessarily summarize, rewrite, or remove information.
+
+Preserve:
+
+- Current architecture
+- Completed work
+- Validation results
+- Known limitations
+- Remaining work
+- Important decisions
+- Security boundaries
+- Localization status
+- Runtime limitations
+- Current stopping point
+
+The goal is that a completely new agent with NO previous chat history can read MASTER-HANDOFF.md and understand the current VAR HR state.
+
+==================================================
+4. CREATE THE FIRST WORK LOG
+==================================================
+
+Create:
+
+/hand-off/2026-08-16-agent-hand-off-system-setup.md
+
+Document that this task established the permanent project-level hand-off system.
+
+Include:
+
+# Task
+
+Establish permanent VAR HR hand-off infrastructure.
+
+# Starting State
+
+The project already contained a VAR HR master handoff, but project continuity depended on external conversation history.
+
+# Changes Made
+
+Document:
+
+- Created /hand-off
+- Created MASTER-HANDOFF.md
+- Imported the provided master handoff
+- Established the dated agent work-log convention
+- Established the future-agent continuation procedure
+
+# Validation
+
+Verify:
+
+- /hand-off exists
+- MASTER-HANDOFF.md exists
+- The master handoff content is present
+- The work log exists
+- The directory is at project root
+- The hand-off directory is not ignored by Git
+
+# Application Changes
+
+Explicitly state that no application behavior was intentionally changed by this task.
+
+# Next Recommended Step
+
+Future agents must read MASTER-HANDOFF.md and the most recent relevant work logs before changing the application.
+
+==================================================
+5. PERMANENT RULE FOR ALL FUTURE AGENTS
+==================================================
+
+From now on, every meaningful agent task must leave a record inside:
+
+/hand-off
+
+Use:
+
+YYYY-MM-DD-agent-<short-description>.md
+
+Examples:
+
+2026-08-16-agent-hand-off-system-setup.md
+2026-08-16-agent-part-1-localization.md
+2026-08-17-agent-attendance.md
+2026-08-18-agent-payroll.md
+
+Do not create fake historical records.
+
+Do not create a new file for trivial one-line changes.
+
+Create/update a work log for meaningful implementation, debugging, security, architecture, localization, database, API, UI, testing, or audit work.
+
+==================================================
+6. EVERY FUTURE WORK LOG MUST CONTAIN
+==================================================
+
+# Task
+
+# Starting State
+
+# Investigation
+
+# Changes Made
+
+# Bugs Fixed
+
+# Validation
+
+# Remaining Work
+
+# Known Limitations
+
+# Next Recommended Step
+
+Never claim something was tested if it was not actually tested.
+
+Use:
+
+PASS
+FAIL
+NOT RUN
+BLOCKED
+
+where appropriate.
+
+Never fabricate runtime results, screenshots, API tests, or browser validation.
+
+==================================================
+7. MASTER-HANDOFF UPDATE RULE
+==================================================
+
+After every significant completed task:
+
+1. Read MASTER-HANDOFF.md.
+2. Compare it with the actual implementation.
+3. Update MASTER-HANDOFF.md to represent the NEW VERIFIED CURRENT STATE.
+4. Preserve important historical information.
+5. Clearly record remaining work.
+6. Record the new stopping point.
+
+Do not replace historical work logs.
+
+MASTER-HANDOFF.md represents WHERE THE PROJECT IS NOW.
+
+Dated work logs represent HOW THE PROJECT GOT THERE.
+
+==================================================
+8. FUTURE AGENT STARTUP PROCEDURE
+==================================================
+
+Every future VAR HR agent must:
+
+1. Read /hand-off/MASTER-HANDOFF.md.
+2. Read the most recent relevant dated handoff/work-log files.
+3. Inspect the actual codebase.
+4. Compare documentation with implementation.
+5. Identify what is already complete.
+6. Identify what is actually remaining.
+7. Only then modify code.
+
+A future agent must NEVER rebuild completed functionality simply because it does not have access to previous conversations.
+
+==================================================
+9. IMPORTANT VAR HR RULES
+==================================================
+
+Do not use chat history as the project's only memory.
+
+Do not rebuild existing features.
+
+Do not replace the current architecture without a specific requirement.
+
+Do not introduce authentication, billing, biometric integrations, or other major systems unless the current MASTER-HANDOFF or a direct user request requires them.
+
+The hand-off files are part of the actual project and must remain in Git.
+
+Do not add /hand-off to .gitignore.
+
+==================================================
+10. DO NOT MODIFY THE PRODUCT
+==================================================
+
+For THIS task only:
+
+Do NOT change:
+
+- UI
+- API behavior
+- Database schema
+- Authentication
+- Business logic
+- Localization
+- Routing
+- Dependencies
+- Architecture
+
+Only create and verify the permanent hand-off system.
+
+==================================================
+11. FINAL VERIFICATION
+==================================================
+
+Before finishing:
+
+[ ] /hand-off exists at project root
+[ ] MASTER-HANDOFF.md exists
+[ ] Provided master handoff was preserved accurately
+[ ] First dated work log exists
+[ ] Future work-log format is documented
+[ ] Future-agent startup procedure is documented
+[ ] MASTER-HANDOFF update rule is documented
+[ ] /hand-off is not ignored by Git
+[ ] No unnecessary application changes were made
+
+After completing this, do NOT start Part 2.
+
+Do NOT implement any new product feature.
+
+Simply report the hand-off system that was created and its verification status.

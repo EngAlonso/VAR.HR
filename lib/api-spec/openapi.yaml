@@ -1,0 +1,2650 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: VAR HR operational API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: workspace
+  - name: dashboard
+  - name: organization
+  - name: employees
+  - name: attendance
+  - name: requests
+  - name: rules
+  - name: schedules
+  - name: holidays
+  - name: hr-records
+  - name: reports
+  - name: payroll
+  - name: devices
+  - name: subscriptions
+  - name: platform
+  - name: auth
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in with a username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      summary: Get the current signed-in account
+      responses:
+        "200":
+          description: Signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMeResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: End the current session
+      responses:
+        "204":
+          description: Session ended
+  /auth/permissions:
+    get:
+      operationId: listAuthPermissions
+      tags: [auth]
+      summary: List assignable staff permissions
+      responses:
+        "200":
+          description: Permission catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthPermission"
+  /auth/accounts:
+    get:
+      operationId: listAuthAccounts
+      tags: [auth]
+      summary: List accounts in the active company
+      responses:
+        "200":
+          description: Accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthAccount"
+  /auth/accounts/staff:
+    post:
+      operationId: createStaffAccount
+      tags: [auth]
+      summary: Create a company staff account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffAccountInput"
+      responses:
+        "201":
+          description: Staff account and one-time password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthAccountCredentials"
+  /auth/accounts/{accountId}:
+    patch:
+      operationId: updateAuthAccount
+      tags: [auth]
+      summary: Update a managed account
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthAccountUpdate"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [account]
+                properties:
+                  account:
+                    $ref: "#/components/schemas/AuthAccount"
+  /auth/accounts/{accountId}/reset-password:
+    post:
+      operationId: resetAuthAccountPassword
+      tags: [auth]
+      summary: Reset a managed account password
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: One-time password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemporaryPassword"
+  /workspace:
+    get:
+      operationId: getWorkspace
+      tags: [workspace]
+      summary: Get the active workspace context
+      responses:
+        "200":
+          description: Active workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceContext"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get operational dashboard metrics
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [organization]
+      summary: List departments
+      responses:
+        "200":
+          description: Departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+    post:
+      operationId: createDepartment
+      tags: [organization]
+      summary: Create a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentInput"
+      responses:
+        "201":
+          description: Department created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+  /branches:
+    get:
+      operationId: listBranches
+      tags: [organization]
+      summary: List company branches
+      responses:
+        "200":
+          description: Branches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Branch"
+    post:
+      operationId: createBranch
+      tags: [organization]
+      summary: Create a branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BranchInput"
+      responses:
+        "201":
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Branch"
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List employees in the active tenant
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: status
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/DepartmentId"
+      responses:
+        "200":
+          description: Employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "409":
+          description: Plan limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /employees/{employeeId}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get an employee profile
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    patch:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update an employee profile
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdate"
+      responses:
+        "200":
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+  /attendance/today:
+    get:
+      operationId: getAttendanceToday
+      tags: [attendance]
+      summary: Get today's attendance overview
+      responses:
+        "200":
+          description: Attendance overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceToday"
+  /attendance/history:
+    get:
+      operationId: listAttendanceHistory
+      tags: [attendance]
+      summary: List attendance records
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/EmployeeIdQuery"
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/check-in:
+    post:
+      operationId: checkIn
+      tags: [attendance]
+      summary: Record a current user's check-in
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceEventInput"
+      responses:
+        "201":
+          description: Check-in recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/check-out:
+    post:
+      operationId: checkOut
+      tags: [attendance]
+      summary: Record a current user's check-out
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceEventInput"
+      responses:
+        "201":
+          description: Check-out recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/{attendanceId}/correction:
+    patch:
+      operationId: correctAttendance
+      tags: [attendance]
+      summary: Correct an attendance record
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceCorrectionInput"
+      responses:
+        "200":
+          description: Corrected attendance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+  /leave/balances:
+    get:
+      operationId: listLeaveBalances
+      tags: [requests]
+      summary: List leave balances
+      responses:
+        "200":
+          description: Leave balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaveBalance"
+  /leave/requests:
+    get:
+      operationId: listLeaveRequests
+      tags: [requests]
+      summary: List leave requests
+      responses:
+        "200":
+          description: Leave requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaveRequest"
+    post:
+      operationId: createLeaveRequest
+      tags: [requests]
+      summary: Create a leave request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaveRequestInput"
+      responses:
+        "201":
+          description: Leave request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveRequest"
+  /leave/requests/{requestId}/decision:
+    post:
+      operationId: decideLeaveRequest
+      tags: [requests]
+      summary: Approve or reject a leave request
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestDecisionInput"
+      responses:
+        "200":
+          description: Updated leave request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveRequest"
+  /permissions/requests:
+    get:
+      operationId: listPermissionRequests
+      tags: [requests]
+      summary: List permission requests
+      responses:
+        "200":
+          description: Permission requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PermissionRequest"
+    post:
+      operationId: createPermissionRequest
+      tags: [requests]
+      summary: Create a permission request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionRequestInput"
+      responses:
+        "201":
+          description: Permission request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionRequest"
+  /permissions/requests/{requestId}/decision:
+    post:
+      operationId: decidePermissionRequest
+      tags: [requests]
+      summary: Approve or reject a permission request
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestDecisionInput"
+      responses:
+        "200":
+          description: Updated permission request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionRequest"
+  /rules:
+    get:
+      operationId: getAttendanceRules
+      tags: [rules]
+      summary: Get current attendance rules
+      responses:
+        "200":
+          description: Attendance rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRules"
+    put:
+      operationId: updateAttendanceRules
+      tags: [rules]
+      summary: Update attendance rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceRulesInput"
+      responses:
+        "200":
+          description: Updated attendance rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRules"
+  /schedules:
+    get:
+      operationId: listWorkSchedules
+      tags: [schedules]
+      summary: List work schedules
+      responses:
+        "200":
+          description: Work schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkSchedule"
+    post:
+      operationId: createWorkSchedule
+      tags: [schedules]
+      summary: Create a work schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleInput"
+      responses:
+        "201":
+          description: Work schedule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedule"
+  /schedules/{scheduleId}:
+    patch:
+      operationId: updateWorkSchedule
+      tags: [schedules]
+      summary: Update a work schedule
+      parameters:
+        - $ref: "#/components/parameters/ScheduleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleInput"
+      responses:
+        "200":
+          description: Work schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedule"
+  /employees/{employeeId}/schedule:
+    get:
+      operationId: getEmployeeSchedule
+      tags: [schedules]
+      summary: Get an employee's effective schedule
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Employee schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeSchedule"
+    put:
+      operationId: assignEmployeeSchedule
+      tags: [schedules]
+      summary: Assign a schedule to an employee
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeScheduleInput"
+      responses:
+        "200":
+          description: Employee schedule assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeSchedule"
+  /holidays:
+    get:
+      operationId: listHolidays
+      tags: [holidays]
+      summary: List company holidays
+      responses:
+        "200":
+          description: Holidays
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Holiday"
+    post:
+      operationId: createHoliday
+      tags: [holidays]
+      summary: Create a company holiday
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HolidayInput"
+      responses:
+        "201":
+          description: Holiday created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Holiday"
+  /holidays/{holidayId}:
+    patch:
+      operationId: updateHoliday
+      tags: [holidays]
+      summary: Update a company holiday
+      parameters:
+        - $ref: "#/components/parameters/HolidayId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HolidayInput"
+      responses:
+        "200":
+          description: Holiday updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Holiday"
+    delete:
+      operationId: deleteHoliday
+      tags: [holidays]
+      summary: Delete a company holiday
+      parameters:
+        - $ref: "#/components/parameters/HolidayId"
+      responses:
+        "204":
+          description: Holiday deleted
+  /employees/{employeeId}/hr-record:
+    get:
+      operationId: getEmployeeHrRecord
+      tags: [hr-records]
+      summary: Get an employee HR record
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Employee HR record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeHrRecord"
+    put:
+      operationId: updateEmployeeHrRecord
+      tags: [hr-records]
+      summary: Update an employee HR record
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeHrRecordInput"
+      responses:
+        "200":
+          description: Employee HR record updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeHrRecord"
+  /reports/attendance:
+    get:
+      operationId: getAttendanceReport
+      tags: [reports]
+      summary: Get an attendance report
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: Attendance report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceReport"
+  /reports/data:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get an authorized company-scoped report
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [employees, attendance, leave, permission, overtime, payroll]
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/EmployeeIdQuery"
+        - $ref: "#/components/parameters/DepartmentId"
+        - $ref: "#/components/parameters/Status"
+        - $ref: "#/components/parameters/AttendanceStatus"
+        - $ref: "#/components/parameters/LeaveStatus"
+        - $ref: "#/components/parameters/PermissionStatus"
+        - $ref: "#/components/parameters/PayrollStatus"
+        - $ref: "#/components/parameters/ReportPeriodId"
+        - name: leaveType
+          in: query
+          schema:
+            type: string
+            enum: ["Annual leave", "Sick leave"]
+        - name: permissionType
+          in: query
+          schema:
+            type: string
+            enum:
+              [
+                "Short absence",
+                "Late arrival",
+                "Early departure",
+                "Remote work",
+                "Personal errand",
+              ]
+      responses:
+        "200":
+          description: Authorized report data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+  /employees/import:
+    post:
+      operationId: importEmployees
+      tags: [employees]
+      summary: Import employees from validated CSV rows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeImportInput"
+      responses:
+        "201":
+          description: Employees imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeImportResult"
+        "400":
+          description: Import validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeImportResult"
+  /payroll/periods:
+    get:
+      operationId: listPayrollPeriods
+      tags: [payroll]
+      summary: List payroll periods
+      responses:
+        "200":
+          description: Payroll periods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayrollPeriod"
+    post:
+      operationId: createPayrollPeriod
+      tags: [payroll]
+      summary: Create a company payroll period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollPeriodInput"
+      responses:
+        "201":
+          description: Created payroll period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollPeriod"
+  /payroll/periods/{periodId}/calculate:
+    post:
+      operationId: calculatePayroll
+      tags: [payroll]
+      summary: Calculate a payroll period using general rules
+      parameters:
+        - $ref: "#/components/parameters/PeriodId"
+      responses:
+        "200":
+          description: Payroll calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollCalculation"
+  /payroll/periods/{periodId}/calculation:
+    get:
+      operationId: getPayrollCalculation
+      tags: [payroll]
+      summary: Get the latest payroll calculation for a period
+      parameters:
+        - $ref: "#/components/parameters/PeriodId"
+      responses:
+        "200":
+          description: Latest payroll calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollCalculation"
+  /payroll/periods/{periodId}/finalize:
+    post:
+      operationId: finalizePayroll
+      tags: [payroll]
+      summary: Finalize a calculated payroll period
+      parameters:
+        - $ref: "#/components/parameters/PeriodId"
+      responses:
+        "200":
+          description: Finalized payroll period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollPeriod"
+  /payroll/adjustments:
+    get:
+      operationId: listPayrollAdjustments
+      tags: [payroll]
+      summary: List company payroll additions and deductions
+      parameters:
+        - name: periodId
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/EmployeeIdQuery"
+      responses:
+        "200":
+          description: Payroll adjustments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayrollAdjustment"
+    post:
+      operationId: createPayrollAdjustment
+      tags: [payroll]
+      summary: Create an employee payroll addition or deduction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollAdjustmentInput"
+      responses:
+        "201":
+          description: Created payroll adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollAdjustment"
+  /payroll/adjustments/{adjustmentId}:
+    delete:
+      operationId: deletePayrollAdjustment
+      tags: [payroll]
+      summary: Delete a payroll adjustment
+      parameters:
+        - name: adjustmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Adjustment deleted
+  /payroll/my:
+    get:
+      operationId: getMyPayroll
+      tags: [payroll]
+      summary: Get the current employee's payroll calculation
+      parameters:
+        - name: periodId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Personal payroll calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollCalculation"
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List configured biometric devices
+      responses:
+        "200":
+          description: Devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BiometricDevice"
+    post:
+      operationId: createDevice
+      tags: [devices]
+      summary: Register a biometric device configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceInput"
+      responses:
+        "201":
+          description: Device configuration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricDevice"
+  /devices/providers:
+    get:
+      operationId: listBiometricProviders
+      tags: [devices]
+      summary: List biometric providers available to the workspace
+      responses:
+        "200":
+          description: Biometric providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BiometricProvider"
+  /devices/{deviceId}/sync:
+    post:
+      operationId: syncDevice
+      tags: [devices]
+      summary: Request a device synchronization
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "202":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceSyncStatus"
+  /devices/{deviceId}/sync-history:
+    get:
+      operationId: listDeviceSyncHistory
+      tags: [devices]
+      summary: List biometric device synchronization history
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Synchronization history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceSyncHistory"
+  /devices/{deviceId}/connection-test:
+    post:
+      operationId: testDeviceConnection
+      tags: [devices]
+      summary: Test a registered device connection without simulating success
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device connection test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceConnectionTest"
+  /devices/{deviceId}/mappings:
+    get:
+      operationId: listDeviceMappings
+      tags: [devices]
+      summary: List employee mappings for a biometric device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device employee mappings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceEmployeeMapping"
+    post:
+      operationId: createDeviceMapping
+      tags: [devices]
+      summary: Map a company employee to a device-specific identity
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceEmployeeMappingInput"
+      responses:
+        "201":
+          description: Employee mapping created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceEmployeeMapping"
+  /devices/{deviceId}/mappings/{mappingId}:
+    delete:
+      operationId: deleteDeviceMapping
+      tags: [devices]
+      summary: Remove a device employee mapping
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/MappingId"
+      responses:
+        "204":
+          description: Mapping removed
+  /devices/{deviceId}/events:
+    post:
+      operationId: ingestBiometricEvent
+      tags: [devices]
+      summary: Store a raw biometric event for adapter processing
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BiometricEventInput"
+      responses:
+        "201":
+          description: Raw event stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricEventReceipt"
+        "200":
+          description: Duplicate raw event acknowledged idempotently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricEventReceipt"
+  /attendance/locations:
+    get:
+      operationId: listAttendanceLocations
+      tags: [attendance]
+      summary: List company attendance locations
+      responses:
+        "200":
+          description: Attendance locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceLocation"
+    post:
+      operationId: createAttendanceLocation
+      tags: [attendance]
+      summary: Create a company attendance location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceLocationInput"
+      responses:
+        "201":
+          description: Attendance location created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceLocation"
+  /attendance/locations/{locationId}:
+    patch:
+      operationId: updateAttendanceLocation
+      tags: [attendance]
+      summary: Update a company attendance location
+      parameters:
+        - $ref: "#/components/parameters/LocationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceLocationInput"
+      responses:
+        "200":
+          description: Attendance location updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceLocation"
+  /subscription:
+    get:
+      operationId: getSubscription
+      tags: [subscriptions]
+      summary: Get subscription usage and feature entitlements
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+  /platform/companies:
+    get:
+      operationId: listPlatformCompanies
+      tags: [platform]
+      summary: List companies for the platform administration experience
+      responses:
+        "200":
+          description: Platform companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformCompany"
+    post:
+      operationId: createPlatformCompany
+      tags: [platform]
+      summary: Create a company and its first Company Owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformCompanyInput"
+      responses:
+        "201":
+          description: Company and owner credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformCompanyCredentials"
+  /platform/companies/{companyId}:
+    patch:
+      operationId: updatePlatformCompany
+      tags: [platform]
+      summary: Suspend or change the employee limit for a company
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformCompanyUpdate"
+      responses:
+        "200":
+          description: Updated company
+components:
+  parameters:
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+    Status:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [active, inactive, all]
+    AttendanceStatus:
+      name: attendanceStatus
+      in: query
+      schema:
+        type: string
+        enum: [present, late, absent, on_leave, incomplete, holiday]
+    LeaveStatus:
+      name: leaveStatus
+      in: query
+      schema:
+        type: string
+        enum: [pending, approved, rejected, cancelled]
+    PermissionStatus:
+      name: permissionStatus
+      in: query
+      schema:
+        type: string
+        enum: [pending, approved, rejected, cancelled]
+    PayrollStatus:
+      name: payrollStatus
+      in: query
+      schema:
+        type: string
+        enum: [draft, calculated, finalized, approved, locked]
+    DepartmentId:
+      name: departmentId
+      in: query
+      schema:
+        type: string
+    EmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      schema:
+        type: string
+    EmployeeIdQuery:
+      name: employeeId
+      in: query
+      schema:
+        type: string
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+    AttendanceId:
+      name: attendanceId
+      in: path
+      required: true
+      schema:
+        type: string
+    PeriodId:
+      name: periodId
+      in: path
+      required: true
+      schema:
+        type: string
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+    MappingId:
+      name: mappingId
+      in: path
+      required: true
+      schema:
+        type: string
+    LocationId:
+      name: locationId
+      in: path
+      required: true
+      schema:
+        type: string
+    ScheduleId:
+      name: scheduleId
+      in: path
+      required: true
+      schema:
+        type: string
+    HolidayId:
+      name: holidayId
+      in: path
+      required: true
+      schema:
+        type: string
+    DateFrom:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
+    ReportPeriodId:
+      name: periodId
+      in: query
+      schema:
+        type: string
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        code:
+          type: ["string", "null"]
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
+    AuthPermission:
+      type: object
+      required: [key, label, description]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        description: { type: string }
+    AuthAccount:
+      type: object
+      required:
+        [
+          id,
+          username,
+          accountType,
+          displayRole,
+          companyId,
+          employeeId,
+          active,
+          permissions,
+        ]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        accountType:
+          type: string
+          enum: [platform_owner, company_owner, staff, employee]
+        displayRole: { type: string }
+        companyId: { type: ["string", "null"] }
+        employeeId: { type: ["string", "null"] }
+        active: { type: boolean }
+        permissions:
+          type: array
+          items: { type: string }
+    AuthSessionResponse:
+      type: object
+      required: [user, redirectTo]
+      properties:
+        user: { $ref: "#/components/schemas/AuthAccount" }
+        redirectTo: { type: string }
+    AuthMeResponse:
+      type: object
+      required: [user]
+      properties:
+        user: { $ref: "#/components/schemas/AuthAccount" }
+    StaffAccountInput:
+      type: object
+      required: [username, displayRole, permissions]
+      properties:
+        username: { type: string, minLength: 3 }
+        displayRole: { type: string, minLength: 1 }
+        password: { type: ["string", "null"], minLength: 10 }
+        permissions:
+          type: array
+          items: { type: string }
+        active: { type: boolean, default: true }
+    AuthAccountUpdate:
+      type: object
+      properties:
+        displayRole: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        active: { type: boolean }
+    TemporaryPassword:
+      type: object
+      required: [temporaryPassword]
+      properties:
+        temporaryPassword: { type: string }
+    AuthAccountCredentials:
+      type: object
+      required: [account, temporaryPassword]
+      properties:
+        account: { $ref: "#/components/schemas/AuthAccount" }
+        temporaryPassword: { type: string }
+    PlatformCompanyInput:
+      type: object
+      required: [name, employeeLimit, ownerUsername]
+      properties:
+        name: { type: string, minLength: 2 }
+        slug: { type: string }
+        timezone: { type: string, default: Africa/Cairo }
+        currency: { type: string, minLength: 3, maxLength: 3, default: EGP }
+        employeeLimit: { type: integer, minimum: 1 }
+        ownerUsername: { type: string, minLength: 3 }
+        ownerPassword: { type: ["string", "null"], minLength: 10 }
+        active: { type: boolean, default: true }
+    PlatformCompanyUpdate:
+      type: object
+      properties:
+        active: { type: boolean }
+        status:
+          type: string
+          enum: [active, suspended]
+        employeeLimit: { type: integer, minimum: 1 }
+    PlatformCompanyCredentials:
+      type: object
+      required: [company, owner, temporaryPassword]
+      properties:
+        company:
+          type: object
+          required: [id, name, slug, active, employeeLimit]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            slug: { type: string }
+            timezone: { type: string }
+            currency: { type: string }
+            active: { type: boolean }
+            employeeLimit: { type: integer }
+        owner: { $ref: "#/components/schemas/AuthAccount" }
+        temporaryPassword: { type: string }
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+    WorkspaceContext:
+      type: object
+      required: [company, role, employeeId, locale, direction]
+      properties:
+        company:
+          $ref: "#/components/schemas/Company"
+        role:
+          type: string
+          enum: [platform_owner, company_owner, manager, employee]
+        employeeId: { type: ["string", "null"] }
+        locale:
+          type: string
+          enum: [en, ar, fr, de]
+        direction:
+          type: string
+          enum: [ltr, rtl]
+        capabilities:
+          type: array
+          items:
+            type: string
+    Company:
+      type: object
+      required: [id, name, slug, timezone, currency]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        timezone: { type: string }
+        currency: { type: string }
+    DashboardSummary:
+      type: object
+      required:
+        [date, workforce, attendance, requests, payroll, devices, alerts]
+      properties:
+        date: { type: string, format: date }
+        workforce:
+          $ref: "#/components/schemas/WorkforceSummary"
+        attendance:
+          $ref: "#/components/schemas/AttendanceSummary"
+        requests:
+          $ref: "#/components/schemas/RequestSummary"
+        payroll:
+          $ref: "#/components/schemas/PayrollSummary"
+        devices:
+          $ref: "#/components/schemas/DeviceSummary"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alert"
+    WorkforceSummary:
+      type: object
+      required: [activeEmployees, activeManagers, departments, branches]
+      properties:
+        activeEmployees: { type: integer }
+        activeManagers: { type: integer }
+        departments: { type: integer }
+        branches: { type: integer }
+    AttendanceSummary:
+      type: object
+      required: [present, late, absent, onLeave, overtimeHours]
+      properties:
+        present: { type: integer }
+        late: { type: integer }
+        absent: { type: integer }
+        onLeave: { type: integer }
+        overtimeHours: { type: number }
+    RequestSummary:
+      type: object
+      required: [pendingLeave, pendingPermissions]
+      properties:
+        pendingLeave: { type: integer }
+        pendingPermissions: { type: integer }
+    PayrollSummary:
+      type: object
+      required: [periodLabel, status, totalNet]
+      properties:
+        periodLabel: { type: string }
+        status:
+          type: string
+          enum: [draft, calculated, finalized, approved, locked]
+        totalNet: { type: number }
+    DeviceSummary:
+      type: object
+      required: [total, connected, attention]
+      properties:
+        total: { type: integer }
+        connected: { type: integer }
+        attention: { type: integer }
+    Alert:
+      type: object
+      required: [id, severity, title, detail]
+      properties:
+        id: { type: string }
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        title: { type: string }
+        detail: { type: string }
+    Department:
+      type: object
+      required: [id, name, employeeCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        employeeCount: { type: integer }
+    DepartmentInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+    Branch:
+      type: object
+      required: [id, name, city, employeeCount, gpsEnabled]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        city: { type: string }
+        employeeCount: { type: integer }
+        gpsEnabled: { type: boolean }
+    BranchInput:
+      type: object
+      required: [name, city]
+      properties:
+        name: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        gpsEnabled: { type: boolean, default: false }
+        latitude: { type: ["number", "null"] }
+        longitude: { type: ["number", "null"] }
+        radiusMeters: { type: ["integer", "null"], minimum: 0 }
+    Employee:
+      type: object
+      required:
+        [
+          id,
+          employeeNumber,
+          firstName,
+          lastName,
+          email,
+          department,
+          branch,
+          status,
+          role,
+          joinedOn,
+          salary,
+        ]
+      properties:
+        id: { type: string }
+        employeeNumber: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: ["string", "null"] }
+        department:
+          $ref: "#/components/schemas/Department"
+        branch:
+          $ref: "#/components/schemas/Branch"
+        status:
+          type: string
+          enum: [active, inactive]
+        role:
+          type: string
+          enum: [employee, manager]
+        joinedOn: { type: string, format: date }
+        salary: { type: number }
+        avatarInitials: { type: string }
+    EmployeeInput:
+      type: object
+      required:
+        [firstName, lastName, email, departmentId, branchId, joinedOn, salary]
+      properties:
+        firstName: { type: string, minLength: 1 }
+        lastName: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        departmentId: { type: string }
+        branchId: { type: string }
+        joinedOn: { type: string, format: date }
+        salary: { type: number, minimum: 0 }
+        role:
+          type: string
+          enum: [employee, manager]
+    EmployeeUpdate:
+      type: object
+      properties:
+        firstName: { type: string, minLength: 1 }
+        lastName: { type: string, minLength: 1 }
+        phone: { type: string }
+        departmentId: { type: string }
+        branchId: { type: string }
+        salary: { type: number, minimum: 0 }
+        status:
+          type: string
+          enum: [active, inactive]
+    AttendanceEventInput:
+      type: object
+      properties:
+        latitude: { type: ["number", "null"] }
+        longitude: { type: ["number", "null"] }
+        accuracyMeters: { type: ["number", "null"] }
+        capturedAt: { type: ["string", "null"], format: date-time }
+        source:
+          type: string
+          enum: [web, mobile, biometric, manual]
+          default: web
+    AttendanceCorrectionInput:
+      type: object
+      required: [reason]
+      properties:
+        checkIn: { type: ["string", "null"], format: date-time }
+        checkOut: { type: ["string", "null"], format: date-time }
+        status:
+          type: string
+          enum: [present, late, absent, on_leave, incomplete, holiday]
+        reason: { type: string, minLength: 1 }
+    AttendanceToday:
+      type: object
+      required: [date, records, summary]
+      properties:
+        date: { type: string, format: date }
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+        summary:
+          $ref: "#/components/schemas/AttendanceSummary"
+    AttendanceRecord:
+      type: object
+      required:
+        [
+          id,
+          employee,
+          date,
+          status,
+          scheduledStart,
+          checkIn,
+          checkOut,
+          workedHours,
+          overtimeHours,
+          lateMinutes,
+          source,
+        ]
+      properties:
+        id: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        date: { type: string, format: date }
+        status:
+          type: string
+          enum: [present, late, absent, on_leave, incomplete, holiday]
+        scheduledStart: { type: string }
+        checkIn: { type: ["string", "null"], format: date-time }
+        checkOut: { type: ["string", "null"], format: date-time }
+        workedHours: { type: number }
+        overtimeHours: { type: number }
+        lateMinutes: { type: integer }
+        locationStatus:
+          type: string
+          enum:
+            [not_required, verified, outside_geofence, low_accuracy, pending]
+        source:
+          type: string
+          enum: [web, mobile, biometric, manual]
+        explanation: { type: string }
+    EmployeeReference:
+      type: object
+      required: [id, name, initials, department]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        initials: { type: string }
+        department: { type: string }
+    LeaveBalance:
+      type: object
+      required: [id, employee, type, allocated, used, pending, remaining]
+      properties:
+        id: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        type: { type: string }
+        allocated: { type: number }
+        used: { type: number }
+        pending: { type: number }
+        remaining: { type: number }
+    LeaveRequest:
+      type: object
+      required:
+        [id, employee, type, from, to, days, reason, status, submittedAt]
+      properties:
+        id: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        type: { type: string }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        days: { type: number }
+        reason: { type: string }
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        submittedAt: { type: string, format: date-time }
+        decidedBy: { type: ["string", "null"] }
+        decisionReason: { type: ["string", "null"] }
+    LeaveRequestInput:
+      type: object
+      required: [type, from, to, reason]
+      properties:
+        type: { type: string }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        reason: { type: string, minLength: 1 }
+    PermissionRequest:
+      type: object
+      required:
+        [
+          id,
+          employee,
+          type,
+          date,
+          startTime,
+          endTime,
+          reason,
+          status,
+          submittedAt,
+        ]
+      properties:
+        id: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        type: { type: string }
+        date: { type: string, format: date }
+        startTime: { type: string }
+        endTime: { type: string }
+        reason: { type: string }
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        submittedAt: { type: string, format: date-time }
+        decisionReason: { type: ["string", "null"] }
+    PermissionRequestInput:
+      type: object
+      required: [type, date, startTime, endTime, reason]
+      properties:
+        type: { type: string }
+        date: { type: string, format: date }
+        startTime: { type: string }
+        endTime: { type: string }
+        reason: { type: string, minLength: 1 }
+    RequestDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+        reason: { type: string }
+    AttendanceRules:
+      type: object
+      required:
+        [
+          workStart,
+          workEnd,
+          scheduleName,
+          requiredHours,
+          graceMinutes,
+          earlyCheckoutGraceMinutes,
+          overtimeAfterMinutes,
+          overtimeEligible,
+          overtimeMethod,
+          overtimeMultiplier,
+          hourlyRateDivisor,
+          lateDeductionMethod,
+          lateDeductionFactor,
+          earlyCheckoutDeductionFactor,
+          absenceDeductionMethod,
+          absenceDeductionFactor,
+          workingDays,
+          holidayDates,
+          gpsPolicy,
+        ]
+      properties:
+        workStart: { type: string }
+        workEnd: { type: string }
+        scheduleName: { type: string }
+        requiredHours: { type: number, minimum: 0 }
+        graceMinutes: { type: integer, minimum: 0 }
+        earlyCheckoutGraceMinutes: { type: integer, minimum: 0 }
+        overtimeAfterMinutes: { type: integer, minimum: 0 }
+        overtimeEligible: { type: boolean }
+        overtimeMethod:
+          type: string
+          enum: [multiplier, hourly_rate]
+        overtimeMultiplier: { type: number, minimum: 0 }
+        hourlyRateDivisor: { type: integer, minimum: 1 }
+        lateDeductionMethod:
+          type: string
+          enum: [hourly_rate, fixed_per_minute, none]
+        lateDeductionFactor: { type: number, minimum: 0 }
+        earlyCheckoutDeductionFactor: { type: number, minimum: 0 }
+        absenceDeductionMethod:
+          type: string
+          enum: [daily_rate, fixed_per_day, none]
+        absenceDeductionFactor: { type: number, minimum: 0 }
+        workingDays:
+          type: array
+          items: { type: string }
+        holidayDates:
+          type: array
+          items: { type: string, format: date }
+        gpsPolicy:
+          type: string
+          enum: [disabled, optional, required]
+        locationRadiusMeters: { type: integer, minimum: 0 }
+        version: { type: integer }
+        effectiveFrom: { type: string, format: date }
+    AttendanceRulesInput:
+      type: object
+      required:
+        [
+          workStart,
+          workEnd,
+          scheduleName,
+          requiredHours,
+          graceMinutes,
+          earlyCheckoutGraceMinutes,
+          overtimeAfterMinutes,
+          overtimeEligible,
+          overtimeMethod,
+          overtimeMultiplier,
+          hourlyRateDivisor,
+          lateDeductionMethod,
+          lateDeductionFactor,
+          earlyCheckoutDeductionFactor,
+          absenceDeductionMethod,
+          absenceDeductionFactor,
+          workingDays,
+          holidayDates,
+          gpsPolicy,
+          locationRadiusMeters,
+        ]
+      properties:
+        workStart: { type: string }
+        workEnd: { type: string }
+        scheduleName: { type: string, minLength: 1 }
+        requiredHours: { type: number, minimum: 0 }
+        graceMinutes: { type: integer, minimum: 0 }
+        earlyCheckoutGraceMinutes: { type: integer, minimum: 0 }
+        overtimeAfterMinutes: { type: integer, minimum: 0 }
+        overtimeEligible: { type: boolean }
+        overtimeMethod:
+          type: string
+          enum: [multiplier, hourly_rate]
+        overtimeMultiplier: { type: number, minimum: 0 }
+        hourlyRateDivisor: { type: integer, minimum: 1 }
+        lateDeductionMethod:
+          type: string
+          enum: [hourly_rate, fixed_per_minute, none]
+        lateDeductionFactor: { type: number, minimum: 0 }
+        earlyCheckoutDeductionFactor: { type: number, minimum: 0 }
+        absenceDeductionMethod:
+          type: string
+          enum: [daily_rate, fixed_per_day, none]
+        absenceDeductionFactor: { type: number, minimum: 0 }
+        workingDays:
+          type: array
+          items: { type: string }
+        holidayDates:
+          type: array
+          items: { type: string, format: date }
+        gpsPolicy:
+          type: string
+          enum: [disabled, optional, required]
+        locationRadiusMeters: { type: integer, minimum: 0 }
+    AttendanceReport:
+      type: object
+      required: [from, to, totals, rows]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        totals:
+          $ref: "#/components/schemas/AttendanceSummary"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceReportRow"
+    AttendanceReportRow:
+      type: object
+      required:
+        [
+          employee,
+          presentDays,
+          lateDays,
+          absentDays,
+          overtimeHours,
+          workedHours,
+        ]
+      properties:
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        presentDays: { type: integer }
+        lateDays: { type: integer }
+        absentDays: { type: integer }
+        overtimeHours: { type: number }
+        workedHours: { type: number }
+    Report:
+      type: object
+      required: [reportType, company, from, to, currency, totals, rows]
+      properties:
+        reportType:
+          type: string
+          enum: [employees, attendance, leave, permission, overtime, payroll]
+        company:
+          $ref: "#/components/schemas/Company"
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        currency: { type: string }
+        periodLabel: { type: string }
+        totals:
+          $ref: "#/components/schemas/ReportTotals"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportRow"
+    ReportTotals:
+      type: object
+      required:
+        [
+          records,
+          workedHours,
+          overtimeHours,
+          overtimeAmount,
+          presentDays,
+          lateDays,
+          absentDays,
+          leaveDays,
+          gross,
+          additions,
+          deductions,
+          net,
+        ]
+      properties:
+        records: { type: integer }
+        workedHours: { type: number }
+        overtimeHours: { type: number }
+        overtimeAmount: { type: number }
+        presentDays: { type: integer }
+        lateDays: { type: integer }
+        absentDays: { type: integer }
+        leaveDays: { type: number }
+        gross: { type: number }
+        additions: { type: number }
+        deductions: { type: number }
+        net: { type: number }
+    ReportRow:
+      type: object
+      required: [employee]
+      properties:
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        department: { type: string }
+        branch: { type: string }
+        email: { type: string }
+        joinedOn: { type: string, format: date }
+        salary: { type: number }
+        date: { type: ["string", "null"], format: date }
+        from: { type: ["string", "null"], format: date }
+        to: { type: ["string", "null"], format: date }
+        checkIn: { type: ["string", "null"], format: date-time }
+        checkOut: { type: ["string", "null"], format: date-time }
+        workedHours: { type: number }
+        lateMinutes: { type: integer }
+        earlyCheckoutMinutes: { type: integer }
+        overtimeHours: { type: number }
+        overtimeAmount: { type: number }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        durationHours: { type: number }
+        attendanceStatus: { type: string }
+        locationStatus: { type: string }
+        type: { type: string }
+        status: { type: string }
+        reason: { type: string }
+        days: { type: number }
+        periodId: { type: string }
+        periodLabel: { type: string }
+        payrollStatus: { type: string }
+        gross: { type: number }
+        additions: { type: number }
+        deductions: { type: number }
+        net: { type: number }
+        regularHours: { type: number }
+        absentDays: { type: number }
+        payrollLineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollLineItem"
+    EmployeeImportInput:
+      type: object
+      required: [headers, rows]
+      properties:
+        headers:
+          type: array
+          minItems: 1
+          items: { type: string }
+        rows:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: true
+    EmployeeImportResult:
+      type: object
+      required: [imported, failed, rows]
+      properties:
+        imported: { type: integer }
+        failed: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [row, success]
+            properties:
+              row: { type: integer }
+              success: { type: boolean }
+              employeeId: { type: ["string", "null"] }
+              error: { type: ["string", "null"] }
+    PayrollPeriod:
+      type: object
+      required:
+        [
+          id,
+          label,
+          from,
+          to,
+          status,
+          employeeCount,
+          totalNet,
+          finalizedAt,
+          finalizedBy,
+        ]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        status:
+          type: string
+          enum: [draft, calculated, finalized, approved, locked]
+        employeeCount: { type: integer }
+        totalNet: { type: number }
+        finalizedAt: { type: ["string", "null"], format: date-time }
+        finalizedBy: { type: ["string", "null"] }
+    PayrollPeriodInput:
+      type: object
+      required: [label, from, to]
+      properties:
+        label: { type: string, minLength: 1 }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+    PayrollCalculation:
+      type: object
+      required: [period, calculatedAt, items, totals, explanation]
+      properties:
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        calculatedAt: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollEmployee"
+        totals:
+          $ref: "#/components/schemas/PayrollTotals"
+        explanation: { type: string }
+    PayrollEmployee:
+      type: object
+      required:
+        [
+          employee,
+          basicSalary,
+          additions,
+          overtime,
+          attendanceDeductions,
+          otherDeductions,
+          netSalary,
+          regularHours,
+          overtimeHours,
+          lateMinutes,
+          earlyCheckoutMinutes,
+          missingHours,
+          absentDays,
+          lineItems,
+        ]
+      properties:
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        basicSalary: { type: number }
+        additions: { type: number }
+        overtime: { type: number }
+        attendanceDeductions: { type: number }
+        otherDeductions: { type: number }
+        netSalary: { type: number }
+        regularHours: { type: number }
+        overtimeHours: { type: number }
+        lateMinutes: { type: integer }
+        earlyCheckoutMinutes: { type: integer }
+        missingHours: { type: number }
+        absentDays: { type: number }
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollLineItem"
+    PayrollLineItem:
+      type: object
+      required: [label, amount, type, explanation]
+      properties:
+        label: { type: string }
+        amount: { type: number }
+        type:
+          type: string
+          enum:
+            [
+              basic,
+              addition,
+              overtime,
+              attendance_deduction,
+              early_checkout_deduction,
+              absence_deduction,
+              deduction,
+            ]
+        explanation: { type: string }
+    PayrollTotals:
+      type: object
+      required:
+        [
+          basicSalary,
+          additions,
+          overtime,
+          attendanceDeductions,
+          otherDeductions,
+          netSalary,
+        ]
+      properties:
+        basicSalary: { type: number }
+        additions: { type: number }
+        overtime: { type: number }
+        attendanceDeductions: { type: number }
+        otherDeductions: { type: number }
+        netSalary: { type: number }
+    PayrollAdjustment:
+      type: object
+      required:
+        [id, periodId, employee, type, category, amount, reason, createdAt]
+      properties:
+        id: { type: string }
+        periodId: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        type:
+          type: string
+          enum: [addition, deduction]
+        category:
+          type: string
+          enum: [fixed, variable]
+        amount: { type: number, minimum: 0 }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+    PayrollAdjustmentInput:
+      type: object
+      required: [periodId, employeeId, type, category, amount, reason]
+      properties:
+        periodId: { type: string }
+        employeeId: { type: string }
+        type:
+          type: string
+          enum: [addition, deduction]
+        category:
+          type: string
+          enum: [fixed, variable]
+        amount: { type: number, minimum: 0 }
+        reason: { type: string, minLength: 1 }
+    WorkSchedule:
+      type: object
+      required:
+        [
+          id,
+          name,
+          workingDays,
+          startTime,
+          endTime,
+          requiredHours,
+          graceMinutes,
+          overtimeAfterMinutes,
+          overtimeEligible,
+          active,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        workingDays:
+          type: array
+          items: { type: string }
+        startTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        endTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        requiredHours: { type: integer, minimum: 0, maximum: 24 }
+        graceMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        overtimeAfterMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        overtimeEligible: { type: boolean }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WorkScheduleInput:
+      type: object
+      required:
+        [
+          name,
+          workingDays,
+          startTime,
+          endTime,
+          requiredHours,
+          graceMinutes,
+          overtimeAfterMinutes,
+          overtimeEligible,
+        ]
+      properties:
+        name: { type: string, minLength: 1 }
+        workingDays:
+          type: array
+          minItems: 1
+          items: { type: string }
+        startTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        endTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        requiredHours: { type: integer, minimum: 0, maximum: 24 }
+        graceMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        overtimeAfterMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        overtimeEligible: { type: boolean }
+        active: { type: boolean, default: true }
+    ScheduleAssignment:
+      type: object
+      required: [id, scheduleId, effectiveFrom, effectiveTo]
+      properties:
+        id: { type: string }
+        scheduleId: { type: string }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: ["string", "null"], format: date }
+    EmployeeSchedule:
+      type: object
+      required: [employeeId, schedule, assignment]
+      properties:
+        employeeId: { type: string }
+        schedule:
+          oneOf:
+            - $ref: "#/components/schemas/WorkSchedule"
+            - type: "null"
+        assignment:
+          oneOf:
+            - $ref: "#/components/schemas/ScheduleAssignment"
+            - type: "null"
+    EmployeeScheduleInput:
+      type: object
+      required: [scheduleId, effectiveFrom]
+      properties:
+        scheduleId: { type: string }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: ["string", "null"], format: date }
+    Holiday:
+      type: object
+      required: [id, name, date, recurring, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        date: { type: string, format: date }
+        recurring: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    HolidayInput:
+      type: object
+      required: [name, date]
+      properties:
+        name: { type: string, minLength: 1 }
+        date: { type: string, format: date }
+        recurring: { type: boolean, default: false }
+    EmployeeHrRecord:
+      type: object
+      required:
+        [
+          id,
+          employeeId,
+          jobTitle,
+          employmentType,
+          managerId,
+          address,
+          emergencyContactName,
+          emergencyContactPhone,
+          notes,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id: { type: string }
+        employeeId: { type: string }
+        jobTitle: { type: ["string", "null"] }
+        employmentType: { type: ["string", "null"] }
+        managerId: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        emergencyContactName: { type: ["string", "null"] }
+        emergencyContactPhone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    EmployeeHrRecordInput:
+      type: object
+      properties:
+        jobTitle: { type: ["string", "null"] }
+        employmentType: { type: ["string", "null"] }
+        managerId: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        emergencyContactName: { type: ["string", "null"] }
+        emergencyContactPhone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    BiometricDevice:
+      type: object
+      required:
+        [
+          id,
+          name,
+          manufacturer,
+          model,
+          branch,
+          adapterKey,
+          connectionType,
+          host,
+          port,
+          deviceIdentifier,
+          status,
+          integrationState,
+          connectionState,
+          lastSync,
+          lastHealthCheck,
+          mappedEmployeeCount,
+        ]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        manufacturer: { type: string }
+        model: { type: string }
+        branch: { type: string }
+        adapterKey: { type: string }
+        connectionType:
+          type: string
+          enum: [unknown, lan, http, cloud]
+        host: { type: ["string", "null"] }
+        port: { type: ["integer", "null"], minimum: 1, maximum: 65535 }
+        deviceIdentifier: { type: ["string", "null"] }
+        status:
+          type: string
+          enum: [connected, attention, offline, not_configured]
+        lastSync: { type: ["string", "null"], format: date-time }
+        integrationState:
+          type: string
+          enum: [adapter_pending, configured, syncing, unavailable]
+        connectionState:
+          type: string
+          enum:
+            [
+              connected,
+              unreachable,
+              authentication_failure,
+              unsupported,
+              configuration_error,
+              unknown,
+            ]
+        lastHealthCheck: { type: ["string", "null"], format: date-time }
+        mappedEmployeeCount: { type: integer, minimum: 0 }
+        note: { type: string }
+    DeviceInput:
+      type: object
+      required: [name, manufacturer, model, branchId]
+      properties:
+        name: { type: string }
+        manufacturer: { type: string }
+        model: { type: string }
+        branchId: { type: string }
+        adapterKey: { type: string, minLength: 1, default: generic }
+        connectionType:
+          type: string
+          enum: [unknown, lan, http, cloud]
+          default: unknown
+        host: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        deviceIdentifier: { type: string }
+    DeviceSyncStatus:
+      type: object
+      required: [deviceId, status, message]
+      properties:
+        deviceId: { type: string }
+        status:
+          type: string
+          enum: [queued, unavailable, completed]
+        message: { type: string }
+    BiometricProvider:
+      type: object
+      required: [key, name, available, description]
+      properties:
+        key: { type: string }
+        name: { type: string }
+        available: { type: boolean }
+        description: { type: string }
+    DeviceSyncHistory:
+      type: object
+      required:
+        [
+          id,
+          deviceId,
+          providerKey,
+          operation,
+          status,
+          message,
+          eventsReceived,
+          eventsProcessed,
+          errorCount,
+          startedAt,
+          completedAt,
+        ]
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        providerKey: { type: string }
+        operation:
+          type: string
+          enum: [employee_sync, attendance_sync, full_sync]
+        status:
+          type: string
+          enum: [queued, running, completed, failed, unavailable]
+        message: { type: string }
+        eventsReceived: { type: integer, minimum: 0 }
+        eventsProcessed: { type: integer, minimum: 0 }
+        errorCount: { type: integer, minimum: 0 }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+    DeviceConnectionTest:
+      type: object
+      required: [deviceId, status, message, testedAt]
+      properties:
+        deviceId: { type: string }
+        status:
+          type: string
+          enum:
+            [
+              connected,
+              unreachable,
+              authentication_failure,
+              unsupported,
+              configuration_error,
+              unknown,
+            ]
+        message: { type: string }
+        testedAt: { type: string, format: date-time }
+    DeviceEmployeeMapping:
+      type: object
+      required: [id, deviceId, deviceEmployeeId, employee, active]
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        deviceEmployeeId: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        active: { type: boolean }
+        temporaryPassword:
+          type: ["string", "null"]
+          description: Returned only when biometric onboarding creates a new employee account.
+    DeviceEmployeeMappingInput:
+      type: object
+      required: [employeeId, deviceEmployeeId]
+      properties:
+        employeeId: { type: string }
+        deviceEmployeeId: { type: string, minLength: 1 }
+    BiometricEventInput:
+      type: object
+      required:
+        [deviceEmployeeId, occurredAt, eventType, direction, idempotencyKey]
+      properties:
+        deviceEmployeeId: { type: string, minLength: 1 }
+        occurredAt: { type: string, format: date-time }
+        eventType: { type: string, minLength: 1 }
+        direction:
+          type: string
+          enum: [in, out, unknown]
+        idempotencyKey: { type: string, minLength: 1 }
+        rawPayload: { type: object, additionalProperties: true, default: {} }
+    BiometricEventReceipt:
+      type: object
+      required:
+        [
+          id,
+          deviceId,
+          deviceEmployeeId,
+          employeeId,
+          occurredAt,
+          processingStatus,
+          duplicate,
+        ]
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        deviceEmployeeId: { type: string }
+        employeeId: { type: ["string", "null"] }
+        occurredAt: { type: string, format: date-time }
+        processingStatus:
+          type: string
+          enum: [received, mapped, pending_adapter]
+        duplicate: { type: boolean }
+    AttendanceLocation:
+      type: object
+      required: [id, name, latitude, longitude, radiusMeters, active]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        radiusMeters: { type: integer, minimum: 1, maximum: 100000 }
+        active: { type: boolean }
+    AttendanceLocationInput:
+      type: object
+      required: [name, latitude, longitude, radiusMeters]
+      properties:
+        name: { type: string, minLength: 1 }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        radiusMeters: { type: integer, minimum: 1, maximum: 100000 }
+        active: { type: boolean, default: true }
+    SubscriptionStatus:
+      type: object
+      required: [planName, status, activeEmployees, employeeLimit, features]
+      properties:
+        planName: { type: string }
+        status:
+          type: string
+          enum: [trial, active, past_due, cancelled]
+        activeEmployees: { type: integer }
+        employeeLimit: { type: integer }
+        features:
+          type: array
+          items: { type: string }
+    PlatformCompany:
+      type: object
+      required:
+        [
+          id,
+          name,
+          status,
+          planName,
+          activeEmployees,
+          employeeLimit,
+          lastActivity,
+        ]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        status:
+          type: string
+          enum: [active, trial, suspended]
+        planName: { type: string }
+        activeEmployees: { type: integer }
+        employeeLimit: { type: integer }
+        lastActivity: { type: string, format: date-time }

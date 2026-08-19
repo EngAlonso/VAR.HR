@@ -1,0 +1,291 @@
+Continue VAR HR Part 7 — Task 4 from the CURRENT repository state.
+
+Task 1, Task 2, and Task 3 are COMPLETE.
+
+Do NOT redo any completed task.
+Do NOT perform a full project audit.
+Do NOT start Task 5 or Task 6.
+
+# Task 4 — Complete Employee HR Records
+
+The Employee HR Record API boundary was implemented in Task 1.
+
+Now complete the actual HR-record functionality so authorized users can manage and view a complete employee HR profile through the existing VAR HR architecture.
+
+## 1. Employee HR profile
+
+Complete the existing HR-record model/API behavior using the fields already defined by the current schema and contracts.
+
+The HR record should support the employee information already established by the project, such as:
+
+- personal/employee information
+- employment information
+- job/department information
+- manager relationship
+- hiring/employment dates
+- salary information where already supported
+- emergency/contact information where already supported
+- HR notes/documents/metadata where already supported
+
+Do NOT invent a completely new employee model.
+
+Use the existing employee and HR-record schemas.
+
+If a required field already exists elsewhere in the employee model, reuse it rather than duplicating it in the HR record.
+
+## 2. Employee access
+
+An Employee may:
+
+- view their own authorized HR information.
+- never view another employee's HR record.
+- never modify confidential/company-level HR settings.
+
+Respect the existing authorization helpers.
+
+## 3. Manager access
+
+A Manager may:
+
+- view HR records for employees within their authorized management scope.
+- update only fields the existing permission model allows.
+- never access employees outside their scope.
+- never gain company-wide access simply because they are a Manager.
+
+Do not create new permission semantics unless the existing system has no suitable permission for the required operation.
+
+## 4. Owner / authorized HR access
+
+Owner or authorized HR users may:
+
+- view employee HR records within their company.
+- create/update HR information where allowed by the existing model.
+- manage employee employment information according to existing permissions.
+
+Keep all queries company-scoped.
+
+## 5. Developer access
+
+Developer must remain separate from Owner.
+
+Developer access must NOT automatically expose:
+
+- salaries
+- payroll information
+- confidential employee HR information
+
+Only expose technical/integration information where the existing permission model explicitly allows it.
+
+## 6. Tenant isolation
+
+Every HR-record operation must verify company ownership.
+
+Test:
+
+- Employee A cannot access Employee B in the same company when unauthorized.
+- Manager cannot access an employee outside their scope.
+- Company A cannot access Company B's employee/HR record.
+- Invalid employee/HR IDs return the normal validation/not-found behavior instead of 500.
+
+Do not leak cross-company resource existence.
+
+## 7. Data consistency
+
+Ensure HR records remain correctly associated with their employee and company.
+
+Prevent:
+
+- duplicate HR records where the model expects one record per employee.
+- HR records attached to employees from another company.
+- orphaned records where existing relationships require an employee.
+- inconsistent manager/company relationships.
+
+Use database constraints or existing validation patterns where appropriate.
+
+## 8. Salary confidentiality
+
+Treat salary/compensation information as confidential.
+
+Verify that:
+
+- unauthorized Employee cannot see another employee's salary.
+- unauthorized Manager cannot see salary information outside their permitted scope.
+- Developer does not automatically receive salary visibility.
+- Owner/authorized HR retains the intended access.
+
+Do not expose confidential fields through an endpoint that should return only non-sensitive employee information.
+
+If the existing API contract needs separate response shapes for sensitive/non-sensitive information, make the smallest contract-safe change and regenerate the clients.
+
+## 9. API behavior
+
+Use the existing HR-record endpoints from Task 1.
+
+Do not create duplicate endpoints.
+
+Use:
+
+- existing Zod validation
+- existing OpenAPI contract
+- existing authorization helpers
+- existing tenant-scoping patterns
+
+If the current contract is insufficient for a required HR-record operation, make the smallest necessary OpenAPI change and regenerate the generated outputs.
+
+Do not manually edit generated files.
+
+## 10. Frontend
+
+For this task, implement the required HR-record UI only.
+
+Add a focused Employee HR Profile experience using the existing VAR HR UI architecture.
+
+It should support the appropriate role-based views:
+
+### Employee
+View their own profile/HR information.
+
+### Manager
+View authorized team-member HR information.
+
+### Owner / authorized HR
+View and manage employee HR records within the company.
+
+### Developer
+Do not expose confidential HR/salary information unless explicitly authorized by the existing permission model.
+
+Reuse existing:
+
+- layout
+- typography
+- components
+- forms
+- direction/RTL behavior
+- localization patterns
+
+Do not redesign the application.
+
+Do not modify completed Part 6 report/payroll screens.
+
+## 11. Loading / error / empty states
+
+The HR profile UI must handle:
+
+- loading
+- employee not found
+- HR record not found
+- unauthorized access
+- validation errors
+- save/update failure
+- successful update
+
+Use the project's existing UI patterns.
+
+Do not introduce a second notification/error system.
+
+## 12. Localization
+
+Follow the existing localization system.
+
+Do not introduce new hardcoded user-facing strings if the project already uses translation keys.
+
+Arabic must continue to work correctly with RTL.
+
+If English and other supported locales already exist, add the required HR-record translation keys consistently.
+
+## 13. Verification
+
+Actually verify:
+
+### Employee
+- employee can view own HR record
+- employee cannot view another employee's HR record
+- employee cannot access unauthorized salary information
+
+### Manager
+- manager can view authorized employee
+- manager is blocked from unauthorized employee
+- manager cannot cross company boundaries
+
+### Owner/HR
+- owner/authorized HR can view and update employee HR record
+- salary/compensation fields behave according to existing permissions
+
+### Developer
+- developer does not automatically receive confidential HR/payroll visibility
+
+### Data
+- no duplicate HR record
+- correct employee/company association
+- invalid IDs handled correctly
+- cross-company access rejected
+
+### UI
+- profile loads correctly
+- edit/save works where permitted
+- validation errors appear correctly
+- loading/error/empty states work
+- Arabic RTL remains correct
+
+Run:
+
+- typecheck
+- API build
+- frontend typecheck/build if supported
+- focused API checks
+- focused UI/runtime checks where available
+
+Do not claim PASS unless actually executed.
+
+## 14. Preserve completed functionality
+
+Do NOT modify:
+
+- Task 1 API behavior except compatibility fixes required by Task 4
+- Task 2 biometric provider/sync
+- Task 3 schedule/holiday/attendance/payroll calculations
+- Part 6 reports
+- existing authorization architecture
+- unrelated frontend screens
+
+No unrelated refactoring.
+
+## 15. Strict scope
+
+Do NOT implement:
+
+- new biometric features
+- schedule/holiday calculation changes
+- payroll redesign
+- device management UI
+- full Part 7 dashboard
+- Part 8
+
+This task is specifically:
+
+Employee HR Records
+→ API behavior
+→ Authorization/confidentiality
+→ Focused HR Profile UI
+
+## Completion
+
+When Task 4 is fully implemented and verified:
+
+1. Update the existing Part 7 handoff.
+2. Record:
+   - HR-record changes
+   - authorization behavior
+   - salary confidentiality behavior
+   - frontend changes
+   - localization changes
+   - files changed
+   - tests/checks executed
+   - PASS/FAIL/BLOCKED results
+3. Mark Task 4 COMPLETE only if the required verification actually passes.
+
+Then STOP.
+
+Do not start Task 5 automatically.
+
+Start Task 4 now from the current repository state.

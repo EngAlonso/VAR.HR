@@ -1,0 +1,215 @@
+You are a new agent taking over the VAR HR project.
+
+Before making any code changes, I need you to determine exactly what happened during Part 6, from the beginning of Part 6 up to the current state.
+
+This is an audit/investigation only. Do not modify code, database schema, configuration, Git history, handoff files, or project state.
+
+Objective
+
+Give me a complete, evidence-based report answering:
+
+What was actually implemented during Part 6, from start to finish, and what remains unfinished?
+
+Do not assume that something was completed just because a commit, handoff note, or previous agent claimed it was completed. Verify the actual repository state.
+
+1. Read Project Handoff First
+
+Start by reading all relevant files under:
+
+"hand-off/"
+
+Especially:
+
+- "MASTER-HANDOFF.md"
+- Any Part 6 handoff/continuation notes
+- Any dated Part 6 reports
+- Any files describing Part 6 requirements, scope, or planned work
+
+Identify:
+
+- The official Part 6 scope
+- The intended Part 6 tasks
+- The starting state inherited from Part 5
+- Every documented Part 6 milestone
+- Any documented blockers or incomplete items
+
+2. Reconstruct Part 6 Chronologically
+
+Determine the Part 6 timeline from the repository history and handoff documentation.
+
+Inspect:
+
+- Git commits
+- Commit messages
+- Branch history
+- Relevant diffs
+- Files added/modified/deleted
+- Any continuation assets
+- Any implementation notes
+
+For every identifiable Part 6 step, report:
+
+- What was supposed to be done
+- What was actually changed
+- Which files were changed
+- Whether the implementation appears complete
+- Whether it was validated
+- Any remaining issues
+
+Do not modify Git history.
+
+3. Compare the Current Code Against Part 6 Requirements
+
+For every Part 6 requirement, classify it as exactly one of:
+
+- COMPLETE — implemented and verified
+- IMPLEMENTED BUT UNVERIFIED — code exists but validation is missing/incomplete
+- PARTIALLY IMPLEMENTED — some required pieces exist, others are missing
+- NOT IMPLEMENTED
+- BLOCKED — implementation depends on something unavailable
+- UNCLEAR — evidence conflicts or is insufficient
+
+For every classification, provide the evidence.
+
+4. Inspect the Actual Implementation
+
+Inspect the relevant:
+
+- Database/schema changes
+- Backend routes/services
+- API contracts
+- Generated API clients/hooks
+- Frontend screens/components
+- Authentication/authorization
+- Business logic
+- Validation
+- Localization
+- Tests
+- Configuration
+- Any external integrations required by Part 6
+
+Do not inspect unrelated parts of the project unless necessary to establish a dependency.
+
+5. Check What Was Actually Validated
+
+Identify all validation that was performed during Part 6, including:
+
+- Typechecks
+- Unit tests
+- Integration tests
+- Production builds
+- API tests
+- Runtime/workflow tests
+- Permission/role tests
+- Localization checks
+- UI/preview checks
+- Database validation
+
+For each validation, distinguish between:
+
+Actually executed and passed
+
+vs.
+
+Claimed in documentation but not independently confirmed
+
+6. Pay Special Attention to the Part 6 Starting Point
+
+The project was supposed to start Part 6 from the final verified Part 5 state.
+
+Determine whether the current Part 6 work actually started from that state.
+
+If there are signs that the current repository contains:
+
+- multiple Part 6 attempts,
+- imported/copied assets,
+- divergent Git histories,
+- abandoned implementation attempts,
+- partial continuation work,
+- or work based on a different project state,
+
+document that clearly.
+
+Do not fix any of it.
+
+7. Identify Everything That Can Be Safely Discarded
+
+Since I may restart Part 6 from the verified Part 5 version, identify:
+
+- Part 6 commits
+- Part 6-only files
+- Part 6-only database/schema changes
+- Part 6-only UI changes
+- Part 6-only configuration
+- Part 6-only generated artifacts
+- Any continuation assets
+
+that would be lost if we reverted to the final verified Part 5 state.
+
+Also identify anything that must NOT be discarded because it belongs to Part 5 or earlier.
+
+Again: do not delete or revert anything yourself.
+
+8. Final Report
+
+End with a concise but complete summary using this structure:
+
+Part 6 Starting Point
+
+What exact state Part 6 started from.
+
+Part 6 Work Completed
+
+Every confirmed completed implementation.
+
+Part 6 Partially Completed
+
+Everything that exists but is incomplete.
+
+Part 6 Not Completed
+
+Requirements that were never implemented.
+
+Validation
+
+What was actually tested and what passed.
+
+Known Problems
+
+Any technical, environment, Git, database, or architectural problems.
+
+Part 6 Work Safe to Discard
+
+What can be abandoned if we restart Part 6 from the verified Part 5 version.
+
+Part 6 Work Worth Preserving
+
+Anything from the existing Part 6 attempt that could be reused later.
+
+Recommended Restart Point
+
+State exactly where Part 6 should restart from if we choose to restart it.
+
+Bottom Line
+
+Give me one clear statement:
+
+“Part 6 is approximately X% complete”
+
+and explain how you arrived at that estimate.
+
+Critical Rules
+
+- AUDIT ONLY.
+- Do not edit code.
+- Do not edit handoff files.
+- Do not create commits.
+- Do not reset/merge/rebase Git.
+- Do not modify the database.
+- Do not install or upgrade dependencies unless absolutely necessary for read-only inspection.
+- Do not claim completion based only on agent notes.
+- Prefer actual code, Git history, diffs, and executed validation evidence.
+- If documentation and code disagree, explicitly flag the disagreement.
+- Do not start implementing Part 6 yet.
+
+I want the report to tell me exactly what the previous Part 6 work accomplished from beginning to end, what is reliable, what is incomplete, and what would be lost if I restart from the verified Part 5 version.

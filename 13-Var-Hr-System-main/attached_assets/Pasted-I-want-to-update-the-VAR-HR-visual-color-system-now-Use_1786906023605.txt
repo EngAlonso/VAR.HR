@@ -1,0 +1,54 @@
+I want to update the VAR HR visual color system now.
+
+Use this exact brand palette:
+
+- Primary / Brand / Logo color: "#0F766E" — Deep Teal
+- Primary Dark: "#115E59"
+- Accent: "#14B8A6"
+- Main background: "#F8FAFC"
+- Cards / surfaces: "#FFFFFF"
+- Main text: "#0F172A"
+- Secondary text: "#64748B"
+- Borders: "#E2E8F0"
+
+Apply this as a cohesive design-system/theme across the existing VAR HR UI.
+
+Replace the current blue/green accent treatment with the new Deep Teal brand identity wherever the existing theme uses the primary/accent colors:
+
+- Buttons
+- Links
+- Active navigation states
+- Sidebar/navigation
+- Icons that use the brand color
+- Progress indicators
+- Badges where appropriate
+- Focus states
+- Form controls
+- Cards/sections that currently depend on the old primary color
+- Any existing theme/design tokens
+
+The dark dashboard cards should use the new neutral navy "#0F172A" rather than an arbitrary blue, with Deep Teal used as the accent where appropriate.
+
+Important:
+
+- Do NOT redesign the UI.
+- Do NOT change layout, spacing, typography, components, functionality, API behavior, database behavior, or navigation.
+- Do NOT change localization or RTL behavior.
+- Do NOT invent a logo yet — I have not created the logo.
+- Do NOT add a logo placeholder just for this task.
+- Preserve all existing accessibility/contrast behavior and adjust shades only where necessary to maintain readable contrast.
+- Use the existing design-token/theme architecture rather than scattering hardcoded colors throughout components.
+
+The goal is simply to make the current VAR HR interface feel like one coherent premium HR product using the Deep Teal brand identity.
+
+After the change:
+
+1. Run typecheck/build.
+2. Check the live Preview.
+3. Check both desktop and mobile.
+4. Check Arabic RTL as well as LTR.
+5. Make sure no functionality or existing localization behavior regressed.
+6. Create a dated work log under "hand-off/" describing the color-system change and validation.
+7. Update "hand-off/MASTER-HANDOFF.md".
+
+Do not start Part 2 or make unrelated product changes.

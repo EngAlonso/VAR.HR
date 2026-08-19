@@ -1,0 +1,248 @@
+Continue VAR HR Part 7 — Task 2 from the CURRENT repository state.
+
+Task 1 is COMPLETE and verified. Do NOT redo Task 1, do NOT re-audit the project, and do NOT modify the completed API/schema work unless a change is strictly required by Task 2.
+
+Implement ONLY:
+
+# Task 2 — Biometric Provider, Mock Synchronization & Sync History
+
+The API/provider boundary from Task 1 already exists.
+
+Now make the biometric layer actually functional and testable without physical hardware.
+
+## 1. Provider architecture
+
+Complete the existing provider abstraction so VAR HR can work with different biometric vendors through one interface.
+
+Use the existing provider contracts/schema.
+
+The provider boundary should support the operations already established by the project, such as:
+
+- provider/device connection
+- employee synchronization
+- attendance/event synchronization
+- connection/status checking where already defined
+
+Do not hardcode the application to one biometric vendor.
+
+Do not create a second provider architecture.
+
+## 2. Deterministic Mock Provider
+
+Complete the existing mock biometric provider.
+
+It must be deterministic and usable for automated/local testing without physical hardware.
+
+It should be able to simulate:
+
+- device connection
+- employee/device synchronization
+- biometric attendance events
+- successful synchronization
+- controlled synchronization failures
+
+Use predictable test data/results.
+
+Do not fake real hardware connectivity or claim that a physical device was tested.
+
+## 3. Employee synchronization
+
+Implement the synchronization flow between VAR HR and the provider abstraction.
+
+The flow should support the existing employee/device model:
+
+VAR HR employee
+→ selected biometric device/provider
+→ provider synchronization
+→ result
+→ sync history
+
+Respect company/tenant isolation and existing authorization.
+
+Do not allow one company's employees to be synchronized to another company's device.
+
+## 4. Attendance synchronization
+
+Implement provider attendance/event synchronization through the existing abstraction.
+
+The flow should:
+
+1. Obtain biometric attendance events from the provider.
+2. Validate/map the employee/device identity.
+3. Associate the event with the correct company.
+4. Persist the attendance event using the existing attendance model.
+5. Avoid creating duplicate attendance records when the same provider event is synchronized again.
+6. Record the synchronization result.
+
+Do not rewrite the existing attendance calculation/rules engine.
+
+This task is only about getting biometric events safely into the existing attendance system.
+
+## 5. Sync history
+
+Complete the synchronization history behavior using the Task 1 schema.
+
+Record appropriate information such as:
+
+- provider/device
+- providerKey
+- operation
+- start/end status where supported
+- success/failure
+- error information
+- synchronized record counts/results
+
+Use the existing `DeviceSyncHistory` model.
+
+Do not create another sync-history table.
+
+Do not expose credentials or sensitive device configuration.
+
+## 6. Retry/idempotency
+
+Synchronization must be safe to run more than once.
+
+For the same provider attendance event:
+
+- the first synchronization should create the attendance record;
+- repeating the same event should not create a duplicate;
+- the sync history should still accurately record the subsequent synchronization attempt/result.
+
+Use the existing database/provider identifiers where available.
+
+Do not introduce unnecessary infrastructure.
+
+## 7. Authorization and tenant isolation
+
+Keep the Task 1 authorization model.
+
+Employee:
+- no access to biometric device administration or synchronization controls.
+
+Manager:
+- no company-wide biometric administration unless existing permissions explicitly allow it.
+
+Owner/authorized HR:
+- may manage/synchronize devices within their company according to existing permissions.
+
+Developer:
+- technical/integration access only according to existing permissions.
+- Do not automatically grant payroll or confidential employee access.
+
+Every provider/device/employee/event query must remain company-scoped.
+
+Cross-company synchronization must be rejected.
+
+## 8. API
+
+Complete the existing API operations required for the biometric workflow.
+
+Do not redesign the OpenAPI contract unless an actual contract mismatch prevents the required behavior.
+
+If the contract needs a minimal correction:
+
+- update the source OpenAPI contract;
+- regenerate the existing Zod/client outputs;
+- do not manually patch generated files.
+
+Do not create duplicate endpoints.
+
+## 9. Frontend scope
+
+Do NOT build the full Part 7 frontend in this task.
+
+Only add or modify frontend/API client code if it is strictly required to expose an already-defined biometric operation needed for verification.
+
+The main goal is a working backend/provider flow.
+
+## 10. Verification
+
+Actually test the complete mock flow.
+
+At minimum verify:
+
+### Provider
+- provider/device registration or existing configuration
+- provider connection/status
+- mock provider availability
+
+### Employee sync
+- successful employee synchronization
+- failed synchronization
+- sync history creation
+
+### Attendance sync
+- mock attendance event
+- event mapped to correct employee
+- attendance record created
+- repeated same event does not create duplicate attendance
+- sync history records the attempt
+
+### Authorization
+- authorized company user succeeds
+- unauthorized employee cannot administer devices
+- unauthorized manager access is rejected
+- cross-company device/employee synchronization is rejected
+
+### Failure handling
+- unknown employee
+- unknown device
+- invalid provider
+- malformed event
+- provider failure
+
+No unexpected 5xx responses should remain for normal validation/authorization failures.
+
+Run:
+
+- typecheck
+- API build
+- codegen if contracts changed
+- focused biometric tests/smoke tests
+
+Do not claim PASS unless actually executed.
+
+## 11. Preserve completed functionality
+
+Do NOT modify:
+
+- Part 6 reports
+- existing payroll logic
+- existing attendance rules
+- completed Task 1 API behavior
+- existing authorization architecture
+
+Only make compatibility changes required for biometric synchronization.
+
+## 12. Strict scope
+
+Do NOT implement:
+
+- employee schedule calculations
+- holiday attendance calculations
+- payroll integration
+- Part 7 frontend screens
+- unrelated refactoring
+- Part 8
+
+Stop after Task 2.
+
+## Completion
+
+When Task 2 is fully implemented and verified:
+
+1. Update the existing Part 7 handoff.
+2. Record:
+   - files changed
+   - biometric architecture
+   - mock provider behavior
+   - synchronization behavior
+   - idempotency behavior
+   - authorization
+   - tests executed
+   - PASS/FAIL/BLOCKED results
+3. Clearly mark Task 2 as COMPLETE only if the verification actually passes.
+
+Do not start Task 3 automatically.
+
+Start Task 2 now from the current repository state.

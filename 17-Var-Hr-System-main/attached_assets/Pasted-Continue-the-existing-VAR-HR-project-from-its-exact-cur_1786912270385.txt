@@ -1,0 +1,250 @@
+Continue the existing VAR HR project from its exact current state.
+
+Before doing anything, read the "hand-off/" folder, especially:
+
+- "hand-off/MASTER-HANDOFF.md"
+- The latest Part 4-related report, if one exists.
+
+Do NOT redo Parts 1–3. They are complete.
+
+Part 4 — Current Status
+
+Part 4 is NOT complete.
+
+The previous agent already audited the existing Part 4 foundation and started implementation, but the usage limit stopped the work before completion.
+
+Already completed before this agent
+
+The project already had:
+
+- Company-scoped biometric device registration.
+- Company-scoped device listing.
+- Existing device API/UI foundation.
+- Existing branch/location GPS fields.
+- GPS coordinates accepted by attendance check-in/check-out.
+- Provider-neutral biometric synchronization boundary.
+- No fake biometric vendor integration.
+
+The previous agent also confirmed that the project must NOT invent a biometric vendor or pretend physical device synchronization works without a real vendor/protocol specification.
+
+Work already started by the previous agent
+
+The previous agent found that some Part 4 additions are partially present in the repository:
+
+- Device mapping contracts/endpoints.
+- Raw biometric event contracts/endpoints.
+- Company location/geofence contracts/endpoints.
+- Some related schema/API groundwork.
+
+However, these are NOT confirmed complete.
+
+The previous agent stopped while preparing to finish:
+
+Backend
+
+- Device/employee mapping.
+- Raw biometric event handling.
+- Company locations/geofences.
+- Tenant isolation.
+- Role authorization.
+- Honest provider-neutral device synchronization.
+- GPS validation.
+
+Frontend
+
+- Biometric device management.
+- Employee ↔ device mapping.
+- Company locations/geofences.
+- GPS attendance states.
+- Related empty/loading/error/success states.
+
+Therefore, inspect the actual current files and determine what is already implemented before changing anything.
+
+Do not blindly recreate anything.
+
+Your Task
+
+Finish Part 4 completely.
+
+1. Biometric Devices
+
+Implement and verify where missing:
+
+- Device registration.
+- Device listing.
+- Device status.
+- Device metadata.
+- Company isolation.
+- Employee ↔ device mapping.
+- Device-specific employee IDs.
+- Raw biometric event storage.
+- Duplicate/idempotency protection.
+- Provider-neutral synchronization boundary.
+
+Do NOT invent a biometric vendor.
+
+If no real vendor/protocol is specified, physical synchronization must remain explicitly unavailable rather than simulated.
+
+2. GPS Attendance
+
+Implement and verify:
+
+- GPS check-in.
+- GPS check-out.
+- Latitude/longitude validation.
+- Timestamp validation.
+- Accuracy handling where supported.
+- Employee authorization.
+- Company/location authorization.
+- Geofence/radius validation.
+- Inside/outside location detection.
+
+Do not start the next attendance-rules/payroll phase.
+
+3. Company Locations / Geofences
+
+Implement and verify:
+
+- Location name.
+- Latitude.
+- Longitude.
+- Allowed radius.
+- Active/inactive status.
+- Company ownership.
+- Cross-company protection.
+
+4. UI
+
+Add or finish only the necessary UI for:
+
+- Biometric devices.
+- Device status.
+- Employee-device mapping.
+- Company locations.
+- Geofence configuration.
+- GPS attendance states.
+- Loading/error/empty/success states.
+
+Preserve the existing VAR HR visual design.
+
+Do not redesign unrelated screens.
+
+5. Localization
+
+Every new visible string must use the existing localization system.
+
+Required:
+
+- Arabic.
+- English.
+- French.
+- German.
+
+Arabic must remain RTL.
+
+Do not create another translation system.
+
+6. Authorization
+
+Verify server-side:
+
+- Employee cannot manage biometric devices.
+- Employee cannot manage company locations.
+- Employee can only access their own GPS attendance.
+- Manager is restricted to their authorized scope.
+- Owner can manage company devices and locations.
+- Cross-company access is rejected.
+- Unauthorized device operations are rejected.
+
+7. Database
+
+Use the existing Drizzle schema and project architecture.
+
+If the imported development database is missing the existing "var_hr_*" tables, apply the existing schema non-destructively.
+
+Allowed:
+
+"pnpm --filter @workspace/db run push"
+
+Do NOT:
+
+- Drop.
+- Reset.
+- Truncate.
+- Delete existing data.
+- Recreate the database unnecessarily.
+
+8. Architecture
+
+Preserve the existing architecture:
+
+OpenAPI → generated client → Express API → React frontend.
+
+Do not bypass the existing contract layer.
+
+Required Validation
+
+Before declaring Part 4 complete, verify:
+
+- Shared-library typecheck.
+- API typecheck.
+- Frontend typecheck.
+- API build.
+- Frontend build.
+- API health.
+- Live Preview.
+
+Also test:
+
+- Device registration.
+- Device listing.
+- Device/company isolation.
+- Employee-device mapping.
+- Raw biometric events.
+- Duplicate biometric events.
+- GPS check-in.
+- GPS check-out.
+- Invalid coordinates.
+- Outside geofence.
+- Inside geofence.
+- Unauthorized GPS access.
+- Cross-company access.
+- Employee permissions.
+- Manager permissions.
+- Owner permissions.
+- Arabic UI.
+- RTL layout.
+- English/French/German UI.
+
+If physical biometric hardware cannot be tested because no real device/vendor/protocol is specified, clearly document that limitation.
+
+Do NOT fake successful hardware synchronization.
+
+Important
+
+Do not modify unrelated product code.
+
+Do not start Part 5.
+
+Do not invent an authentication provider.
+
+Do not redo completed Parts 1–3.
+
+When Part 4 is genuinely finished, create a new dated report inside:
+
+"hand-off/"
+
+and update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Never delete or overwrite previous hand-off reports.
+
+The final report must clearly state:
+
+- What was already complete.
+- What you completed.
+- What was tested.
+- What passed.
+- What remains blocked, if anything.
+- Whether Part 4 is Complete, Partially Complete, or Blocked.

@@ -1,0 +1,184 @@
+Continue VAR HR PART 1 from the CURRENT CODEBASE.
+
+Do NOT rebuild anything.
+Do NOT repeat the completed localization work.
+Do NOT start Part 2.
+
+Your previous pass successfully completed:
+
+- Frontend TypeScript fixes
+- Duplicate translation key fixes
+- Dashboard translation context fix
+- API-fed dashboard alert localization
+- English / Arabic / French / German alert catalogs
+- Existing Drizzle schema initialization
+- API startup
+- /api/healthz verification
+- Arabic locale propagation
+- Full workspace typecheck
+- API build
+- Frontend production build
+
+The remaining Part 1 localization gaps were explicitly identified in your last report.
+
+COMPLETE ONLY THESE REMAINING AREAS:
+
+1. PAYROLL
+
+Replace all remaining hardcoded English user-facing strings with the existing i18n system.
+
+Include:
+- Page headings
+- Labels
+- Table headers
+- Filters
+- Buttons
+- Status text
+- Empty states
+- Loading states
+- Errors
+- Dialogs
+- Tooltips
+- Accessibility labels
+- Payroll explanations
+- API-fed payroll messages/explanations
+
+Make sure English, Arabic, French, and German all have complete entries.
+
+2. DEVICES
+
+Complete localization of the Devices experience.
+
+Include:
+- Headings
+- Device status
+- Device actions
+- Connection messages
+- Synchronization messages
+- Errors
+- Empty states
+- Dialogs
+- Accessibility labels
+- API-fed device messages
+
+Use the existing i18n architecture.
+
+3. SUBSCRIPTION
+
+Complete localization of the Subscription experience.
+
+Include:
+- Plans
+- Limits
+- Usage
+- Status
+- Actions
+- Upgrade messages
+- Errors
+- Empty states
+- Dialogs
+- Accessibility labels
+
+4. PLATFORM OWNER
+
+Complete localization of the Platform Owner experience.
+
+Audit all platform-owner screens and replace remaining hardcoded English user-facing strings.
+
+Include:
+- Navigation
+- Dashboard
+- Companies
+- Subscriptions
+- Plans
+- Feature limits
+- Analytics
+- System health
+- Support access
+- Audit logs
+- Settings
+- Tables
+- Filters
+- Dialogs
+- Empty/loading/error states
+- Accessibility labels
+
+5. ATTENDANCE RULES
+
+Replace hardcoded weekday labels and any other remaining user-facing English literals in the Attendance Rules UI.
+
+Ensure weekday names correctly follow the selected locale.
+
+Arabic must remain RTL.
+English/French/German must remain LTR.
+
+6. REMAINING API-FED TEXT
+
+Search the codebase for user-facing API messages that are still returned/displayed as English literals.
+
+Prioritize:
+- Payroll explanations
+- Device messages
+- Attendance messages
+- Rule explanations
+- Dashboard alerts
+- Validation/error messages
+
+Do NOT blindly translate backend technical errors.
+
+Only localize user-facing messages.
+
+IMPORTANT:
+
+Use the EXISTING i18n/catalog architecture.
+
+Do NOT create another translation system.
+
+Do NOT hardcode language conditions throughout components.
+
+Do NOT duplicate translation keys.
+
+Do NOT break generated API contracts.
+
+Do NOT change the existing security architecture.
+
+Do NOT change business logic unless you discover a concrete verified Part 1 bug.
+
+After implementing, run:
+
+- Full workspace typecheck
+- API build
+- Frontend build
+
+Also run direct API health validation if the managed workflows remain unavailable.
+
+If managed workflows are still unregistered:
+
+DO NOT create duplicate workflows just to obtain screenshots.
+
+Do not claim browser validation.
+
+The existing API direct validation is sufficient for code-level verification in that environment.
+
+Before finishing, perform a final repository search for remaining hardcoded English user-facing strings in:
+
+- Payroll
+- Devices
+- Subscription
+- Platform Owner
+- Attendance Rules
+- API-fed user messages
+
+Fix all remaining relevant literals you find.
+
+FINAL REPORT:
+
+### Completed
+### Changes Made This Pass
+### Validation
+### Remaining Part 1 Gaps
+### Runtime Limitations
+
+Do not call Part 1 complete unless these localization areas are actually finished.
+
+Once these are complete and validated, STOP and wait for manual product review.

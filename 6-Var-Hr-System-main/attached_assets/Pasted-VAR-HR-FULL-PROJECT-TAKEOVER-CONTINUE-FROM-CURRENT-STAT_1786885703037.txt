@@ -1,0 +1,614 @@
+VAR HR — FULL PROJECT TAKEOVER / CONTINUE FROM CURRENT STATE
+
+You are taking over an existing VAR HR project that has already been implemented and validated by previous coding agents.
+
+You do NOT have access to their conversations.
+
+The current codebase is the source of truth.
+
+IMPORTANT:
+This is NOT a new project.
+Do NOT rebuild it.
+Do NOT recreate completed architecture.
+Do NOT replace working implementation unnecessarily.
+
+You must inspect the current project first, then continue from the exact state that exists.
+
+==================================================
+PROJECT OVERVIEW
+==================================================
+
+VAR HR is a premium multilingual multi-tenant HR SaaS platform.
+
+It replaces traditional HR operational workflows with a modern web platform focused on:
+
+- Attendance
+- Check-in / Check-out
+- GPS attendance
+- Leave management
+- Permission requests
+- Attendance rules
+- Overtime
+- Payroll calculations
+- Employee management
+- Manager workflows
+- Reports
+- Biometric device integrations
+- Subscription-based company plans
+- Employee self-service
+- Platform administration
+
+Primary roles:
+
+1. Platform Owner
+2. Company Owner
+3. Manager
+4. Employee
+
+==================================================
+LANGUAGES
+==================================================
+
+Supported languages:
+
+- English
+- Arabic
+- French
+- German
+
+Arabic must use true RTL.
+
+English, French, and German use LTR.
+
+Localization must be real, not just document metadata.
+
+User-facing strings should not be hard-coded.
+
+==================================================
+MULTI-TENANT ARCHITECTURE
+==================================================
+
+VAR HR is a true multi-tenant SaaS.
+
+Every company-scoped record must belong to a company/tenant.
+
+Tenant isolation must be enforced server-side.
+
+Never trust arbitrary companyId values from the frontend.
+
+Never rely on frontend visibility for authorization.
+
+Employees must never access other employees' private data.
+
+Managers must only access their authorized scope.
+
+Company Owners must only access their company.
+
+Platform Owner access must remain explicitly privileged.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+The existing architecture is a modular monolith.
+
+Current technology direction includes:
+
+- React frontend
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- OpenAPI/API contract
+- Generated API types
+- Generated React Query hooks
+- Zod
+- Localization
+- Tenant-aware backend
+- Seeded development tenant
+
+Do NOT prematurely introduce microservices.
+
+Do NOT replace the existing contract-first architecture.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+The project intentionally does not commit to Clerk, Replit Auth, or another authentication provider yet.
+
+A replaceable workspace-context adapter exists.
+
+Preserve this boundary.
+
+Do not introduce a fake authentication provider.
+
+==================================================
+PREVIOUS IMPLEMENTATION STATUS
+==================================================
+
+Several agents have already worked on this project.
+
+The following has already been completed and verified:
+
+1. Dependencies were restored from the existing frozen lockfile.
+2. No unnecessary dependency version changes were made.
+3. Full workspace typecheck passed.
+4. Frontend is running.
+5. Sandbox is running.
+6. API is running.
+7. Existing Drizzle schema was applied to the configured PostgreSQL database.
+8. VAR HR database tables were successfully created.
+9. Seeded Northstar tenant initializes successfully.
+10. Seeded API endpoints are healthy.
+11. OpenAPI-generated Zod schemas were regenerated.
+12. React Query clients were regenerated.
+13. Date-only serialization was fixed.
+14. Date-only API values now return:
+    YYYY-MM-DD
+15. Date-time values remain ISO timestamps.
+16. API endpoints were verified for:
+    - Workspace
+    - Dashboard
+    - Employees
+    - Attendance
+    - Leave
+    - Permissions
+    - Reports
+    - Payroll
+    - Devices
+    - Subscription
+17. Tenant authorization behavior for Platform Owner routes was verified.
+18. Frontend and sandbox workflows were verified.
+19. Dashboard was visually checked in the browser.
+20. Employee workspace was visually checked against live seeded data.
+21. `replit.md` was updated with:
+    - Setup instructions
+    - Architecture
+    - Run commands
+    - Operational gotchas
+
+The existing first operational slice is already present in the codebase.
+
+It includes routes/generated hooks and UI coverage for:
+
+- Onboarding context
+- Employees
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll foundation
+- Devices
+- Subscription
+- Platform Owner views
+- Employee workspace
+
+DO NOT rebuild these features simply because you are a new agent.
+
+==================================================
+CURRENT VERIFIED AUDIT FINDINGS
+==================================================
+
+The previous agent performed a deeper security/product audit.
+
+It identified TWO HIGH-PRIORITY VERIFIED GAPS.
+
+These gaps were identified in the actual code.
+
+THEY WERE NOT YET FIXED.
+
+The previous agent ran out of execution quota immediately after identifying them and before completing the implementation.
+
+==================================================
+GAP #1 — SERVER-SIDE ROLE SCOPING / AUTHORIZATION
+==================================================
+
+Verified issue:
+
+Employee-role requests can still access company-wide data through insufficient server-side role scoping.
+
+Affected areas include:
+
+- Employee data
+- Attendance data
+- Reports
+- Payroll-period data
+
+Leave and permission lists were already scoped correctly.
+
+The problem is therefore inconsistent authorization across domains.
+
+This MUST be fixed server-side.
+
+Do NOT solve this by merely hiding navigation items.
+
+Expected behavior:
+
+Employee:
+- Can access only their own employee record.
+- Can access only their own attendance.
+- Can access only their own leave.
+- Can access only their own permissions.
+- Can access only their own salary/payroll information.
+- Must not access company-wide employee lists.
+- Must not access other employees' attendance.
+- Must not access company reports.
+- Must not access company payroll periods.
+
+Manager:
+- Can only access employees within their authorized scope.
+- Scope may depend on branches, departments, direct reports, or explicitly assigned employees.
+- Backend must enforce this.
+
+Company Owner:
+- Full access within their own company according to permissions.
+
+Platform Owner:
+- Explicitly privileged platform-level access.
+
+Do not break legitimate access while fixing the employee restriction.
+
+After fixing this, test the affected endpoints.
+
+==================================================
+GAP #2 — LOCALIZATION / ROLE-AWARE NAVIGATION
+==================================================
+
+Verified issue:
+
+The application currently supports selecting four locales, but localization is incomplete.
+
+Current problems:
+
+- Navigation remains English.
+- Sidebar does not properly translate.
+- Sidebar forces LTR.
+- Role-specific navigation is not fully enforced in the UI.
+- Mobile RTL behavior needs correction.
+
+This must be fixed as real application localization.
+
+Required:
+
+English:
+- LTR
+- English navigation
+
+Arabic:
+- RTL
+- Arabic navigation
+- Correct RTL sidebar
+- Correct RTL mobile navigation
+- Correct alignment and directional icons/layout
+
+French:
+- LTR
+- French navigation
+
+German:
+- LTR
+- German navigation
+
+Navigation must also be role-aware.
+
+Employee should not see Company Owner / Platform Owner sections.
+
+Manager should only see sections relevant to their permissions.
+
+Company Owner should see company administration sections.
+
+Platform Owner should have a separate platform administration experience.
+
+IMPORTANT:
+Frontend navigation visibility is NOT security.
+Backend authorization remains mandatory.
+
+==================================================
+CURRENT STATE WHEN PREVIOUS AGENT STOPPED
+==================================================
+
+The previous agent said:
+
+"The audit found two high-value, verified gaps worth fixing first:
+
+Employee-role requests could still read company-wide employee, attendance, report, and payroll-period data even though leave/permission lists were already scoped.
+
+The frontend selected four locales but only changed the document metadata/direction; navigation stayed English, the sidebar forced LTR, and role-specific navigation was not enforced in the UI.
+
+I’m addressing those boundaries first: server-side role scoping/authorization, then role-aware navigation plus real locale-aware shell behavior and mobile RTL handling."
+
+Then the execution quota ended.
+
+Therefore:
+
+DO NOT assume those fixes were completed.
+
+FIRST inspect the current git/code state and determine whether any partial changes were made.
+
+==================================================
+FIRST TASK
+==================================================
+
+Do NOT start new feature development immediately.
+
+First:
+
+1. Inspect current git status.
+2. Inspect recent modifications.
+3. Inspect authorization-related files.
+4. Inspect employee/attendance/report/payroll-period endpoints.
+5. Inspect navigation/sidebar implementation.
+6. Inspect localization implementation.
+7. Inspect RTL/LTR shell behavior.
+8. Determine whether the previous agent partially changed anything.
+9. Run typecheck.
+10. Run relevant tests/build checks.
+
+Then reproduce the two verified audit findings.
+
+==================================================
+FIX #1 FIRST — SECURITY
+==================================================
+
+Fix the server-side role scoping issue.
+
+Use the existing authorization architecture.
+
+Do not create a second authorization system.
+
+Do not use frontend checks as the security boundary.
+
+Ensure employee requests cannot retrieve company-wide:
+
+- Employees
+- Attendance
+- Reports
+- Payroll periods
+
+Ensure managers remain scoped.
+
+Ensure company owners remain company-scoped.
+
+Ensure platform owners retain legitimate platform-level access.
+
+Use the smallest coherent type-safe implementation.
+
+After fixing:
+
+- Test employee access.
+- Test manager access.
+- Test company owner access.
+- Test platform owner access where applicable.
+- Verify unauthorized data returns an appropriate authorization response.
+- Verify existing legitimate workflows still work.
+
+==================================================
+FIX #2 — LOCALIZATION AND NAVIGATION
+==================================================
+
+After security is stable:
+
+Implement real locale-aware navigation and shell behavior.
+
+Requirements:
+
+- English navigation
+- Arabic navigation
+- French navigation
+- German navigation
+- Arabic RTL
+- Other locales LTR
+- Sidebar correctly follows direction
+- Mobile navigation correctly follows direction
+- Logical CSS/layout properties where appropriate
+- Role-aware navigation
+- Permission-aware navigation
+
+Do not hard-code translated strings inside random components.
+
+Use the existing localization architecture.
+
+Do not introduce a second i18n system.
+
+==================================================
+PREMIUM DESIGN REQUIREMENT
+==================================================
+
+VAR HR must look like a premium enterprise SaaS product.
+
+Visual character:
+
+- Premium
+- Sophisticated
+- Powerful
+- Precise
+- Calm
+- Professional
+- Modern
+- Expensive
+- Enterprise-grade
+
+Avoid:
+
+- Generic admin templates
+- Cheap CRUD dashboards
+- Excessive rounded cards
+- Excessive gradients
+- Heavy shadows
+- Random decorative UI
+- Excessive status colors
+- Template-looking layouts
+
+The product concept is inspired subtly by:
+
+Review → Analyze → Decide
+
+The football VAR concept should NOT become a football-themed interface.
+
+==================================================
+PRODUCT FEATURES ALREADY EXPECTED
+==================================================
+
+The platform should support:
+
+Attendance:
+- Check-in
+- Check-out
+- Attendance history
+- Late calculation
+- Early departure
+- Overtime
+- Absence
+- Manual correction
+- Rules
+
+Leave:
+- Leave types
+- Balances
+- Requests
+- Approval/rejection
+- History
+
+Permissions:
+- Permission types
+- Requests
+- Approval/rejection
+- History
+
+GPS:
+- Current-location attendance
+- Branch locations
+- Geofences
+- Radius
+- Accuracy validation
+
+Payroll foundation:
+- Salary
+- Additions
+- Deductions
+- Overtime
+- Attendance deductions
+- Payroll periods
+- Salary breakdown
+- Calculation history
+
+Reports:
+- Attendance
+- Absence
+- Late
+- Overtime
+- Leave
+- Permissions
+- Employees
+- Payroll
+- Preview
+- Print
+- CSV
+- Excel-compatible export
+
+Biometric:
+- Connector abstraction
+- Device management
+- Sync architecture
+- Employee synchronization
+- Attendance synchronization
+
+Subscriptions:
+- Monthly SaaS
+- Employee limits
+- Manager limits
+- Branch limits
+- Device limits
+- Feature entitlements
+
+==================================================
+IMPORTANT PRODUCT RULES
+==================================================
+
+Do NOT:
+
+- Rebuild completed features.
+- Rewrite the architecture unnecessarily.
+- Introduce fake integrations.
+- Invent country-specific legal payroll rules.
+- Hard-code subscription limits.
+- Use fake dashboard data to make screens look complete.
+- Weaken tenant isolation.
+- Rely on frontend-only authorization.
+- Introduce unnecessary dependencies.
+- Replace generated API contracts with handwritten duplicates.
+- Introduce a second localization system.
+- Introduce a second permission system.
+
+DO:
+
+- Preserve working implementation.
+- Make minimal coherent changes.
+- Keep server-side authorization strict.
+- Keep tenant isolation strict.
+- Keep generated contracts as the source of truth.
+- Keep localization centralized.
+- Keep RTL/LTR correct.
+- Keep the UI premium.
+- Keep everything type-safe.
+- Validate changes with real seeded data.
+
+==================================================
+AFTER BOTH FIXES
+==================================================
+
+Once the two verified gaps are fixed and validation is green:
+
+Continue with a broader product-quality audit.
+
+Look for the highest-impact verified gaps against the VAR HR requirements, including:
+
+- Tenant isolation
+- Role permissions
+- Employee self-service
+- Manager workflows
+- Attendance rules
+- Leave workflows
+- Permission workflows
+- Payroll foundation
+- Reports
+- Subscription limits
+- GPS architecture
+- Device architecture
+- Audit logs
+- Notifications
+- Responsive behavior
+- Accessibility
+- Localization
+- RTL
+- Premium visual consistency
+
+Do not randomly add features.
+
+Only implement gaps that are verified in the current code and materially improve the product.
+
+==================================================
+WORKFLOW
+==================================================
+
+Follow:
+
+INSPECT
+→ VERIFY
+→ FIX SECURITY
+→ FIX LOCALIZATION
+→ VALIDATE
+→ AUDIT
+→ IMPLEMENT HIGH-VALUE GAPS
+→ VALIDATE AGAIN
+
+Do not stop after producing an audit report.
+
+Implement the verified improvements.
+
+Do not restart VAR HR.
+
+Continue the existing product.

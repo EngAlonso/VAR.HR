@@ -1,0 +1,172 @@
+Create a complete continuation handoff for the next agent/account.
+
+This is an account transfer, not a new implementation.
+
+The current VAR HR project is in the middle of Part 7 gap-filling implementation.
+
+Do NOT continue implementing new features in this task. Your job is to document the exact current state so another agent can resume without repeating or losing work.
+
+Mandatory
+
+Read and reconcile:
+
+- "hand-off/MASTER-HANDOFF.md"
+- every Part 6 handoff/report
+- every Part 7 handoff/report
+- the current repository state
+- current database/schema state
+- current API/OpenAPI state
+- current frontend state
+- current workflow/artifact state, if available
+
+Inspect the actual files and git/worktree state rather than relying only on previous reports.
+
+Document all current Part 7 work
+
+Clearly record:
+
+Completed before Part 7
+
+What Parts 3–6 already implemented and verified.
+
+Especially preserve the verified Part 6 baseline:
+
+- Reports
+- Payroll
+- Authorization
+- Tenant isolation
+- Employee import
+- API/frontend builds
+- Typechecks
+- Runtime verification
+
+Part 7 audit findings
+
+Document the confirmed gaps:
+
+1. Employee-specific schedules/shifts
+2. Company holidays
+3. Provider-based biometric integration
+4. Biometric sync history/mock provider
+5. Employee HR records/profile surfaces
+
+Also document any other gaps discovered during the current audit.
+
+Work already started
+
+For every file changed during the current Part 7 implementation, record:
+
+- exact path
+- what changed
+- whether the change is complete or partial
+- dependencies on other unfinished work
+- whether it has been tested
+- whether it is safe to continue from the current state
+
+Do not claim something is complete merely because code exists.
+
+Schema / database
+
+Document:
+
+- existing schema additions
+- pending migrations
+- whether schema has been pushed/applied
+- any seed/test data changes
+- any database state that the next agent needs to know
+
+API / OpenAPI
+
+Document:
+
+- routes already added
+- routes partially implemented
+- contracts already present
+- generated clients/hooks status
+- code generation status
+- remaining API work
+
+Frontend
+
+Document:
+
+- UI components/screens already changed
+- UI components/screens still missing
+- generated hooks used or still required
+- any known runtime/UI errors
+
+Runtime / environment
+
+Document:
+
+- dependency installation status
+- Node/pnpm status
+- API status
+- frontend status
+- ports
+- managed artifact/workflow status
+- known orphan/stale processes
+- whether browser verification is currently available
+
+Verification
+
+Record every command/test actually executed and its result.
+
+Separate:
+
+- PASS
+- FAIL
+- NOT RUN
+- BLOCKED
+
+Do not convert "not run" into "pass."
+
+Known continuation point
+
+The previous agent had reached the point where:
+
+- The repository contracts/schema already anticipated schedules, holidays, biometric provider endpoints, and HR records.
+- The missing API/client/UI layers were being added.
+- Work was being split into:
+  1. contract/schema/API
+  2. generated client/hooks
+  3. frontend
+  4. attendance/payroll integration
+- Attendance/payroll were being updated to resolve an employee's effective schedule and company holidays instead of replacing existing rule logic.
+
+Document the exact point where execution stopped.
+
+Important
+
+Do NOT:
+
+- Revert changes.
+- Reset the repository.
+- Delete files.
+- Rewrite Part 7.
+- Start Part 8.
+- Claim unfinished work is complete.
+- Make speculative fixes.
+
+Handoff file
+
+Create:
+
+"hand-off/2026-<DATE>-part-7-account-transfer.md"
+
+Use the actual current date.
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Add the new transfer state without deleting previous history.
+
+The new handoff must be detailed enough that a completely new agent can continue Part 7 from the exact current state without asking the previous agent what happened.
+
+At the very end, provide a concise summary of:
+
+1. What is complete.
+2. What is partially implemented.
+3. What remains.
+4. Exact next recommended action.

@@ -1,0 +1,359 @@
+Perform a COMPLETE AUDIT of Part 6 only.
+
+IMPORTANT:
+This is an AUDIT ONLY.
+DO NOT modify, create, delete, regenerate, install, migrate, or refactor anything.
+DO NOT fix bugs.
+DO NOT continue implementation.
+
+The goal is to determine EXACTLY what has already been completed and what is still missing in Part 6.
+
+First read:
+
+- "hand-off/MASTER-HANDOFF.md"
+- ALL Part 6-related files inside "hand-off/"
+- The uploaded Part 6 continuation brief, if available in the project
+- The latest existing Part 6 implementation state
+
+Then inspect the actual code, contracts, database schema, API routes, generated client, and frontend.
+
+PART 6 REQUIREMENTS TO AUDIT
+
+1. Attendance Reports
+
+Verify whether there is a real working report for:
+
+- Attendance
+- Check-in
+- Check-out
+- Late minutes
+- Early departure
+- Worked hours
+- Overtime
+- Absence
+- Date range filtering
+- Employee filtering
+- Department filtering
+- Status filtering
+
+Check BOTH backend and frontend.
+
+2. Leave Reports
+
+Verify:
+
+- Leave requests
+- Employee
+- Department
+- Leave type
+- Status
+- Date range
+- Leave totals
+- Server-side filtering
+- Authorization
+
+3. Permission Reports
+
+Verify:
+
+- Permission requests
+- Employee
+- Department
+- Permission type
+- Status
+- Date range
+- Totals
+- Server-side filtering
+- Authorization
+
+4. Overtime Reports
+
+Verify:
+
+- Overtime records
+- Employee
+- Department
+- Date range
+- Hours
+- Calculated amounts if applicable
+- Server-side filtering
+- Authorization
+
+5. Payroll Reports
+
+Verify:
+
+- Payroll periods
+- Employee payroll
+- Gross/net totals
+- Adjustments
+- Overtime
+- Deductions
+- Employee-level breakdown
+- Company totals
+- Period filtering
+- Proper role restrictions
+
+IMPORTANT:
+Do not assume payroll access is correct just because the frontend hides it.
+Verify the API authorization.
+
+6. Employee Reports
+
+Verify:
+
+- Employee list/report
+- Employee details
+- Department
+- Status
+- Company scope
+- Employee filtering
+- Export capability
+- Authorization
+
+7. Company Reports
+
+Verify whether there is a company-level summary/report containing useful existing metrics such as:
+
+- Employee count
+- Attendance summary
+- Leave summary
+- Permission summary
+- Overtime summary
+- Payroll summary where authorized
+
+Do not invent new business rules.
+Only report what the existing system can legitimately calculate.
+
+8. Report Filters
+
+Verify that filters are:
+
+- Actually connected to the API.
+- Applied server-side.
+- Company-scoped.
+- Role-scoped.
+
+Check:
+
+- Date range
+- Employee
+- Department
+- Status
+- Leave type
+- Permission type
+- Payroll period
+
+Check reversed/invalid dates and empty filters where relevant.
+
+9. Reports UI
+
+Verify the actual Reports screen.
+
+Check whether it supports:
+
+- Report selection
+- Filters
+- Results
+- Totals
+- Loading state
+- Empty state
+- Error state
+- Pagination if needed
+- Arabic RTL
+- Mobile layout
+- Desktop layout
+
+Compare the UI implementation with the actual API behavior.
+
+10. CSV Export
+
+Verify REAL functionality, not just a button.
+
+Check:
+
+- Export actually downloads/returns data.
+- Export respects active filters.
+- Export respects server-side authorization.
+- Export does not expose another company.
+- Column headers are correct.
+- Arabic data is preserved correctly.
+
+11. Excel-Compatible Export
+
+Verify:
+
+- Actual Excel-compatible output exists.
+- Data matches the selected report.
+- Filters are respected.
+- Authorization is respected.
+- Arabic text is preserved.
+
+Do not mark this complete merely because the filename ends in ".xlsx".
+
+12. Printing
+
+Verify actual print functionality:
+
+- Print button works.
+- Application navigation is hidden during print.
+- Report title appears.
+- Company/report period appears where appropriate.
+- Tables print correctly.
+- Totals appear.
+- Arabic RTL prints correctly.
+
+13. Employee Import
+
+Verify the COMPLETE import flow:
+
+- CSV upload
+- Excel-compatible input if supported
+- Template download
+- Header validation
+- Required fields
+- Data type validation
+- Duplicate detection
+- Invalid rows
+- Row-level errors
+- Successful rows
+- No silent overwrites
+- Company scoping
+- Authorization
+- Useful import result shown to the user
+
+Check BOTH frontend and backend.
+
+14. Localization
+
+Verify ALL Part 6 additions in:
+
+- Arabic
+- English
+- French
+- German
+
+Check:
+
+- Report names
+- Filters
+- Buttons
+- Empty states
+- Errors
+- Import messages
+- Export messages
+- Print labels
+- Statuses
+
+Also verify Arabic RTL.
+
+15. Authorization / Security
+
+Test the actual API, not just the UI.
+
+Verify:
+
+Employee:
+
+- Only permitted personal data.
+
+Manager:
+
+- Only permitted team/department data.
+
+Owner:
+
+- Company-wide authorized data.
+
+Developer:
+
+- No automatic payroll/HR access unless explicitly authorized.
+
+Cross-company:
+
+- Must always return the correct rejection.
+
+Also verify exports and imports follow the same authorization.
+
+16. Contract-First Architecture
+
+Verify:
+
+OpenAPI
+→ generated client/types
+→ Express API
+→ React frontend
+
+Check for:
+
+- Missing generated hooks
+- Hand-written duplicate API types
+- Contract mismatches
+- Routes not matching OpenAPI
+- Frontend calling endpoints outside generated contracts
+
+17. Runtime Verification
+
+Do NOT modify anything.
+
+Run only safe verification/checks.
+
+Check:
+
+- API health
+- Frontend Preview
+- Existing workflows
+- Report endpoints
+- Import endpoint
+- Export behavior
+- Authorization behavior
+
+If something cannot be tested because of the environment, clearly mark it as NOT VERIFIED rather than assuming it works.
+
+FINAL REPORT
+
+Return a clear status table:
+
+Requirement| Status| Evidence| What's Missing
+
+Use ONLY:
+
+- COMPLETE
+- PARTIAL
+- MISSING
+- BLOCKED
+- NOT VERIFIED
+
+Then give me:
+
+A. Definitely Complete
+
+List only things proven by code/runtime evidence.
+
+B. Partially Complete
+
+Explain exactly what exists and what remains.
+
+C. Missing
+
+List features that have not been implemented.
+
+D. Blocked
+
+List anything blocked by environment/dependencies/authentication/provider decisions.
+
+E. Highest-Priority Remaining Work
+
+Give me the exact order I should have the next agent implement things.
+
+F. Current Part 6 Percentage
+
+Give an approximate completion percentage based on actual requirements, NOT on code size.
+
+IMPORTANT:
+Do not change ANY project files.
+Do not create a handoff report.
+Do not start implementation.
+Do not start Part 7.
+
+This is strictly a diagnostic audit so I can know exactly where Part 6 stopped.

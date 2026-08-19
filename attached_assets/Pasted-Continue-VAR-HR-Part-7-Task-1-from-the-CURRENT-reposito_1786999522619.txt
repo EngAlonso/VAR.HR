@@ -1,0 +1,74 @@
+Continue VAR HR Part 7 — Task 1 from the CURRENT repository state.
+
+Do NOT restart Task 1.
+Do NOT re-audit the whole project.
+Do NOT reread all handoff files.
+Do NOT redo work that is already implemented.
+
+The previous agent already:
+- Restored dependencies.
+- Inspected the existing route/auth patterns.
+- Confirmed the Part 7 generated Zod schemas.
+- Identified the missing provider-list, schedule, holiday, and HR-record API handlers.
+- Started the minimal additive Task 1 implementation.
+
+Your job is to inspect ONLY the current state of those Task 1 changes and FINISH whatever is still missing.
+
+TASK 1 ONLY:
+
+1. DeviceSyncHistory schema
+Make sure `providerKey` and `operation` are correctly aligned across:
+- database schema
+- Drizzle
+- OpenAPI
+- generated types
+
+Use a non-destructive migration/change.
+Do not delete existing data or create duplicate tables.
+
+2. API handlers
+Finish the existing-contract API handlers for:
+- employee schedules
+- company holidays
+- employee HR records
+- biometric provider listing/boundary
+
+Do not implement biometric synchronization yet.
+
+3. Authorization
+Use the existing authorization system:
+- Employee → own resources only
+- Manager → authorized employee scope only
+- Owner/authorized HR → company scope
+- Developer → technical permissions only
+- block cross-company access
+
+Do not create a new authorization system.
+
+4. OpenAPI / codegen
+Regenerate the existing Zod/client outputs using the normal project workflow and make sure the generated operations match the implemented routes.
+
+5. Verification
+Run only the checks relevant to Task 1:
+- schema/migration validation
+- OpenAPI/codegen
+- API typecheck
+- API build
+- focused API/authorization tests
+
+Do not work on:
+- biometric sync/mock execution
+- sync-history behavior beyond the required schema/API boundary
+- schedule calculations
+- holiday attendance calculations
+- payroll integration
+- frontend
+- Task 2 or later
+- Part 8
+
+IMPORTANT:
+First inspect the CURRENT implementation of the Task 1 files and continue from whatever the previous agent actually completed. Do not overwrite or duplicate existing work.
+
+When Task 1 is fully implemented and verified, update the existing Part 7 handoff with the actual results and STOP.
+
+Do not start Task 2.

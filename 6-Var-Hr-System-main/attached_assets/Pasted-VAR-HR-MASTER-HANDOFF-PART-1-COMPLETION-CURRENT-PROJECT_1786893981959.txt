@@ -1,0 +1,873 @@
+VAR HR — MASTER HANDOFF
+PART 1 COMPLETION — CURRENT PROJECT STATE
+
+You are taking over an existing VAR HR project.
+
+THIS IS NOT A NEW PROJECT.
+DO NOT REBUILD IT.
+DO NOT RESTART THE ARCHITECTURE.
+DO NOT REPEAT COMPLETED WORK.
+
+You have no access to previous conversations.
+This document is the authoritative handoff for the current implementation state.
+
+The actual repository/codebase is the source of truth.
+If this handoff conflicts with the current code, inspect the code and preserve the newer verified implementation.
+
+Your responsibility is to CONTINUE AND COMPLETE PART 1 of VAR HR.
+
+Do not stop at an audit report.
+Implement the remaining work that can safely be completed.
+
+==================================================
+1. PRODUCT OVERVIEW
+==================================================
+
+VAR HR is a premium, multilingual, multi-tenant HR SaaS platform.
+
+The product replaces traditional HR attendance/administration workflows with a modern operational platform.
+
+Core concept:
+
+Review → Analyze → Decide
+
+The VAR/football association is only a subtle brand concept.
+
+DO NOT make the UI football-themed.
+
+The product must feel:
+
+- Premium
+- Enterprise-grade
+- Powerful
+- Precise
+- Modern
+- Sophisticated
+- Expensive
+- Trustworthy
+
+Avoid:
+
+- Generic admin-template appearance
+- Cheap-looking CRUD interfaces
+- Excessive rounded cards
+- Excessive gradients
+- Heavy decorative shadows
+- Decorative elements without operational purpose
+- Football-themed UI
+
+The design should prioritize:
+
+- Strong typography
+- Clear hierarchy
+- High-quality tables
+- Information density
+- Deliberate spacing
+- Calm but memorable branding
+- Restrained status colors
+- Consistent controls
+- Clear focus states
+- Intentional motion
+- Professional responsive behavior
+
+==================================================
+2. TARGET PART 1
+==================================================
+
+Part 1 is the operational HR MVP.
+
+It should provide a coherent experience for:
+
+1. Platform Owner
+2. Company Owner
+3. Manager
+4. Employee
+
+Core operational areas:
+
+- Company onboarding/context
+- Employees
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Attendance rules
+- Basic payroll
+- Reports
+- Employee self-service
+- Manager workspace
+- Company Owner workspace
+- Platform Owner foundation
+- Localization
+- RTL/LTR
+- Tenant isolation
+- Role-based authorization
+
+Part 1 must be coherent enough for the product owner to manually review the entire experience after implementation.
+
+==================================================
+3. CURRENT TECHNICAL ARCHITECTURE
+==================================================
+
+Existing stack:
+
+- pnpm workspace / monorepo
+- React frontend
+- Vite
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- OpenAPI contract
+- Generated Zod schemas
+- Generated React Query clients
+- Shared libraries
+- Existing localization architecture
+
+Important project areas include:
+
+- artifacts/var-hr
+- API server
+- shared API/database libraries
+
+Preserve the existing architecture.
+
+DO NOT introduce:
+
+- Microservices
+- A second i18n system
+- A second authorization system
+- Unnecessary dependencies
+- A new database architecture
+- A new frontend architecture
+
+==================================================
+4. WHAT HAS ALREADY BEEN COMPLETED
+==================================================
+
+The following work has already been implemented and validated through previous agent passes.
+
+DO NOT REBUILD THESE.
+
+--------------------------------------------------
+FOUNDATION
+--------------------------------------------------
+
+- Existing dependencies restored using the existing frozen lockfile.
+- Existing pnpm workspace preserved.
+- PostgreSQL connection established.
+- Existing Drizzle schema applied.
+- VAR HR database tables created.
+- Seeded Northstar tenant initialized.
+- API builds successfully.
+- Frontend builds successfully when supplied the artifact's declared PORT and BASE_PATH.
+- Full workspace typecheck has passed.
+- Git whitespace/diff validation passed during previous validation.
+
+--------------------------------------------------
+API / CONTRACT
+--------------------------------------------------
+
+The project uses:
+
+- OpenAPI contract
+- Generated Zod schemas
+- Generated React Query clients
+
+A date serialization bug was previously fixed at the contract-generation boundary.
+
+Verified behavior:
+
+Date-only fields:
+YYYY-MM-DD
+
+Date-time fields:
+ISO timestamps
+
+Do not reintroduce route-specific date conversion hacks.
+
+--------------------------------------------------
+CORE PRODUCT AREAS ALREADY IMPLEMENTED
+--------------------------------------------------
+
+The current codebase already contains implementation for:
+
+- Company onboarding/context
+- Company dashboard
+- Employees
+- Employee details
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll foundation
+- Devices foundation
+- Subscription foundation
+- Platform Owner views
+- Manager workspace
+- Employee workspace
+
+These are NOT empty placeholder screens.
+
+Do not rebuild them.
+
+Instead, audit and harden their actual behavior.
+
+==================================================
+5. SECURITY / TENANT AUTHORIZATION — ALREADY FIXED
+==================================================
+
+Multiple authorization issues were identified and fixed.
+
+The server-side authorization layer now enforces tenant and role boundaries.
+
+Verified behavior from previous live API testing:
+
+Company Owner:
+- Can access their own company data.
+- Can see the company workforce.
+
+Manager:
+- Is scoped to the authorized Operations scope.
+- Can only access permitted employees/data.
+
+Employee:
+- Can access only their own employee data.
+
+Employee access to company-wide reports/payroll was denied.
+
+Manager access to payroll was denied where not permitted.
+
+Manager/Employee access to rules, devices, and subscriptions was restricted.
+
+Leave balances and requests were scoped correctly.
+
+Platform Owner routes use explicit platform-level privileges.
+
+--------------------------------------------------
+LATEST AUTH HARDENING
+--------------------------------------------------
+
+A later audit found an additional security problem:
+
+The API was trusting tenant/role/employee headers in every environment.
+
+This was fixed.
+
+Current intended behavior:
+
+PRODUCTION:
+- Does NOT trust client-supplied workspace identity headers.
+- Does NOT fall back to a fake Company Owner identity.
+- Fails closed until verified authentication middleware is connected.
+
+DEVELOPMENT:
+- The documented provider-neutral workspace header adapter remains available for seeded development/review.
+- Manager/employee contexts must explicitly identify the employee.
+- Employee identity must match the employee's database role.
+
+Additional fixes:
+
+- Unknown tenants return stable access errors.
+- Device synchronization requires Company Owner or Platform Owner capability.
+- Workspace authentication/access errors are explicit.
+- Scoped manager/employee requests must identify a matching employee.
+
+DO NOT weaken these security boundaries.
+
+DO NOT replace them with frontend-only checks.
+
+DO NOT hard-code a permanent production user.
+
+==================================================
+6. AUTHENTICATION STATUS
+==================================================
+
+A final production authentication provider has NOT been blindly installed.
+
+The architecture intentionally keeps authentication provider-neutral.
+
+The existing development workspace-context adapter is for seeded development/review only.
+
+Part 1 still needs a coherent authentication workflow or a clearly defined production-safe authentication boundary.
+
+Before changing authentication:
+
+1. Inspect the existing authentication boundary.
+2. Preserve the provider-neutral architecture.
+3. Do not randomly install Clerk/Replit Auth/etc.
+4. Do not invent credentials or fake authentication.
+5. If a final provider requires a business decision, document that dependency clearly.
+
+At minimum, the final Part 1 authentication architecture must properly handle:
+
+- User identity
+- Session
+- Login
+- Logout
+- Company membership
+- Role
+- Unauthorized access
+- Invalid/expired session behavior
+
+If the final provider is intentionally deferred, preserve the secure fail-closed production boundary and document exactly what remains.
+
+==================================================
+7. LOCALIZATION STATUS
+==================================================
+
+Supported locales:
+
+- English
+- Arabic
+- French
+- German
+
+Direction:
+
+English → LTR
+French → LTR
+German → LTR
+Arabic → RTL
+
+Localization foundation already exists.
+
+The previous agent connected the locale selector to:
+
+- Existing i18n provider/context
+- Date formatting
+- Time formatting
+- Currency formatting
+- Shared error states
+- Status badges
+- Dialog accessibility labels
+- API request locale via x-var-locale
+
+The API correctly handles the selected locale boundary.
+
+The shell/navigation localization and RTL/LTR behavior were previously improved.
+
+Desktop and mobile shell direction behavior was checked.
+
+--------------------------------------------------
+IMPORTANT REMAINING LOCALIZATION GAP
+--------------------------------------------------
+
+The latest audit confirmed:
+
+Most operational screens still contain hardcoded English.
+
+This is now one of the highest-priority remaining Part 1 tasks.
+
+Complete localization across the actual operational UI.
+
+Audit:
+
+- Dashboard
+- Employees
+- Employee details
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll
+- Manager workspace
+- Employee workspace
+- Settings
+- Forms
+- Tables
+- Table headers
+- Filters
+- Buttons
+- Dialogs
+- Toasts
+- Notifications
+- Empty states
+- Loading states
+- Error states
+- Status labels
+- Tooltips
+- Accessibility labels
+- Validation messages
+
+Do NOT only translate navigation.
+
+The actual page content must change language.
+
+Use the existing i18n system.
+
+Do NOT create a second localization architecture.
+
+Arabic must remain RTL.
+
+English/French/German must remain LTR.
+
+Use logical layout properties instead of hardcoded left/right wherever possible.
+
+==================================================
+8. UI / RESPONSIVE FIXES ALREADY COMPLETED
+==================================================
+
+A concrete mobile UI regression was found.
+
+The mobile navigation trigger existed in the DOM but was visually indistinct.
+
+Further investigation found the root cause:
+
+The shared Button component was self-closing and therefore discarded children.
+
+This caused button labels/icons to disappear across the application.
+
+The shared Button primitive was fixed.
+
+Verified result:
+
+- Mobile hamburger content appears.
+- Desktop refresh controls appear correctly.
+- Shared button content renders correctly.
+
+DO NOT undo this fix.
+
+A second UI issue was found:
+
+Managers could see UI actions such as:
+
+- Add employee
+- Status editing
+- Approval controls
+
+even when the API correctly rejected those actions.
+
+The UI was aligned with backend capabilities so users do not encounter predictable 403 actions.
+
+Continue to preserve this principle:
+
+UI should reflect permissions,
+BUT backend remains the real security boundary.
+
+==================================================
+9. RUNTIME / REPLIT STATUS
+==================================================
+
+There is an important environment limitation.
+
+The repository contains artifact metadata files.
+
+However, in the latest imported Replit runtime:
+
+listArtifacts() returned an empty list.
+
+listWorkflows() returned an empty list.
+
+Therefore:
+
+- The runtime currently has no registered VAR HR artifact workflows.
+- Managed workflow restart could not be performed.
+- Live browser screenshots could not be performed in that runtime.
+- The agent intentionally did NOT create duplicate workflows.
+- The agent did NOT rewrite artifact metadata blindly.
+
+This is a runtime/registration limitation, not proof that the application code is broken.
+
+Previous validation proved:
+
+- API production build passes.
+- Frontend production build passes when supplied with the declared PORT and BASE_PATH.
+- Typecheck passes.
+
+DO NOT:
+
+- Create duplicate workflows.
+- Invent a new workflow architecture.
+- Rewrite artifact metadata blindly.
+- Bypass existing routing.
+
+If there is an existing documented repository mechanism to register the artifact, use it.
+
+Otherwise, document the runtime limitation and continue code-level Part 1 work.
+
+==================================================
+10. LATEST AGENT STATUS
+==================================================
+
+The newest agent was instructed to continue Part 1 despite the runtime registration issue.
+
+The agent:
+
+- Read the continuation handoff.
+- Confirmed the intended next step.
+- Began delegating the broad localization pass.
+- Began separately auditing API workflow gaps.
+- Planned to review and validate the combined changes.
+
+The daily quota ended immediately after those actions.
+
+Therefore:
+
+NO verified new feature work from that latest pass should be assumed complete.
+
+The current codebase before that unfinished pass is the reliable baseline.
+
+==================================================
+11. PART 1 REMAINING WORK
+==================================================
+
+Priority order:
+
+--------------------------------------------------
+PRIORITY 1 — COMPLETE LOCALIZATION
+--------------------------------------------------
+
+Convert remaining hardcoded operational UI strings into the existing localization catalog.
+
+Support:
+
+- English
+- Arabic
+- French
+- German
+
+Verify RTL/LTR behavior.
+
+This is currently the clearest incomplete Part 1 area.
+
+--------------------------------------------------
+PRIORITY 2 — FUNCTIONAL HARDENING
+--------------------------------------------------
+
+Existing screens/routes must be tested as real workflows.
+
+Do not assume implementation equals completion.
+
+ATTENDANCE:
+
+Verify:
+
+- Check-in
+- Check-out
+- Attendance history
+- Late calculation
+- Early departure
+- Worked duration
+- Overtime foundation
+- Absence
+- Manual correction
+- Audit trail
+- Rule application
+
+Check supported edge cases:
+
+- Missing checkout
+- Multiple check-ins
+- Overnight shifts
+- Cross-midnight work
+- Holidays
+- Grace periods
+- Rounding
+- Manual corrections
+- Time zones
+
+Do not invent complex country-specific labor law.
+
+--------------------------------------------------
+LEAVE:
+
+Verify:
+
+- Leave types
+- Leave balances
+- Request creation
+- Submission
+- Approval
+- Rejection
+- Cancellation where supported
+- Balance transitions
+- Approval history
+- Rejection reason
+
+Balance behavior should be based on state/ledger transitions, not arbitrary UI numbers.
+
+--------------------------------------------------
+PERMISSIONS:
+
+Verify:
+
+- Permission types
+- Request creation
+- Date/time
+- Reason
+- Approval
+- Rejection
+- Rejection reason
+- History
+- Correct role/employee scope
+
+--------------------------------------------------
+RULES:
+
+Verify:
+
+- Work schedule
+- Grace period
+- Late threshold
+- Early departure
+- Working days
+- Holidays
+- Overtime conditions
+- Deduction behavior
+- Permission treatment
+
+--------------------------------------------------
+PAYROLL FOUNDATION:
+
+Verify:
+
+- Basic salary
+- Additions
+- Deductions
+- Overtime
+- Attendance-related deductions
+- Payroll period
+- Employee breakdown
+- Calculation result
+- Authorization
+
+Do NOT implement country-specific tax/legal payroll rules unless explicitly required.
+
+Payroll should remain explainable.
+
+--------------------------------------------------
+REPORTS:
+
+Verify:
+
+- Attendance
+- Absence
+- Late
+- Overtime
+- Leave
+- Permissions
+- Employees
+- Payroll
+
+Check:
+
+- Date filters
+- Employee filters
+- Department filters
+- Branch filters
+- Preview
+- Print
+- CSV
+- Excel-compatible export
+
+Do not create fake report data.
+
+==================================================
+12. ROLE / TENANT SECURITY REGRESSION
+==================================================
+
+After all changes, retest:
+
+EMPLOYEE:
+
+Must NOT access:
+
+- Other employees
+- Company-wide attendance
+- Company reports
+- Company payroll periods
+- Company rules
+- Devices
+- Subscription administration
+
+MANAGER:
+
+Must only access authorized:
+
+- Employees
+- Branches
+- Departments
+- Direct reports
+- Allowed reports
+- Allowed actions
+
+COMPANY OWNER:
+
+Must only access their company.
+
+PLATFORM OWNER:
+
+Must have explicit platform privileges.
+
+Test:
+
+- API authorization
+- UI visibility
+
+Never rely on UI hiding for security.
+
+==================================================
+13. AUTOMATED REGRESSION COVERAGE
+==================================================
+
+Add minimal useful automated coverage where practical.
+
+Prioritize:
+
+1. Tenant isolation
+2. Employee isolation
+3. Manager scope
+4. Company Owner access
+5. Attendance
+6. Leave
+7. Permissions
+8. Payroll authorization
+9. Localization
+10. RTL/LTR
+11. Mobile navigation
+
+Do not introduce a huge test framework unnecessarily.
+
+Use the project's existing testing approach if one exists.
+
+==================================================
+14. FINAL UX / ACCESSIBILITY REVIEW
+==================================================
+
+Before declaring Part 1 complete, review:
+
+Desktop
+Mobile
+RTL
+LTR
+
+Check:
+
+- Navigation
+- Sidebar
+- Tables
+- Forms
+- Dialogs
+- Dropdowns
+- Filters
+- Empty states
+- Loading states
+- Error states
+- Toasts
+- Long Arabic text
+- Long German text
+- Keyboard focus
+- Accessibility labels
+- Touch targets
+- Overflow
+- Button content
+- Mobile navigation
+
+Do not redesign working UI unnecessarily.
+
+Fix only verified usability/accessibility issues.
+
+==================================================
+15. DO NOT START PART 2
+==================================================
+
+Do NOT move into major future-phase work yet.
+
+Do NOT prioritize:
+
+- Real biometric manufacturer integrations
+- Advanced biometric synchronization
+- Production GPS infrastructure
+- Payment gateway
+- Advanced billing automation
+- Country-specific legal payroll
+- Enterprise SSO
+- Advanced analytics
+- Complex notification infrastructure
+
+Those belong to later phases.
+
+Part 1 must be completed and manually reviewable first.
+
+==================================================
+16. IMPLEMENTATION RULE
+==================================================
+
+For every change:
+
+1. Inspect the existing code.
+2. Verify the gap.
+3. Make the smallest coherent fix.
+4. Preserve existing architecture.
+5. Preserve existing security boundaries.
+6. Preserve generated API contracts.
+7. Run typecheck.
+8. Run relevant API/frontend tests.
+9. Perform browser/visual validation if runtime is available.
+10. Never claim a validation that could not actually be performed.
+
+Do not make speculative changes.
+
+Do not rebuild working features.
+
+Do not silently change product scope.
+
+==================================================
+17. IMPORTANT SECURITY RULE
+==================================================
+
+Never trust:
+
+- client-supplied companyId
+- client-supplied role
+- client-supplied employee identity
+- frontend-only authorization
+
+Production must fail closed until verified authentication is connected.
+
+Development adapters may exist only within their documented development boundary.
+
+Never weaken this to make a demo work.
+
+==================================================
+18. FINAL VALIDATION
+==================================================
+
+Before declaring Part 1 complete:
+
+Run as much as the environment allows:
+
+- Full workspace typecheck
+- API build
+- Frontend build
+- Relevant API tests
+- Relevant frontend tests
+- Authorization regression
+- Localization regression
+- RTL/LTR validation
+- Responsive validation
+- Browser validation if workflows are available
+
+If the Replit runtime still has no registered artifact/workflows:
+
+Do NOT fake browser validation.
+
+Clearly state:
+
+"Code-level validation completed; live workflow/browser validation remains blocked by runtime artifact registration."
+
+==================================================
+19. FINAL REPORT FORMAT
+==================================================
+
+At the end, provide a concise but precise report:
+
+### Already Complete
+List the majo

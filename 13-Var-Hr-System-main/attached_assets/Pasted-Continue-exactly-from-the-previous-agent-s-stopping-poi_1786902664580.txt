@@ -1,0 +1,44 @@
+Continue exactly from the previous agent’s stopping point.
+
+Read the latest files inside "hand-off/" and continue the current Arabic rendered-UI localization task. Do NOT restart the localization audit or redo completed work.
+
+The previous agent already:
+
+- Confirmed the screenshot’s English strings are a broader presentation-layer localization problem, not isolated screenshot issues.
+- Traced the shared date/currency/label formatting helpers.
+- Started fixing locale-aware date/currency formatting and presentation-layer labels.
+- Started a full Arabic-selected browser audit across the existing Part 1 screens.
+- Confirmed canonical API/database values must remain unchanged.
+- Reached the Employees screen, where one large JSX replacement failed because the component uses compressed long lines. The agent switched to smaller exact edits.
+
+Continue from that exact point.
+
+Important requirements:
+
+1. Keep Arabic selected and audit the actual rendered UI, not just translation dictionaries or API responses.
+2. Treat the screenshot only as evidence of a broader problem. Do NOT limit the fix to the strings shown in the screenshot.
+3. Find and fix every remaining user-facing English string across the existing Part 1 screens, including:
+   - dates/month names
+   - currency formatting
+   - department/team names
+   - roles
+   - statuses
+   - buttons
+   - labels
+   - table values
+   - empty states
+   - alerts
+   - dialogs
+   - API-derived display values
+   - dynamically formatted values
+4. Keep canonical database/API values unchanged. Translate/format only at the presentation layer.
+5. Preserve English, French, and German behavior.
+6. Do not change unrelated product functionality or start Part 2.
+7. Use the existing i18n architecture; do not introduce a second translation system.
+8. Actually verify the rendered Arabic UI in the browser where the runtime allows it. Do not claim visual validation from static code scans alone.
+9. After finishing, run the relevant typecheck/build/runtime checks.
+10. Add a new dated work log under "hand-off/" describing exactly what was completed and verified.
+11. Update "hand-off/MASTER-HANDOFF.md" with the new verified state.
+12. If the environment/runtime blocks any validation, document the exact limitation instead of claiming it passed.
+
+Do not stop after fixing the visible screenshot examples. The goal is to make the existing Part 1 UI genuinely usable in Arabic with no unintended user-facing English leftovers.

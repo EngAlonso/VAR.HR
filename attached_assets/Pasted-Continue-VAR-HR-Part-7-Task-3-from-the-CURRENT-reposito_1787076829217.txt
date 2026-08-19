@@ -1,0 +1,214 @@
+Continue VAR HR Part 7 — Task 3 from the CURRENT repository state.
+
+Task 1 and Task 2 are COMPLETE and verified.
+
+Do NOT redo Task 1 or Task 2.
+Do NOT re-audit the whole project.
+Do NOT rebuild the biometric provider.
+Do NOT start Task 4, Task 5, or Task 6.
+
+# Task 3 — Employee Schedules + Company Holidays → Attendance & Payroll
+
+The goal of this task is to make the existing employee schedules and company holidays actually drive the existing attendance and payroll calculations.
+
+Make minimal, additive changes and preserve the existing Part 6 attendance/payroll behavior.
+
+## 1. Effective employee schedule
+
+Make attendance calculations resolve the employee's effective schedule.
+
+The effective schedule should correctly determine:
+
+- work start time
+- work end time
+- required working hours
+- grace period
+- working days
+- overtime eligibility/rules where already supported
+
+Use the employee-specific schedule when one is assigned.
+
+If no employee-specific schedule exists, preserve the existing company-level/default rule behavior.
+
+Do not create a second scheduling system.
+
+## 2. Late arrival
+
+Use the effective employee schedule to calculate lateness.
+
+Verify:
+
+- arrival before start → not late
+- arrival within grace period → according to existing rule
+- arrival after grace period → late
+- late duration is calculated correctly
+
+Do not change the existing rule semantics unless required to support employee-specific schedules.
+
+## 3. Early departure
+
+Use the effective schedule's end time/required hours.
+
+Verify that leaving before the applicable end/required working period is handled by the existing early-departure logic.
+
+Do not introduce a duplicate attendance status system.
+
+## 4. Overnight shifts
+
+This is required.
+
+Correctly handle schedules where the end time is on the following day.
+
+Example:
+
+22:00 → 06:00
+
+An employee arriving at 22:00 and leaving at 06:00 the next day must be treated as one valid shift.
+
+Verify:
+
+- no false early departure
+- no false absence
+- correct worked hours
+- correct overtime calculation where applicable
+- no incorrect date assignment
+
+Use the existing attendance model and rules.
+
+## 5. Working days
+
+Use the employee's effective schedule when determining whether a day is a working day.
+
+A scheduled non-working day must not be incorrectly treated as absence.
+
+Preserve existing company defaults when no employee-specific schedule applies.
+
+## 6. Company holidays
+
+Make the existing company holiday records affect attendance calculations.
+
+For a configured company holiday:
+
+- employee should not be marked absent simply because no attendance exists
+- the day should be recognized as a holiday
+- normal late/early/absence calculations should not incorrectly apply
+- payroll should receive the correct holiday-aware attendance result
+
+Do not create another holiday table or holiday system.
+
+Use the existing holiday model from Task 1.
+
+## 7. Payroll integration
+
+Make sure payroll consumes the corrected attendance results.
+
+Verify that:
+
+- absence calculations reflect schedules
+- late deductions reflect applicable rules
+- overtime reflects the effective schedule
+- holidays are not treated as unexplained absences
+- employee-specific schedules do not break payroll calculations
+
+Do NOT rewrite the payroll engine.
+
+Only modify the minimum calculation/resolution logic required.
+
+## 8. Preserve existing behavior
+
+Do not regress:
+
+- Part 6 reports
+- existing attendance rules
+- payroll calculations
+- employee import
+- authorization
+- tenant isolation
+- biometric synchronization from Task 2
+
+Do not modify biometric provider behavior unless a compile/runtime compatibility issue directly requires it.
+
+## 9. Tests / verification
+
+Create or extend focused tests if the project has an existing test pattern.
+
+At minimum verify these scenarios:
+
+### Schedule
+1. Employee with normal daytime schedule.
+2. Employee with employee-specific schedule overriding the default.
+3. Employee without an assigned schedule using the existing default.
+4. Non-working day.
+5. Late arrival.
+6. Grace-period arrival.
+7. Early departure.
+8. Normal completed shift.
+9. Overnight shift, e.g. 22:00 → 06:00.
+10. Overnight shift with overtime if supported.
+
+### Holidays
+11. Company holiday with no attendance.
+12. Company holiday with attendance.
+13. Non-holiday normal absence.
+14. Holiday belonging to Company A must not affect Company B.
+
+### Payroll
+15. Schedule-based attendance feeding payroll.
+16. Late/absence impact remains correct.
+17. Overtime remains correct.
+18. Holiday does not create an incorrect absence deduction.
+
+### Security
+19. Cross-company schedule/holiday access remains blocked.
+20. Existing authorization behavior remains intact.
+
+Run:
+
+- typecheck
+- API build
+- relevant tests
+- schema validation if required
+- focused API/runtime checks where applicable
+
+Do not mark anything PASS unless actually executed.
+
+## 10. Important scope limitation
+
+Do NOT implement:
+
+- biometric provider changes
+- biometric sync changes
+- HR-record UI
+- Part 7 frontend
+- new report screens
+- unrelated refactoring
+- Part 8
+
+This task is strictly:
+
+Employee Schedule + Company Holiday
+→ Attendance
+→ Payroll
+
+## 11. Completion
+
+When Task 3 is fully implemented and verified:
+
+Update the existing Part 7 handoff with:
+
+- schedule resolution changes
+- holiday resolution changes
+- attendance changes
+- payroll changes
+- files changed
+- tests executed
+- PASS/FAIL/BLOCKED results
+- any remaining limitations
+
+Mark Task 3 as COMPLETE only if the required verification actually passes.
+
+Then STOP.
+
+Do not start Task 4 automatically.
+
+Start Task 3 now from the current repository state.

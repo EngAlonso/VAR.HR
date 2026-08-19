@@ -1,0 +1,260 @@
+Continue VAR HR Part 6 from the EXACT current repository state.
+
+DO NOT restart Part 6.
+DO NOT redo the audit.
+DO NOT redo Parts 1–5.
+DO NOT reinstall dependencies unless genuinely required.
+DO NOT regenerate the already-completed OpenAPI work unless the current contract change requires regeneration.
+DO NOT start Part 7.
+
+COMPLETED BEFORE THIS POINT
+
+The latest read-only audit found Part 6 approximately 58% complete.
+
+Already completed and preserved:
+
+- Six report types exist in the API.
+- Company and role scoping exists.
+- Cross-company protection exists.
+- Payroll authorization exists for the currently defined roles.
+- Employee import backend exists.
+- Employee import backend validation and row-level results exist.
+- Manager employee import is forbidden.
+- CSV export exists.
+- Print generation exists.
+- Part 6 localization dictionaries exist for Arabic, English, French, and German.
+- Generated employee import hook exists.
+- Dependencies were already installed.
+- OpenAPI generation was already completed.
+
+ALREADY IDENTIFIED REMAINING WORK
+
+The remaining confirmed work is:
+
+1. Report filter/API contract mismatches.
+2. Leave/permission filter values.
+3. Employee import frontend.
+4. Excel export.
+5. Print totals.
+6. Status localization.
+7. Developer-role decision.
+8. Runtime/database verification.
+9. Full final validation.
+10. Part 6 handoff documentation.
+
+EXACT CURRENT STOPPING POINT
+
+The previous agent has ALREADY started implementing item #1.
+
+The report OpenAPI contract was successfully edited to separate report-specific status filters instead of incorrectly using one generic status enum.
+
+The actual backend patch was then split into smaller targeted edits because the combined patch encountered a context mismatch.
+
+Therefore:
+
+DO NOT redo the OpenAPI contract edit.
+
+Continue from the current diff and inspect the exact current state before applying the next small backend edit.
+
+CONTINUE IN THIS ORDER
+
+1. Finish report filter contract/backend alignment
+
+Complete the backend implementation so the new typed report filters actually work.
+
+Keep the existing employee status filter unchanged.
+
+Use appropriate typed filters for:
+
+- Attendance/overtime status
+- Leave status/type
+- Permission status/type
+- Payroll status
+- Employee status
+
+Make sure:
+
+OpenAPI
+→ generated types
+→ API validation
+→ database query
+→ frontend values
+
+all match.
+
+Regenerate generated code ONLY if required by the contract change.
+
+2. Fix leave/permission filters
+
+Use the actual existing backend values.
+
+Do not invent values.
+
+Known existing request types include:
+
+- "annual"
+- "sick"
+- "short_absence"
+- "late_arrival"
+- "early_departure"
+- "remote_work"
+- "personal_errand"
+
+Known payroll statuses include:
+
+- "draft"
+- "calculated"
+- "finalized"
+- "approved"
+- "locked"
+
+Verify the actual status values from the existing code before implementing.
+
+3. Complete employee import frontend
+
+Use the existing generated "useImportEmployees" hook.
+
+Implement:
+
+- File selection
+- CSV/TSV parsing
+- Header validation
+- Preview
+- Row validation
+- Error display
+- Confirmation
+- Import execution
+- Successful row results
+- Failed row results
+- Duplicate protection
+- Template download
+
+Do not create another API.
+
+4. Excel export
+
+The existing implementation is HTML content saved with an ".xls" filename.
+
+The current implementation decision was to move toward a genuine XLSX export.
+
+Implement a real Excel-compatible workbook if the project dependency setup supports it.
+
+Do not simply rename HTML/CSV to ".xlsx".
+
+Preserve:
+
+- Filters
+- Authorization
+- Company isolation
+- Arabic data
+
+5. Print totals
+
+The existing print flow works but printed totals are missing.
+
+Add appropriate totals using existing report data.
+
+Preserve:
+
+- Report title
+- Company
+- Date range
+- Filters
+- Tables
+- Arabic RTL
+- Print CSS
+
+6. Complete localization
+
+Translate report-specific statuses and values so raw values such as:
+
+- "draft"
+- "approved"
+- "pending"
+- "short_absence"
+- "present"
+- "late"
+- "absent"
+
+do not appear untranslated.
+
+Support:
+
+- Arabic
+- English
+- French
+- German
+
+7. Developer role
+
+The audit found no distinct "developer" role in the current authorization model.
+
+Do not invent a role casually.
+
+Inspect the existing project requirements and authorization architecture.
+
+If Developer is intentionally not a separate role, preserve the architecture and document it.
+
+If a distinct Developer role is explicitly required, implement it consistently and do NOT automatically grant payroll access.
+
+8. Runtime verification
+
+If the imported development database is missing existing "var_hr_*" tables, use the existing non-destructive schema push.
+
+Never:
+
+- Drop
+- Reset
+- Truncate
+- Delete existing data
+
+Then verify the real runtime.
+
+9. Final validation
+
+Verify:
+
+- All reports
+- All filters
+- Employee import
+- CSV export
+- XLSX export
+- Print
+- Arabic RTL
+- English/French/German
+- Employee authorization
+- Manager authorization
+- Owner authorization
+- Cross-company rejection
+- Desktop
+- Mobile
+- API health
+- Frontend Preview
+- Typechecks
+- Builds
+
+Do not claim completion from static code alone.
+
+10. Handoff
+
+Only after everything is actually verified:
+
+Create a NEW dated report in:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Do not overwrite previous reports.
+
+Do not start Part 7.
+
+CRITICAL CONTINUATION RULE
+
+The report contract edit is ALREADY DONE.
+
+The current work is paused during the small backend edits required to match that new contract.
+
+Start there immediately.

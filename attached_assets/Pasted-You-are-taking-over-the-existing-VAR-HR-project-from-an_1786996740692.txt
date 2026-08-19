@@ -1,0 +1,233 @@
+You are taking over the existing VAR HR project from another agent/account.
+
+This is NOT a fresh implementation.
+
+Part 6 is already completed and verified.
+
+Part 7 is currently in progress and was partially implemented before the previous agent reached its daily quota.
+
+Mandatory first step
+
+Before doing anything:
+
+1. Read the entire "hand-off/" directory.
+2. Read:
+   - "hand-off/MASTER-HANDOFF.md"
+   - the latest Part 6 completion report
+   - the latest Part 7 handoff/implementation brief
+   - any newly created Part 7 reports
+3. Inspect the current git/worktree state.
+4. Inspect the current database/schema state.
+5. Inspect the current managed workflows/artifacts.
+6. Determine exactly what the previous agent already changed.
+7. Do NOT restart Part 7 from scratch.
+8. Do NOT revert existing Part 7 work.
+
+The "hand-off/" directory is the source of truth for project continuation.
+
+---
+
+Current Part 7 Status
+
+The previous agent performed a gap audit and determined that Parts 3–6 already implement most of the original HR requirements.
+
+Therefore Part 7 is a gap-filling implementation, not a rebuild.
+
+The main remaining gaps identified were:
+
+1. Employee-specific schedules/shifts
+
+Implement:
+
+- Employee-specific schedules.
+- Shift assignment.
+- Start/end times.
+- Required working hours.
+- Grace period where applicable.
+- Overtime calculation based on the assigned schedule.
+- Correct handling of overnight shifts crossing midnight.
+
+Do not replace the existing attendance/payroll logic unnecessarily.
+
+---
+
+2. First-class company holidays
+
+Implement proper holiday records.
+
+Support:
+
+- Company-specific holidays.
+- Holiday name.
+- Date.
+- Appropriate recurring behavior if already supported by the architecture.
+- Attendance calculations recognizing holidays.
+- Preventing holidays from being incorrectly treated as employee absence.
+- Payroll integration where applicable.
+
+Reuse existing patterns and avoid duplicate concepts.
+
+---
+
+3. Provider-based biometric integration layer
+
+Implement a clean biometric integration abstraction.
+
+The system should support multiple biometric providers/devices without hardcoding the application around one vendor.
+
+The previous agent planned:
+
+- Provider interface/contract.
+- Device registry/configuration.
+- Deterministic mock biometric provider for testing.
+- Employee synchronization boundary.
+- Attendance synchronization boundary.
+- Sync history/logging.
+- Clear separation between production hardware integration and test/mock behavior.
+
+Do NOT claim physical biometric hardware integration has been verified unless actual hardware/network access was available and tested.
+
+The mock provider should be deterministic and testable.
+
+---
+
+4. Employee HR records/profile surfaces
+
+Complete the missing employee HR record/profile functionality identified during the previous audit.
+
+Before implementing anything:
+
+- Inspect the current employee schema.
+- Inspect existing employee routes.
+- Inspect existing employee UI.
+- Identify exactly what is missing.
+- Reuse existing employee data rather than creating duplicate employee concepts.
+
+---
+
+Environment Status
+
+The previous agent already:
+
+- Restored dependencies using the existing lockfile.
+- Applied the existing database schema non-destructively.
+- Started the API successfully.
+- Started the frontend successfully.
+- Confirmed managed artifacts/workflows are registered again.
+- Removed duplicate imported workflows that were causing port conflicts.
+- Found an orphaned API process on port "8080" from a stopped imported workflow.
+
+Before continuing:
+
+- Verify whether any stale/orphaned process is still occupying port "8080".
+- Do not kill unrelated processes.
+- Start the managed API/frontend cleanly.
+
+---
+
+Important Part 6 Baseline
+
+Do not regress Part 6.
+
+Part 6 already verified:
+
+- API runtime.
+- Frontend HTTP smoke test.
+- Six report types.
+- Payroll calculation/reporting.
+- Authorization.
+- Tenant isolation.
+- Employee import validation.
+- Typechecks.
+- API build.
+- Frontend build.
+
+Preserve these behaviors.
+
+---
+
+Implementation Rules
+
+Before changing code:
+
+1. Inspect existing schema.
+2. Inspect existing routes.
+3. Inspect existing frontend patterns.
+4. Inspect existing OpenAPI/codegen patterns.
+5. Inspect existing tests.
+6. Reuse existing abstractions.
+7. Make additive/minimal changes where possible.
+
+Do not:
+
+- Rewrite working modules.
+- Redesign the entire UI.
+- Rebuild Part 6.
+- Introduce unnecessary dependencies.
+- Delete existing data.
+- Perform destructive migrations.
+- Bypass authorization.
+- Fake hardware verification.
+- Start Part 8.
+
+---
+
+Verification Requirements
+
+After implementation:
+
+- Run typechecks.
+- Run API tests.
+- Run frontend checks.
+- Run builds.
+- Verify migrations/schema.
+- Verify tenant isolation.
+- Verify role authorization.
+- Verify employee-specific schedule behavior.
+- Verify overnight shift calculations.
+- Verify holiday behavior.
+- Verify biometric provider/mock behavior.
+- Verify sync history.
+- Verify employee HR profile behavior.
+- Run managed browser verification now that managed artifacts are available.
+- Verify existing Part 6 reports/import/payroll behavior has not regressed.
+
+If a test cannot be performed, explicitly state why.
+
+Do not claim success without actual verification.
+
+---
+
+Final Handoff
+
+When finished:
+
+1. Create a new dated Part 7 completion/continuation report under:
+
+"hand-off/"
+
+2. Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+3. Preserve all previous handoff history.
+
+4. Clearly classify every Part 7 requirement as:
+
+- Complete
+- Partial
+- Blocked
+
+5. Include:
+
+- Files changed
+- Database changes
+- API changes
+- UI changes
+- Tests executed
+- Browser verification results
+- Remaining limitations
+
+Do not start Part 8.
+
+Continue from the current repository state. Do not restart the work.

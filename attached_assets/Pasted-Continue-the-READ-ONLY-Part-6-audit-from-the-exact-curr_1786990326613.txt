@@ -1,0 +1,242 @@
+Continue the READ-ONLY Part 6 audit from the exact current repository state.
+
+IMPORTANT:
+This is STILL an AUDIT ONLY.
+DO NOT modify any project files.
+DO NOT fix bugs.
+DO NOT install packages.
+DO NOT regenerate OpenAPI.
+DO NOT migrate or modify the database.
+DO NOT create a handoff.
+DO NOT start implementation.
+DO NOT start Part 7.
+
+Parts 1–5 are complete and must remain untouched.
+
+WHAT HAS ALREADY BEEN AUDITED
+
+The previous agent already inspected the Part 6 contracts, API routes, generated client, Reports UI, import flow, exports, and runtime behavior.
+
+The following findings are CONFIRMED:
+
+Reports
+
+All six report types respond from the API.
+
+Manager scoping works.
+
+The report API itself is reachable and functioning at a basic level.
+
+Authorization
+
+Manager report scope was verified.
+
+Manager employee import is correctly forbidden.
+
+Malformed employee imports are rejected.
+
+Confirmed Part 6 defects
+
+1. The generated status query enum is employee-oriented, while the Reports UI exposes attendance/payroll status values that do not match the current contract.
+
+2. The Reports UI uses leave/permission filter values that do not match the values expected by the backend.
+
+3. "useImportEmployees" exists as a generated hook, but the frontend does NOT actually implement the employee import UI.
+
+There is currently no complete frontend flow for:
+
+- File selection
+- File parsing
+- File preview
+- Validation display
+- Confirmation
+- Import execution
+- Row-level result display
+
+Only the hook and localization strings exist.
+
+Runtime
+
+Safe runtime checks reached the actual API successfully.
+
+Confirmed:
+
+- All six report endpoints respond.
+- Manager scoping works.
+- Malformed imports are rejected.
+- Manager import is forbidden.
+- Invalid attendance status values are rejected.
+- Incorrect lower-case leave/permission filter values produce empty results.
+
+Do NOT redo these checks unless needed to clarify a contradiction.
+
+EXACT REMAINING AUDIT WORK
+
+Finish the READ-ONLY audit for the remaining requirements:
+
+1. CSV Export
+
+Verify whether it is actually implemented and working.
+
+Check:
+
+- Real data output.
+- Active filters are respected.
+- Server-side authorization is respected.
+- Company isolation.
+- Correct columns.
+- Arabic data handling.
+
+Do not assume a button means it works.
+
+2. Excel-Compatible Export
+
+Verify whether the implementation is genuinely Excel-compatible.
+
+Check:
+
+- Actual response/file format.
+- Data correctness.
+- Filters.
+- Authorization.
+- Arabic text.
+
+If it is only CSV renamed as ".xlsx", mark it accordingly.
+
+3. Printing
+
+Verify:
+
+- Print functionality exists.
+- Print layout.
+- Navigation/sidebar hiding.
+- Report title.
+- Company/report period.
+- Tables.
+- Totals.
+- Arabic RTL.
+
+If browser-only behavior cannot be verified, mark it "NOT VERIFIED".
+
+4. Localization
+
+Check Part 6 additions in:
+
+- Arabic
+- English
+- French
+- German
+
+Check:
+
+- Report names
+- Filters
+- Statuses
+- Import messages
+- Export messages
+- Print labels
+- Errors
+- Empty states
+
+Also check Arabic RTL.
+
+5. Mobile/Desktop
+
+Inspect the Reports UI at:
+
+- Desktop
+- Mobile
+
+Do not modify anything.
+
+If visual runtime verification is unavailable, mark it "NOT VERIFIED".
+
+6. Authorization
+
+Finish checking:
+
+- Employee
+- Manager
+- Owner
+- Developer
+- Cross-company
+
+For:
+
+- Reports
+- Payroll reports
+- Exports
+- Imports
+
+Do not assume frontend hiding equals authorization.
+
+7. Contract Consistency
+
+Verify:
+
+OpenAPI
+→ generated types/hooks
+→ API handlers
+→ frontend
+
+Specifically identify:
+
+- Contract mismatches.
+- Incorrect enum values.
+- Missing handlers.
+- Unused generated hooks.
+- UI values incompatible with API schemas.
+
+FINAL OUTPUT
+
+When finished, give me ONE clear audit report.
+
+Use this table:
+
+Part 6 Requirement| Status| Evidence| Exact Missing Work
+
+Allowed statuses ONLY:
+
+- COMPLETE
+- PARTIAL
+- MISSING
+- BLOCKED
+- NOT VERIFIED
+
+Then provide:
+
+A. Definitely Complete
+
+Only proven items.
+
+B. Partial
+
+Exact implementation + exact missing pieces.
+
+C. Missing
+
+Features that do not actually exist.
+
+D. Blocked / Not Verified
+
+Separate environment limitations from actual missing implementation.
+
+E. Exact Implementation Order
+
+Give the next agent the smallest logical sequence to finish Part 6.
+
+F. Estimated Part 6 Completion
+
+Give a percentage based on actual requirements, not code size.
+
+CRITICAL
+
+Do not fix ANYTHING during this audit.
+
+The purpose is to give us an exact map of:
+
+what is finished → what is partially finished → what is missing → what should be implemented next.
+
+Do not create or update anything inside "hand-off/".
+
+Do not start Part 7.

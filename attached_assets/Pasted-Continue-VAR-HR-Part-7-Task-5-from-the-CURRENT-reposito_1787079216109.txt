@@ -1,0 +1,284 @@
+Continue VAR HR Part 7 — Task 5 from the CURRENT repository state.
+
+Tasks 1, 2, 3, and 4 are COMPLETE and verified.
+
+Do NOT redo them.
+Do NOT perform a full project audit.
+Do NOT start Task 6 or Part 8.
+
+# Task 5 — Complete the Remaining Part 7 Frontend
+
+The backend functionality for schedules, holidays, biometric providers/sync, and employee HR records is already implemented.
+
+Task 5 is to expose the remaining functionality through a complete, usable VAR HR frontend while preserving the existing UI architecture.
+
+## 1. Employee Schedules UI
+
+Add the appropriate existing-architecture UI for authorized users to:
+
+- view employee schedules
+- create schedules
+- edit schedules
+- assign a schedule to an employee
+- see the employee's effective schedule
+- handle working/non-working days
+- configure start/end times
+- support overnight schedules such as 22:00 → 06:00
+
+Respect existing role permissions.
+
+Employee:
+- view their own applicable schedule where appropriate
+- cannot administer schedules
+
+Manager:
+- manage/view schedules only for employees in their authorized scope
+
+Owner/authorized HR:
+- manage company schedules and employee assignments
+
+Do not create a new permission system.
+
+## 2. Company Holidays UI
+
+Add the appropriate UI to:
+
+- list company holidays
+- create a holiday
+- edit a holiday
+- delete a holiday where permitted
+
+Show useful validation/errors.
+
+Prevent duplicate/conflicting holiday entries according to the existing API behavior.
+
+Keep all company data tenant-scoped.
+
+## 3. Biometric Devices / Providers UI
+
+Expose the existing biometric provider/device functionality through the UI.
+
+Authorized users should be able to:
+
+- view available biometric providers/devices
+- view connection/status information
+- test a provider/device connection where the existing API supports it
+- trigger employee synchronization where already supported
+- trigger attendance/event synchronization where already supported
+- view synchronization results/history
+
+Do not redesign or rewrite the biometric backend from Task 2.
+
+Do not add physical-device support that does not already exist.
+
+Clearly distinguish mock/testing behavior from real hardware integration where applicable.
+
+## 4. Sync History UI
+
+Provide a usable view for synchronization history.
+
+Show appropriate non-sensitive information such as:
+
+- provider/device
+- operation
+- status
+- timestamp
+- success/failure
+- counts/results
+- error information where appropriate
+
+Do not expose credentials, secrets, tokens, or sensitive device configuration.
+
+Support loading, empty, error, and retry states.
+
+## 5. Employee HR Profile
+
+Task 4 already implemented the focused HR Profile.
+
+Do NOT rebuild it.
+
+Only integrate it naturally into the broader Part 7 navigation if required.
+
+Preserve:
+
+- Employee self-service
+- Manager scope
+- Owner/HR editing
+- salary confidentiality
+- Arabic/RTL behavior
+
+## 6. Navigation
+
+Integrate the new Part 7 areas into the existing application navigation.
+
+Use the current layout/navigation architecture.
+
+Potential areas include:
+
+- Employees
+- Schedules
+- Holidays
+- Biometric Devices
+- Sync History
+- My HR Profile
+
+Only show controls/pages appropriate to the user's role.
+
+Do not redesign the application's global navigation.
+
+## 7. Localization
+
+Use the existing localization system.
+
+Add all required translation keys instead of introducing new hardcoded user-facing strings.
+
+Support the existing supported locales.
+
+At minimum verify:
+
+- Arabic
+- English
+
+Ensure Arabic layouts remain correctly RTL.
+
+## 8. UI quality
+
+Use the existing:
+
+- components
+- forms
+- dialogs
+- tables
+- cards
+- typography
+- spacing
+- buttons
+- notifications/errors
+- loading indicators
+
+Do not introduce a new design system.
+
+Do not change the existing Part 6 dashboard/report styling.
+
+The new screens should visually belong to the existing VAR HR application.
+
+## 9. Authorization in UI
+
+Do not rely only on hiding buttons.
+
+The frontend should respect the existing permission model, while the backend remains the final authority.
+
+Verify:
+
+- Employee cannot see administration controls.
+- Manager sees only authorized employee/schedule controls.
+- Owner/authorized HR sees company administration.
+- Developer does not automatically see confidential HR/payroll information.
+- Unauthorized routes/pages fail safely.
+
+## 10. Verification
+
+Actually verify:
+
+### Schedules
+- list
+- create
+- edit
+- employee assignment
+- overnight schedule UI
+
+### Holidays
+- list
+- create
+- edit
+- delete
+- validation
+
+### Biometric
+- provider/device list
+- connection/status
+- employee sync
+- attendance sync
+- sync history
+
+### Roles
+- Employee
+- Manager
+- Owner/authorized HR
+- Developer
+
+### UI
+- loading states
+- empty states
+- error states
+- retry
+- successful mutations
+- Arabic RTL
+- English
+- navigation
+
+Run:
+
+- workspace typecheck
+- API typecheck if frontend changes affect contracts
+- frontend typecheck
+- frontend production build
+- relevant API/client codegen if contracts change
+- browser/runtime verification using the registered web workflow
+
+Do not claim PASS unless actually executed.
+
+## 11. Preserve completed work
+
+Do NOT modify:
+
+- Task 1 API/schema/authorization
+- Task 2 biometric backend/provider architecture
+- Task 3 schedule/holiday attendance/payroll calculations
+- Task 4 HR-record behavior
+- Part 6 reports/payroll
+- existing global typography/design rules
+
+Only make compatibility fixes if strictly required for Task 5.
+
+## 12. Strict scope
+
+Do NOT implement:
+
+- new backend business logic already completed in Tasks 1–4
+- payroll redesign
+- attendance redesign
+- biometric architecture changes
+- Part 8
+- unrelated refactoring
+
+Task 5 is primarily:
+
+Schedules + Holidays + Biometric Devices/Sync + Sync History
+→ Frontend UI
+→ Navigation
+→ Localization
+→ Role-aware presentation
+
+## Completion
+
+When Task 5 is fully implemented and verified:
+
+Update the existing Part 7 handoff with:
+
+- frontend screens/routes added
+- navigation changes
+- localization changes
+- role visibility
+- verification performed
+- screenshots/browser results where available
+- PASS/FAIL/BLOCKED results
+- remaining limitations
+
+Mark Task 5 COMPLETE only if the required verification actually passes.
+
+Then STOP.
+
+Do not start Task 6 automatically.
+
+Start Task 5 now from the current repository state.

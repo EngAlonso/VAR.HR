@@ -1,0 +1,159 @@
+Continue VAR HR Part 6 from the EXACT current repository state.
+
+Do NOT restart the audit.
+Do NOT redo completed Part 6 work.
+Do NOT touch Parts 1–5.
+Do NOT start Part 7.
+
+COMPLETED
+
+Already completed:
+
+- Part 6 report contract/filter corrections.
+- Typed report-specific filters.
+- Leave and permission filter values aligned with the existing backend.
+- Real XLSX export replaced the previous HTML ".xls" approach.
+- OpenAPI code generation.
+- API typecheck.
+- Frontend typecheck.
+- API build.
+- Frontend build.
+- Development database schema applied non-destructively.
+
+The previous agent reached runtime verification.
+
+EXACT STOPPING POINT
+
+The API became healthy after applying the existing database schema, but the temporary shell-owned API process exited before the verification batch could connect.
+
+Therefore the immediate task is:
+
+Restart the API using the project's managed/stable workflow and continue runtime verification.
+
+Do NOT repeat the schema setup unless the current runtime proves it is actually missing.
+
+VERIFY
+
+Run the remaining Part 6 checks:
+
+Reports
+
+- Attendance
+- Leave
+- Permission
+- Overtime
+- Payroll
+- Employee/company reports
+
+Filters
+
+- Date range
+- Employee
+- Department
+- Attendance/overtime status
+- Leave status/type
+- Permission status/type
+- Payroll status/period
+
+Authorization
+
+- Employee
+- Manager
+- Owner
+- Existing platform role
+- Cross-company isolation
+
+Employee Import
+
+Verify the complete frontend flow:
+
+- File selection
+- Parsing
+- Preview
+- Validation
+- Confirmation
+- Import
+- Row-level results
+- Duplicate handling
+- Authorization
+
+Exports
+
+Verify:
+
+- CSV
+- Real XLSX
+- Active filters
+- Authorization
+- Company isolation
+- Arabic data
+
+Printing
+
+Verify:
+
+- Report title
+- Company
+- Date/filter information
+- Tables
+- Totals
+- Arabic RTL
+- Print layout
+
+Localization
+
+Verify:
+
+- Arabic
+- English
+- French
+- German
+
+UI
+
+Verify Reports on:
+
+- Desktop
+- Mobile
+
+IMPORTANT
+
+Only fix concrete failures found during runtime verification.
+
+Do not rewrite working code.
+
+Do not reinstall dependencies unless absolutely necessary.
+
+Do not change the database destructively.
+
+Do not create duplicate APIs or types.
+
+Use the existing contract-first architecture.
+
+FINALIZATION
+
+If all Part 6 requirements pass:
+
+Create a new dated report inside:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Record:
+
+- Completed work
+- Runtime verification
+- Authorization verification
+- Import/export verification
+- Print verification
+- Localization
+- Any remaining limitations
+
+Do not overwrite previous handoff reports.
+
+Do not start Part 7.
+
+The goal is to FINISH AND VERIFY Part 6, not restart it.

@@ -1,0 +1,265 @@
+Execute the Part 7 account-transfer handoff now.
+
+Do NOT ask me what to do next.
+Do NOT present choices.
+Do NOT wait for confirmation.
+
+The purpose of this task is to create a complete, accurate handoff so a new ChatGPT account/agent can continue the current VAR HR Part 7 implementation without losing work or repeating completed work.
+
+1. Read the current project state
+
+First inspect and reconcile:
+
+- "hand-off/MASTER-HANDOFF.md"
+- every Part 6 report
+- every Part 7 report/brief
+- the current repository/worktree
+- current database/schema
+- current API/OpenAPI contracts
+- current frontend implementation
+- current generated clients/hooks
+- current runtime/workflow/artifact state
+
+If multiple VAR HR project directories exist, identify the active project and document which one is authoritative.
+
+Do not guess.
+
+2. Do not continue implementation
+
+For this task ONLY:
+
+- Do not implement new features.
+- Do not fix bugs.
+- Do not refactor.
+- Do not revert existing changes.
+- Do not reset the repository.
+- Do not delete project files.
+- Do not start Part 8.
+
+Your only job is to document the exact current state.
+
+3. Determine the actual Part 7 state
+
+Part 7 is a gap-filling implementation.
+
+The previously identified gaps include:
+
+1. Employee-specific schedules/shifts.
+2. Company holidays.
+3. Provider-based biometric integration.
+4. Biometric provider/mock adapter and synchronization history.
+5. Employee HR records/profile surfaces.
+
+Determine the ACTUAL state of each one from the codebase.
+
+For every item classify it as:
+
+- COMPLETE
+- PARTIAL
+- NOT STARTED
+- BLOCKED
+
+Do not classify something as complete merely because a schema/table/interface exists.
+
+4. Track all existing Part 7 modifications
+
+Inspect the current worktree and identify every file that was modified for Part 7.
+
+For every relevant file document:
+
+- Exact path.
+- Purpose of the change.
+- What has already been implemented.
+- What is still missing.
+- Whether it compiles.
+- Whether it has been tested.
+- Any dependency on another unfinished component.
+
+Pay particular attention to:
+
+- schema files
+- migrations
+- API routes
+- OpenAPI contracts
+- generated API clients/hooks
+- attendance calculations
+- payroll calculations
+- schedule logic
+- holiday logic
+- biometric provider logic
+- employee profile/HR records
+- frontend screens/components
+
+5. Database state
+
+Inspect and document:
+
+- Current schema.
+- New Part 7 tables/columns.
+- Existing versus pending migrations.
+- Whether schema changes have been applied.
+- Seed/test data relevant to Part 7.
+- Any known database limitations.
+
+Do not modify the database unless absolutely required to inspect its current state.
+
+6. API state
+
+Document:
+
+- Existing routes.
+- New Part 7 routes.
+- Partially implemented routes.
+- OpenAPI changes.
+- Generated client status.
+- Missing client generation.
+- Authorization behavior.
+- Tenant isolation behavior.
+
+7. Frontend state
+
+Document:
+
+- Existing Part 7 UI.
+- New UI components/screens.
+- Missing UI.
+- Generated hooks used.
+- Generated hooks still needed.
+- Any known runtime errors.
+- Any browser verification already performed.
+
+8. Runtime state
+
+Inspect and document:
+
+- Node version.
+- pnpm status.
+- dependency installation status.
+- API status.
+- frontend status.
+- ports.
+- managed artifacts.
+- workflows.
+- stale/orphan processes if present.
+- whether browser verification is currently available.
+
+Do not kill or restart processes unless absolutely necessary just to determine their state.
+
+9. Verification matrix
+
+Create an explicit verification table.
+
+For every relevant area record:
+
+- PASS — actually tested and passed.
+- FAIL — actually tested and failed.
+- NOT RUN — not tested.
+- BLOCKED — could not be tested because of an external/environment limitation.
+
+Include:
+
+- Typecheck.
+- API build.
+- Frontend build.
+- Database/schema.
+- Attendance.
+- Schedules.
+- Holidays.
+- Payroll.
+- Biometric provider/mock.
+- Employee HR records.
+- Authorization.
+- Tenant isolation.
+- Reports.
+- Import.
+- Export.
+- Browser UI.
+
+Never mark something PASS based only on source inspection.
+
+10. Preserve Part 6 baseline
+
+Explicitly document that Part 6 was already completed and verified.
+
+Preserve its verified baseline, including:
+
+- Six report types.
+- Payroll calculation/reporting.
+- Authorization.
+- Tenant isolation.
+- Employee import validation.
+- API runtime verification.
+- Frontend HTTP smoke test.
+- Typechecks.
+- API build.
+- Frontend build.
+
+Do not imply Part 7 replaced or invalidated these results unless actual regression evidence exists.
+
+11. Create the handoff file
+
+Create a new file:
+
+"hand-off/2026-08-17-part-7-account-transfer.md"
+
+If a file with that exact name already exists, create a new appropriately dated/numbered Part 7 transfer handoff instead of overwriting history.
+
+The handoff must contain:
+
+Project status
+
+Part 6 baseline
+
+Part 7 objective
+
+Completed Part 7 work
+
+Partial Part 7 work
+
+Missing Part 7 work
+
+Blocked work
+
+Files changed
+
+Database/schema state
+
+API/OpenAPI state
+
+Frontend state
+
+Runtime/workflow state
+
+Verification matrix
+
+Known issues
+
+Exact continuation point
+
+Recommended next action
+
+12. Update MASTER-HANDOFF.md
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Add the new Part 7 transfer state.
+
+Do NOT delete previous reports or historical information.
+
+Make the newest continuation point obvious.
+
+13. Final response
+
+After completing the handoff, report only:
+
+1. Handoff file created.
+2. MASTER-HANDOFF updated.
+3. Current Part 7 status.
+4. Exact next action for the new agent.
+5. Any critical blocker.
+
+Do not ask me what to do next.
+
+Execute this now.

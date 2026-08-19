@@ -1,0 +1,253 @@
+VAR HR — Start Part 2
+
+Continue the existing VAR HR project from its current implementation state.
+
+First: read the project hand-off
+
+Before making any changes, inspect the existing "hand-off/" folder in the project.
+
+Use it as the source of truth for:
+
+- What has already been completed.
+- What was intentionally deferred.
+- Current architecture and implementation decisions.
+- Known limitations and unresolved issues.
+- The exact stopping point of Part 1.
+- Any work already performed by previous agents.
+
+Do not rebuild, replace, or repeat completed Part 1 work.
+
+Do not ask me to paste the handoff again. The project already contains it under "hand-off/".
+
+---
+
+PART 2 — Production Readiness Foundations
+
+Part 1 is complete.
+
+Part 2 is now focused on moving VAR HR from the provider-neutral/demo-safe implementation toward real production-ready infrastructure.
+
+The main Part 2 areas are:
+
+1. Real Authentication
+
+Replace the current development-only workspace identity mechanism with the project's intended real authentication architecture.
+
+Requirements:
+
+- Do not invent fake authentication.
+- Do not hard-code a production user.
+- Do not randomly select an authentication provider.
+- Preserve the existing provider-neutral architecture where practical.
+- Keep the development/demo adapter available for local development if it is intentionally part of the existing design.
+- Establish a clear authenticated user identity on the server.
+- Derive company and role from the authenticated identity/server-side data.
+- Never trust client-supplied company IDs, roles, employee IDs, or permission headers as authoritative production identity.
+- Preserve the existing tenant and role authorization boundaries already implemented in Part 1.
+- Ensure unauthenticated requests fail safely.
+- Ensure authenticated users can only access resources permitted by their company, role, and capabilities.
+
+Before implementing authentication, inspect the existing authentication boundary and explain from the code which integration point is intended.
+
+Do not introduce a provider merely because it is convenient.
+
+If the repository already specifies the provider/integration to use, follow that specification.
+
+If the production authentication provider is genuinely unspecified, do not invent one. Document the exact blocker in the hand-off and implement only the provider-independent pieces that can safely be completed.
+
+---
+
+2. Authenticated Role Contexts
+
+Part 2 must establish a reliable foundation for real role-based sessions.
+
+The system must support the existing VAR HR roles without weakening their boundaries:
+
+- Platform Owner
+- Company Owner
+- Manager
+- Employee
+
+The authenticated session must determine the user's actual identity and role.
+
+Do not rely on UI-only role hiding.
+
+Authorization must remain enforced server-side.
+
+Verify that:
+
+- Company Owner cannot access another company's data.
+- Manager is restricted to the appropriate company/manager scope.
+- Employee is restricted to their own permitted employee data.
+- Platform Owner retains platform-level capabilities.
+- Unauthorized API requests return appropriate access errors.
+- UI navigation and available actions reflect the authenticated capabilities.
+
+---
+
+3. Session / Workspace Initialization
+
+After authentication is established:
+
+- The application should initialize the correct workspace from the authenticated user.
+- Remove dependence on manually supplied production workspace headers.
+- Preserve the development adapter only where explicitly appropriate.
+- Ensure refresh/reload does not lose the authenticated workspace context.
+- Ensure logout clears the authenticated state correctly.
+- Handle loading, unauthenticated, unauthorized, and expired-session states cleanly.
+- Do not expose another user's workspace while authentication state is loading.
+
+---
+
+4. Production-Safe Security Boundary
+
+Audit the existing request boundary after authentication is connected.
+
+Specifically verify:
+
+- Tenant isolation.
+- Role isolation.
+- Employee identity isolation.
+- Protected API routes.
+- Device synchronization permissions.
+- Payroll/report permissions.
+- Subscription/device/platform-owner permissions.
+- Any route that currently consumes workspace/role headers.
+- Any route that derives authorization from client-controlled values.
+
+The goal is:
+
+Client identity → authenticated server identity → database lookup → authorization → data
+
+not:
+
+Client-supplied role/company/employee → authorization
+
+---
+
+5. Authentication-Aware Frontend
+
+Update the existing frontend shell only as necessary to consume the real authentication state.
+
+Support:
+
+- Logged-in state.
+- Logged-out state.
+- Loading state.
+- Unauthorized state.
+- Logout.
+- Correct role-aware navigation.
+- Correct workspace/company display.
+- Correct user identity display.
+
+Do not redesign the entire UI.
+
+Do not undo the existing RTL/LTR, localization, responsive navigation, or completed Part 1 work.
+
+---
+
+Important Scope Rules
+
+This is Part 2.
+
+Do NOT start unrelated Part 3 work.
+
+Do NOT add billing/subscriptions as a new business system unless the existing Part 2 specification in "hand-off/" explicitly places it in this phase.
+
+Do NOT implement biometric integrations unless the existing project specification explicitly says they belong to this Part 2 slice.
+
+Do NOT rebuild completed localization, RTL, Preview, database schema, or Part 1 functionality.
+
+Do NOT change business rules merely for convenience.
+
+Do NOT create fake production authentication.
+
+Do NOT create duplicate workflows if the existing artifact/workflow registration is temporarily unavailable.
+
+---
+
+Working Method
+
+Work incrementally.
+
+For each change:
+
+1. Inspect the existing implementation.
+2. Identify the smallest correct integration point.
+3. Make the minimal change.
+4. Typecheck.
+5. Build the affected packages.
+6. Run API/runtime checks where possible.
+7. Test authorization boundaries.
+8. Test the relevant UI behavior.
+9. Check for regressions.
+
+If a runtime environment issue occurs, distinguish it from an application-code problem instead of changing unrelated project configuration.
+
+---
+
+Handoff Requirement — Mandatory
+
+The "hand-off/" folder is the permanent project memory.
+
+When you finish this task, you MUST create a new dated work log inside:
+
+"hand-off/"
+
+Use a descriptive filename such as:
+
+"YYYY-MM-DD-agent-part-2-authentication.md"
+
+The report must include:
+
+- What was already present when you started.
+- What you changed.
+- Why each change was necessary.
+- Authentication architecture used.
+- Authorization/security changes.
+- Files/components/routes affected.
+- Validation performed.
+- Typecheck/build results.
+- Runtime/browser results.
+- Known limitations or blockers.
+- Exact remaining work for the next agent.
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+with the new verified project state.
+
+Do not delete previous hand-off logs.
+
+Do not overwrite historical work logs.
+
+The folder should remain a chronological project history, for example:
+
+"hand-off/"
+
+MASTER-HANDOFF.md
+2026-08-16-agent-hand-off-system-setup.md
+2026-08-16-agent-part-1-localization.md
+2026-08-16-agent-preview-diagnosis.md
+2026-08-16-agent-rtl-mobile-navigation.md
+2026-08-16-agent-part-2-authentication.md
+...
+
+At the end, clearly state whether Part 2 is:
+
+- Complete
+- Partially complete
+- Blocked
+
+and explain exactly what remains.
+
+Final rule
+
+Do not assume something is complete because an older handoff says it is.
+
+Verify the current code first.
+
+Do not claim browser/runtime validation unless you actually performed it.
+
+Continue from the existing project; do not restart the architecture.

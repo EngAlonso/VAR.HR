@@ -1,0 +1,608 @@
+VAR HR — Part 7 Implementation
+
+You are continuing the existing VAR HR project.
+
+Your job is to implement the remaining HR core functionality that has not yet been completed. Do not restart or redesign completed work. Do not modify completed Part 6 functionality unless a direct dependency requires a minimal, backward-compatible change.
+
+1. Mandatory First Step — Read Project Handoff
+
+Before changing anything:
+
+1. Read the existing "hand-off/" directory.
+2. Read "hand-off/MASTER-HANDOFF.md".
+3. Read the latest Part 6 completion/runtime report.
+4. Inspect the current project structure and existing implementation.
+5. Determine what is already implemented versus what is genuinely missing.
+6. Do not rely on assumptions from this prompt when the repository contains a more recent implementation or decision.
+
+The "hand-off/" directory is the project source of truth for continuation.
+
+Create a new Part 7 handoff/report when the work is complete. Do not overwrite previous handoff reports.
+
+---
+
+2. Part 7 Goal
+
+Implement the remaining core HR functionality around:
+
+- Attendance
+- GPS attendance
+- Leave & permissions
+- Attendance rules
+- Overtime
+- Work schedules/shifts
+- Holidays
+- Payroll integration
+- Biometric device infrastructure
+- Role permissions
+- Employee HR records
+- Reports/export/print functionality where still missing
+
+The implementation must fit the existing VAR HR architecture, database, API, frontend, authentication, authorization, tenant isolation, localization, and existing UI patterns.
+
+---
+
+3. Attendance & Attendance Records
+
+Implement or complete:
+
+- Clock-in.
+- Clock-out.
+- Attendance history.
+- Daily attendance records.
+- Late arrival calculation.
+- Absence calculation.
+- Early departure calculation.
+- Worked-hours calculation.
+- Attendance status.
+- Manual HR/admin correction where appropriate.
+- Audit/history for attendance modifications.
+
+Attendance must be associated with the correct:
+
+- Company
+- Employee
+- Work date
+- Shift/rule configuration
+
+Do not allow cross-company access.
+
+---
+
+4. GPS Attendance
+
+Implement attendance location support.
+
+For clock-in/clock-out:
+
+- Capture the employee's current GPS coordinates when available.
+- Store latitude/longitude with the attendance event.
+- Record the timestamp.
+- Make the location information available to authorized HR/manager users.
+- Keep the implementation compatible with future geofencing/radius rules.
+
+If the existing architecture already has location-related fields or utilities, reuse them instead of creating duplicates.
+
+Do not fake GPS coordinates.
+
+---
+
+5. Leave & Permission Management
+
+Implement a complete leave/permission workflow.
+
+Leave types
+
+Support multiple leave types.
+
+Each company should be able to define leave types and their rules.
+
+Employee balances
+
+Maintain leave balances per employee and leave type.
+
+Support:
+
+- Available balance
+- Used balance
+- Remaining balance
+- Balance adjustments where authorized
+
+Requests
+
+Employees must be able to submit:
+
+- Leave requests
+- Permission requests
+
+A request should contain the appropriate date/time, duration, type, reason, and status.
+
+Approval
+
+Managers/authorized HR users must be able to:
+
+- Review requests
+- Approve
+- Reject
+- Provide a rejection reason
+
+Automatic balance handling
+
+When an approved leave consumes balance:
+
+- Deduct the appropriate amount.
+- Prevent invalid/negative consumption unless explicitly allowed by company rules.
+- Restore the balance if an approved leave is cancelled/reversed according to the business rules.
+
+History
+
+Maintain a complete request history.
+
+Employees can see their own requests.
+
+Managers can see requests belonging to employees within their allowed scope.
+
+Owners/authorized HR users can see company-wide requests.
+
+---
+
+6. Attendance Rules Engine
+
+Implement the company attendance rules instead of hardcoding calculations.
+
+Rules should support at minimum:
+
+- Work start time
+- Allowed lateness/grace period
+- Late threshold
+- Required daily working hours
+- Early departure rules
+- Absence rules
+- Overtime threshold
+- Overtime calculation rules
+- Working days
+- Holidays
+- Shifts
+
+Example:
+
+Work starts: 09:00
+Grace period: 15 minutes
+Required hours: 8
+Overtime starts after: 8 worked hours
+
+The system should automatically determine:
+
+- On time
+- Late
+- Early departure
+- Absent
+- Overtime
+
+Rules must be company-specific.
+
+Do not hardcode one global company's rules.
+
+---
+
+7. Shifts & Working Schedules
+
+Implement support for employee/company schedules.
+
+Support:
+
+- Working days
+- Start time
+- End time
+- Required working hours
+- Grace period
+- Overtime configuration
+- Shift assignment
+
+The architecture must allow an employee to have a schedule/shift different from another employee in the same company.
+
+Handle overnight shifts correctly if the existing architecture allows it.
+
+---
+
+8. Public Holidays
+
+Implement company holiday management.
+
+Support:
+
+- Holiday name
+- Date
+- Company
+- Optional recurring behavior if appropriate
+
+Attendance calculations must recognize holidays.
+
+Do not mark an employee absent on a configured holiday.
+
+Payroll calculations must be able to consume the resulting attendance information.
+
+---
+
+9. Payroll Integration
+
+Do not replace the existing payroll implementation.
+
+Extend it so payroll can consume the completed HR attendance data.
+
+Payroll should be able to account for:
+
+- Attendance
+- Absence
+- Late deductions
+- Early departure deductions
+- Approved leaves
+- Permissions
+- Overtime
+- Additional payments
+- Deductions
+
+The final salary calculation must remain explainable.
+
+For every payroll result, authorized users should be able to understand how the final amount was produced.
+
+Example:
+
+Basic salary       10,000
+Additional          +500
+Deductions          -250
+Late deductions     -100
+Overtime            +350
+-------------------------
+Net salary         10,500
+
+Use the existing payroll architecture and calculation rules wherever possible.
+
+---
+
+10. Biometric Device Infrastructure
+
+This is a major Part 7 area.
+
+Design and implement a provider-based biometric device integration layer.
+
+VAR HR should not depend directly on one specific biometric device vendor.
+
+The architecture should support multiple device types through a common interface.
+
+Conceptually:
+
+VAR HR
+   |
+Biometric Integration Layer
+   |
+-----------------------------
+|            |              |
+Device A     Device B       Device C
+
+The system should support, where technically possible:
+
+Device management
+
+Authorized users can:
+
+- Add biometric devices.
+- Edit devices.
+- Enable/disable devices.
+- View device status.
+- Configure connection information.
+- Associate a device with a company.
+
+Employee synchronization
+
+Support the architecture for:
+
+VAR HR
+   ↓
+Employee
+   ↓
+Selected biometric device
+
+Authorized users should be able to initiate employee synchronization to a device.
+
+Attendance synchronization
+
+Support:
+
+Biometric Device
+       ↓
+Attendance event
+       ↓
+VAR HR
+       ↓
+Attendance processing
+       ↓
+Attendance rules
+       ↓
+Payroll
+
+Multiple vendors
+
+Do NOT hardcode the entire system around one vendor.
+
+Create a clean abstraction/provider interface so different biometric protocols can be added later.
+
+If a real hardware integration cannot be safely tested in the current environment, implement the production-ready integration boundary and a test/mock provider rather than pretending that physical hardware was verified.
+
+Clearly document anything that requires actual hardware/network access.
+
+---
+
+11. Role-Based Access Control
+
+Maintain strict tenant isolation and role boundaries.
+
+Employee
+
+Can access:
+
+- Own profile
+- Own attendance
+- Own clock-in/out
+- Own leave balances
+- Own leave/permission requests
+- Own salary/payroll information where allowed
+
+Cannot access other employees' confidential information.
+
+Manager
+
+Can access employees within their authorized management scope.
+
+Can:
+
+- Review attendance
+- Review leave requests
+- Approve/reject requests
+- Review team information
+- Access permitted reports
+
+Must NOT automatically gain access to company-wide payroll or unrelated departments.
+
+Owner
+
+Can access the company-wide HR functionality:
+
+- Employees
+- Attendance
+- Leaves
+- Payroll
+- Reports
+- Devices
+- Rules
+- Schedules
+- Holidays
+- Company settings
+
+Developer
+
+Keep Developer separate from Owner.
+
+Developer permissions should focus on technical functionality such as:
+
+- Integrations
+- API configuration
+- Biometric devices
+- Logs
+- Diagnostics
+- System configuration
+
+Developer must NOT automatically receive employee salary/payroll visibility merely because they have technical privileges.
+
+Implement explicit permissions where necessary.
+
+---
+
+12. Reports
+
+Complete the HR reporting layer.
+
+For an individual employee, authorized users should be able to see:
+
+- Attendance
+- Clock-in/out
+- Late arrivals
+- Absence
+- Early departures
+- Leaves
+- Permissions
+- Overtime
+- Additions
+- Deductions
+- Salary/payroll
+
+For multiple employees, provide company/team reports according to authorization scope.
+
+Support appropriate:
+
+- Filtering
+- Date ranges
+- Employee filters
+- Department/team filters
+- Status filters
+
+---
+
+13. Export / Print / Preview
+
+Complete any missing report functionality for:
+
+- Preview
+- Print
+- CSV export
+- XLSX/Excel export
+
+Do not claim browser-level verification if the managed artifact/browser environment is unavailable.
+
+If the application implementation is complete but verification is blocked by the environment, document that clearly.
+
+---
+
+14. Import
+
+Preserve the existing employee import implementation.
+
+Only extend it if required by the new HR functionality.
+
+Maintain:
+
+- Row-level validation
+- Duplicate detection
+- Clear errors
+- Tenant isolation
+
+Do not break the existing import behavior verified in Part 6.
+
+---
+
+15. Localization
+
+Respect the existing localization architecture.
+
+All new user-facing text must use the existing translation system.
+
+Do not introduce new hardcoded user-facing strings.
+
+Maintain support for the existing languages already configured by the project.
+
+Preserve RTL behavior for Arabic.
+
+---
+
+16. Security Requirements
+
+Strictly enforce:
+
+- Tenant isolation
+- Role authorization
+- Employee ownership
+- Manager scope
+- Payroll confidentiality
+- Device credential protection
+- API authorization
+- Input validation
+- Auditability of sensitive changes
+
+Never trust client-provided company IDs, employee IDs, manager scopes, or authorization claims.
+
+---
+
+17. Database & Migration Rules
+
+Use the existing database/ORM architecture.
+
+Before creating new tables or fields:
+
+- Inspect the current schema.
+- Reuse existing entities where appropriate.
+- Avoid duplicate concepts.
+- Create migrations using the project's existing migration workflow.
+
+Do not perform destructive database operations.
+
+Do not delete existing production-style data merely to make tests pass.
+
+---
+
+18. Testing & Verification
+
+After implementation:
+
+1. Run existing typechecks.
+2. Run API tests.
+3. Run frontend checks.
+4. Run builds.
+5. Verify database migrations.
+6. Test authorization boundaries.
+7. Test cross-company isolation.
+8. Test employee flows.
+9. Test manager flows.
+10. Test owner flows.
+11. Test payroll integration.
+12. Test leave balance calculations.
+13. Test attendance rule calculations.
+14. Test overtime calculations.
+15. Test holiday handling.
+16. Test biometric provider abstraction using a mock/test provider if physical hardware is unavailable.
+17. Test imports and exports where the environment permits.
+18. Run HTTP/browser smoke tests where available.
+
+Do not claim a test passed if it could not actually be executed.
+
+---
+
+19. Important Existing Part 6 Constraints
+
+Part 6 has already been completed.
+
+The latest handoff reports confirm:
+
+- API runtime verification passed.
+- Frontend HTTP smoke test passed.
+- All six report types were verified.
+- Payroll calculation/reporting was verified.
+- Authorization and tenant isolation were verified.
+- Employee import validation was verified.
+- Typechecks passed.
+- API build passed.
+- Frontend build passed.
+- No application source changes were required during the final Part 6 runtime verification.
+
+There is currently a managed-artifact limitation preventing full browser visual verification.
+
+Do not redo Part 6 unnecessarily.
+
+---
+
+20. Implementation Discipline
+
+Follow these rules strictly:
+
+- Inspect before modifying.
+- Reuse existing architecture.
+- Make minimal compatible changes.
+- Do not rewrite working modules.
+- Do not introduce unnecessary dependencies.
+- Do not change existing UI typography/design rules without a requirement.
+- Do not break existing APIs.
+- Do not silently change business rules already verified in Part 6.
+- Do not start Part 8.
+- Do not perform unrelated refactoring.
+- Do not fake external hardware integration.
+- Do not claim unavailable browser/hardware verification as complete.
+
+When a requirement is blocked by external infrastructure, implement the correct abstraction and document the exact remaining verification requirement.
+
+---
+
+21. Final Deliverables
+
+At completion, provide:
+
+1. A concise implementation summary.
+2. Files/modules changed.
+3. Database changes/migrations.
+4. API endpoints added/changed.
+5. Authorization changes.
+6. Tests executed and their results.
+7. Any remaining environmental blockers.
+8. Explicitly state whether each Part 7 requirement is:
+   - Complete
+   - Partially complete
+   - Blocked
+9. Create a new dated handoff report under:
+
+hand-off/
+
+10. Update:
+
+hand-off/MASTER-HANDOFF.md
+
+without deleting previous handoff history.
+
+Do not start Part 8.

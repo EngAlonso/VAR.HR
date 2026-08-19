@@ -1,0 +1,278 @@
+Continue the existing VAR HR project from its exact current repository state.
+
+Read "hand-off/MASTER-HANDOFF.md" and the latest Part 4 handoff before continuing.
+
+Do NOT restart Part 5.
+Do NOT redo Parts 1–4.
+Do NOT start Part 6.
+
+Current Part 5 status
+
+Part 5 is IN PROGRESS — NOT COMPLETE.
+
+The previous agent already inspected the existing Rules and Payroll implementation and identified the main gaps.
+
+Already completed
+
+- Confirmed Parts 1–4 are complete.
+- Audited the existing Rules/Payroll foundation.
+- Confirmed the old implementation was only a basic rules record.
+- Added the required database foundations for Part 5.
+- Applied the Drizzle schema successfully and non-destructively.
+- No database reset/drop/truncate/delete was performed.
+- Started implementing:
+  - Company-scoped attendance rules.
+  - Explainable attendance calculations.
+  - Configurable overtime.
+  - Configurable deductions.
+  - Adjustment records.
+  - Payroll periods.
+  - Payroll period lifecycle.
+  - Immutable finalized payroll snapshots.
+
+EXACT STOPPING POINT
+
+The previous agent stopped while wiring the server-side payroll calculation logic.
+
+It was specifically working on:
+
+- company-scoped rules,
+- explainable attendance metrics,
+- configurable overtime/deductions,
+- adjustment records,
+- payroll period lifecycle,
+- immutable finalized snapshots.
+
+Continue from the current source code.
+
+Do NOT recreate these foundations or assume they are missing.
+
+First inspect the current diff/state and determine exactly which of those pieces are already implemented versus partially implemented.
+
+Remaining Part 5 work
+
+After finishing the server calculation layer, continue with:
+
+API / Contract
+
+- Complete the OpenAPI contracts.
+- Regenerate the client/types using the existing project process.
+- Wire all required Express routes.
+- Preserve the existing contract-first architecture.
+
+Architecture must remain:
+
+OpenAPI → generated client → Express API → React frontend
+
+Rules
+
+Complete:
+
+- Work schedule.
+- Start/end time.
+- Required daily hours.
+- Grace period.
+- Late calculation.
+- Early checkout.
+- Absence.
+- Working days.
+- Holidays where already supported by the architecture.
+- Overtime eligibility.
+- Overtime configuration.
+
+All rules must be company-scoped and configurable.
+
+Overtime
+
+Verify actual calculations for:
+
+- Normal day.
+- Late arrival.
+- Grace-period arrival.
+- Early checkout.
+- Missing hours.
+- Overtime.
+- Leave.
+- Permission.
+
+No unexplained hard-coded overtime factors.
+
+Payroll
+
+Complete:
+
+- Payroll period creation.
+- Employee inclusion.
+- Calculation.
+- Additions.
+- Deductions.
+- Overtime.
+- Attendance deductions where configured.
+- Net salary.
+- Detailed calculation breakdown.
+- Recalculation.
+- Finalization.
+- Historical finalized payroll snapshot.
+
+Finalized payroll must remain historically stable if attendance/rules later change.
+
+Adjustments
+
+Verify:
+
+- Fixed addition.
+- Variable addition.
+- Fixed deduction.
+- Variable deduction.
+- Employee-specific adjustment.
+- Reason/type.
+- Amount.
+- Payroll period.
+- Company ownership.
+
+Authorization
+
+Verify server-side:
+
+Employee:
+
+- Own permitted payroll information only.
+- No company rule management.
+- No payroll finalization.
+- No modification of other employees.
+
+Manager:
+
+- Only authorized employee scope.
+- No automatic company-wide payroll access.
+
+Owner:
+
+- Company rules.
+- Payroll periods.
+- Payroll calculations.
+- Additions.
+- Deductions.
+- Finalization.
+
+Cross-company access must always fail.
+
+Frontend
+
+Complete the required UI for:
+
+- Attendance Rules.
+- Work Schedule.
+- Overtime settings.
+- Payroll Periods.
+- Payroll calculation.
+- Employee payroll details.
+- Additions.
+- Deductions.
+- Calculation breakdown.
+
+Preserve the existing VAR HR design.
+
+Do not redesign unrelated screens.
+
+Localization
+
+Every new visible string must use the existing localization system.
+
+Verify:
+
+- Arabic.
+- English.
+- French.
+- German.
+- Arabic RTL.
+- Dates.
+- Currency.
+- Numbers.
+- Payroll statuses.
+- Calculation labels.
+
+Important limitation
+
+Do NOT invent legal or tax rules.
+
+Do not assume Egyptian tax/social-insurance calculations unless explicitly specified by the project.
+
+Keep those areas configurable/documented if they are not implemented.
+
+Do NOT select an authentication provider.
+
+Preserve the existing provider-neutral, production fail-closed authentication boundary.
+
+Validation
+
+Do not declare Part 5 complete based only on typecheck/build.
+
+Run actual live tests for:
+
+- Rules.
+- Attendance calculations.
+- Overtime.
+- Payroll calculation.
+- Additions.
+- Deductions.
+- Payroll breakdown.
+- Payroll finalization.
+- Historical snapshot behavior.
+- Employee authorization.
+- Manager scope.
+- Owner access.
+- Cross-company rejection.
+- Arabic/RTL.
+- English.
+- French.
+- German.
+
+Then run:
+
+- Shared-library typecheck.
+- API typecheck.
+- Frontend typecheck.
+- API build.
+- Frontend build.
+- API health.
+- Live Preview.
+
+If the imported database is missing existing tables, use the existing non-destructive:
+
+"pnpm --filter @workspace/db run push"
+
+Never reset/drop/truncate/delete data.
+
+HAND-OFF
+
+When Part 5 is genuinely complete:
+
+Create a NEW dated report inside:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Document:
+
+- What was already complete.
+- What was implemented.
+- Rules.
+- Overtime.
+- Payroll.
+- Adjustments.
+- Finalization/snapshots.
+- Authorization.
+- Localization.
+- Validation results.
+- Remaining limitations.
+- Whether Part 5 is Complete / Partially Complete / Blocked.
+
+Do not overwrite previous reports.
+
+Do not start Part 6.
+
+Continue from the exact current state and finish Part 5 only.

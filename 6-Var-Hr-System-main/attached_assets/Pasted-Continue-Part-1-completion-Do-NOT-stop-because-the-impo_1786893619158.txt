@@ -1,0 +1,200 @@
+Continue Part 1 completion.
+
+Do NOT stop because the imported Replit runtime currently has no registered artifacts/workflows.
+
+The runtime registration issue is now documented. Do NOT create duplicate workflows or invent a new artifact configuration just to bypass it.
+
+Continue with the remaining Part 1 work that can be safely completed from the codebase.
+
+PRIORITY 1 — COMPLETE LOCALIZATION
+
+The current localization foundation is working, but the audit confirmed that most operational screens still contain hardcoded English.
+
+Complete the existing localization system across the Part 1 operational experience.
+
+Audit and convert user-facing hardcoded strings in:
+
+- Company dashboard
+- Employees
+- Employee details
+- Departments
+- Branches
+- Attendance
+- Leave
+- Permissions
+- Rules
+- Reports
+- Payroll
+- Manager workspace
+- Employee workspace
+- Settings
+- Forms
+- Tables
+- Filters
+- Dialogs
+- Toasts
+- Empty states
+- Error states
+- Loading states
+- Status labels
+- Accessibility labels
+
+Support all four existing locales:
+
+English
+Arabic
+French
+German
+
+Arabic must remain RTL.
+English/French/German must remain LTR.
+
+Do NOT create a second i18n system.
+Use the existing provider/catalog architecture.
+
+Do not simply translate the sidebar.
+The actual operational content must change language.
+
+Use locale-aware:
+- dates
+- times
+- numbers
+- currencies
+
+Preserve the existing API x-var-locale behavior.
+
+PRIORITY 2 — FUNCTIONAL HARDENING
+
+After localization, audit the actual Part 1 workflows.
+
+Focus on:
+
+Attendance:
+- check-in
+- check-out
+- history
+- late
+- early departure
+- worked duration
+- overtime foundation
+- absence
+- manual correction
+- audit trail
+
+Leave:
+- balances
+- requests
+- approval
+- rejection
+- cancellation if supported
+- balance transitions
+- approval history
+
+Permissions:
+- creation
+- approval
+- rejection
+- scope
+- history
+
+Rules:
+- schedule
+- grace period
+- late threshold
+- early departure
+- working days
+- holidays
+- overtime
+- deductions
+
+Payroll foundation:
+- salary
+- additions
+- deductions
+- overtime
+- attendance-related deductions
+- payroll period
+- breakdown
+- authorization
+
+Reports:
+- filters
+- preview
+- print
+- CSV
+- Excel-compatible export
+
+Do not invent legal/country-specific payroll rules.
+
+PRIORITY 3 — SECURITY REGRESSION
+
+Re-test the server-side tenant and role boundaries after your changes.
+
+Verify:
+
+Employee:
+- only own data
+
+Manager:
+- only authorized scope
+
+Company Owner:
+- own company only
+
+Platform Owner:
+- explicit platform privileges
+
+Ensure frontend restrictions match backend authorization.
+
+Never rely on hiding UI elements as security.
+
+PRIORITY 4 — AUTOMATED REGRESSION
+
+Where practical, add minimal automated coverage for:
+
+- tenant isolation
+- employee isolation
+- manager scope
+- owner access
+- attendance
+- leave
+- permissions
+- payroll authorization
+- localization
+- RTL/LTR
+
+Do not introduce a huge testing framework unnecessarily.
+
+PRIORITY 5 — ARTIFACT/WORKFLOW ISSUE
+
+Only investigate the missing Replit artifact/workflow registration if the existing repository configuration provides a legitimate documented way to register it.
+
+Do NOT:
+- create duplicate workflows
+- rewrite artifact metadata blindly
+- bypass the existing routing
+- change working project architecture
+
+If registration requires an external Replit/runtime action unavailable to you, document it clearly and continue all code-level work.
+
+FINAL REQUIREMENT
+
+Do not stop at an audit report.
+
+Implement the remaining safe Part 1 work.
+
+Run:
+- full typecheck
+- API build
+- frontend build with the declared PORT/BASE_PATH
+- relevant tests
+
+Then provide a concise report showing:
+
+1. What was already complete.
+2. What you implemented in this pass.
+3. What was actually validated.
+4. What remains before Part 1 is complete.
+5. Any blocker requiring a Replit/runtime action.
+
+Do not claim Part 1 is complete unless the implementation and validation genuinely support that conclusion.

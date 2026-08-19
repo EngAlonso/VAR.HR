@@ -1,0 +1,120 @@
+VAR HR — IMMEDIATE CONTINUATION
+
+Continue directly from the CURRENT CODEBASE.
+
+The previous agent ran out of quota in the middle of implementation.
+
+DO NOT restart or audit the whole project.
+DO NOT rebuild the architecture.
+DO NOT repeat completed work.
+
+LATEST VERIFIED STATE:
+
+Previous passes completed:
+- VAR HR Part 1 architecture
+- Tenant-aware backend foundation
+- Role/permission boundaries
+- Production fail-closed authentication boundary
+- Development workspace context
+- Attendance foundation
+- Leave
+- Permissions
+- Rules
+- Payroll foundation
+- Reports
+- Employee/Manager/Company Owner/Platform Owner workspaces
+- Existing i18n architecture
+- English / Arabic / French / German catalogs
+- RTL/LTR foundation
+- API locale propagation
+- Date/time/currency localization
+- Dashboard alert localization
+- API health validation
+- Existing Drizzle schema initialization
+- Full workspace typecheck
+- API build
+- Frontend build
+
+LATEST PASS:
+
+The previous agent audited the remaining localization gaps and confirmed:
+
+The catalogs exist, but several target components still render hardcoded English literals directly.
+
+The agent started replacing the remaining target components with equivalent implementations using the EXISTING translation catalog.
+
+The agent also started localizing remaining user-facing API response messages at the request boundary.
+
+The quota ended BEFORE those changes and validation were completed.
+
+CURRENT TASK:
+
+FINISH ONLY THE REMAINING PART 1 LOCALIZATION WORK.
+
+Target areas:
+
+1. Payroll
+2. Devices
+3. Subscription
+4. Platform Owner
+5. Attendance Rules / weekday labels
+6. Remaining user-facing API messages
+
+For each target area:
+
+- Inspect the CURRENT code first.
+- Preserve existing functionality.
+- Use the EXISTING i18n architecture.
+- Replace hardcoded user-facing English literals.
+- Complete English, Arabic, French, and German catalog entries.
+- Ensure Arabic is RTL.
+- Ensure English/French/German are LTR.
+- Localize API-fed user-facing messages where appropriate.
+- Do not create a second translation system.
+- Do not duplicate translation keys.
+- Do not rewrite unrelated components.
+- Do not change business logic unless a concrete verified bug is found.
+
+IMPORTANT:
+
+The previous agent may have partially modified files before the quota ended.
+
+Therefore inspect git/code state first and CONTINUE from whatever actually landed.
+
+Do NOT overwrite valid partial work blindly.
+
+After completing the localization work:
+
+1. Search the target areas for remaining hardcoded user-facing English strings.
+2. Fix all relevant remaining literals.
+3. Run full workspace typecheck.
+4. Run API build.
+5. Run frontend build.
+6. Run API health check if runtime is available.
+7. Verify locale propagation for Arabic at minimum.
+8. Verify no duplicate translation keys were introduced.
+
+Runtime note:
+
+The imported Replit environment previously had no registered managed workflows, although direct API validation worked after applying the existing Drizzle schema.
+
+If workflows are unavailable:
+- Continue code-level validation.
+- Do not create duplicate workflows.
+- Do not fake browser validation.
+- Report the limitation.
+
+DO NOT START PART 2.
+
+DO NOT STOP AT AN AUDIT.
+
+IMPLEMENT THE REMAINING WORK, VALIDATE IT, THEN REPORT:
+
+### Completed
+### Changes Made
+### Validation
+### Remaining Part 1 Gaps
+### Runtime Limitations
+### Part 1 Status
+
+The goal is to finish Part 1 localization and leave the project ready for my manual review.

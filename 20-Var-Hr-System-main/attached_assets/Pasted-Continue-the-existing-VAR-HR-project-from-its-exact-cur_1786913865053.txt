@@ -1,0 +1,422 @@
+Continue the existing VAR HR project from its exact current repository state.
+
+FIRST:
+Read the existing "hand-off/" folder, especially:
+
+- "hand-off/MASTER-HANDOFF.md"
+- The latest Part 4 report.
+- Any existing Part 5 brief/report if present.
+
+Do NOT redo Parts 1–4.
+
+Part 4 is COMPLETE for its current provider-neutral scope.
+
+Do NOT start work outside Part 5.
+
+PART 5 — RULES, OVERTIME & PAYROLL
+
+Part 5 should build the rules engine and payroll foundation on top of the completed Attendance, Leave, GPS, and employee systems.
+
+The goal is to make VAR HR calculate attendance consequences and payroll transparently from configured company rules instead of hard-coded values.
+
+1. Attendance Rules
+
+Implement company-configurable rules for:
+
+- Work start time.
+- Work end time.
+- Daily required hours.
+- Allowed late/grace period.
+- Late calculation.
+- Early checkout calculation.
+- Absence rules.
+- Working days.
+- Weekly schedule.
+- Holidays.
+- Shifts where supported.
+- Overtime eligibility.
+- Overtime start threshold.
+- Overtime calculation method.
+
+Rules must be company-scoped.
+
+Do not hard-code one company's rules into the application.
+
+2. Overtime
+
+Implement a proper overtime foundation.
+
+The system should be able to determine:
+
+- Regular worked hours.
+- Overtime hours.
+- Late minutes.
+- Early checkout minutes.
+- Missing hours.
+- Overtime eligibility.
+
+The calculation must be explainable.
+
+Do not simply store a final overtime number without preserving enough information to explain how it was calculated.
+
+3. Payroll Foundation
+
+Build the first real payroll calculation layer.
+
+Payroll should consider the completed systems:
+
+- Employee salary.
+- Attendance.
+- Absence.
+- Late time.
+- Early checkout.
+- Leave.
+- Permissions.
+- Overtime.
+- Additions.
+- Deductions.
+
+The result should include at minimum:
+
+- Gross/base salary.
+- Additions.
+- Deductions.
+- Attendance-related deductions where configured.
+- Overtime amount.
+- Final/net salary.
+
+Most importantly:
+
+The system must be able to explain HOW the final salary was calculated.
+
+Example:
+
+Base salary
+
++ overtime
++ additions
+  − late deduction
+  − absence deduction
+  − other deductions
+  = net salary
+
+Do not hide the calculation behind a single unexplained number.
+
+4. Payroll Periods
+
+Implement company-scoped payroll periods where missing:
+
+- Period start.
+- Period end.
+- Status.
+- Employees included.
+- Calculation state.
+- Finalization state.
+
+Support a safe lifecycle such as:
+
+Draft → Calculated → Finalized
+
+Do not make finalized payroll silently change when attendance data changes.
+
+5. Payroll Calculation Snapshot
+
+When payroll is calculated/finalized, preserve the calculation inputs/results required to explain the result later.
+
+A historical payroll record must not depend entirely on today's attendance rules.
+
+Do not destroy or rewrite historical payroll calculations when company rules change.
+
+6. Additions & Deductions
+
+Implement the foundation for:
+
+- Fixed additions.
+- Variable additions.
+- Fixed deductions.
+- Variable deductions.
+- Employee-specific adjustments.
+- Company-level rules where appropriate.
+
+Every adjustment should have:
+
+- Amount.
+- Reason/type.
+- Employee.
+- Payroll period.
+- Company.
+- Audit information where the existing architecture supports it.
+
+7. Authorization
+
+All payroll and rule operations must be server-side authorized.
+
+Expected boundaries:
+
+Employee
+
+Can see only their own permitted payroll information.
+
+Cannot:
+
+- Modify company payroll rules.
+- Modify another employee's salary.
+- Finalize payroll.
+- Manage company deductions/additions.
+
+Manager
+
+Can see only the employees within their authorized scope where the existing role model permits it.
+
+Cannot automatically access the entire company's payroll.
+
+Owner
+
+Can manage:
+
+- Attendance rules.
+- Overtime rules.
+- Payroll periods.
+- Payroll calculations.
+- Additions.
+- Deductions.
+- Company payroll configuration.
+
+Cross-company access
+
+Must always be rejected.
+
+Do not rely only on frontend visibility.
+
+8. Payroll UI
+
+Add or complete the necessary VAR HR UI for:
+
+- Attendance rules.
+- Work schedule.
+- Overtime configuration.
+- Payroll periods.
+- Payroll calculation.
+- Employee payroll details.
+- Additions.
+- Deductions.
+- Calculation breakdown.
+
+Preserve the existing VAR HR visual language.
+
+Do not redesign unrelated screens.
+
+9. Payroll Breakdown
+
+The employee payroll view must clearly show the calculation.
+
+For example:
+
+Base salary: 10,000 EGP
+Overtime: +500 EGP
+Additions: +300 EGP
+Late deductions: −250 EGP
+Absence: −500 EGP
+Net salary: 10,050 EGP
+
+Use the actual calculated values, not hard-coded examples.
+
+10. Localization
+
+Every new visible string must use the existing localization system.
+
+Support:
+
+- Arabic.
+- English.
+- French.
+- German.
+
+Arabic must remain RTL.
+
+Do not introduce another translation system.
+
+Also verify that dates, currency, numbers, payroll statuses, and calculation labels are properly localized.
+
+11. Database
+
+Use the existing Drizzle architecture.
+
+Do not invent a parallel database layer.
+
+If the imported development database is missing existing "var_hr_*" tables, use the existing non-destructive schema process:
+
+"pnpm --filter @workspace/db run push"
+
+Never:
+
+- drop
+- reset
+- truncate
+- delete existing data
+- recreate the database unnecessarily
+
+12. Architecture
+
+Preserve:
+
+OpenAPI → generated client → Express API → React frontend
+
+Do not bypass the existing contract system.
+
+Keep company/tenant and role authorization on the server.
+
+Do not move payroll security decisions into the frontend.
+
+13. Important Calculation Rules
+
+Do not guess country-specific legal payroll rules.
+
+VAR HR should provide configurable company rules rather than assuming a specific country's labor law or tax system.
+
+Do not invent:
+
+- Egyptian tax rules.
+- Social insurance rules.
+- Legal deductions.
+- Legal overtime rates.
+
+If legal/tax payroll is not specified, keep those components configurable and clearly documented as not implemented.
+
+14. Authentication
+
+Do NOT invent an authentication provider.
+
+Preserve Part 2's provider-neutral, fail-closed production authentication boundary.
+
+Do not create fake production accounts or credentials.
+
+15. Validation
+
+Before declaring Part 5 complete, verify:
+
+- Shared-library typecheck.
+- API typecheck.
+- Frontend typecheck.
+- API build.
+- Frontend build.
+- API health.
+- Live Preview.
+
+Then test actual workflows:
+
+Rules
+
+- Create rules.
+- Edit rules.
+- Apply rules to a company.
+- Verify company isolation.
+- Verify role permissions.
+
+Attendance calculation
+
+Test:
+
+- Normal attendance.
+- Late arrival.
+- Grace-period arrival.
+- Early checkout.
+- Absence.
+- Overtime.
+- Leave.
+- Permission.
+- Different working days.
+- Different schedules where implemented.
+
+Payroll
+
+Test:
+
+- Payroll period creation.
+- Employee inclusion.
+- Calculation.
+- Overtime.
+- Additions.
+- Deductions.
+- Net salary.
+- Calculation breakdown.
+- Recalculation behavior.
+- Finalization.
+- Historical finalized payroll.
+
+Security
+
+Test:
+
+- Employee access.
+- Manager scope.
+- Owner access.
+- Cross-company rejection.
+- Unauthorized modification attempts.
+
+Localization
+
+Test:
+
+- Arabic.
+- RTL.
+- English.
+- French.
+- German.
+- Currency/date/number formatting.
+
+16. Do Not Overreach
+
+Part 5 is about:
+
+Rules → Overtime → Payroll foundation
+
+Do NOT start:
+
+- Part 6.
+- Advanced reports.
+- Real biometric vendor integration.
+- Production authentication provider selection.
+- Tax/legal compliance implementation.
+- Unrelated UI redesigns.
+
+If a dependency is required but not specified, document it instead of inventing it.
+
+HAND-OFF REQUIREMENT
+
+When Part 5 is genuinely complete:
+
+Create a NEW dated report inside:
+
+"hand-off/"
+
+Do not delete or overwrite previous reports.
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+The report must clearly document:
+
+- What was already complete before Part 5.
+- What was implemented.
+- Database/schema changes.
+- Rules implemented.
+- Overtime behavior.
+- Payroll behavior.
+- Calculation breakdown.
+- Authorization results.
+- Localization results.
+- Typecheck/build results.
+- Runtime/Preview results.
+- Any remaining limitations or blocked dependencies.
+- Whether Part 5 is:
+  - Complete
+  - Partially Complete
+  - Blocked
+
+Do not declare Part 5 complete based only on typecheck/build.
+
+The core payroll workflows must be exercised against the live API and Preview.
+
+Finish Part 5 only, then stop.

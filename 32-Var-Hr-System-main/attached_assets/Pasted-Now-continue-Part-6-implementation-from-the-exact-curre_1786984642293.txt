@@ -1,0 +1,457 @@
+Now continue Part 6 implementation from the exact current state you just audited.
+
+Your audit established that Part 6 is approximately 35% complete. I do NOT want another audit and I do NOT want to restart the already implemented Part 6 backend work.
+
+Your job now is to complete everything that is still missing, while preserving the valid work that already exists.
+
+Source of Truth
+
+Use the existing Part 6 audit you just produced as the implementation checklist.
+
+Also read the current "hand-off/" files before making changes.
+
+The verified Part 5 state remains the baseline for all previously completed functionality. Do not regress or rewrite Part 5.
+
+Preserve the Existing Part 6 Work
+
+Keep and build upon the existing valid implementation:
+
+- "/api/reports/data"
+- "/api/employees/import"
+- OpenAPI report/import contracts
+- "ReportPeriodId" query parameter fix
+- Generated report/import types and clients
+- Existing report authorization/scoping helpers
+- Existing report data joins
+- Existing employee-import validation
+- Four-locale API error translations
+
+Do not recreate these from scratch unless you discover a concrete implementation bug.
+
+---
+
+Complete the Missing Part 6 Work
+
+1. Complete the Reports UI
+
+The current Reports screen is still the old attendance-only screen.
+
+Replace/extend it in place so it becomes the complete Part 6 reporting interface.
+
+It must support:
+
+- Report type selection:
+  
+  - Employees
+  - Attendance
+  - Leave
+  - Permission
+  - Overtime
+  - Payroll
+
+- Report-specific filters
+
+- Date range
+
+- Employee
+
+- Department
+
+- Status where applicable
+
+- Leave type
+
+- Permission type
+
+- Payroll period
+
+Use the existing generated React API hooks.
+
+Do NOT create duplicate API clients or manual fetch implementations if generated hooks already exist.
+
+Keep the existing application design system and UI conventions.
+
+Do not unnecessarily redesign unrelated screens.
+
+---
+
+2. Complete Report Data
+
+Review every report type and make sure the backend response contains everything required for the actual UI and export/print functionality.
+
+Address the gaps identified in the audit, including where applicable:
+
+Attendance
+
+Include:
+
+- Employee
+- Date
+- Check-in
+- Check-out
+- Worked hours
+- Late minutes
+- Early checkout
+- Overtime
+- Status
+- Location status
+
+Leave
+
+Include:
+
+- Employee
+- Leave type
+- Start date
+- End date
+- Days
+- Status
+- Reason
+
+Permission
+
+Include:
+
+- Employee
+- Permission type
+- Date
+- Start/end or duration where applicable
+- Status
+- Reason
+
+Overtime
+
+Provide a meaningful report-level overtime result rather than only exposing partial attendance fields.
+
+Payroll
+
+Include:
+
+- Employee
+- Payroll period
+- Gross
+- Additions
+- Deductions
+- Net
+- Payroll status
+- Relevant payroll/overtime information
+- Existing detailed calculation line items where appropriate
+
+Do not invent business rules. Reuse the existing payroll/attendance/leave/permission logic.
+
+---
+
+3. Complete Report Filters
+
+Make filters actually work end-to-end.
+
+Do not merely display filter controls.
+
+Verify that:
+
+- Employee filtering works
+- Department filtering works
+- Date filtering works
+- Status filtering works where relevant
+- Leave type filtering works
+- Permission type filtering works
+- Payroll period filtering works
+- Filters respect company/employee/manager permissions
+
+Avoid applying irrelevant filters to report types where they do not make sense.
+
+---
+
+4. Complete Report Preview
+
+The Reports page should provide a proper preview for each report type.
+
+The preview should:
+
+- Display the correct columns for the selected report.
+- Display appropriate totals/summaries where applicable.
+- Clearly show the selected filters.
+- Support Arabic RTL correctly.
+- Work correctly with English, Arabic, French, and German.
+- Handle empty results gracefully.
+- Handle loading and error states properly.
+
+The preview should be suitable for printing/exporting.
+
+---
+
+5. Implement Printing
+
+Implement actual report printing.
+
+Requirements:
+
+- Print the currently selected report.
+- Print the applied filters/period.
+- Print the report title.
+- Print the report data.
+- Use a proper print layout.
+- Hide application navigation/sidebar/buttons from the printed document.
+- Add appropriate "@media print" behavior.
+- Ensure Arabic RTL printing works correctly.
+
+Do not rely on a browser screenshot or a fake print button.
+
+Use the existing application architecture and styling conventions.
+
+---
+
+6. Implement CSV Export
+
+Implement real CSV export for the currently selected report.
+
+Requirements:
+
+- Export the currently filtered data.
+- Use the correct columns for each report type.
+- Properly escape commas, quotes, and line breaks.
+- Include headers.
+- Use UTF-8 correctly so Arabic text is preserved.
+- Use a sensible filename containing the report type/date where appropriate.
+
+Do not create an endpoint if the existing API data is sufficient to generate the CSV safely on the client.
+
+---
+
+7. Implement Excel-Compatible Export
+
+Implement the Excel-compatible export required by Part 6.
+
+Use the project's existing dependency/tooling if one already exists.
+
+If a new dependency is genuinely required:
+
+- Explain why it is needed.
+- Use the smallest appropriate dependency.
+- Do not upgrade unrelated packages.
+
+The export must contain the currently filtered report data and correct columns.
+
+Arabic data must remain readable.
+
+---
+
+8. Complete Employee File Import
+
+The backend currently accepts already-parsed JSON rows, but the actual file-based import flow is missing.
+
+Implement the complete user-facing import workflow:
+
+- CSV file selection
+- Excel-compatible file selection if supported by the chosen implementation
+- File parsing
+- Import preview
+- Validation results
+- Row-level errors
+- Successful row count
+- Failed row count
+- Confirmation before importing
+- Final import result
+
+Use the existing "/api/employees/import" backend validation instead of duplicating business rules unnecessarily.
+
+The UI must clearly distinguish valid and invalid rows.
+
+---
+
+9. Fix Import Transaction Safety
+
+The audit identified an important backend issue:
+
+«Rows are inserted one at a time, so a later failure can leave earlier rows inserted.»
+
+Fix this.
+
+Employee import should be transaction-safe / all-or-nothing unless the existing Part 6 requirements explicitly specify partial import behavior.
+
+Do not silently change the expected business behavior.
+
+If the intended behavior is all-or-nothing:
+
+- Validate the complete file first.
+- Start a database transaction.
+- Insert all valid rows inside the transaction.
+- Roll back everything if an unexpected database failure occurs.
+- Commit only after the complete import succeeds.
+
+Make sure duplicate detection still works correctly.
+
+---
+
+10. Complete Authorization Validation
+
+The audit found authorization logic but no Part 6 runtime evidence.
+
+Test and verify:
+
+- Employee report access
+- Manager report access
+- Owner/platform owner access
+- Department scoping
+- Employee scoping
+- Cross-company access rejection
+- Payroll report restrictions
+- Employee import permissions
+
+Do not weaken permissions just to make tests pass.
+
+---
+
+11. Complete Localization
+
+Part 6 currently has API error translations, but the UI still needs complete localization.
+
+Add all new UI strings to the existing four locale dictionaries:
+
+- English
+- Arabic
+- French
+- German
+
+Do not hardcode UI labels.
+
+Verify Arabic RTL behavior for:
+
+- Report tables
+- Filters
+- Buttons
+- Preview
+- Print output
+- Import results
+- Export-related messages
+
+---
+
+12. Validation
+
+After implementation, run comprehensive validation.
+
+At minimum:
+
+Type safety
+
+- API typecheck
+- Frontend typecheck
+
+Build
+
+- API production build
+- Frontend production build
+- Any relevant mockup/preview build
+
+Use the project's managed environment variables/workflows when required.
+
+Do not interpret a raw build failure caused solely by missing managed "PORT"/"BASE_PATH" variables as a code failure.
+
+Runtime/API
+
+Test:
+
+- Each report type
+- Each major filter
+- Authorization boundaries
+- Cross-company protection
+- Payroll restrictions
+- Employee import
+- Duplicate import handling
+- Transaction rollback behavior
+- Final report output
+
+UI
+
+Verify:
+
+- Report selection
+- Filters
+- Preview
+- Empty states
+- Loading/error states
+- Print
+- CSV export
+- Excel-compatible export
+- Employee file import
+- Arabic RTL
+- English/French/German localization
+
+---
+
+13. Do Not Break Existing Work
+
+This is critical.
+
+Do not regress:
+
+- Parts 1–4
+- Part 5 payroll
+- Authentication
+- Employee management
+- Attendance
+- Leave
+- Permissions
+- Overtime
+- Existing authorization
+- Existing localization
+- Existing dashboard UI
+
+Use minimal targeted changes.
+
+Do not perform unrelated refactors.
+
+---
+
+14. Update Handoff
+
+When everything is complete:
+
+Create a dated Part 6 completion handoff under:
+
+"hand-off/"
+
+Document:
+
+- What was already present when you started
+- What you implemented
+- Backend changes
+- Frontend changes
+- Import implementation
+- Export implementation
+- Printing implementation
+- Authorization verification
+- Localization verification
+- Tests/builds/runtime checks
+- Any remaining limitations
+- Any follow-up work
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Part 6 should only be marked complete if the implementation and validation actually support that claim.
+
+Do not start Part 7.
+
+---
+
+Important
+
+Do NOT stop after implementing the backend.
+
+The audit already established that the biggest missing portion is the user-facing reporting, printing, export, and file-import functionality.
+
+Continue all the way through implementation and validation.
+
+At the end, give me a concise completion report containing:
+
+1. What you implemented.
+2. What you validated.
+3. Exact tests/builds that passed.
+4. Any remaining blockers.
+5. Whether Part 6 is now genuinely complete.
+6. The exact next Part number after Part 6.
+
+Do not give me another audit-only report. Implement the missing work now.

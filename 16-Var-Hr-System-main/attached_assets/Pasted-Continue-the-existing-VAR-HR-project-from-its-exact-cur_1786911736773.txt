@@ -1,0 +1,281 @@
+Continue the existing VAR HR project from its exact current state.
+
+First read the "hand-off/" folder, especially "MASTER-HANDOFF.md" and the latest Part 4 hand-off/report.
+
+Do NOT redo completed work and do NOT start Part 5.
+
+Current project status
+
+Part 1 — COMPLETE
+
+Core VAR HR foundation, UI, localization, RTL/LTR, dashboard structure, and initial modules are complete.
+
+Part 2 — COMPLETE
+
+Authentication foundation is complete and production remains fail-closed.
+
+Important:
+
+- No production authentication provider has been selected.
+- Do NOT invent one.
+- Do NOT create fake production accounts or credentials.
+- The real Founder/Owner account will be handled when the authentication/provider phase is reached.
+
+Part 3 — COMPLETE
+
+Attendance + Leave & Permissions are complete and verified.
+
+Completed:
+
+- Attendance history
+- Date and employee filtering
+- Attendance corrections
+- Worked-hours recalculation
+- Overtime/late-minute recalculation after corrections
+- Leave requests
+- Permission requests
+- Approval/rejection
+- Rejection reasons
+- Self-approval prevention
+- Employee/Manager/Owner authorization
+- Cross-company protection
+- Arabic/English/French/German localization
+- RTL/LTR behavior
+- API and frontend validation
+- Live Preview verification
+
+Do NOT rebuild these modules.
+
+---
+
+PART 4 — BIOMETRIC DEVICES + GPS
+
+What the previous agent already audited/found
+
+The project already had a small biometric/device foundation.
+
+Already present:
+
+- Company-scoped biometric device registration.
+- Company-scoped device listing.
+- Existing device API/UI foundation.
+- An honest synchronization response indicating that a real device adapter is not available yet.
+- Existing branch/location GPS fields.
+- Existing GPS coordinates accepted by attendance check-in/check-out.
+
+The previous agent also confirmed that physical biometric synchronization must NOT be faked because no real biometric vendor/protocol has been specified.
+
+What the previous agent STARTED implementing
+
+The previous agent began extending the existing foundation additively with:
+
+1. Provider-neutral biometric device metadata.
+2. Employee ↔ biometric device mappings.
+3. Raw biometric attendance event storage.
+4. Company geofences / attendance locations.
+5. GPS validation and location-based attendance foundations.
+
+The previous agent stopped because the usage limit was reached while these changes were being implemented.
+
+Therefore:
+
+Do NOT assume these items are fully completed.
+
+Inspect the actual current source/database/contracts and determine exactly which of these changes were successfully written before continuing.
+
+---
+
+WHAT IS STILL REQUIRED FOR PART 4
+
+Continue from the actual current code state and finish all missing Part 4 work.
+
+A. Biometric Devices
+
+Complete, where supported:
+
+- Device registration
+- Device listing
+- Device status
+- Device metadata
+- Company isolation
+- Secure handling of connection information
+- Connection/test boundary
+- Employee ↔ device mapping
+- Device-specific employee IDs
+- Raw biometric event model
+- Duplicate/idempotency protection
+- Synchronization architecture
+
+Do NOT invent a vendor.
+
+If no real vendor/protocol exists:
+
+- Keep the adapter provider-neutral.
+- Do not claim physical synchronization works.
+- Clearly mark physical synchronization as blocked by the missing vendor/device specification.
+
+B. GPS Attendance
+
+Complete and verify:
+
+- GPS check-in
+- GPS check-out
+- Latitude validation
+- Longitude validation
+- Timestamp validation
+- Accuracy where supported
+- Employee/company authorization
+- Location/geofence support
+- Radius validation
+- Inside/outside location detection
+- Company isolation
+- Employee privacy boundaries
+
+Do not build the full attendance-rules engine yet.
+
+C. Company Locations / Geofences
+
+Complete the foundation for:
+
+- Location name
+- Latitude
+- Longitude
+- Allowed radius
+- Active/inactive status
+- Company ownership
+
+Ensure one company can never access another company's locations.
+
+D. UI
+
+Complete the necessary VAR HR UI for:
+
+- Biometric devices
+- Device status
+- Employee-device mapping
+- Company locations
+- Geofence/radius configuration
+- GPS attendance states
+- Empty states
+- Errors
+- Success states
+
+Preserve the existing design.
+
+Do not redesign unrelated screens.
+
+E. Localization
+
+Every new visible string must use the existing localization system:
+
+- Arabic
+- English
+- French
+- German
+
+Arabic must remain RTL.
+
+Do not add a second translation system.
+
+F. Authorization
+
+Verify:
+
+- Employee cannot manage biometric devices.
+- Employee cannot manage company locations.
+- Employee can only access their own GPS attendance information.
+- Manager access remains limited to their authorized scope.
+- Owner can manage company devices and locations.
+- Cross-company access is rejected.
+- Unauthorized device operations are rejected.
+
+G. API / Database
+
+Follow the existing project architecture:
+
+OpenAPI → generated client → Express API → React frontend.
+
+Use Drizzle for schema changes.
+
+No destructive database operations.
+
+No reset.
+
+No drop.
+
+No truncate.
+
+No fake data pretending to be real biometric-device communication.
+
+---
+
+VALIDATION REQUIRED BEFORE CALLING PART 4 COMPLETE
+
+Run and verify:
+
+- Shared-library typecheck
+- API typecheck
+- Frontend typecheck
+- API build
+- Frontend build
+- API health
+- Live Preview
+
+Test:
+
+- Device registration
+- Device listing
+- Device/company isolation
+- Employee-device mapping
+- Raw biometric event handling
+- Duplicate event handling
+- GPS check-in
+- GPS check-out
+- Invalid coordinates
+- Outside geofence
+- Inside geofence
+- Unauthorized GPS access
+- Cross-company access
+- Employee permissions
+- Manager permissions
+- Owner permissions
+- Arabic UI
+- RTL layout
+- English/French/German UI
+
+If there is no real biometric device available, physically testing device communication is impossible.
+
+In that case, verify the complete provider-neutral integration layer and explicitly document:
+
+Physical biometric synchronization is blocked only by the missing real device/vendor/protocol specification.
+
+Do not fake a successful connection.
+
+---
+
+HAND-OFF REQUIREMENT
+
+When Part 4 is actually finished:
+
+Create a new dated report inside:
+
+"hand-off/"
+
+and update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Do not delete or overwrite previous reports.
+
+The report must clearly state:
+
+- What was already completed before this agent.
+- What this agent completed.
+- What was tested.
+- What passed.
+- What remains blocked.
+- Whether Part 4 is Complete, Partially Complete, or Blocked.
+
+Do NOT start Part 5.
+
+Continue from the existing project state only.

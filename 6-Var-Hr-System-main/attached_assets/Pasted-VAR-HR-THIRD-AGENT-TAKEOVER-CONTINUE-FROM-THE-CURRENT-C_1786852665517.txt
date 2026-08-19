@@ -1,0 +1,336 @@
+VAR HR — THIRD AGENT TAKEOVER
+CONTINUE FROM THE CURRENT CODEBASE — DO NOT START OVER
+
+You are taking over the current VAR HR project after TWO previous coding agents.
+
+You do NOT have access to their conversations.
+
+The current codebase is the source of truth.
+
+You must inspect the project before changing anything.
+
+IMPORTANT: The project has already gone through initial setup and validation. Do NOT repeat completed work unnecessarily.
+
+==================================================
+CURRENT VERIFIED STATE
+==================================================
+
+The previous agent successfully:
+
+1. Installed dependencies from the existing lockfile.
+   - Package versions were not intentionally changed.
+   - Workspace structure was preserved.
+
+2. Ran the full foundation typecheck successfully.
+
+The typecheck passed across:
+
+- Libraries
+- API
+- Frontend
+- Sandbox
+- Scripts
+
+3. Started the frontend successfully.
+
+The web artifact is serving.
+
+4. Started the API.
+
+The initial API startup failed because the imported PostgreSQL database existed but the VAR HR tables had not yet been applied.
+
+The existing Drizzle schema was then applied.
+
+The missing VAR HR tables were created.
+
+The API subsequently became healthy.
+
+5. The seeded tenant/API was successfully brought to a healthy state.
+
+==================================================
+CURRENT UNFINISHED ISSUE
+==================================================
+
+During runtime API validation, the previous agent discovered a real date serialization boundary problem.
+
+Several calendar/date-only fields are being returned as full ISO timestamps even though the API contract declares them as:
+
+format: date
+
+Affected examples include:
+
+- Employee joinedOn
+- Leave dates
+- Permission dates
+- Payroll period dates
+- Other calendar/date-only fields
+
+These values should be serialized as:
+
+YYYY-MM-DD
+
+rather than full ISO timestamps.
+
+==================================================
+LAST ACTION BEFORE QUOTA ENDED
+==================================================
+
+The previous agent attempted to patch the date serialization boundary.
+
+The FIRST patch attempt failed because several repeated date fields made the diff ambiguous.
+
+The previous agent explicitly confirmed:
+
+"nothing changed."
+
+They then began applying the same fix using smaller, targeted hunks so the existing route structure would remain intact.
+
+The execution quota ended at that point.
+
+Therefore, DO NOT ASSUME THE DATE FIX WAS COMPLETED.
+
+==================================================
+YOUR FIRST JOB
+==================================================
+
+Inspect the current project state.
+
+Specifically determine:
+
+1. What files are currently modified.
+2. Whether any partial date serialization changes exist.
+3. Whether the original date serialization bug still exists.
+4. Whether generated contract outputs need regeneration.
+5. Whether the API still starts correctly.
+6. Whether the frontend still starts correctly.
+7. Whether the database schema is still present.
+8. Whether the seeded tenant still works.
+
+Do not reinstall dependencies or recreate the database unless inspection proves it is necessary.
+
+==================================================
+FIX THE CURRENT FOUNDATION ISSUE
+==================================================
+
+If the date serialization issue still exists:
+
+Fix it with the smallest type-safe change possible.
+
+Requirements:
+
+- Preserve the existing route structure.
+- Preserve the existing API contract.
+- Do not duplicate date logic across routes.
+- Do not use unnecessary `any`.
+- Do not weaken type safety.
+- Calendar/date-only values must return YYYY-MM-DD.
+- Date-time values must remain date-time values.
+- Do not accidentally change timestamps into date-only values.
+
+After fixing:
+
+1. Regenerate generated contract/types/hooks if required.
+2. Run typecheck.
+3. Run the API.
+4. Exercise the seeded tenant endpoints.
+5. Verify date-only responses.
+6. Verify unrelated endpoints remain correct.
+7. Run the appropriate build/validation.
+
+==================================================
+AFTER THE FOUNDATION IS GREEN
+==================================================
+
+Do NOT stop after fixing the date issue.
+
+Continue implementing VAR HR from the current state.
+
+The existing takeover instructions in the project define the broader product architecture.
+
+Continue the first operational slice:
+
+1. Company onboarding
+2. Company Owner workspace
+3. Employees
+4. Departments
+5. Branches
+6. Attendance
+7. Leave
+8. Permissions
+9. Basic attendance rules
+10. Basic reports
+11. Employee self-service
+12. Manager approvals
+
+Use the existing implementation and API contract.
+
+Do not rebuild completed features.
+
+==================================================
+VAR HR PRODUCT REQUIREMENTS
+==================================================
+
+VAR HR is a premium multilingual multi-tenant HR SaaS platform.
+
+Roles:
+
+- Platform Owner
+- Company Owner
+- Manager
+- Employee
+
+Languages:
+
+- English
+- Arabic
+- French
+- German
+
+Arabic:
+
+- RTL
+
+English/French/German:
+
+- LTR
+
+The product must feel:
+
+- Premium
+- Enterprise-grade
+- Powerful
+- Precise
+- Professional
+- Modern
+- Expensive
+
+Avoid generic admin templates, cheap CRUD dashboards, excessive gradients, excessive rounded cards, heavy shadows, and decorative UI without purpose.
+
+==================================================
+CORE HR FEATURES
+==================================================
+
+The platform is intended to support:
+
+- Employee management
+- Departments
+- Branches
+- Attendance
+- Check-in/check-out
+- GPS attendance
+- Leave
+- Permission requests
+- Attendance rules
+- Overtime
+- Payroll calculations
+- Payroll deductions/additions
+- Reports
+- Printing
+- CSV/Excel-compatible exports
+- Employee self-service
+- Manager accounts
+- Company Owner accounts
+- Platform Owner accounts
+- Biometric device integrations
+- Subscription plans
+- Employee limits
+- Audit logs
+- Notifications
+
+==================================================
+MULTI-TENANCY
+==================================================
+
+Tenant isolation is critical.
+
+Every company-scoped record must have an explicit company relationship.
+
+Authorization must be enforced server-side.
+
+Never trust arbitrary companyId values supplied by the frontend.
+
+Do not rely on UI hiding for security.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+The architecture intentionally does NOT commit to Clerk, Replit Auth, or another provider yet.
+
+A replaceable workspace-context adapter was used.
+
+Preserve that boundary.
+
+Do not introduce an authentication provider unless explicitly required.
+
+==================================================
+PAYROLL
+==================================================
+
+Initial payroll should remain a calculation foundation.
+
+Support:
+
+- Basic salary
+- Additions
+- Deductions
+- Overtime
+- Attendance-based deductions
+- Salary breakdown
+- Payroll periods
+- Calculation history
+- Auditability
+
+Do NOT invent country-specific legal payroll rules yet.
+
+==================================================
+BIOMETRIC DEVICES
+==================================================
+
+Use an adapter/connector architecture.
+
+Do not fake hardware integrations.
+
+Real device connectors will be added after a manufacturer/protocol is selected.
+
+==================================================
+SUBSCRIPTIONS
+==================================================
+
+VAR HR is a monthly SaaS.
+
+Plans must be data-driven.
+
+Possible limits:
+
+- Active employees
+- Managers
+- Branches
+- Devices
+- Storage
+- Features
+
+Do not hard-code plan limits.
+
+==================================================
+IMPLEMENTATION PRINCIPLE
+==================================================
+
+You are NOT rebuilding VAR HR.
+
+You are continuing it.
+
+Your workflow:
+
+INSPECT
+→ VERIFY
+→ PRESERVE
+→ FIX
+→ VALIDATE
+→ CONTINUE
+
+Do not stop after inspection.
+
+Do not stop after fixing the date issue.
+
+Once the current foundation is green, continue implementation from the exact state you find.

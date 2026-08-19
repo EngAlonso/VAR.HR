@@ -1,0 +1,223 @@
+Create a complete mid-implementation transfer handoff for the current VAR HR Part 7 work.
+
+This is a documentation-only task.
+
+Do NOT continue implementing Part 7.
+Do NOT fix anything.
+Do NOT modify application source code.
+Do NOT reset or revert changes.
+Do NOT start Part 8.
+Do NOT ask me what to do next.
+
+The purpose is to capture the exact current implementation state so another account/agent can continue Part 7 without repeating work or losing changes.
+
+You have already inspected the project and current Part 7 context, so continue from the current state.
+
+1. Reconcile the current state
+
+Inspect the actual current repository/worktree and determine exactly what has changed since the previous Part 7 transfer handoff.
+
+Pay particular attention to the work just completed around:
+
+- OpenAPI contract repair.
+- Duplicate "/devices/providers" declaration.
+- OpenAPI generation.
+- Shared Zod/client generation.
+- Shared library typechecks.
+- Backend schedule resolution.
+- Holiday resolution.
+- HR record authorization/scope.
+- Deterministic mock biometric provider.
+- Biometric sync history.
+
+Do not assume any of these are complete merely because the previous progress messages said they were being implemented.
+
+2. Exact implementation status
+
+For every Part 7 domain classify it:
+
+- COMPLETE
+- PARTIAL
+- NOT STARTED
+- BLOCKED
+
+Domains:
+
+1. Employee-specific schedules/shifts.
+2. Company holidays.
+3. Biometric provider abstraction.
+4. Deterministic mock biometric provider.
+5. Biometric synchronization/history.
+6. Employee HR records/profile.
+7. OpenAPI/codegen consistency.
+8. Attendance integration.
+9. Payroll integration.
+10. Required frontend/UI.
+
+For each domain document:
+
+- What exists.
+- What was changed.
+- What remains.
+- Whether it compiles.
+- Whether it has been tested.
+- Exact continuation point.
+
+3. Files changed
+
+Produce an exact list of all files modified during this Part 7 continuation.
+
+For each file include:
+
+- path
+- purpose
+- current state
+- complete/partial
+- dependencies on unfinished work
+
+Do not omit generated files.
+
+4. OpenAPI / Codegen state
+
+Document precisely:
+
+- The original contract issue.
+- The "/devices/providers" duplicate declaration.
+- What was changed.
+- Whether OpenAPI generation currently passes.
+- Which generated packages/files were regenerated.
+- Whether all generated outputs are synchronized.
+- Any remaining contract/codegen mismatches.
+
+5. Backend state
+
+Document:
+
+- Routes added.
+- Routes modified.
+- Services/providers added.
+- Schedule resolution behavior.
+- Holiday resolution behavior.
+- HR record authorization.
+- Biometric mock provider.
+- Sync history persistence.
+- Any unfinished server implementation.
+
+6. Database state
+
+Document:
+
+- Current schema state.
+- New tables/columns.
+- Pending migrations.
+- Whether the schema has actually been applied.
+- Whether the current database contains "var_hr_*" tables.
+- Any seed/test data.
+- Any environment blocker.
+
+Do NOT modify the database.
+
+7. Frontend state
+
+Document:
+
+- Existing UI.
+- New UI already implemented.
+- Missing UI.
+- Generated hooks/client status.
+- Any known frontend runtime/type errors.
+
+8. Verification matrix
+
+Record actual verification results:
+
+- PASS
+- FAIL
+- NOT RUN
+- BLOCKED
+
+Include:
+
+- dependency installation
+- OpenAPI generation
+- shared library typecheck
+- API typecheck
+- frontend typecheck
+- API build
+- frontend build
+- database/schema validation
+- schedule tests
+- holiday tests
+- biometric mock tests
+- sync-history tests
+- HR record authorization tests
+- attendance integration tests
+- payroll integration tests
+- browser verification
+- Part 6 regression checks
+
+Do not mark anything PASS unless it was actually executed.
+
+9. Runtime state
+
+Document:
+
+- dependencies installed or not
+- API running or not
+- frontend running or not
+- ports
+- managed artifacts
+- workflows
+- stale/orphan processes
+- browser availability
+
+10. Exact continuation point
+
+At the end, provide a section named:
+
+"NEXT AGENT — START HERE"
+
+It must contain the exact next actions in order.
+
+Based on the current progress, this should likely include:
+
+1. Finish backend implementation.
+2. Finish biometric synchronization/history.
+3. Finish employee HR records.
+4. Add required frontend UI.
+5. Connect generated client/hooks.
+6. Integrate schedules/holidays with attendance.
+7. Verify payroll integration.
+8. Run complete tests.
+9. Run browser verification.
+10. Create Part 7 completion handoff.
+
+Only include steps that are actually still pending after inspecting the current state.
+
+11. Handoff files
+
+Create a new dated file:
+
+"hand-off/2026-08-17-part-7-mid-implementation-transfer.md"
+
+If that filename already exists, create a unique numbered variant without overwriting history.
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Append the current transfer state without deleting previous history.
+
+Final response
+
+After completing the documentation, report:
+
+- Handoff file created.
+- MASTER-HANDOFF updated.
+- Part 7 current status.
+- Exact next action.
+- Critical blockers.
+
+Do not implement anything during this task.
+
+Execute the handoff now.

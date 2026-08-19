@@ -1,0 +1,800 @@
+# VAR HR — MASTER HANDOFF
+# Part 1 — Completed / Ready for Manual Review
+# Last Updated: Current Project State
+
+IMPORTANT:
+This is an EXISTING implementation.
+
+DO NOT rebuild the project.
+DO NOT replace the architecture.
+DO NOT restart completed work.
+DO NOT assume features are missing simply because they are not described below.
+
+The purpose of this document is to give a NEW AGENT the complete verified state of VAR HR so it can continue safely.
+
+==================================================
+1. PRODUCT
+==================================================
+
+Product name: VAR HR
+
+VAR HR is a premium, multilingual, multi-tenant HR management platform.
+
+Core concept:
+
+Review → Analyze → Decide
+
+The product is intended to provide:
+
+- Employee management
+- Attendance
+- Check-in / check-out
+- GPS attendance
+- Leave management
+- Permission requests
+- Attendance rules
+- Overtime
+- Payroll foundation
+- Reports
+- Biometric device integration architecture
+- Company management
+- Manager workspace
+- Employee self-service
+- Platform Owner administration
+- Subscription / plan limits
+- Audit/security foundations
+- Multilingual UI
+
+Supported languages:
+
+- English
+- Arabic
+- French
+- German
+
+Arabic:
+- RTL
+
+English/French/German:
+- LTR
+
+
+==================================================
+2. CURRENT TECHNICAL ARCHITECTURE
+==================================================
+
+The project is a pnpm monorepo.
+
+Existing architecture:
+
+- React / Vite frontend
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- OpenAPI contract
+- Generated API types/hooks
+- Shared libraries
+- Existing i18n system
+- Tenant-aware backend architecture
+
+Preserve this architecture.
+
+DO NOT migrate frameworks.
+DO NOT replace the API architecture.
+DO NOT introduce a second translation system.
+DO NOT rebuild existing screens.
+
+
+==================================================
+3. EXISTING DOMAIN MODULES
+==================================================
+
+The implementation already contains the foundation for:
+
+- Authentication boundary
+- Identity / workspace context
+- Multi-tenancy
+- Company management
+- Company memberships
+- Roles
+- Permissions
+- Permission scopes
+- Employees
+- Departments
+- Branches
+- Attendance
+- Attendance history
+- Attendance rules
+- Leave
+- Permission requests
+- Payroll foundation
+- Reports
+- GPS/location architecture
+- Biometric device architecture
+- Subscriptions
+- Platform administration
+- Notifications
+- Audit foundations
+
+
+==================================================
+4. ROLE EXPERIENCES
+==================================================
+
+The application already distinguishes between:
+
+1. Platform Owner
+2. Company Owner
+3. Manager
+4. Employee
+
+Role-specific navigation and access boundaries already exist.
+
+The backend is responsible for authorization.
+
+Frontend visibility must NOT be treated as security.
+
+Server-side permissions and tenant boundaries are already part of the implementation.
+
+
+==================================================
+5. MULTI-TENANT SECURITY
+==================================================
+
+Tenant-aware boundaries are already implemented.
+
+Important completed security work includes:
+
+- Company-scoped operational records
+- Tenant-aware request context
+- Role-aware access
+- Employee-scoped access
+- Manager-scoped access
+- Owner-level access
+- Platform Owner access
+- Production fail-closed authentication boundary
+- Development-only workspace context adapter
+- Employee identity validation
+- Manager/employee context validation
+- Device synchronization authorization
+- Stable authentication/access errors
+
+Production behavior must NOT silently trust client-supplied workspace identity headers.
+
+The development adapter may remain available for seeded development/review.
+
+DO NOT replace this architecture with fake production authentication.
+
+
+==================================================
+6. AUTHENTICATION STATUS
+==================================================
+
+Production authentication provider is intentionally NOT finalized yet.
+
+The architecture is provider-neutral.
+
+Do NOT invent credentials.
+Do NOT create fake production authentication.
+Do NOT randomly introduce Clerk, Replit Auth, Firebase, Auth0, etc.
+
+Authentication should be connected later through the existing replaceable boundary after the business/product review.
+
+
+==================================================
+7. ATTENDANCE
+==================================================
+
+Attendance foundation is already implemented.
+
+It includes concepts for:
+
+- Check-in
+- Check-out
+- Attendance events
+- Attendance history
+- Attendance summaries
+- Manual correction
+- Attendance rules
+- Late calculation
+- Early departure
+- Worked duration
+- Overtime
+- Absence
+- Attendance audit
+
+Attendance is event-oriented.
+
+Raw events should remain immutable.
+
+Corrections should be represented as correction records rather than silently rewriting history.
+
+
+==================================================
+8. ATTENDANCE RULES
+==================================================
+
+Rules foundation already exists.
+
+Rules support concepts such as:
+
+- Working hours
+- Start/end times
+- Grace periods
+- Late thresholds
+- Early departure
+- Working days
+- Holidays
+- Shifts
+- Overtime
+- Rounding
+- Absence
+- Deduction behavior
+- Permission treatment
+
+Rule explanations are intended to be understandable to administrators.
+
+Weekday values remain canonical backend values such as:
+
+Mon
+Tue
+Wed
+Thu
+Fri
+Sat
+Sun
+
+These values are intentionally preserved at the API level.
+
+Their USER-FACING labels are localized.
+
+
+==================================================
+9. LEAVE
+==================================================
+
+Leave management is already implemented.
+
+Concepts include:
+
+- Leave types
+- Leave policies
+- Leave balances
+- Leave balance transactions
+- Leave requests
+- Approval/rejection
+- Cancellation
+- Decision history
+
+Leave lifecycle supports:
+
+Draft
+Submitted
+Under Review
+Approved
+Rejected
+Cancelled
+
+
+==================================================
+10. PERMISSIONS / REQUESTS
+==================================================
+
+Permission requests are separate from leave.
+
+Examples include:
+
+- Short absence
+- Late arrival
+- Early departure
+- Remote work
+- Personal errand
+- Company-defined permission types
+
+Requests include:
+
+- Employee
+- Type
+- Date
+- Start/end time
+- Reason
+- Status
+- Approver
+- Decision history
+
+
+==================================================
+11. PAYROLL
+==================================================
+
+Payroll foundation already exists.
+
+Payroll is NOT treated as a single static salary number.
+
+It supports concepts such as:
+
+- Basic salary
+- Allowances
+- Bonuses
+- Overtime
+- Late deductions
+- Absence deductions
+- Permission deductions
+- Other additions
+- Other deductions
+- Payroll calculations
+- Payroll periods
+- Payroll records
+- Payroll approval/locking foundations
+
+Payroll explanations are localized.
+
+Do NOT start implementing country-specific legal payroll rules without explicit business requirements.
+
+
+==================================================
+12. REPORTS
+==================================================
+
+Reporting foundation already exists.
+
+Report areas include:
+
+- Attendance
+- Absence
+- Late arrivals
+- Overtime
+- Leave
+- Permissions
+- Employees
+- Payroll
+
+Reports support/filter concepts such as:
+
+- Date ranges
+- Employees
+- Departments
+- Branches
+- Status
+- Preview
+- Print
+- CSV
+- Excel-compatible export
+
+
+==================================================
+13. DEVICES / BIOMETRICS
+==================================================
+
+Biometric architecture already exists.
+
+The system is designed around a connector abstraction rather than tying attendance logic directly to one manufacturer.
+
+Concepts include:
+
+- Device manufacturer
+- Device model
+- Device connector
+- Device configuration
+- Device employee mapping
+- Synchronization
+- Sync history
+- Device health
+- Errors
+
+Device synchronization authorization has already been hardened.
+
+DO NOT implement a random hardware integration unless a specific manufacturer/protocol is requested.
+
+
+==================================================
+14. GPS ATTENDANCE
+==================================================
+
+GPS architecture exists.
+
+The intended model is:
+
+GPS captured during attendance actions rather than continuous employee tracking by default.
+
+Concepts include:
+
+- Branch locations
+- Geofences
+- Radius
+- Accuracy
+- Location validation
+- Location events
+- Privacy controls
+
+Do not introduce continuous tracking unless explicitly requested.
+
+
+==================================================
+15. SUBSCRIPTIONS
+==================================================
+
+Subscription/plan foundations already exist.
+
+Plans are intended to be data-driven.
+
+Possible limits include:
+
+- Active employees
+- Managers
+- Branches
+- Devices
+- Storage
+- Features
+- Reports
+- Payroll
+- GPS
+- Integrations
+- API access
+
+Active employee limits should count active employees, not historical/deactivated employees.
+
+Do not hard-code plan limits into business logic.
+
+
+==================================================
+16. PLATFORM OWNER
+==================================================
+
+Platform Owner workspace already exists.
+
+It includes foundations for:
+
+- Companies
+- Subscriptions
+- Plans
+- Feature limits
+- Platform analytics
+- System health
+- Support access
+- Audit logs
+- Platform settings
+
+Platform Owner should remain visually and logically separate from company users.
+
+
+==================================================
+17. LOCALIZATION — PART 1 COMPLETE
+==================================================
+
+Part 1 localization has been completed.
+
+Supported locales:
+
+- English
+- Arabic
+- French
+- German
+
+The existing i18n architecture is used.
+
+Completed localization areas:
+
+- Navigation
+- Shared UI
+- Dashboard
+- Alerts
+- Payroll
+- Devices
+- Subscription
+- Platform Owner
+- Attendance weekday labels
+- API-fed user-facing messages
+- Errors
+- Status labels
+- Feature labels
+- Alert severity labels
+- Accessibility labels
+- Date/time/currency formatting
+
+Locale changes invalidate API queries so server responses refresh using the selected locale.
+
+Arabic:
+- RTL
+
+English/French/German:
+- LTR
+
+
+==================================================
+18. API LOCALIZATION
+==================================================
+
+A shared server-side message catalog has been implemented.
+
+API user-facing messages are localized.
+
+Covered examples:
+
+- API errors
+- Dashboard alerts
+- Payroll explanations
+- Device notes/messages
+- Subscription fallback messages
+- Authentication/access messages
+- Validation messages
+
+Do not reintroduce hardcoded English API messages in user-facing responses.
+
+Technical/internal errors do not need to be translated unless explicitly displayed to users.
+
+
+==================================================
+19. DATE SERIALIZATION FIX
+==================================================
+
+A previous contract boundary bug was fixed.
+
+Date-only fields now return:
+
+YYYY-MM-DD
+
+Date-time fields remain:
+
+ISO timestamps
+
+This was fixed at the contract/generation boundary rather than by duplicating route-specific conversions.
+
+Do NOT undo this behavior.
+
+
+==================================================
+20. API CONTRACT
+==================================================
+
+The project uses generated OpenAPI-derived types/schemas/hooks.
+
+The generated contract is the source of truth.
+
+Do NOT manually create competing types when generated types already exist.
+
+Do NOT bypass the existing contract architecture.
+
+
+==================================================
+21. DATABASE
+==================================================
+
+PostgreSQL + Drizzle are already used.
+
+During imported-project validation, the development database sometimes does not contain the existing VAR HR tables.
+
+The existing Drizzle schema may be applied to the DEVELOPMENT database when required.
+
+Important:
+
+- Do NOT drop the database.
+- Do NOT recreate the database destructively.
+- Do NOT erase existing data.
+- Apply the existing schema only when the environment is missing it.
+
+
+==================================================
+22. VERIFIED VALIDATION
+==================================================
+
+The latest completed Part 1 pass successfully validated:
+
+Full workspace typecheck
+PASS
+
+API build
+PASS
+
+Frontend production build
+PASS
+
+API health check
+PASS
+
+Health response:
+
+{"status":"ok"}
+
+Arabic workspace locale response:
+PASS
+
+Arabic response confirmed:
+
+locale: "ar"
+direction: "rtl"
+
+Arabic dashboard/validation messages:
+PASS
+
+French dashboard alerts:
+PASS
+
+Duplicate translation-key scan:
+PASS
+
+Targeted hardcoded-English API message scan:
+PASS
+
+
+==================================================
+23. MANAGED WORKFLOW LIMITATION
+==================================================
+
+The imported Replit environment has an important runtime limitation.
+
+Artifact metadata exists, but in some imported environments the managed workflows/artifacts are not registered.
+
+Previous checks showed:
+
+- listArtifacts() empty
+- listWorkflows() empty
+
+Because of this, browser screenshot validation could not always be performed.
+
+This is an ENVIRONMENT / IMPORT limitation.
+
+It is NOT evidence that the application itself is broken.
+
+Do NOT fabricate browser validation.
+
+Do NOT create duplicate workflows blindly.
+
+Direct API validation and build/typecheck validation were used instead when managed workflows were unavailable.
+
+
+==================================================
+24. API CODEGEN NOTE
+==================================================
+
+API code generation successfully regenerated its outputs.
+
+However, an existing follow-up script uses an unsupported pnpm flag:
+
+--if-present
+
+The generated libraries and full workspace typecheck were validated separately.
+
+This is a tooling-script issue, not a Part 1 product blocker.
+
+
+==================================================
+25. PART 1 STATUS
+==================================================
+
+PART 1 IS COMPLETE.
+
+Status:
+
+READY FOR MANUAL PRODUCT REVIEW.
+
+No remaining code gaps were found in the requested Part 1 localization areas.
+
+The final agent explicitly reported:
+
+- Payroll localization complete
+- Devices localization complete
+- Subscription localization complete
+- Platform Owner localization complete
+- Attendance weekday localization complete
+- User-facing API message localization complete
+
+
+==================================================
+26. IMPORTANT: DO NOT START PART 2
+==================================================
+
+The next step is MANUAL REVIEW.
+
+Do NOT automatically begin:
+
+- Production authentication
+- Billing/payment provider
+- Real biometric hardware integrations
+- Country-specific legal payroll
+- Advanced platform features
+- Major redesign
+- New architecture
+- Microservices
+- Part 2 features
+
+until the user manually reviews Part 1.
+
+
+==================================================
+27. MANUAL REVIEW OBJECTIVE
+==================================================
+
+The owner will manually review:
+
+Visual quality
+Navigation
+Role-specific experiences
+Arabic RTL
+English LTR
+French LTR
+German LTR
+Employee workflow
+Manager workflow
+Company Owner workflow
+Platform Owner workflow
+Attendance
+Leave
+Permissions
+Payroll
+Reports
+Devices
+Subscription
+Rules
+Notifications
+Errors
+Empty states
+Responsive behavior
+
+
+==================================================
+28. IF A BUG IS FOUND DURING MANUAL REVIEW
+==================================================
+
+Do NOT redesign the entire application.
+
+For every reported issue:
+
+1. Reproduce it.
+2. Identify the exact component/API route/business rule involved.
+3. Verify whether it is a frontend issue, backend issue, authorization issue, data issue, or UX issue.
+4. Fix the smallest coherent scope.
+5. Run typecheck/build/regression validation.
+6. Report exactly what changed.
+
+Do not use manual review findings as justification to rebuild unrelated completed systems.
+
+
+==================================================
+29. AGENT BEHAVIOR RULES
+==================================================
+
+Before changing anything:
+
+- Read this handoff.
+- Inspect the current code.
+- Confirm whether the requested feature already exists.
+- Preserve completed work.
+
+Never:
+
+- Rebuild completed modules.
+- Replace the architecture.
+- Create a second i18n system.
+- Add fake authentication.
+- Invent hardware integrations.
+- Invent legal payroll rules.
+- Hard-code subscription limits.
+- Trust frontend-only permissions.
+- Claim browser validation without actually performing it.
+- Delete or reset the database.
+- Create duplicate workflows without necessity.
+
+Always:
+
+- Prefer minimal changes.
+- Preserve generated contracts.
+- Preserve tenant boundaries.
+- Preserve server-side authorization.
+- Preserve RTL/LTR behavior.
+- Validate changes.
+
+
+==================================================
+30. CURRENT STOPPING POINT
+==================================================
+
+STOP HERE.
+
+VAR HR PART 1 is complete and ready for manual review.
+
+The next agent should NOT continue implementation automatically.
+
+Wait for the user's manual review findings.
+
+Only after the user provides concrete findings should implementation continue.

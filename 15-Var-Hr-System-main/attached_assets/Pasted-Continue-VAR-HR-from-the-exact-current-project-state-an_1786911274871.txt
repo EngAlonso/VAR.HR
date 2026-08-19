@@ -1,0 +1,602 @@
+Continue VAR HR from the exact current project state and begin Part 4.
+
+IMPORTANT — CONTINUE FROM THE EXISTING PROJECT
+
+Do NOT rebuild the project.
+
+Do NOT restart previous phases.
+
+Before making any changes, read the existing files inside:
+
+"hand-off/"
+
+Use the hand-off history as the source of truth for what has already been completed.
+
+Part 1, Part 2, and Part 3 are already completed and documented.
+
+Part 3 specifically completed:
+
+- Attendance
+- Leave
+- Permissions
+- Attendance filtering
+- Attendance corrections
+- Approval/rejection flows
+- Role and company authorization
+- Self-approval prevention
+- Cross-company protection
+- Arabic/English/French/German localization
+- RTL behavior
+- Existing authentication boundary
+
+Do NOT redo any of that unless a new Part 4 feature genuinely requires a compatible integration.
+
+---
+
+PART 4 — BIOMETRIC DEVICES & GPS
+
+Part 4 has two main areas:
+
+1. Biometric attendance devices
+2. GPS/location-based attendance
+
+The goal is to establish a solid architecture for connecting physical attendance devices and location-based attendance without prematurely implementing the later attendance-rules, overtime, payroll, or reporting systems.
+
+---
+
+1. BIOMETRIC DEVICE MANAGEMENT
+
+First inspect the existing database, API architecture, contracts, and UI to determine what already exists.
+
+Do not assume a device vendor.
+
+Do not invent a proprietary protocol.
+
+Do not hard-code support for a specific manufacturer unless the repository already specifies one.
+
+The system should be designed around a provider/device adapter architecture so different biometric devices can eventually be supported through a common VAR HR interface.
+
+Conceptually:
+
+VAR HR
+↓
+Biometric Device Integration Layer
+↓
+Device Adapter
+↓
+Physical Device
+
+Different devices should eventually be able to use different adapters while the rest of VAR HR sees a consistent interface.
+
+---
+
+2. DEVICE REGISTRATION
+
+Create or complete the company-level device management functionality.
+
+An authorized company user should be able to manage biometric devices.
+
+A device should have appropriate information such as:
+
+- Device name
+- Device type/vendor
+- Connection information
+- IP/hostname where applicable
+- Port where applicable
+- Device identifier
+- Company ownership
+- Status
+- Last synchronization time
+- Connection/health state
+
+Do not store credentials insecurely.
+
+Do not expose sensitive connection credentials to normal frontend responses.
+
+Do not invent a vendor-specific credential format if the actual vendor has not been selected.
+
+If encryption/secrets infrastructure is not available, document the limitation rather than creating an insecure implementation.
+
+---
+
+3. DEVICE LIST
+
+Authorized users should be able to see the biometric devices belonging to their company.
+
+The UI should show useful operational information such as:
+
+- Device name
+- Type/vendor
+- Status
+- Last sync
+- Connection state
+- Number of synchronized employees where supported
+
+The device list must respect company isolation.
+
+A company must never see another company's devices.
+
+Employees should not automatically receive device-management access.
+
+---
+
+4. DEVICE CONNECTION TEST
+
+Where technically possible through the existing architecture, provide a way for an authorized user to test whether a registered device is reachable.
+
+The result should clearly communicate:
+
+- Connected
+- Unreachable
+- Authentication failure
+- Unsupported device
+- Configuration error
+- Unknown connection error
+
+Do not fake successful connections.
+
+If no actual device protocol/vendor is available in the repository, create the provider-neutral integration boundary and clearly document that physical-device testing requires a real supported device/adapter.
+
+---
+
+5. EMPLOYEE ↔ DEVICE MAPPING
+
+The system needs a safe way to associate employees with biometric device identities.
+
+Do not assume the employee's database ID is automatically the biometric device ID.
+
+A device may use its own employee identifier.
+
+The architecture should therefore support a mapping similar to:
+
+Company Employee
+↓
+VAR HR Employee ID
+↓
+Device-specific Employee ID
+↓
+Biometric Device
+
+An employee may eventually exist on more than one device.
+
+The mapping must remain company-scoped.
+
+---
+
+6. EMPLOYEE SYNCHRONIZATION
+
+The long-term workflow should support:
+
+VAR HR
+→ send employee to device
+
+and:
+
+Device
+→ return attendance/biometric events to VAR HR
+
+For this phase, implement only what can be safely supported by the available device integration information.
+
+Do NOT pretend that synchronization works if no actual device adapter exists.
+
+If there is no specified biometric vendor/protocol, establish the integration interfaces, database model, API boundary, and UI required for future adapters, then document the exact remaining dependency.
+
+---
+
+7. BIOMETRIC ATTENDANCE EVENTS
+
+The system should have a clear internal representation for raw device events.
+
+A raw event may contain information such as:
+
+- Device ID
+- Device employee ID
+- Timestamp
+- Event type
+- Direction
+- Raw device payload where appropriate
+
+Keep raw device data separate from the already-processed attendance record.
+
+Conceptually:
+
+Biometric Device
+↓
+Raw Attendance Event
+↓
+Employee Mapping
+↓
+Attendance Processing
+↓
+Attendance Record
+
+Do not duplicate the existing Attendance system from Part 3.
+
+Part 3 remains the source of truth for the employee-facing attendance history.
+
+Part 4 should provide the integration layer feeding that system.
+
+---
+
+8. DUPLICATE EVENTS
+
+Biometric devices may send the same event more than once.
+
+The system must prevent accidental duplicate attendance events where appropriate.
+
+Use a safe idempotency strategy.
+
+Do not blindly insert the same event repeatedly.
+
+Do not delete legitimate events just because timestamps are similar.
+
+Document the chosen deduplication strategy.
+
+---
+
+9. GPS ATTENDANCE
+
+Add the foundation for location-based attendance.
+
+The system should be able to capture:
+
+- Latitude
+- Longitude
+- Timestamp
+- Employee
+- Attendance action
+- Accuracy where available
+- Location source where appropriate
+
+Do not store location data for users who did not perform a location-based attendance action.
+
+Respect company and employee scope.
+
+---
+
+10. LOCATION RULE FOUNDATION
+
+The system should support the concept of company-defined attendance locations/geofences without implementing the full attendance-rules engine.
+
+A company may eventually define:
+
+- Office/site name
+- Latitude
+- Longitude
+- Allowed radius
+- Active/inactive state
+
+For example:
+
+Office A
+→ Latitude/Longitude
+→ Allowed radius: 200m
+
+The system can then determine whether a GPS attendance action occurred within the configured location.
+
+Do not implement complex scheduling or payroll consequences here.
+
+Those belong to later phases.
+
+---
+
+11. GPS VALIDATION
+
+Where GPS attendance is implemented, validate:
+
+- Location exists.
+- Coordinates are valid.
+- Timestamp is valid.
+- Employee is authorized.
+- Employee belongs to the company.
+- Attendance action is allowed.
+- Location is within the configured allowed area when geofencing is active.
+
+Do not trust coordinates supplied by an unauthorized user.
+
+Server-side validation is required.
+
+---
+
+12. PRIVACY AND SECURITY
+
+Location information is sensitive operational data.
+
+Follow the existing authorization architecture.
+
+Employees should only be able to access their own location-based attendance information.
+
+Managers should only access employees within their authorized scope.
+
+Company Owners should have company-level access.
+
+Cross-company access must be rejected.
+
+Do not expose raw GPS data through endpoints that do not need it.
+
+Do not log unnecessary personal/location information.
+
+---
+
+13. AUTHENTICATION
+
+Preserve the Part 2 authentication boundary.
+
+Do NOT:
+
+- Select an authentication provider.
+- Invent production credentials.
+- Create fake Founder accounts.
+- Create fake login sessions.
+- Replace the existing provider-neutral architecture.
+
+Production must remain fail-closed until the real authentication provider and identity-to-company mapping are selected.
+
+Use the existing development workspace mechanism only for development validation.
+
+---
+
+14. LOCALIZATION
+
+All new user-facing text must use the existing localization system.
+
+Support:
+
+- Arabic
+- English
+- French
+- German
+
+Verify:
+
+- Device statuses
+- Connection messages
+- Sync states
+- GPS states
+- Validation errors
+- Empty states
+- Success/error messages
+- Device-management UI
+- Location-management UI
+
+Arabic must remain RTL.
+
+English/French/German must remain LTR.
+
+Do not create a second translation system.
+
+---
+
+15. UI
+
+Preserve the existing VAR HR visual language.
+
+Do not redesign the entire dashboard.
+
+Add only the UI required for Part 4.
+
+The device-management UI should make it clear:
+
+- Which devices belong to the company.
+- Whether they are connected.
+- When they last synchronized.
+- Whether configuration is valid.
+- Which employees are mapped.
+
+The GPS/location UI should make it clear:
+
+- Which locations belong to the company.
+- Their active/inactive state.
+- Their configured radius.
+- Their coordinates where appropriate.
+
+Mobile layouts must remain usable.
+
+Arabic layouts must remain properly RTL.
+
+---
+
+16. API / CONTRACT ARCHITECTURE
+
+Follow the existing:
+
+OpenAPI
+→ generated client
+→ Express API
+→ React frontend
+
+Do not bypass the existing API contract system.
+
+If new endpoints are required:
+
+- Define them through the existing contract architecture.
+- Generate the client.
+- Use the generated client in the frontend.
+- Apply server-side authorization.
+- Add appropriate validation.
+
+Do not create duplicate handwritten client APIs if generated APIs are the existing project pattern.
+
+---
+
+17. DATABASE
+
+Inspect the existing schema before adding anything.
+
+Reuse existing tables if appropriate.
+
+If schema changes are required:
+
+- Make them additive.
+- Use Drizzle.
+- Do not drop tables.
+- Do not reset the database.
+- Do not truncate data.
+- Do not recreate existing tables unnecessarily.
+
+If the imported development database is missing existing project tables, use the existing non-destructive schema push process.
+
+---
+
+18. IMPORTANT SCOPE LIMIT
+
+Do NOT implement the following in Part 4:
+
+- Full attendance rules engine
+- Late rules
+- Early-leave rules
+- Overtime calculation
+- Payroll
+- Payroll deductions
+- Advanced reports
+- Excel reporting system
+- Production authentication provider
+- Founder account
+- Billing
+- Unrelated redesigns
+
+Those belong to later phases.
+
+Part 4 is specifically:
+
+Biometric Devices + GPS Attendance
+
+---
+
+19. VALIDATION
+
+Before declaring Part 4 complete, verify the implementation.
+
+Run:
+
+- Shared library typechecks
+- API typecheck
+- Frontend typecheck
+- API build
+- Frontend build
+- API health
+- Preview
+- Relevant API endpoint tests
+
+Test authorization:
+
+- Employee cannot access company device management.
+- Employee cannot access another employee's GPS data.
+- Manager cannot access another company.
+- Company Owner can manage company devices/locations.
+- Cross-company requests are rejected.
+- Unauthorized device operations are rejected.
+
+Test device behavior where a real adapter exists.
+
+If no physical device/vendor is available:
+
+Do NOT fabricate a successful device connection.
+
+Instead verify the provider-neutral integration layer and clearly document the missing physical-device dependency.
+
+Test GPS behavior:
+
+- Valid coordinates.
+- Invalid coordinates.
+- Authorized employee.
+- Unauthorized employee.
+- Within configured location.
+- Outside configured location.
+- Cross-company access.
+- Duplicate/invalid attendance events where applicable.
+
+Verify Arabic and the other supported languages.
+
+Verify RTL/LTR behavior.
+
+---
+
+20. PREVIEW / RUNTIME
+
+The project has previously experienced recurring imported-environment Preview registration problems.
+
+If the Preview/workflows disappear:
+
+- Inspect the existing artifact metadata.
+- Use the supported registration/recovery path.
+- Do not create duplicate replacement workflows.
+- Do not blindly modify artifact configuration.
+
+If the development database is missing existing tables:
+
+Use the existing non-destructive Drizzle schema process.
+
+Document the environment limitation accurately.
+
+---
+
+21. HAND-OFF SYSTEM — REQUIRED
+
+The permanent project hand-off system already exists at:
+
+"hand-off/"
+
+Do NOT create another hand-off folder.
+
+Do NOT delete previous reports.
+
+Do NOT overwrite historical work logs.
+
+When Part 4 is finished, create a new dated report:
+
+"hand-off/2026-08-16-agent-part-4-biometric-gps.md"
+
+The report must document:
+
+- Starting state.
+- Relevant Part 1–3 completed state.
+- What Part 4 implemented.
+- Biometric architecture.
+- Device management.
+- Employee/device mapping.
+- Synchronization capabilities.
+- Raw biometric events.
+- GPS implementation.
+- Location/geofence implementation.
+- Security/authorization.
+- API/contracts.
+- Database changes.
+- UI/localization.
+- Validation.
+- Preview/runtime status.
+- What could not be physically tested.
+- Remaining dependencies.
+- Exact recommendation for Part 5.
+
+Then update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+with the final verified Part 4 state.
+
+---
+
+22. FINAL RULE
+
+Do not claim Part 4 is complete unless the implementation and validation actually support that claim.
+
+If physical biometric integration cannot be completed because no vendor/device/protocol has been specified, classify the relevant portion as Blocked by external device specification, while completing everything that can safely be implemented without inventing a vendor.
+
+At the end explicitly classify Part 4 as:
+
+Complete
+
+or
+
+Partially Complete
+
+or
+
+Blocked
+
+with concrete evidence.
+
+Do not start Part 5.
+
+Continue from the existing codebase and hand-off history only.

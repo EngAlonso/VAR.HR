@@ -1,0 +1,164 @@
+Part 5 — Continue From Exact Current State
+
+You are continuing an existing Part 5 implementation in the VAR HR project. Do not restart Part 5, redesign the architecture, or repeat the previous audit unless a specific validation requires it.
+
+Current State
+
+The previous agent already inspected the project handoff and confirmed:
+
+- The active project is the root monorepo.
+- The numbered folders are only duplicate uploaded notes, not source-code copies.
+- Part 5 is already partially implemented in the root project.
+- The database tables for Part 5 already exist.
+- Backend payroll routes are already present.
+- Partial i18n work is already present.
+- The generated API client already contains all required payroll endpoints.
+- Therefore, do not create duplicate API endpoints unless you prove an existing endpoint is actually missing or incorrect.
+
+The previous agent identified these concrete unfinished issues:
+
+1. The payroll status contract does not include the finalized status value that the server already uses.
+2. The payroll-period total is initially calculated incorrectly.
+3. The frontend Payroll screen currently exposes calculation only.
+4. The frontend is missing the UI/workflows for:
+   - Payroll period creation
+   - Payroll adjustments
+   - Payroll finalization
+   - Employee payroll details
+
+The previous agent's next intended action was:
+
+«Apply the smallest contract/backend fixes first, then wire the existing generated API hooks into the Payroll screen, while keeping all labels inside the four existing locale dictionaries.»
+
+Important Environment Context
+
+The previous validation attempt was blocked because the imported workspace had no installed "node_modules".
+
+This is an environment/setup issue, not evidence that the implementation is broken.
+
+Before making assumptions based on compiler output:
+
+1. Inspect the existing package manager configuration and lockfile.
+2. Use the repository's existing package/workspace guidance.
+3. Install dependencies using the existing lockfile.
+4. Then run the appropriate typecheck/build/tests.
+5. Do not change dependency versions unless absolutely necessary.
+
+Required Workflow
+
+1. Read Handoff First
+
+Before touching code:
+
+- Read the existing project-level "hand-off/" files relevant to Part 5.
+- Read the latest continuation/handoff note available in the project.
+- Treat the handoff as the source of truth for project decisions.
+- Reconcile conflicting notes based on the actual current code, not assumptions.
+
+Do not ask me to repeat information that is already available in the handoff.
+
+2. Inspect the Current Implementation
+
+Inspect only the files relevant to the Part 5 payroll implementation, including:
+
+- Payroll database/schema definitions
+- Payroll backend routes/services/calculation logic
+- Payroll status/type contracts
+- Generated API client/hooks
+- Payroll frontend screen/components
+- The four existing locale dictionaries
+- Relevant package/workspace configuration
+- Relevant tests
+
+Do not perform an unrelated repository-wide refactor.
+
+3. Fix the Backend/Contract Issues
+
+Apply the minimum type-safe changes necessary to fix the already-identified issues:
+
+- Make the payroll status contract consistent with the status actually used by the backend.
+- Correct the payroll-period initial total calculation.
+- Preserve the existing business rules and database model.
+- Do not invent a new payroll architecture.
+- Do not create duplicate endpoints.
+
+After each meaningful change, verify that it matches the existing schema and generated client.
+
+4. Complete the Payroll Frontend
+
+Use the existing generated API client/hooks.
+
+Extend the existing Payroll UI so the actual Part 5 workflow supports:
+
+- Creating a payroll period
+- Viewing the payroll period
+- Calculating payroll
+- Applying/viewing adjustments
+- Finalizing the payroll period
+- Viewing employee payroll details
+
+Follow the existing project's UI patterns and permissions.
+
+Do not replace the existing Payroll screen with a new unrelated design.
+
+5. Localization
+
+There are already four locale dictionaries.
+
+All new user-facing text must use the existing i18n system.
+
+Do not introduce hardcoded English or Arabic strings directly into the Payroll components.
+
+Keep Arabic and English translations consistent.
+
+6. Validation
+
+After implementation:
+
+- Run the relevant typecheck.
+- Run the relevant tests.
+- Run the relevant production/build validation if available.
+- Verify that generated API types/hooks remain compatible.
+- Verify the payroll workflow end-to-end as far as the available environment allows.
+
+If something fails because of the environment rather than the code, clearly separate:
+
+Code failure vs environment/setup failure.
+
+Do not hide or work around failures by weakening type safety or tests.
+
+Scope Rules
+
+- Continue Part 5 only.
+- Do not start Part 6.
+- Do not rewrite completed Part 5 work.
+- Do not modify unrelated dashboard typography or unrelated UI.
+- Do not perform broad refactors.
+- Preserve existing architecture and naming conventions.
+- Prefer minimal, targeted, type-safe fixes.
+- Do not add dependencies unless genuinely required.
+- Do not create duplicate API routes when the generated client already exposes the required routes.
+
+Handoff Update
+
+When Part 5 is complete:
+
+1. Update the appropriate project-level "hand-off/" documentation.
+2. Record what was already completed before your session.
+3. Record what you changed.
+4. Record validation results.
+5. Record any remaining blockers.
+6. Update "MASTER-HANDOFF" according to the project's existing handoff conventions.
+7. Clearly state whether Part 5 is actually complete or still has remaining work.
+
+Do not claim completion unless the implementation and validation support it.
+
+Starting Point
+
+Start by reading the current Part 5 handoff and inspecting the exact existing payroll implementation.
+
+Then continue from the point where the previous agent stopped:
+
+contract/backend fixes → Payroll UI completion → localization → validation → handoff update.
+
+Do not restart the project or redo completed work.

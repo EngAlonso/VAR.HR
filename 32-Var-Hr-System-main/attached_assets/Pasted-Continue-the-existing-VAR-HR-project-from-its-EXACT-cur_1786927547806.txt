@@ -1,0 +1,509 @@
+Continue the existing VAR HR project from its EXACT current repository state.
+
+IMPORTANT: Part 6 has ALREADY STARTED in the previous agent session. Do NOT restart Part 6 from scratch and do NOT redo Parts 1–5.
+
+First read:
+
+- "hand-off/MASTER-HANDOFF.md"
+- the latest Part 5 handoff
+- any existing Part 6 handoff/report in "hand-off/"
+
+Then continue directly from the current code state described below.
+
+PROJECT STATE
+
+Parts 1–5 are complete and must be preserved.
+
+Completed areas include:
+
+- Core VAR HR architecture.
+- Arabic / English / French / German localization.
+- Arabic RTL behavior.
+- Provider-neutral authentication boundary.
+- Company and role authorization.
+- Employees.
+- Attendance.
+- Leave and permissions.
+- GPS and company locations/geofences.
+- Provider-neutral biometric device foundation.
+- Attendance rules.
+- Overtime.
+- Payroll.
+- Payroll periods.
+- Payroll adjustments.
+- Payroll finalization and immutable finalized payroll snapshots.
+
+Do NOT rebuild or redesign any of these.
+
+Production authentication remains intentionally provider-neutral and fail-closed.
+
+PART 6 GOAL
+
+Part 6 is:
+
+Reports, Printing, Export, and Data Import
+
+The goal is to build the reporting layer on top of the existing data and authorization architecture.
+
+Required areas:
+
+1. Attendance reports
+2. Leave reports
+3. Permission reports
+4. Overtime reports
+5. Payroll reports
+6. Employee-level reports
+7. Company-level reports
+8. Report filtering
+9. Report preview
+10. Printing
+11. CSV export
+12. Excel-compatible export
+13. Controlled employee CSV/Excel import
+14. Server-side authorization for all of the above
+15. Full localization
+
+WHAT THE PREVIOUS AGENT ALREADY DID
+
+The previous agent already inspected the existing implementation and confirmed:
+
+- The API currently has only a narrow attendance summary report.
+- The existing Reports screen is still essentially a placeholder.
+- The project already contains the required underlying attendance, leave, permission, overtime, employee, and payroll data.
+- The existing contract-first architecture must be used.
+- The intended implementation is a unified reporting endpoint family plus controlled employee import.
+- No parallel reporting data model should be created.
+
+The previous agent had already STARTED implementation.
+
+Already in progress
+
+The previous agent began adding the new OpenAPI contracts for:
+
+- Reports.
+- Report filters.
+- Report responses.
+- Employee import.
+
+The generated client remains the source of truth.
+
+EXACT STOPPING POINT
+
+The previous agent reached a contract-generation issue:
+
+There is an existing "PeriodId" parameter used by payroll routes as a PATH parameter.
+
+Part 6 reports also need a "PeriodId", but as a QUERY parameter.
+
+The first contract-generation pass detected this schema naming collision.
+
+The previous agent was about to correct the contract reference so the existing payroll "PeriodId" parameter remains untouched and the report query parameter has its own correct definition.
+
+This is the FIRST THING to continue.
+
+Do NOT throw away the current contract work.
+
+Inspect the current diff and continue from it.
+
+IMMEDIATE NEXT STEPS
+
+1. Inspect the current uncommitted changes and current OpenAPI contract.
+2. Confirm exactly where the "PeriodId" naming collision exists.
+3. Fix only the collision.
+4. Regenerate the OpenAPI-derived client/types/schemas.
+5. Typecheck the shared/generated packages.
+6. Continue implementing the report API endpoints.
+7. Connect the existing Reports screen to the generated hooks.
+8. Implement preview/filtering.
+9. Implement printing.
+10. Implement CSV export.
+11. Implement Excel-compatible export.
+12. Implement controlled employee import.
+13. Run authorization tests.
+14. Run localization/RTL checks.
+15. Run production builds and live runtime verification.
+16. Only after everything is verified, update "hand-off/".
+
+REPORT REQUIREMENTS
+
+Attendance
+
+Support:
+
+- Employee
+- Date
+- Check-in
+- Check-out
+- Worked hours
+- Late minutes
+- Early checkout
+- Overtime
+- Attendance status
+- GPS status where available
+
+Filters:
+
+- Date range
+- Employee
+- Department/scope
+- Attendance status
+
+Leave
+
+Include:
+
+- Employee
+- Leave type
+- Start date
+- End date
+- Duration
+- Status
+- Reason where available
+
+Permissions
+
+Include:
+
+- Employee
+- Permission type
+- Date
+- Duration
+- Status
+- Reason
+
+Overtime
+
+Use the existing Part 5 overtime calculation.
+
+Do NOT invent new overtime rules.
+
+Payroll
+
+Use the existing Part 5 payroll calculations.
+
+Include:
+
+- Payroll period
+- Employee
+- Gross/additions where applicable
+- Deductions
+- Overtime
+- Net salary
+- Payroll status
+- Existing payroll breakdown
+
+Do NOT add country-specific tax/legal calculations.
+
+AUTHORIZATION
+
+All report, export, print, and import operations MUST enforce authorization server-side.
+
+Employee:
+
+- Only their own authorized information.
+
+Manager:
+
+- Only employees within their existing permitted scope.
+
+Owner:
+
+- Company-wide access according to existing permissions.
+
+Developer:
+
+- Do not automatically grant payroll/HR visibility.
+
+Cross-company:
+
+- Must always be rejected.
+
+Do not rely on frontend hiding buttons for security.
+
+FILTERING
+
+Use only meaningful filters supported by the underlying data:
+
+- Date range
+- Employee
+- Department
+- Manager scope
+- Status
+- Leave type
+- Permission type
+- Payroll period
+
+Never allow frontend parameters to bypass server-side scope.
+
+PREVIEW
+
+Reports need a proper preview before printing/exporting.
+
+Preview must respect:
+
+- Selected filters
+- Company
+- Reporting period
+- Totals
+- Existing VAR HR design
+- Current locale
+- Arabic RTL
+
+PRINTING
+
+Print output must:
+
+- Hide application navigation/sidebar.
+- Show report title.
+- Show company/report period where appropriate.
+- Preserve table layout.
+- Show totals.
+- Support Arabic RTL.
+- Work in the existing frontend architecture.
+
+Do not redesign the whole application.
+
+EXPORT
+
+At minimum:
+
+- CSV
+- Excel-compatible export
+
+Exported data must exactly respect:
+
+- Current filters.
+- Current authorization.
+- Current company scope.
+
+Never allow export to expose unauthorized records.
+
+IMPORT
+
+Initial import scope:
+
+Employees only.
+
+Support CSV/Excel-compatible employee imports using the existing employee schema.
+
+Validate:
+
+- Headers
+- Required fields
+- Data types
+- Duplicate employees
+- Invalid rows
+
+Do NOT silently overwrite existing employees.
+
+Return a useful result containing:
+
+- Successful rows
+- Failed rows
+- Row-level error reasons
+
+Prefer transactional import where practical.
+
+Do not build unrelated import modules.
+
+LOCALIZATION
+
+Every new visible string must use the existing localization system.
+
+Languages:
+
+- Arabic
+- English
+- French
+- German
+
+Verify:
+
+- Arabic RTL.
+- Report titles.
+- Filters.
+- Column headers.
+- Status labels.
+- Empty states.
+- Validation errors.
+- Import errors.
+- Export messages.
+- Print output.
+- Dates.
+- Numbers.
+- Currency.
+
+Do not hard-code new English strings.
+
+ARCHITECTURE
+
+Preserve:
+
+OpenAPI
+→ generated client/types
+→ Express API
+→ React frontend
+
+If a new endpoint is required:
+
+1. Update OpenAPI.
+2. Regenerate generated outputs.
+3. Implement server route.
+4. Use generated frontend hooks/types.
+
+Do NOT create hand-written parallel API contracts.
+
+DATABASE
+
+If the imported development database is missing existing "var_hr_*" tables, use:
+
+"pnpm --filter @workspace/db run push"
+
+This is allowed and must remain non-destructive.
+
+Never:
+
+- Drop tables.
+- Reset database.
+- Truncate data.
+- Delete existing data.
+
+VALIDATION
+
+Do not claim Part 6 complete based only on typechecks.
+
+Verify live behavior for:
+
+Reports
+
+- Attendance
+- Leave
+- Permissions
+- Overtime
+- Payroll
+- Employee report
+- Company report
+
+Filters
+
+- Date range
+- Employee
+- Department/scope
+- Payroll period
+- Status
+
+Authorization
+
+- Employee scope
+- Manager scope
+- Owner access
+- Developer restrictions
+- Cross-company rejection
+
+Export
+
+- CSV
+- Excel-compatible export
+- Filtered output
+- Authorization
+
+Import
+
+- Valid file
+- Invalid headers
+- Missing required fields
+- Invalid data
+- Duplicate employees
+- Row-level errors
+- Authorization
+
+Printing
+
+- Preview
+- Print layout
+- Arabic RTL
+- English
+- French
+- German
+
+Build
+
+Run the repository's canonical validation order:
+
+- Shared-library typecheck
+- API typecheck
+- Frontend typecheck
+- API build
+- Frontend build
+- API health
+- Live frontend/Preview
+
+If a managed workflow requires "PORT" / "BASE_PATH", use the existing managed workflow environment instead of changing Vite configuration.
+
+IMPORTANT: DO NOT WASTE TIME
+
+Do NOT:
+
+- Restart Parts 1–5.
+- Redo previous audits unless a current change breaks them.
+- Invent an authentication provider.
+- Invent tax/legal payroll rules.
+- Invent biometric hardware communication.
+- Redesign the UI.
+- Create duplicate APIs.
+- Create duplicate database models.
+- Start Part 7.
+- Create replacement workflows if the existing managed workflows can be restored.
+- Modify unrelated product code.
+
+If something is already implemented, verify it and reuse it.
+
+If something is genuinely missing, implement only the Part 6 requirement.
+
+HAND-OFF
+
+When Part 6 is genuinely finished:
+
+Create a NEW dated report in:
+
+"hand-off/"
+
+Do not overwrite previous reports.
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+The report must contain:
+
+- What was already complete before Part 6.
+- What Part 6 implemented.
+- Current report endpoints.
+- Filters.
+- Preview.
+- Printing.
+- CSV export.
+- Excel-compatible export.
+- Employee import.
+- Authorization verification.
+- Localization verification.
+- Build/typecheck results.
+- Live runtime results.
+- Any limitations.
+- Any remaining blockers.
+
+Classify the final state honestly as:
+
+Complete
+or
+Partially Complete
+or
+Blocked
+
+Do not start Part 7.
+
+FINAL CONTINUATION RULE
+
+The most important point:
+
+Part 6 is already partially implemented. Continue from the exact current code and current diff, starting with the "PeriodId" OpenAPI parameter collision. Do not rebuild Part 6 from scratch.

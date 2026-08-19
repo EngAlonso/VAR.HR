@@ -1,0 +1,413 @@
+You are taking over the VAR HR project from another agent.
+
+This is NOT a fresh Part 6 implementation.
+
+The previous agent already audited Part 6 and then started implementing the missing work. The agent's daily quota ended during implementation, so you must continue from the exact current repository state.
+
+Critical Rule
+
+Do NOT restart Part 6.
+
+Do NOT redo the previous audit unless you need a specific verification.
+
+Do NOT discard the existing Part 6 implementation.
+
+First inspect the current project and handoff files, determine exactly what the previous agent already changed, and continue from there.
+
+---
+
+Project State
+
+Part 5 is complete and verified.
+
+The verified Part 5 baseline is documented in:
+
+"hand-off/2026-08-17-part-5-payroll-runtime-validation.md"
+
+"hand-off/MASTER-HANDOFF.md"
+
+Part 6 had previously reached approximately 35% completion.
+
+The previous audit confirmed that the following Part 6 work already exists:
+
+Backend / API
+
+- Unified report endpoint:
+  "GET /api/reports/data"
+- Report types:
+  - Employees
+  - Attendance
+  - Leave
+  - Permission
+  - Overtime
+  - Payroll
+- Report OpenAPI contracts
+- Generated report API clients/hooks
+- "ReportPeriodId" query parameter fix
+- Server-side company/employee/manager authorization logic
+- Employee import endpoint:
+  "POST /api/employees/import"
+- Employee import validation
+- Duplicate detection
+- Row-level import results
+- Part 6 API localization in:
+  - English
+  - Arabic
+  - French
+  - German
+
+The existing implementation should be preserved unless you discover a concrete bug.
+
+---
+
+What Was Still Missing
+
+The audit identified these missing/incomplete areas:
+
+1. Complete Reports UI
+2. Report type selection
+3. Report-specific filters
+4. Complete report preview
+5. Complete report response fields
+6. Printing
+7. CSV export
+8. Excel-compatible export
+9. File-based employee import
+10. Import preview/results UI
+11. Transaction-safe employee import
+12. Runtime authorization testing
+13. Full Part 6 localization/RTL validation
+14. Part 6 build/typecheck/runtime validation
+15. Part 6 completion handoff
+
+---
+
+IMPORTANT: Previous Agent Already Started Implementing These
+
+The previous agent received instructions to complete all missing Part 6 work.
+
+Before the quota ended, the agent had:
+
+- Read the continuation instructions.
+- Read relevant project/build guidance.
+- Started implementation.
+- Confirmed the existing report route/generated hooks should be preserved.
+- Started aligning the report contract/backend.
+- Started working on atomic/transaction-safe employee import.
+- Started preparing the Reports screen implementation.
+- Delegated the Reports screen implementation to a UI-focused agent.
+- Began reviewing the delegated UI work.
+- The first backend patch was too broad and was rejected atomically.
+- The agent then deliberately split the backend work into smaller targeted patches.
+
+The quota ended while the agent was splitting those backend changes into smaller patches.
+
+Therefore, the exact current repository state must be inspected before doing anything else.
+
+---
+
+Your First Actions
+
+Before editing:
+
+1. Read:
+   
+   - "hand-off/MASTER-HANDOFF.md"
+   - latest Part 5 handoff
+   - any Part 6 handoff/continuation notes
+
+2. Inspect the current Git/project state.
+
+3. Inspect the current diff/status.
+
+4. Determine exactly which changes from the previous Part 6 implementation attempt are already present.
+
+5. Inspect the Reports UI implementation and the backend patches before continuing.
+
+Do not assume the previous agent's last message accurately represents what was successfully written.
+
+Use the actual source tree as the authority.
+
+---
+
+Continue Implementation
+
+After determining the current state, continue exactly where the previous agent stopped.
+
+Backend
+
+Complete the smaller targeted backend patches for:
+
+- Complete report response data
+- Correct report filters
+- Payroll report completeness
+- Attendance early checkout
+- Permission duration/timing
+- Overtime report completeness
+- Any other concrete gaps identified by the audit
+
+Preserve existing business logic.
+
+Do not rewrite working report branches unnecessarily.
+
+---
+
+Employee Import
+
+Complete the employee import implementation.
+
+The backend currently accepts parsed JSON rows.
+
+The final Part 6 workflow needs:
+
+- CSV file upload
+- Excel-compatible file upload if supported
+- File parsing
+- Import preview
+- Validation
+- Row-level errors
+- Successful/failed counts
+- Confirmation
+- Final import result
+
+Make the database operation transaction-safe according to the intended Part 6 behavior.
+
+Do not allow a failed later row to silently leave an inconsistent partial import.
+
+---
+
+Reports UI
+
+Complete the existing Reports screen rather than creating an unrelated reporting application.
+
+It must support:
+
+Report types
+
+- Employees
+- Attendance
+- Leave
+- Permission
+- Overtime
+- Payroll
+
+Filters
+
+- Date range
+- Employee
+- Department
+- Status where applicable
+- Leave type
+- Permission type
+- Payroll period
+
+Preview
+
+- Correct columns per report
+- Appropriate totals
+- Selected filter summary
+- Empty state
+- Loading state
+- Error state
+- Arabic RTL
+- English
+- Arabic
+- French
+- German
+
+Use the existing generated React hooks.
+
+Do not create duplicate API clients or manual API implementations when generated hooks already exist.
+
+---
+
+Printing
+
+Implement real report printing.
+
+Include:
+
+- Report title
+- Selected filters
+- Report data
+- Appropriate totals
+- Proper print layout
+- Hidden application navigation/buttons during printing
+- "@media print"
+- Arabic RTL printing
+
+---
+
+CSV Export
+
+Implement real CSV export for the selected report.
+
+Requirements:
+
+- Current filters
+- Correct columns
+- Correct headers
+- Proper CSV escaping
+- UTF-8/Arabic support
+- Sensible filename
+
+---
+
+Excel-Compatible Export
+
+Implement the required Excel-compatible export.
+
+Reuse existing dependencies if possible.
+
+Do not upgrade unrelated packages.
+
+If a new dependency is genuinely required, keep it minimal and explain why.
+
+Arabic data must remain readable.
+
+---
+
+Localization
+
+Use the existing four locale dictionaries:
+
+- English
+- Arabic
+- French
+- German
+
+Do not hardcode new user-facing strings.
+
+Verify RTL behavior for:
+
+- Reports
+- Filters
+- Preview
+- Print
+- Import results
+- Export messages
+
+---
+
+Validation
+
+After implementation, run:
+
+Typechecks
+
+- API
+- Frontend
+
+Builds
+
+- API production build
+- Frontend production build
+- Relevant mockup/preview build
+
+Use managed "PORT"/"BASE_PATH" variables where required.
+
+Runtime validation
+
+Verify:
+
+- All six report types
+- Major report filters
+- Employee authorization
+- Manager authorization
+- Owner/platform-owner access
+- Department scoping
+- Employee scoping
+- Cross-company rejection
+- Payroll restrictions
+- Employee import
+- Duplicate import handling
+- Transaction rollback
+- CSV export
+- Excel-compatible export
+- Print
+- Arabic RTL
+- All four locales
+
+Do not claim validation that was not actually executed.
+
+---
+
+Protect Existing Work
+
+Do NOT regress:
+
+- Parts 1–4
+- Part 5 payroll
+- Authentication
+- Employee management
+- Attendance
+- Leave
+- Permissions
+- Overtime
+- Existing authorization
+- Existing localization
+
+Do not perform unrelated refactors.
+
+Use minimal targeted changes.
+
+---
+
+Handoff When Finished
+
+After Part 6 is genuinely complete:
+
+Create a dated handoff file under:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Document:
+
+- Starting state
+- Existing Part 6 work preserved
+- New implementation
+- Backend changes
+- Frontend changes
+- Import
+- Export
+- Printing
+- Authorization
+- Localization
+- Tests
+- Builds
+- Runtime validation
+- Remaining limitations
+- Follow-up work
+
+Do not start Part 7.
+
+---
+
+Most Important Instruction
+
+Continue from the actual current code state.
+
+The previous agent was already implementing Part 6 and stopped because of quota exhaustion.
+
+Do not throw away its work.
+
+Do not restart the audit.
+
+Do not reset Git.
+
+Do not create a new Part 6 implementation alongside the existing one.
+
+Inspect → determine what successfully landed → continue the remaining implementation → validate everything → update handoff.
+
+At the end, clearly report:
+
+1. What you inherited.
+2. What you completed.
+3. What validation actually passed.
+4. Any remaining blockers.
+5. Whether Part 6 is genuinely complete.
+6. What Part comes next.
