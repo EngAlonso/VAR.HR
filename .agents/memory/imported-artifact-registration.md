@@ -7,7 +7,7 @@ Imported projects may contain valid `.replit-artifact/artifact.toml` files while
 
 **Why:** The artifact metadata is filesystem state, while runtime registration is separate; treating the file as proof that the workflow exists leads to restart failures or conflicting workflows.
 
-**How to apply:** Check `listArtifacts()` and `listWorkflows()` before restarting an imported service. If both are empty, preserve the artifact metadata and report the registration blocker rather than manually configuring a duplicate service.
+**How to apply:** Check `listArtifacts()` and `listWorkflows()` before restarting an imported service. If both are empty, preserve the artifact metadata and report the registration blocker rather than manually configuring a duplicate service. Once runtime registration appears, remove temporary manual workflows before starting managed artifact services or they can collide on declared ports.
 
 Imported VAR HR workspaces can also arrive with a reachable but uninitialized development database; the API will build successfully and fail during seed startup until the existing Drizzle schema is pushed.
 

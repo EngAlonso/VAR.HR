@@ -3804,7 +3804,6 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               onChange={setUsername}
               required
               autoComplete="username"
-              placeholder="e.g. 01200229946"
               authStyle
             />
             <Field
