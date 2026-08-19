@@ -3623,7 +3623,9 @@ function authLabel(
   key:
     | "title"
     | "detail"
-     | "mobileNumber"
+    | "mobileNumber"
+    | "mobilePlaceholder"
+    | "passwordPlaceholder"
     | "username"
     | "password"
     | "login"
@@ -3650,7 +3652,9 @@ function authLabel(
     en: {
       title: "Sign in to VAR HR",
       detail: "Use your account credentials to access the right workspace.",
-       mobileNumber: "Mobile number",
+      mobileNumber: "Mobile number",
+      mobilePlaceholder: "Enter your phone number",
+      passwordPlaceholder: "Enter your password",
       username: "Username",
       password: "Password",
       login: "Sign in",
@@ -3677,7 +3681,9 @@ function authLabel(
     ar: {
       title: "تسجيل الدخول إلى VAR HR",
       detail: "استخدم بيانات حسابك للوصول إلى مساحة العمل المناسبة.",
-       mobileNumber: "رقم الهاتف المحمول",
+      mobileNumber: "رقم الهاتف المحمول",
+      mobilePlaceholder: "ادخل رقم هاتفك",
+      passwordPlaceholder: "ادخل رقمك السري",
       username: "اسم المستخدم",
       password: "كلمة المرور",
       login: "تسجيل الدخول",
@@ -3804,6 +3810,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               onChange={setUsername}
               required
               autoComplete="username"
+              placeholder={authLabel(locale, "mobilePlaceholder")}
               authStyle
             />
             <Field
@@ -3813,7 +3820,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               onChange={setPassword}
               required
               autoComplete="current-password"
-              placeholder="Enter your password"
+              placeholder={authLabel(locale, "passwordPlaceholder")}
               authStyle
             />
             {error && (
