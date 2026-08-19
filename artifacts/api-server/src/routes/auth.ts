@@ -473,7 +473,7 @@ router.post(
       entityType: "account",
       entityId: account.id,
     });
-    res.json({ temporaryPassword });
+    res.json({ username: account.username, temporaryPassword });
   },
 );
 
@@ -535,20 +535,17 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       .insert(departmentsTable)
       .values({ companyId: company.id, name: "People & Culture" })
       .returning();
-    await tx.insert(plansTable).values({
-      name: `${company.name} plan`,
-      employeeLimit: parsed.data.employeeLimit,
-      managerLimit: 0,
-      branchLimit: 0,
-      deviceLimit: 0,
-      features: [],
-    });
     const [plan] = await tx
-      .select()
-      .from(plansTable)
-      .where(eq(plansTable.name, `${company.name} plan`))
-      .orderBy(plansTable.id)
-      .limit(1);
+      .insert(plansTable)
+      .values({
+        name: `${company.name} plan`,
+        employeeLimit: parsed.data.employeeLimit,
+        managerLimit: 0,
+        branchLimit: 0,
+        deviceLimit: 0,
+        features: [],
+      })
+      .returning();
     await tx.insert(subscriptionsTable).values({
       companyId: company.id,
       planId: plan.id,

@@ -155,6 +155,7 @@ export function workspaceCapabilities(
     return [
       "employees.view",
       "employees.manage",
+      "employees.credentials",
       "attendance.view",
       "attendance.correct",
       "leave.approve",
@@ -162,6 +163,11 @@ export function workspaceCapabilities(
       "payroll.view",
       "reports.view",
       "reports.export",
+      "devices",
+      "sync-history",
+      "schedules",
+      "holidays",
+      "organization.manage",
       "platform.view",
     ];
   }
@@ -169,6 +175,7 @@ export function workspaceCapabilities(
     return [
       "employees.view",
       "employees.manage",
+      "employees.credentials",
       "attendance.view",
       "attendance.correct",
       "leave.approve",
@@ -176,20 +183,15 @@ export function workspaceCapabilities(
       "payroll.view",
       "reports.view",
       "reports.export",
+      "devices",
+      "sync-history",
+      "schedules",
+      "holidays",
+      "organization.manage",
     ];
   }
   if (role === "manager") {
-    return explicitPermissions.length > 0
-      ? explicitPermissions
-      : [
-          "employees.view",
-          "attendance.view",
-          "leave.create",
-          "leave.approve",
-          "permissions.create",
-          "permissions.approve",
-          "reports.view",
-        ];
+    return explicitPermissions;
   }
   return [
     "attendance.view",

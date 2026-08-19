@@ -22,6 +22,10 @@ export const devicesTable = pgTable("var_hr_devices", {
   note: text("note").notNull().default("Connector adapter not configured yet."),
 }, (table) => ({
   companyIndex: index("var_hr_devices_company_idx").on(table.companyId),
+  biometricCodeUnique: uniqueIndex("var_hr_devices_biometric_code_uidx").on(
+    table.companyId,
+    table.biometricCode,
+  ),
 }));
 
 export const deviceEmployeeMappingsTable = pgTable("var_hr_device_employee_mappings", {

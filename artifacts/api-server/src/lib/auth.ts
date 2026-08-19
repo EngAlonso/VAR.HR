@@ -5,7 +5,7 @@ import {
   scryptSync,
   timingSafeEqual,
 } from "node:crypto";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import {
   accountPermissionsTable,
@@ -15,6 +15,7 @@ import {
   employeesTable,
   plansTable,
   subscriptionsTable,
+  devicesTable,
   db,
   permissionsTable,
   userAccountsTable,
@@ -53,6 +54,36 @@ export function verifyPassword(password: string, storedHash: string): boolean {
 
 export function generateNumericPassword(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+export function deviceLetter(index: number): string {
+  let value = Math.max(0, index);
+  let result = "";
+  do {
+    result = String.fromCharCode(65 + (value % 26)) + result;
+    value = Math.floor(value / 26) - 1;
+  } while (value >= 0);
+  return result;
+}
+
+export async function allocateDeviceLetter(companyId: string): Promise<string> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`var_hr_device_letters:${companyId}`}))`,
+    );
+    const devices = await tx
+      .select({ biometricCode: devicesTable.biometricCode })
+      .from(devicesTable)
+      .where(eq(devicesTable.companyId, companyId));
+    const used = new Set(
+      devices
+        .map((device) => device.biometricCode)
+        .filter((code): code is string => Boolean(code)),
+    );
+    let index = 0;
+    while (used.has(deviceLetter(index))) index += 1;
+    return deviceLetter(index);
+  });
 }
 
 function hashSessionToken(token: string): string {
@@ -258,6 +289,23 @@ export async function ensureEmployeeCapacity(
     activeEmployees,
     employeeLimit,
   };
+}
+
+export async function hasAccountPermission(
+  accountId: string,
+  permission: string,
+): Promise<boolean> {
+  const [grant] = await db
+    .select({ accountId: accountPermissionsTable.accountId })
+    .from(accountPermissionsTable)
+    .where(
+      and(
+        eq(accountPermissionsTable.accountId, accountId),
+        eq(accountPermissionsTable.permissionKey, permission),
+      ),
+    )
+    .limit(1);
+  return Boolean(grant);
 }
 
 export function accountRoleLabel(

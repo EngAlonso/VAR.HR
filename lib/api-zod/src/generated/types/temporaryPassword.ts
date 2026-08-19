@@ -7,5 +7,6 @@
  */
 
 export interface TemporaryPassword {
+  username: string;
   temporaryPassword: string;
 }

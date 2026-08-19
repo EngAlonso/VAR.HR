@@ -161,6 +161,7 @@ export const ResetAuthAccountPasswordParams = zod.object({
 })
 
 export const ResetAuthAccountPasswordResponse = zod.object({
+  "username": zod.string(),
   "temporaryPassword": zod.string()
 })
 
@@ -1985,6 +1986,7 @@ export const ListDeviceMappingsResponseItem = zod.object({
   "id": zod.string(),
   "deviceId": zod.string(),
   "deviceEmployeeId": zod.string(),
+  "username": zod.string(),
   "employee": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2016,6 +2018,7 @@ export const CreateDeviceMappingResponse = zod.object({
   "id": zod.string(),
   "deviceId": zod.string(),
   "deviceEmployeeId": zod.string(),
+  "username": zod.string(),
   "employee": zod.object({
   "id": zod.string(),
   "name": zod.string(),

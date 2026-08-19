@@ -77,6 +77,7 @@ export interface AuthAccountUpdate {
 }
 
 export interface TemporaryPassword {
+  username: string;
   temporaryPassword: string;
 }
 
@@ -1284,6 +1285,7 @@ export interface DeviceEmployeeMapping {
   id: string;
   deviceId: string;
   deviceEmployeeId: string;
+  username: string;
   employee: EmployeeReference;
   active: boolean;
   /**

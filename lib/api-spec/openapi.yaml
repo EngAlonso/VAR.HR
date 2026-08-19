@@ -1431,8 +1431,9 @@ components:
         active: { type: boolean }
     TemporaryPassword:
       type: object
-      required: [temporaryPassword]
+      required: [username, temporaryPassword]
       properties:
+        username: { type: string }
         temporaryPassword: { type: string }
     AuthAccountCredentials:
       type: object
@@ -2542,11 +2543,12 @@ components:
         testedAt: { type: string, format: date-time }
     DeviceEmployeeMapping:
       type: object
-      required: [id, deviceId, deviceEmployeeId, employee, active]
+      required: [id, deviceId, deviceEmployeeId, username, employee, active]
       properties:
         id: { type: string }
         deviceId: { type: string }
         deviceEmployeeId: { type: string }
+        username: { type: string }
         employee:
           $ref: "#/components/schemas/EmployeeReference"
         active: { type: boolean }

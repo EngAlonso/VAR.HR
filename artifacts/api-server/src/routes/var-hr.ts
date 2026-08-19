@@ -170,6 +170,7 @@ import {
   canViewPayroll,
   employeeScopeCondition,
   getTenantContext,
+  hasCapability,
   workspaceCapabilities,
   requestedLocale,
   type TenantContext,
@@ -178,6 +179,8 @@ import { translateApiMessage } from "../lib/i18n";
 import type { SQL } from "drizzle-orm";
 import {
   ensureEmployeeCapacity,
+  allocateDeviceLetter,
+  deviceLetter,
   generateNumericPassword,
   hashPassword,
   replaceAccountPermissions,
@@ -215,6 +218,26 @@ function message(
   variables: Record<string, string | number> = {},
 ): string {
   return translateApiMessage(requestedLocale(req), key, variables);
+}
+
+function canUseCapability(
+  context: TenantContext,
+  capability: string,
+  employeeMayUseOwn = false,
+): boolean {
+  return (
+    context.role === "platform_owner" ||
+    context.role === "company_owner" ||
+    (context.role === "employee" && employeeMayUseOwn) ||
+    hasCapability(context, capability)
+  );
+}
+
+function denyCapability(res: Response, req: Request, capability: string): void {
+  res.status(403).json({
+    error: `This account is not allowed to use ${capability}.`,
+    code: "PERMISSION_DENIED",
+  });
 }
 
 function calendarDate(
@@ -1720,6 +1743,10 @@ router.post("/branches", async (req, res): Promise<void> => {
 
 router.get("/employees", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "employees.view", true)) {
+    denyCapability(res, req, "employees.view");
+    return;
+  }
   const query = ListEmployeesQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: message(req, "invalidRequest") });
@@ -1818,6 +1845,10 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(403).json({ error: message(req, "employeeOwnProfile") });
     return;
   }
+  if (!canUseCapability(context, "employees.view", true)) {
+    denyCapability(res, req, "employees.view");
+    return;
+  }
   const [row] = (await employeeRows(context)).filter(
     (item) => item.employee.id === params.data.employeeId,
   );
@@ -1875,6 +1906,10 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
 
 router.get("/attendance/today", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.view", true)) {
+    denyCapability(res, req, "attendance.view");
+    return;
+  }
   const rows = await getAttendanceRows(context, TODAY, TODAY);
   const summary = {
     present: rows.filter((row) => row.attendance.status === "present").length,
@@ -1897,6 +1932,10 @@ router.get("/attendance/today", async (req, res): Promise<void> => {
 
 router.get("/attendance/history", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.view", true)) {
+    denyCapability(res, req, "attendance.view");
+    return;
+  }
   const query = ListAttendanceHistoryQueryParams.safeParse({
     ...req.query,
     from: req.query.from ? String(req.query.from) : undefined,
@@ -2358,6 +2397,10 @@ router.patch(
 
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve", true)) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
   const balances = await db
     .select({
       balance: leaveBalancesTable,
@@ -2399,6 +2442,10 @@ router.get("/leave/balances", async (req, res): Promise<void> => {
 
 router.get("/leave/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve", true)) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
   const rows = await leaveRows(context);
   res.json(
     ListLeaveRequestsResponse.parse(
@@ -2422,6 +2469,10 @@ router.get("/leave/requests", async (req, res): Promise<void> => {
 
 router.post("/leave/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.create", true)) {
+    denyCapability(res, req, "leave.create");
+    return;
+  }
   if (!context.employeeId) {
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;
@@ -2637,6 +2688,10 @@ router.post(
 
 router.get("/permissions/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "permissions.approve", true)) {
+    denyCapability(res, req, "permissions.approve");
+    return;
+  }
   const rows = await permissionRows(context);
   res.json(
     ListPermissionRequestsResponse.parse(
@@ -2659,6 +2714,10 @@ router.get("/permissions/requests", async (req, res): Promise<void> => {
 
 router.post("/permissions/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "permissions.create", true)) {
+    denyCapability(res, req, "permissions.create");
+    return;
+  }
   if (!context.employeeId) {
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;
@@ -2797,7 +2856,7 @@ router.post(
 
 router.get("/rules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "attendance.correct")) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -2812,7 +2871,7 @@ router.get("/rules", async (req, res): Promise<void> => {
 
 router.put("/rules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "attendance.correct")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -2857,7 +2916,7 @@ router.put("/rules", async (req, res): Promise<void> => {
 
 router.get("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (context.role === "employee") {
+  if (!canUseCapability(context, "schedules", false)) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -2871,7 +2930,7 @@ router.get("/schedules", async (req, res): Promise<void> => {
 
 router.post("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "schedules")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -2909,7 +2968,7 @@ router.post("/schedules", async (req, res): Promise<void> => {
 
 router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "schedules")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -2977,6 +3036,13 @@ router.get(
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
+    if (
+      !canUseCapability(context, "schedules", true) &&
+      params.data.employeeId !== context.employeeId
+    ) {
+      denyCapability(res, req, "schedules");
+      return;
+    }
     const access = await authorizedEmployee(context, params.data.employeeId);
     if (access.denied) {
       res.status(403).json({ error: message(req, "employeeOwnProfile") });
@@ -3025,7 +3091,7 @@ router.put(
   "/employees/:employeeId/schedule",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
+    if (!canUseCapability(context, "schedules")) {
       res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
       return;
     }
@@ -3138,6 +3204,10 @@ router.put(
 
 router.get("/holidays", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "holidays", true)) {
+    denyCapability(res, req, "holidays");
+    return;
+  }
   const holidays = await db
     .select()
     .from(holidaysTable)
@@ -3148,7 +3218,7 @@ router.get("/holidays", async (req, res): Promise<void> => {
 
 router.post("/holidays", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "holidays")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -3192,7 +3262,7 @@ router.post("/holidays", async (req, res): Promise<void> => {
 
 router.patch("/holidays/:holidayId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "holidays")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -3483,6 +3553,10 @@ router.put(
 
 router.get("/reports/attendance", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "reports.view", true)) {
+    denyCapability(res, req, "reports.view");
+    return;
+  }
   const query = GetAttendanceReportQueryParams.safeParse({
     ...req.query,
     from: req.query.from ? String(req.query.from) : undefined,
@@ -3547,6 +3621,10 @@ router.get("/reports/attendance", async (req, res): Promise<void> => {
 
 router.get("/reports/data", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "reports.view", true)) {
+    denyCapability(res, req, "reports.view");
+    return;
+  }
   const query = GetReportQueryParams.safeParse({
     ...req.query,
     from: req.query.from ? String(req.query.from) : undefined,
@@ -5105,7 +5183,7 @@ router.get("/payroll/my", async (req, res): Promise<void> => {
 
 router.get("/devices", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceAdmin") });
     return;
   }
@@ -5116,7 +5194,7 @@ router.get("/devices", async (req, res): Promise<void> => {
 
 router.post("/devices", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceManage") });
     return;
   }
@@ -5139,24 +5217,41 @@ router.post("/devices", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "branchNotFound") });
     return;
   }
-  const [device] = await db
-    .insert(devicesTable)
-    .values({
-      companyId: context.companyId,
-      name: parsed.data.name,
-      manufacturer: parsed.data.manufacturer,
-      model: parsed.data.model,
-      branchId: branch.id,
-      adapterKey: parsed.data.adapterKey,
-      connectionType: parsed.data.connectionType,
-      host: parsed.data.host,
-      port: parsed.data.port,
-      deviceIdentifier: parsed.data.deviceIdentifier,
-      status: "not_configured",
-      integrationState: "adapter_pending",
-      note: message(req, "hardwareConnectorNote"),
-    })
-    .returning();
+  const [device] = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`var_hr_device_letters:${context.companyId}`}))`,
+    );
+    const registeredDevices = await tx
+      .select({ biometricCode: devicesTable.biometricCode })
+      .from(devicesTable)
+      .where(eq(devicesTable.companyId, context.companyId));
+    const usedLetters = new Set(
+      registeredDevices
+        .map((registeredDevice) => registeredDevice.biometricCode)
+        .filter((code): code is string => Boolean(code)),
+    );
+    let nextIndex = 0;
+    while (usedLetters.has(deviceLetter(nextIndex))) nextIndex += 1;
+    return tx
+      .insert(devicesTable)
+      .values({
+        companyId: context.companyId,
+        name: parsed.data.name,
+        manufacturer: parsed.data.manufacturer,
+        model: parsed.data.model,
+        branchId: branch.id,
+        adapterKey: parsed.data.adapterKey,
+        connectionType: parsed.data.connectionType,
+        host: parsed.data.host,
+        port: parsed.data.port,
+        deviceIdentifier: parsed.data.deviceIdentifier,
+        biometricCode: deviceLetter(nextIndex),
+        status: "not_configured",
+        integrationState: "adapter_pending",
+        note: message(req, "hardwareConnectorNote"),
+      })
+      .returning();
+  });
   await recordAudit(context.companyId, "created", "device", device.id, device);
   const row = (await deviceRows(context)).find(
     (item) => item.device.id === device.id,
@@ -5166,7 +5261,7 @@ router.post("/devices", async (req, res): Promise<void> => {
 
 router.get("/devices/providers", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceAdmin") });
     return;
   }
@@ -5186,7 +5281,7 @@ router.get(
   "/devices/:deviceId/sync-history",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
+    if (!canUseCapability(context, "sync-history")) {
       res.status(403).json({ error: message(req, "deviceAdmin") });
       return;
     }
@@ -5249,7 +5344,7 @@ router.get(
 
 router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceSyncAccess") });
     return;
   }
@@ -5576,7 +5671,7 @@ router.post(
   "/devices/:deviceId/connection-test",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
+    if (!canUseCapability(context, "devices")) {
       res.status(403).json({ error: message(req, "deviceSyncAccess") });
       return;
     }
@@ -5641,7 +5736,7 @@ router.post(
 
 router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceManage") });
     return;
   }
@@ -5670,6 +5765,7 @@ router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
       mapping: deviceEmployeeMappingsTable,
       employee: employeesTable,
       department: departmentsTable,
+      identity: employeeIdentitiesTable,
     })
     .from(deviceEmployeeMappingsTable)
     .innerJoin(
@@ -5679,6 +5775,13 @@ router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     .innerJoin(
       departmentsTable,
       eq(employeesTable.departmentId, departmentsTable.id),
+    )
+    .leftJoin(
+      employeeIdentitiesTable,
+      eq(
+        employeeIdentitiesTable.employeeId,
+        deviceEmployeeMappingsTable.employeeId,
+      ),
     )
     .where(
       and(
@@ -5693,6 +5796,9 @@ router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
         id: row.mapping.id,
         deviceId: row.mapping.deviceId,
         deviceEmployeeId: row.mapping.deviceEmployeeId,
+        username:
+          row.identity?.username ??
+          `${device.biometricCode ?? "UNKNOWN"}-${row.mapping.deviceEmployeeId}`,
         employee: employeeReference(row.employee, row.department.name),
         active: row.mapping.active,
       })),
@@ -5702,7 +5808,7 @@ router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
 
 router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceManage") });
     return;
   }
@@ -5773,13 +5879,17 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     return;
   }
   const biometricCode =
-    device.biometricCode ??
-    `D${device.id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+    device.biometricCode ?? (await allocateDeviceLetter(context.companyId));
   if (!device.biometricCode) {
     await db
       .update(devicesTable)
       .set({ biometricCode })
-      .where(eq(devicesTable.id, device.id));
+      .where(
+        and(
+          eq(devicesTable.id, device.id),
+          eq(devicesTable.companyId, context.companyId),
+        ),
+      );
   }
   const [existingAccount] = await db
     .select()
@@ -5788,42 +5898,77 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     .limit(1);
   const temporaryPassword = existingAccount ? null : generateNumericPassword();
   const username = `${biometricCode}-${parsed.data.deviceEmployeeId}`;
-  const [account] = existingAccount
-    ? [existingAccount]
-    : await db
-        .insert(userAccountsTable)
+  if (existingAccount && existingAccount.username !== username) {
+    res.status(409).json({
+      error: "This employee already has an account with a different username.",
+      code: "EMPLOYEE_ACCOUNT_USERNAME_MISMATCH",
+    });
+    return;
+  }
+  let account: typeof userAccountsTable.$inferSelect;
+  let mapping: typeof deviceEmployeeMappingsTable.$inferSelect;
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [createdAccount] = existingAccount
+        ? [existingAccount]
+        : await tx
+            .insert(userAccountsTable)
+            .values({
+              username,
+              passwordHash: hashPassword(temporaryPassword!),
+              accountType: "employee",
+              displayRole: "Employee",
+              companyId: context.companyId,
+              employeeId: employee.employee.id,
+              active: true,
+            })
+            .returning();
+      if (!createdAccount) throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
+      const [createdMapping] = await tx
+        .insert(deviceEmployeeMappingsTable)
         .values({
-          username,
-          passwordHash: hashPassword(temporaryPassword!),
-          accountType: "employee",
-          displayRole: "Employee",
           companyId: context.companyId,
+          deviceId: device.id,
           employeeId: employee.employee.id,
+          deviceEmployeeId: parsed.data.deviceEmployeeId,
           active: true,
         })
         .returning();
+      const [createdIdentity] = await tx
+        .insert(employeeIdentitiesTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: employee.employee.id,
+          deviceId: device.id,
+          biometricEmployeeNumber: parsed.data.deviceEmployeeId,
+          username: createdAccount.username,
+          accountId: createdAccount.id,
+        })
+        .returning();
+      if (!createdMapping || !createdIdentity)
+        throw new Error("EMPLOYEE_IDENTITY_CREATE_FAILED");
+      return { account: createdAccount, mapping: createdMapping };
+    });
+    account = result.account;
+    mapping = result.mapping;
+  } catch (error) {
+    const duplicate =
+      error instanceof Error &&
+      (error.message.includes("unique") ||
+        error.message.includes("duplicate") ||
+        error.message.includes("EMPLOYEE_IDENTITY"));
+    res.status(duplicate ? 409 : 500).json({
+      error: duplicate
+        ? "That biometric identity or generated username is already in use."
+        : message(req, "internalError"),
+      code: duplicate ? "BIOMETRIC_IDENTITY_COLLISION" : "INTERNAL_ERROR",
+    });
+    return;
+  }
   if (!account) {
     res.status(500).json({ error: message(req, "internalError") });
     return;
   }
-  const [mapping] = await db
-    .insert(deviceEmployeeMappingsTable)
-    .values({
-      companyId: context.companyId,
-      deviceId: device.id,
-      employeeId: employee.employee.id,
-      deviceEmployeeId: parsed.data.deviceEmployeeId,
-      active: true,
-    })
-    .returning();
-  await db.insert(employeeIdentitiesTable).values({
-    companyId: context.companyId,
-    employeeId: employee.employee.id,
-    deviceId: device.id,
-    biometricEmployeeNumber: parsed.data.deviceEmployeeId,
-    username: account.username,
-    accountId: account.id,
-  });
   if (!existingAccount) {
     await replaceAccountPermissions(account.id, [
       "attendance.view",
@@ -5845,9 +5990,10 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
       id: mapping.id,
       deviceId: mapping.deviceId,
       deviceEmployeeId: mapping.deviceEmployeeId,
+       username: account.username,
       employee: employeeReference(employee.employee, employee.department.name),
       active: mapping.active,
-      temporaryPassword,
+       temporaryPassword,
     }),
   );
 });
@@ -5856,7 +6002,7 @@ router.delete(
   "/devices/:deviceId/mappings/:mappingId",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
+    if (!canUseCapability(context, "devices")) {
       res.status(403).json({ error: message(req, "deviceManage") });
       return;
     }
@@ -5890,7 +6036,7 @@ router.delete(
 
 router.post("/devices/:deviceId/events", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "devices")) {
     res.status(403).json({ error: message(req, "deviceManage") });
     return;
   }
@@ -6125,7 +6271,7 @@ router.get("/subscription", async (req, res): Promise<void> => {
       status: (row?.subscription.status ?? "trial") as
         "trial" | "active" | "past_due" | "cancelled",
       activeEmployees: activeEmployees.length,
-      employeeLimit: row?.plan.employeeLimit ?? 0,
+      employeeLimit: row?.subscription.employeeLimit ?? row?.plan.employeeLimit ?? 0,
       features: row?.plan.features ?? [],
     }),
   );
@@ -6162,10 +6308,17 @@ router.get("/platform/companies", async (req, res): Promise<void> => {
       id: company.id,
       name: company.name,
       status:
-        subscription?.subscription.status === "active" ? "active" : "trial",
+        company.active
+          ? subscription?.subscription.status === "active"
+            ? "active"
+            : "trial"
+          : "suspended",
       planName: subscription?.plan.name ?? message(req, "unconfigured"),
       activeEmployees: activeEmployees.length,
-      employeeLimit: subscription?.plan.employeeLimit ?? 0,
+      employeeLimit:
+        subscription?.subscription.employeeLimit ??
+        subscription?.plan.employeeLimit ??
+        0,
       lastActivity: company.createdAt.toISOString(),
     });
   }
