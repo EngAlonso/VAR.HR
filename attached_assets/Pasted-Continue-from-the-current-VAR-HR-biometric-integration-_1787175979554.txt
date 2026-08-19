@@ -1,0 +1,132 @@
+Continue from the current VAR HR biometric integration implementation.
+
+Do NOT redesign the existing biometric architecture. Do NOT remove the existing provider-neutral adapter boundary. Do NOT start Part 8.
+
+Implement the following TWO real ZKTeco integration methods:
+
+1. ZKBio Time API Integration
+
+Add a real integration path for customers who use ZKTeco ZKBio Time.
+
+Flow:
+
+ZKTeco devices → ZKBio Time → ZKBio Time API → VAR HR
+
+The integration must:
+
+- Allow a company administrator to configure a ZKBio Time connection.
+- Store the required connection information securely.
+- Authenticate with the ZKBio Time API using its supported authentication mechanism.
+- Verify the connection before saving/activating it.
+- Pull employee/device attendance transactions from ZKBio Time.
+- Map ZKBio Time employee/device identifiers to VAR HR employees.
+- Normalize attendance events into the existing VAR HR biometric event pipeline.
+- Preserve the existing idempotency and duplicate-event protection.
+- Record synchronization history and errors.
+- Support manual synchronization.
+- Add automatic synchronization using the existing project/job architecture if one already exists.
+- Never expose API credentials in logs or normal API responses.
+
+Do not assume unsupported ZKBio Time API endpoints. Inspect the currently supported/documented API contract and implement only endpoints that are actually available.
+
+2. Direct Local ZKTeco Device Integration
+
+Add a real direct-device integration path for deployments where VAR HR is installed on a server inside the customer's local network.
+
+Flow:
+
+VAR HR server → local network discovery → ZKTeco device → attendance data
+
+The integration must:
+
+- Allow an administrator to search for ZKTeco devices on the local network.
+- Use the appropriate ZKTeco-supported discovery/SDK mechanism rather than blindly scanning arbitrary IP addresses.
+- Display discovered devices with their available identifying information.
+- Allow the administrator to select a discovered device and register it.
+- Store the device IP/network information and required configuration.
+- Test the device connection.
+- Pull attendance/transaction data from the real device.
+- Map device employee numbers to VAR HR employees using the existing biometric mapping system.
+- Normalize the returned records into the existing VAR HR biometric event pipeline.
+- Preserve existing idempotency, tenant isolation, sync history, and attendance processing.
+- Support employee synchronization to the device only where the specific ZKTeco integration actually supports it.
+- Do not claim support for biometric-template upload/download unless the implemented SDK/API genuinely supports it.
+
+Important architecture requirement
+
+Keep the existing:
+
+BiometricProviderAdapter
+device mappings
+device letters
+employee biometric numbers
+raw biometric events
+idempotency
+attendance processing
+sync history
+tenant isolation
+
+Do not replace them.
+
+Add the two integration methods as real providers/transports behind the existing architecture.
+
+The system should clearly distinguish:
+
+- "zkbiotime_api"
+- "zkteco_local"
+
+Do not treat "lan", "http", or "cloud" configuration values as real integrations unless the corresponding implementation actually exists.
+
+Deployment behavior
+
+The two methods must support these scenarios:
+
+Hosted VAR HR:
+
+ZKTeco devices → ZKBio Time → API → VAR HR
+
+On-premise VAR HR:
+
+VAR HR server → local network → ZKTeco devices
+
+Do not require a Connector for the second scenario because VAR HR itself is running inside the customer's network.
+
+Verification
+
+After implementation, verify the real integration paths as far as the available environment allows.
+
+At minimum verify:
+
+- Provider registration.
+- Connection configuration validation.
+- Device discovery path.
+- Device connection-test path.
+- ZKBio Time authentication/configuration path.
+- Attendance normalization.
+- Employee/device mapping.
+- Duplicate-event protection.
+- Tenant isolation.
+- Sync history.
+- Error handling.
+- Existing mock provider remains intact.
+- Existing Part 7 authentication/account functionality remains intact.
+
+If physical ZKTeco hardware or a real ZKBio Time server is unavailable, DO NOT fake a successful hardware/API test.
+
+Instead:
+
+- Complete all code-level verification possible.
+- Clearly identify what was tested against real infrastructure and what could not be tested.
+- Do not claim real hardware support is verified when it was not.
+
+Do not modify unrelated authentication, payroll, frontend, or Part 7 functionality.
+
+At the end, provide a concise report containing:
+
+1. What was implemented.
+2. Exact ZKTeco integration methods now supported.
+3. What was verified successfully.
+4. What requires real ZKTeco hardware/ZKBio Time for final verification.
+5. Any remaining blocker.
+
+Do not start Part 8.
