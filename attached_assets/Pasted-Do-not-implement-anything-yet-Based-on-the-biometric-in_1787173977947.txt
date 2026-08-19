@@ -1,0 +1,414 @@
+Do not implement anything yet.
+
+Based on the biometric integration analysis you just provided, I want you to design the actual production biometric integration architecture for VAR HR.
+
+The main requirement is:
+
+VAR HR is a cloud-hosted SaaS HR platform.
+
+Customers may have biometric devices inside their private company LAN.
+
+Therefore, VAR HR itself must NOT depend on directly reaching private device IP addresses.
+
+I want the primary architecture to be:
+
+Biometric Device
+→ Local VAR HR Connector/Agent
+→ Secure HTTPS connection
+→ VAR HR Cloud API
+
+The Local Connector should be the bridge between the customer's private biometric network and the hosted VAR HR system.
+
+IMPORTANT:
+
+Do not modify the existing application yet.
+Do not modify the database.
+Do not modify the frontend.
+Do not start Part 8.
+Do not remove or redesign the existing BiometricProviderAdapter.
+Do not implement anything.
+
+I only want the complete technical design first.
+
+Explain the following in detail:
+
+1. LOCAL CONNECTOR
+
+What exactly should the VAR HR Connector be?
+
+Should it be:
+- Windows application?
+- Windows service?
+- Linux service?
+- Node.js application?
+- .NET application?
+- Docker service?
+
+Recommend the best option for typical VAR HR customers.
+
+Explain how the customer installs it.
+
+Explain how the connector starts automatically with Windows.
+
+Explain whether the connector needs administrator privileges.
+
+Explain how the connector discovers or connects to biometric devices.
+
+2. CONNECTOR REGISTRATION
+
+How does a company register a connector with VAR HR?
+
+Design the flow:
+
+Company Owner
+→ Devices
+→ Add Connector
+→ Generate registration code
+→ Install connector
+→ Enter registration code
+→ Connector authenticates with VAR HR
+→ Connector becomes associated with that company
+
+The connector must NEVER be able to choose its company ID itself.
+
+The server must determine:
+
+Connector
+→ Company
+→ Authorized Devices
+
+Explain how registration tokens should expire and how they should be revoked.
+
+3. SECURITY
+
+Design secure authentication between:
+
+Connector ↔ VAR HR
+
+The connector must not use a normal employee password.
+
+Recommend whether to use:
+
+- API key
+- Client credentials
+- Short-lived access token + refresh token
+- Device certificate
+- Signed requests
+- mTLS
+
+Choose the most practical production approach.
+
+Explain how credentials should be rotated and revoked.
+
+4. DEVICE MANAGEMENT
+
+Design how a company adds a biometric device.
+
+Example:
+
+Company:
+ABC Company
+
+Branch:
+Main Branch
+
+Device:
+Device A
+
+Device information:
+
+Manufacturer
+Model
+IP address
+Port
+Connection type
+Device identifier
+Provider/adapter
+Branch
+Timezone
+Active/inactive
+
+Explain whether the device IP is stored in VAR HR or only inside the local connector.
+
+Explain how the connector receives the device configuration securely.
+
+5. DEVICE LETTERS
+
+Preserve the existing business rule:
+
+First biometric device registered for a company = A
+Second = B
+Third = C
+...
+
+Letters must remain permanently associated with the device.
+
+Deleting and recreating a device should NOT accidentally reuse a letter if that could create username collisions.
+
+Explain the safest implementation.
+
+6. EMPLOYEE USERNAME
+
+Preserve the existing requirement:
+
+Device A + biometric number 20
+→ A-20
+
+Device B + biometric number 20
+→ B-20
+
+Explain how the system guarantees uniqueness.
+
+Also explain what happens if:
+
+A-20 already exists
+A-20 is deleted
+A-20 is deactivated
+another device tries to create A-20
+
+7. EMPLOYEE SYNCHRONIZATION
+
+Design the complete flow:
+
+VAR HR Employee
+→ Device Mapping
+→ VAR HR Sync Job
+→ Connector
+→ Biometric Device
+
+Explain:
+
+Create employee
+Update employee
+Deactivate employee
+Delete employee
+Change employee number
+Move employee to another branch/device
+
+Also explain what happens when the biometric device does not support one of these operations.
+
+8. BIOMETRIC ENROLLMENT
+
+This is extremely important.
+
+Separate:
+
+Employee account data
+
+from:
+
+Fingerprint
+Face
+Palm
+Card
+PIN
+
+Explain what VAR HR should actually synchronize to the device.
+
+Do NOT assume that fingerprint/face templates can always be uploaded remotely.
+
+Explain how enrollment should work when the employee must physically enroll on the device.
+
+9. ATTENDANCE SYNCHRONIZATION
+
+Design:
+
+Biometric Device
+→ Connector
+→ VAR HR
+
+Explain:
+
+Polling
+Incremental sync
+Date ranges
+Device event IDs
+Cursors
+Retries
+Offline devices
+Duplicate events
+Timezone
+Device clock differences
+Missed synchronization
+Historical synchronization
+
+The system must be able to recover if:
+
+The connector is offline for 3 days.
+
+10. AUTOMATIC SYNCHRONIZATION
+
+Design the synchronization schedule.
+
+For example:
+
+Every 1 minute
+Every 5 minutes
+Every 15 minutes
+
+Explain what should be configurable by company.
+
+Also explain whether synchronization should be:
+
+Polling
+Webhook
+Webhook + polling reconciliation
+
+Recommend one.
+
+11. MULTIPLE DEVICES
+
+A company may have:
+
+Company
+├── Branch A
+│   ├── Device A
+│   └── Device B
+│
+├── Branch B
+│   ├── Device C
+│   └── Device D
+│
+└── Branch C
+    └── Device E
+
+Explain how the connector handles multiple devices and multiple branches.
+
+12. MULTIPLE CONNECTORS
+
+A company may have multiple branches with different local networks.
+
+Example:
+
+Connector 1 → Cairo branch
+Connector 2 → Alexandria branch
+Connector 3 → Mansoura branch
+
+Explain how VAR HR knows which connector is authorized to communicate with which devices.
+
+13. OFFLINE MODE
+
+Explain what happens if:
+
+Device offline
+Connector offline
+Internet unavailable
+VAR HR API unavailable
+
+The connector should not lose attendance events.
+
+Explain whether a local queue/database is required.
+
+14. PROVIDER ARCHITECTURE
+
+Preserve:
+
+BiometricProviderAdapter
+
+Explain how we should structure:
+
+ZKTeco adapter
+Suprema adapter
+Hikvision adapter
+Anviz adapter
+Virdi adapter
+Nitgen adapter
+
+without changing the HR domain logic.
+
+15. FIRST REAL VENDOR
+
+Recommend which vendor we should implement first.
+
+I want the recommendation based on:
+
+- Market prevalence
+- Availability of documented integration methods
+- Ability to pull attendance
+- Ability to synchronize employees
+- Availability of local SDK/API
+- Ease of connector integration
+- Reliability
+
+Then explain exactly what the first adapter should support.
+
+16. ADMIN UI
+
+Do NOT implement yet.
+
+Design the future VAR HR screens for:
+
+Devices
+Connectors
+Branches
+Device mappings
+Synchronization status
+Last sync
+Connection status
+Sync history
+Device errors
+Employee synchronization
+
+17. DATABASE
+
+Do NOT change the database yet.
+
+But propose the entities/tables that will eventually be required.
+
+For example:
+
+biometric_connectors
+biometric_connector_credentials
+biometric_devices
+biometric_device_mappings
+biometric_sync_jobs
+biometric_sync_cursors
+biometric_sync_errors
+
+Explain relationships and tenant isolation.
+
+18. FINAL ARCHITECTURE
+
+Give me one complete diagram:
+
+Company
+   │
+   ├── Branch
+   │      │
+   │      └── Biometric Device
+   │
+   └── VAR HR Connector
+            │
+            │ HTTPS
+            ▼
+       VAR HR Cloud
+            │
+            ├── Provider Adapter
+            ├── Employee Mapping
+            ├── Attendance
+            ├── Schedules
+            ├── Holidays
+            └── Payroll
+
+Then give me the complete reverse flow for employee synchronization.
+
+19. IMPLEMENTATION PHASES
+
+Break the eventual implementation into clear tasks.
+
+For example:
+
+Task 1 — Connector registration
+Task 2 — Connector authentication/security
+Task 3 — Device management
+Task 4 — Connector ↔ device communication
+Task 5 — Employee synchronization
+Task 6 — Attendance synchronization
+Task 7 — Automatic synchronization
+Task 8 — ZKTeco adapter
+Task 9 — Error/retry/offline handling
+Task 10 — Production verification
+
+Do not implement anything now.
+
+I want the architecture/design first so we can approve it before spending credits on implementation.
