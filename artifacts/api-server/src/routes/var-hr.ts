@@ -5819,6 +5819,10 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     return;
   }
   const deviceId = params.data.deviceId;
+  if (!isUuid(deviceId) || !isUuid(parsed.data.employeeId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const [device] = await db
     .select()
     .from(devicesTable)

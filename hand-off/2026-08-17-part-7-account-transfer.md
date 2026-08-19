@@ -559,3 +559,42 @@ The root `pnpm run build` was not marked PASS because the unrelated
 all Task 2 focused checks passed. No physical biometric hardware was tested.
 
 Task 3 and the Part 7 frontend were not started.
+
+## Biometric mapping runtime continuation — 2026-08-19
+
+The imported checkout did not contain the managed workflow registration or its
+runtime logs, so the original Device A stack trace could not be replayed from
+this environment. The source-level failure path was confirmed in the existing
+mapping handler: generated route schemas accepted `deviceId` and
+`employeeId` as generic strings, and the handler passed them directly into
+UUID-backed Drizzle queries. A malformed identifier therefore reached
+PostgreSQL and could produce an HTTP 500 before the not-found response.
+
+### Minimal fix
+
+The existing `POST /devices/{deviceId}/mappings` handler now validates both
+`deviceId` and `employeeId` with the existing `isUuid` helper immediately after
+request parsing. Invalid identifiers return the existing `400 invalidRequest`
+response before any device, employee, account, mapping, or identity query.
+Device-letter allocation, stable A/B codes, generated employee usernames,
+password generation, employee limits, tenant isolation, and authentication
+were not redesigned or changed.
+
+### Verification
+
+- `pnpm install --frozen-lockfile` — PASS.
+- `pnpm run typecheck:libs` — PASS.
+- `pnpm --filter @workspace/api-server run typecheck` — PASS.
+- `pnpm --filter @workspace/api-server run build` — PASS.
+- Managed API workflow restart — BLOCKED; `artifacts/api-server: API Server`
+  is not present in the current workflow registry.
+- Biometric mapping and remaining authentication runtime matrix — NOT RUN;
+  no registered API workflow or captured stack trace/log stream is available
+  in this checkout.
+
+### Remaining blocker
+
+Restore/register the existing managed API and web artifacts through the
+supported artifact-registration path, then rerun only the Device A mapping
+verification and the authentication assertions listed in the continuation
+instruction. No claim is made here for those live checks.
