@@ -3771,10 +3771,10 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
   const otherLocale = locale === "ar" ? "en" : "ar";
   return (
     <div
-      className="min-h-[100dvh] bg-secondary px-4 py-8 text-sidebar-foreground sm:px-8"
+      className="login-shell min-h-[100dvh] bg-secondary px-4 py-5 text-sidebar-foreground sm:px-8 sm:py-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
-      <div className="mx-auto grid min-h-[calc(100dvh-4rem)] max-w-5xl items-center gap-10 lg:grid-cols-[1fr_440px]">
+      <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-5xl items-center gap-8 lg:min-h-[calc(100dvh-4rem)] lg:gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
           <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
             <BrandLogo
@@ -3783,7 +3783,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               className="w-full"
             />
           </div>
-          <div className="mt-16 max-w-md">
+          <div className="mt-12 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
               A clearer way to run your people operations.
             </h1>
@@ -3823,7 +3823,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               {authLabel(locale, "detail")}
             </p>
           </div>
-          <form onSubmit={submit} className="mt-8 space-y-5">
+          <form onSubmit={submit} className="mt-7 space-y-[18px]">
             <Field
               label={authLabel(locale, "mobileNumber")}
               value={username}
@@ -3853,16 +3853,16 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
             )}
             <Button
               type="submit"
-              className="h-11 w-full justify-center"
+              className="h-12 w-full justify-center rounded-xl text-[15px]"
               disabled={pending}
             >
               {pending
                 ? authLabel(locale, "signingIn")
                 : authLabel(locale, "login")}
-              <ArrowUpRight size={16} />
+              <ArrowUpRight className="rtl:-scale-x-100" size={16} />
             </Button>
           </form>
-          <p className="mt-8 text-center text-xs text-muted-foreground">
+          <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground">
             Session protected · HttpOnly cookie · 8 hour expiry
           </p>
         </Card>
@@ -10173,13 +10173,14 @@ function Field({
       <input
         required={required}
         type={type}
+        inputMode={authStyle && type === "text" ? "tel" : undefined}
         autoComplete={autoComplete}
         placeholder={placeholder}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className={`mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal outline-none focus:border-primary ${
+        className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
           authStyle
-            ? "text-foreground placeholder:text-foreground/60"
+            ? "text-foreground"
             : ""
         }`}
       />

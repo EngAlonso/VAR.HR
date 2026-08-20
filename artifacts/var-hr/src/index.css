@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -70,10 +70,14 @@
 @layer base {
   * { @apply border-border; }
   body { @apply font-sans antialiased bg-background text-foreground; }
+  :lang(ar) { font-family: 'Cairo', 'DM Sans', sans-serif; }
   button, a, input, select, textarea { outline-color: hsl(var(--ring)); }
 }
 @layer utilities {
   .font-display { font-family: 'Space Grotesk', sans-serif; }
+  :lang(ar) .font-display { font-family: 'Cairo', 'DM Sans', sans-serif; }
+  .login-shell { overflow-x: hidden; }
+  .login-shell input::placeholder { opacity: .72; }
   .app-noise::after { content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E"); z-index: 40; }
   .animate-in { animation: reveal .45s ease both; }
   .delay-1 { animation-delay: .05s; } .delay-2 { animation-delay: .1s; } .delay-3 { animation-delay: .15s; }
