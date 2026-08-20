@@ -3864,6 +3864,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
           <form onSubmit={submit} className="mt-7 space-y-[18px]">
             <Field
               label={authLabel(locale, "mobileNumber")}
+              name="username"
               value={username}
               onChange={setUsername}
               required
@@ -3873,6 +3874,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
             />
             <Field
               label={authLabel(locale, "password")}
+              name="password"
               type="password"
               value={password}
               onChange={setPassword}
@@ -10187,6 +10189,7 @@ function Modal({
 }
 function Field({
   label,
+  name,
   value,
   onChange,
   type = "text",
@@ -10199,6 +10202,7 @@ function Field({
   authStyle = false,
 }: {
   label: string;
+  name?: string;
   value: any;
   onChange: (value: string) => void;
   type?: string;
@@ -10226,9 +10230,14 @@ function Field({
       <span className="block">{label}</span>
       <div className="relative">
         <input
+          name={name}
           required={required}
           type={inputType}
           inputMode={authStyle && type === "text" ? "tel" : undefined}
+          dir={authStyle ? "ltr" : undefined}
+          spellCheck={false}
+          autoCapitalize={authStyle ? "none" : undefined}
+          autoCorrect={authStyle ? "off" : undefined}
           autoComplete={autoComplete}
           placeholder={placeholder}
           value={value ?? ""}
