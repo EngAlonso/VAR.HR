@@ -37,36 +37,36 @@
 }
 
 :root {
-  --background: 210 40% 98%;
-  --foreground: 222.2 47.4% 11.2%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 175.3 77.4% 26.1%;
+  --background: 210 33% 98%;
+  --foreground: 210 20% 13%;
+  --border: 210 22% 88%;
+  --input: 210 22% 88%;
+  --ring: 43 80% 42%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 47.4% 11.2%;
-  --primary: 175.3 77.4% 26.1%;
-  --primary-dark: 176.1 69.4% 21.8%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 222.2 47.4% 11.2%;
+  --card-foreground: 210 20% 13%;
+  --primary: 43 80% 51%;
+  --primary-dark: 39 82% 39%;
+  --primary-foreground: 214 84% 10%;
+  --secondary: 214 84% 10%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 173.4 80.4% 40%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 25% 95%;
+  --muted-foreground: 210 13% 40%;
+  --accent: 44 91% 62%;
+  --accent-foreground: 214 84% 10%;
   --destructive: 2 64% 48%;
   --destructive-foreground: 0 0% 100%;
-  --sidebar: 222.2 47.4% 11.2%;
+  --sidebar: 214 84% 10%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-border: 217.2 32.6% 17.5%;
-  --sidebar-accent: 176.1 69.4% 21.8%;
-  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 214 50% 19%;
+  --sidebar-accent: 43 80% 51%;
+  --sidebar-accent-foreground: 214 84% 10%;
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-mono: 'Space Grotesk', monospace;
   --radius: 0.85rem;
-  --shadow-sm: 0 1px 2px hsl(222.2 47.4% 11.2% / .05), 0 8px 20px hsl(222.2 47.4% 11.2% / .04);
-  --shadow-md: 0 12px 32px hsl(222.2 47.4% 11.2% / .08);
+  --shadow-sm: 0 1px 2px hsl(214 84% 10% / .05), 0 8px 20px hsl(214 84% 10% / .04);
+  --shadow-md: 0 12px 32px hsl(214 84% 10% / .08);
 }
-.dark { --background: 222.2 47.4% 11.2%; --foreground: 210 40% 98%; --card: 217.2 32.6% 17.5%; --card-foreground: 210 40% 98%; --border: 217.2 32.6% 25%; --muted: 217.2 32.6% 23%; --muted-foreground: 215.4 16.3% 68%; --input: 217.2 32.6% 28%; --sidebar: 222.2 47.4% 8%; --sidebar-foreground: 210 40% 98%; --sidebar-border: 217.2 32.6% 20%; --sidebar-accent: 176.1 69.4% 21.8%; --sidebar-accent-foreground: 0 0% 100%; }
+.dark { --background: 214 50% 8%; --foreground: 210 33% 98%; --card: 214 40% 15%; --card-foreground: 210 33% 98%; --border: 214 30% 25%; --muted: 214 30% 22%; --muted-foreground: 210 15% 68%; --input: 214 30% 28%; --primary: 43 80% 51%; --primary-dark: 39 82% 39%; --primary-foreground: 214 84% 10%; --accent: 44 91% 62%; --accent-foreground: 214 84% 10%; --sidebar: 214 84% 8%; --sidebar-foreground: 210 33% 98%; --sidebar-border: 214 50% 20%; --sidebar-accent: 43 80% 51%; --sidebar-accent-foreground: 214 84% 10%; }
 @layer base {
   * { @apply border-border; }
   body { @apply font-sans antialiased bg-background text-foreground; }
