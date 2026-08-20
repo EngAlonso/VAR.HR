@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash", "postgresql-16", "python-base-3.13"]
 
 [deployment]
 router = "application"
@@ -58,3 +58,9 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+FOUNDER_PASSWORD = "Alonso01200"
+FOUNDER_PHONE = "01200229946"

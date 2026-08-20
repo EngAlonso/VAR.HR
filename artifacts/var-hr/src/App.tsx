@@ -3636,7 +3636,13 @@ function authLabel(
     | "signingIn"
     | "invalid"
     | "language"
+     | "switchToEnglish"
+     | "switchToArabic"
+     | "secureAccess"
+     | "brandHeading"
     | "brandDetail"
+     | "brandName"
+     | "sessionProtected"
     | "logout"
     | "accountCreated"
     | "temporaryPassword"
@@ -3665,7 +3671,13 @@ function authLabel(
       signingIn: "Signing in…",
       invalid: "Invalid username or password.",
       language: "Language",
+      switchToEnglish: "English",
+      switchToArabic: "Arabic",
+      secureAccess: "Secure access",
+      brandHeading: "A clearer way to run your people operations.",
       brandDetail: "People operations, made precise.",
+      brandName: "VAR HR",
+      sessionProtected: "Session protected · HttpOnly cookie · 8 hour expiry",
       logout: "Sign out",
       accountCreated: "Account created",
       temporaryPassword: "Temporary password",
@@ -3694,7 +3706,14 @@ function authLabel(
       signingIn: "جارٍ تسجيل الدخول…",
       invalid: "اسم المستخدم أو كلمة المرور غير صحيحة.",
       language: "اللغة",
+      switchToEnglish: "الإنجليزية",
+      switchToArabic: "العربية",
+      secureAccess: "وصول آمن",
+      brandHeading: "إدارة موظفيك بطريقة أوضح.",
       brandDetail: "إدارة الأفراد بدقة.",
+      brandName: "VAR HR",
+      sessionProtected:
+        "الجلسة محمية · ملف تعريف ارتباط HttpOnly · مدة الصلاحية 8 ساعات",
       logout: "تسجيل الخروج",
       accountCreated: "تم إنشاء الحساب",
       temporaryPassword: "كلمة المرور المؤقتة",
@@ -3719,10 +3738,12 @@ function BrandLogo({
   variant,
   source: sourceOverride,
   className = "",
+  alt,
 }: {
   variant: "square" | "short" | "horizontal";
   source?: string;
   className?: string;
+  alt?: string;
 }) {
   const source =
     sourceOverride ||
@@ -3731,7 +3752,13 @@ function BrandLogo({
       : variant === "short"
         ? shortLogo
         : horizontalLogo);
-  return <img src={source} alt="VAR HR" className={`block h-auto max-w-full object-contain ${className}`} />;
+  return (
+    <img
+      src={source}
+      alt={alt || "VAR HR"}
+      className={`block h-auto max-w-full object-contain ${className}`}
+    />
+  );
 }
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -3781,11 +3808,12 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               variant="horizontal"
               source={loginLogo}
               className="w-full"
+              alt={authLabel(locale, "brandName")}
             />
           </div>
           <div className="mt-12 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
-              A clearer way to run your people operations.
+              {authLabel(locale, "brandHeading")}
             </h1>
             <p className="mt-6 text-base leading-7 text-sidebar-foreground/60">
               {authLabel(locale, "brandDetail")}
@@ -3802,6 +3830,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
                 variant="horizontal"
                 source={loginLogo}
                 className="w-[168px]"
+                alt={authLabel(locale, "brandName")}
               />
             </div>
             <button
@@ -3809,12 +3838,14 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               className="ms-auto shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
               onClick={() => setLocale(otherLocale as Locale)}
             >
-              {locale === "ar" ? "English" : "العربية"}
+              {locale === "ar"
+                ? authLabel(locale, "switchToEnglish")
+                : authLabel(locale, "switchToArabic")}
             </button>
           </div>
           <div className="mt-9">
             <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">
-              Secure access
+              {authLabel(locale, "secureAccess")}
             </p>
             <h2 className="mt-2 font-display text-3xl font-semibold text-foreground">
               {authLabel(locale, "title")}
@@ -3863,7 +3894,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
             </Button>
           </form>
           <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground">
-            Session protected · HttpOnly cookie · 8 hour expiry
+            {authLabel(locale, "sessionProtected")}
           </p>
         </Card>
       </div>
