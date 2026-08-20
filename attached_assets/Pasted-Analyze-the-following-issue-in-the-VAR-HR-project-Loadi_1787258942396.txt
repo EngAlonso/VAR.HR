@@ -1,0 +1,54 @@
+Analyze the following issue in the VAR HR project:
+
+"Loading the secure workspace…
+Check the workspace connection and try again."
+
+I want you to diagnose the real root cause first. Do NOT modify any code until you have identified the cause.
+
+Trace the complete flow from login to loading the Secure Workspace:
+
+1. Inspect the frontend login/authentication flow.
+2. Inspect the login API request.
+3. Inspect the API response, status code, and response body.
+4. Verify how the authentication token, session, or cookies are stored.
+5. Inspect the request made when the Secure Workspace loads after login.
+6. Verify the API base URL, proxy configuration, and Preview/Production environment.
+7. Check whether the frontend expects a cookie, token, or session in a different format than what the API actually provides.
+8. Check CORS, credentials, and cookie attributes:
+   - HttpOnly
+   - Secure
+   - SameSite
+   - Domain
+   - Path
+9. Check redirects and any authentication middleware or auth guards that could prevent the workspace from loading.
+10. Inspect browser console errors, Network requests, and API/server logs.
+11. Trace the actual request path:
+    Browser → Frontend → API → Authentication Middleware → Database, wherever applicable.
+
+Important:
+
+- Do NOT assume this is a UI problem.
+- Do NOT assume that successful login means the authenticated session is actually preserved.
+- Do NOT implement a workaround that merely hides the error.
+- Do NOT change credentials, database data, or authentication architecture unless the investigation proves that they are the cause.
+- Do NOT modify unrelated files.
+- Reproduce the issue using the actual browser/Preview flow, not just by calling the API directly.
+- Compare the expected authentication flow with the actual network requests and responses.
+
+At the end, provide a clear diagnostic report containing:
+
+1. Root Cause — the actual reason the Secure Workspace fails.
+
+2. Evidence — browser/network/server evidence proving the cause.
+
+3. Failing Step — the exact step in the authentication or workspace-loading flow that fails.
+
+4. Required Fix — exactly what needs to be changed.
+
+5. Files to Change — only the files that actually need modification.
+
+6. Verification Plan — how you will verify that login and Secure Workspace loading work correctly after the fix.
+
+If there are multiple issues, separate the primary root cause from secondary issues and rank them by priority.
+
+Do not start implementing the fix until you have completed the diagnosis and clearly identified the root cause.
