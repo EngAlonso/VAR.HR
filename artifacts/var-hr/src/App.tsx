@@ -3786,10 +3786,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
         <Card className="border-white/10 bg-card p-6 shadow-2xl sm:p-9">
           <div className="flex items-center justify-between">
             <div className="lg:hidden">
-              <BrandLogo
-                variant="square"
-                className="h-10 w-10 rounded-lg"
-              />
+              <BrandLogo variant="horizontal" className="w-[168px]" />
             </div>
             <button
               type="button"
@@ -3922,8 +3919,12 @@ function WorkspaceState({
     <div className="min-h-[100dvh] bg-background px-4 py-10 sm:px-8">
       <div className="mx-auto flex min-h-[70dvh] max-w-xl items-center justify-center">
         <Card className="w-full p-7 text-center sm:p-10">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
-            <ShieldCheck size={22} />
+          <div className="mx-auto grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-secondary">
+            {kind === "loading" ? (
+              <BrandLogo variant="square" className="h-full w-full" />
+            ) : (
+              <ShieldCheck size={22} className="text-primary" />
+            )}
           </div>
           <h1 className="mt-5 font-display text-2xl font-semibold">{title}</h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
@@ -4009,7 +4010,7 @@ function Shell({ children }: { children: ReactNode }) {
         dir={isArabic ? "rtl" : "ltr"}
       >
         <div className="flex items-center gap-3 px-3 pb-8">
-          <div className="w-full max-w-[190px] overflow-hidden rounded-lg bg-white p-1.5">
+          <div className="w-full max-w-[176px] overflow-hidden rounded-lg bg-white p-1.5">
             <BrandLogo variant="horizontal" className="w-full" />
           </div>
         </div>
@@ -4116,7 +4117,7 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
             <BrandLogo
               variant="short"
-              className="h-8 w-auto max-w-[112px] object-contain sm:hidden"
+              className="h-7 w-auto max-w-[104px] object-contain sm:hidden"
             />
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
