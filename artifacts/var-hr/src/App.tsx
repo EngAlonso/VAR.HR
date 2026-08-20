@@ -56,6 +56,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import squareLogo from "@assets/file_0000000078f881f495d25f8c9a2bd674_1787187714141.png";
+import shortLogo from "@assets/file_000000003b5881f4b4050da0a1da0ebf_1787187714190.png";
+import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
 import {
   ErrorBoundary,
   type ErrorFallbackProps,
@@ -3711,6 +3714,22 @@ function authLabel(
   return labels[locale === "ar" ? "ar" : "en"][key];
 }
 
+function BrandLogo({
+  variant,
+  className = "",
+}: {
+  variant: "square" | "short" | "horizontal";
+  className?: string;
+}) {
+  const source =
+    variant === "square"
+      ? squareLogo
+      : variant === "short"
+        ? shortLogo
+        : horizontalLogo;
+  return <img src={source} alt="VAR HR" className={`block h-auto max-w-full object-contain ${className}`} />;
+}
+
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -3752,23 +3771,10 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
     >
       <div className="mx-auto grid min-h-[calc(100dvh-4rem)] max-w-5xl items-center gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
-          <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <span className="font-display text-2xl font-bold">V</span>
-            </div>
-            <div>
-              <div className="font-display text-2xl font-bold tracking-tight">
-                VAR HR
-              </div>
-              <div className="text-xs uppercase tracking-[.2em] text-sidebar-foreground/55">
-                Operations desk
-              </div>
-            </div>
+          <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
+            <BrandLogo variant="horizontal" className="w-full" />
           </div>
           <div className="mt-16 max-w-md">
-            <p className="text-sm font-semibold uppercase tracking-[.2em] text-primary">
-              VAR HR
-            </p>
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
               A clearer way to run your people operations.
             </h1>
@@ -3780,9 +3786,10 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
         <Card className="border-white/10 bg-card p-6 shadow-2xl sm:p-9">
           <div className="flex items-center justify-between">
             <div className="lg:hidden">
-              <div className="font-display text-xl font-bold text-foreground">
-                VAR HR
-              </div>
+              <BrandLogo
+                variant="square"
+                className="h-10 w-10 rounded-lg"
+              />
             </div>
             <button
               type="button"
@@ -4002,16 +4009,8 @@ function Shell({ children }: { children: ReactNode }) {
         dir={isArabic ? "rtl" : "ltr"}
       >
         <div className="flex items-center gap-3 px-3 pb-8">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <span className="font-display text-lg font-bold">V</span>
-          </div>
-          <div>
-            <div className="font-display text-[17px] font-bold tracking-tight">
-              VAR HR
-            </div>
-            <div className="text-[10px] uppercase tracking-[.18em] text-sidebar-foreground/55">
-              {t("operationsDesk")}
-            </div>
+          <div className="w-full max-w-[190px] overflow-hidden rounded-lg bg-white p-1.5">
+            <BrandLogo variant="horizontal" className="w-full" />
           </div>
         </div>
         <Button
@@ -4115,6 +4114,10 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
+            <BrandLogo
+              variant="short"
+              className="h-8 w-auto max-w-[112px] object-contain sm:hidden"
+            />
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
