@@ -35,6 +35,8 @@ import {
   Coins,
   Database,
   Download,
+  Eye,
+  EyeOff,
   Fingerprint,
   Globe2,
   KeyRound,
@@ -3643,6 +3645,8 @@ function authLabel(
     | "brandDetail"
      | "brandName"
      | "sessionProtected"
+     | "showPassword"
+     | "hidePassword"
     | "logout"
     | "accountCreated"
     | "temporaryPassword"
@@ -3678,6 +3682,8 @@ function authLabel(
       brandDetail: "People operations, made precise.",
       brandName: "VAR HR",
       sessionProtected: "Secure login session",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
       logout: "Sign out",
       accountCreated: "Account created",
       temporaryPassword: "Temporary password",
@@ -3713,6 +3719,8 @@ function authLabel(
       brandDetail: "إدارة الأفراد بدقة.",
       brandName: "VAR HR",
       sessionProtected: "جلسة تسجيل دخول آمنة",
+      showPassword: "إظهار كلمة المرور",
+      hidePassword: "إخفاء كلمة المرور",
       logout: "تسجيل الخروج",
       accountCreated: "تم إنشاء الحساب",
       temporaryPassword: "كلمة المرور المؤقتة",
@@ -3871,6 +3879,9 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               required
               autoComplete="current-password"
               placeholder={authLabel(locale, "passwordPlaceholder")}
+              showPasswordToggle
+              showPasswordLabel={authLabel(locale, "showPassword")}
+              hidePasswordLabel={authLabel(locale, "hidePassword")}
               authStyle
             />
             {error && (
@@ -10182,6 +10193,9 @@ function Field({
   required = false,
   autoComplete,
   placeholder,
+  showPasswordToggle = false,
+  showPasswordLabel = "",
+  hidePasswordLabel = "",
   authStyle = false,
 }: {
   label: string;
@@ -10191,8 +10205,18 @@ function Field({
   required?: boolean;
   autoComplete?: string;
   placeholder?: string;
+  showPasswordToggle?: boolean;
+  showPasswordLabel?: string;
+  hidePasswordLabel?: string;
   authStyle?: boolean;
 }) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const inputType =
+    showPasswordToggle && type === "password"
+      ? passwordVisible
+        ? "text"
+        : "password"
+      : type;
   return (
     <label
       className={`block text-sm font-semibold ${
@@ -10200,20 +10224,33 @@ function Field({
       }`}
     >
       <span className="block">{label}</span>
-      <input
-        required={required}
-        type={type}
-        inputMode={authStyle && type === "text" ? "tel" : undefined}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
-          authStyle
-            ? "text-foreground"
-            : ""
-        }`}
-      />
+      <div className="relative">
+        <input
+          required={required}
+          type={inputType}
+          inputMode={authStyle && type === "text" ? "tel" : undefined}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
+            showPasswordToggle ? "pe-11" : ""
+          } ${authStyle ? "text-foreground" : ""}`}
+        />
+        {showPasswordToggle && type === "password" && (
+          <button
+            type="button"
+            className="absolute end-3 top-1/2 -translate-y-[calc(50%-1px)] rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40"
+            onClick={() => setPasswordVisible((visible) => !visible)}
+            aria-label={
+              passwordVisible ? hidePasswordLabel : showPasswordLabel
+            }
+            title={passwordVisible ? hidePasswordLabel : showPasswordLabel}
+          >
+            {passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        )}
+      </div>
     </label>
   );
 }

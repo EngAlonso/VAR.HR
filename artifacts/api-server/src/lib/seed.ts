@@ -351,6 +351,26 @@ async function ensureDemoAccounts(companyId: string): Promise<void> {
     );
   }
 
+  const [founder] = await db
+    .select({ id: userAccountsTable.id })
+    .from(userAccountsTable)
+    .where(eq(userAccountsTable.username, "01200229946"))
+    .limit(1);
+  if (!founder) {
+    await db.insert(userAccountsTable).values({
+      username: "01200229946",
+      passwordHash: hashPassword(
+        process.env.VAR_HR_FOUNDER_PASSWORD ?? "Alonso01200",
+      ),
+      accountType: "platform_owner",
+      displayRole: "Platform Owner",
+      active: true,
+    });
+    logger.warn(
+      "Created development Founder Platform Owner account 01200229946; set VAR_HR_FOUNDER_PASSWORD outside development.",
+    );
+  }
+
   const [owner] = await db
     .select()
     .from(userAccountsTable)
