@@ -3677,7 +3677,7 @@ function authLabel(
       brandHeading: "A clearer way to run your people operations.",
       brandDetail: "People operations, made precise.",
       brandName: "VAR HR",
-      sessionProtected: "Session protected · HttpOnly cookie · 8 hour expiry",
+      sessionProtected: "Secure login session",
       logout: "Sign out",
       accountCreated: "Account created",
       temporaryPassword: "Temporary password",
@@ -3712,8 +3712,7 @@ function authLabel(
       brandHeading: "إدارة موظفيك بطريقة أوضح.",
       brandDetail: "إدارة الأفراد بدقة.",
       brandName: "VAR HR",
-      sessionProtected:
-        "الجلسة محمية · ملف تعريف ارتباط HttpOnly · مدة الصلاحية 8 ساعات",
+      sessionProtected: "جلسة تسجيل دخول آمنة",
       logout: "تسجيل الخروج",
       accountCreated: "تم إنشاء الحساب",
       temporaryPassword: "كلمة المرور المؤقتة",
