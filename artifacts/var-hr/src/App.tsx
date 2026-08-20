@@ -59,6 +59,7 @@ import { Toaster, toast } from "sonner";
 import squareLogo from "@assets/file_0000000078f881f495d25f8c9a2bd674_1787187714141.png";
 import shortLogo from "@assets/file_000000003b5881f4b4050da0a1da0ebf_1787187714190.png";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
+import arabicLoginLogo from "@assets/file_000000001fc4820a8874d7fbcbaf001b_1787189698147.png";
 import {
   ErrorBoundary,
   type ErrorFallbackProps,
@@ -3716,17 +3717,20 @@ function authLabel(
 
 function BrandLogo({
   variant,
+  source: sourceOverride,
   className = "",
 }: {
   variant: "square" | "short" | "horizontal";
+  source?: string;
   className?: string;
 }) {
   const source =
-    variant === "square"
+    sourceOverride ||
+    (variant === "square"
       ? squareLogo
       : variant === "short"
         ? shortLogo
-        : horizontalLogo;
+        : horizontalLogo);
   return <img src={source} alt="VAR HR" className={`block h-auto max-w-full object-contain ${className}`} />;
 }
 
@@ -3743,6 +3747,7 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
 
 function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
   const { locale, setLocale } = useI18n();
+  const loginLogo = locale === "ar" ? arabicLoginLogo : horizontalLogo;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -3772,7 +3777,11 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
       <div className="mx-auto grid min-h-[calc(100dvh-4rem)] max-w-5xl items-center gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
           <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
-            <BrandLogo variant="horizontal" className="w-full" />
+            <BrandLogo
+              variant="horizontal"
+              source={loginLogo}
+              className="w-full"
+            />
           </div>
           <div className="mt-16 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
@@ -3789,7 +3798,11 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
             dir={locale === "ar" ? "rtl" : "ltr"}
           >
             <div className="lg:hidden">
-              <BrandLogo variant="horizontal" className="w-[168px]" />
+              <BrandLogo
+                variant="horizontal"
+                source={loginLogo}
+                className="w-[168px]"
+              />
             </div>
             <button
               type="button"
