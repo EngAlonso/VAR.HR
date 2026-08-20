@@ -3784,13 +3784,16 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
           </div>
         </div>
         <Card className="border-white/10 bg-card p-6 shadow-2xl sm:p-9">
-          <div className="flex items-center justify-between">
+          <div
+            className="flex flex-row items-center justify-between"
+            dir={locale === "ar" ? "rtl" : "ltr"}
+          >
             <div className="lg:hidden">
               <BrandLogo variant="horizontal" className="w-[168px]" />
             </div>
             <button
               type="button"
-              className="ms-auto rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              className="ms-auto shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
               onClick={() => setLocale(otherLocale as Locale)}
             >
               {locale === "ar" ? "English" : "العربية"}
