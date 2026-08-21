@@ -12,6 +12,7 @@ VAR HR is a multilingual, multi-tenant HR operations workspace for managing empl
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string (provided by the Replit database)
+- The API startup runs the existing `@workspace/db` Drizzle push before the existing demo-data bootstrap, so fresh environments initialize schema before authenticated routes are served.
 - The managed artifact workflows are `artifacts/var-hr: web`, `artifacts/api-server: API Server`, and `artifacts/mockup-sandbox: Component Preview Server`.
 
 ## Stack
@@ -55,6 +56,7 @@ The product should feel premium, precise, enterprise-grade, multilingual, and su
 
 - Run API codegen after changing `lib/api-spec/openapi.yaml`.
 - Apply the development schema with `pnpm --filter @workspace/db run push` before starting the API in a fresh database.
+- The API repeats this non-destructive schema check at startup; initialized databases are left intact and the existing bootstrap remains idempotent.
 - Use managed artifact workflows rather than creating replacement workflows.
 - Do not introduce an auth provider or claim physical biometric hardware success. The deterministic mock provider is intentionally limited to local/test synchronization.
 - Development seed credentials are created only for local validation; set `VAR_HR_PLATFORM_PASSWORD` and `VAR_HR_OWNER_PASSWORD` when overriding them.
