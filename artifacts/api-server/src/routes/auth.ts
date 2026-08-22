@@ -717,20 +717,23 @@ router.patch(
     const active = parsed.data.status
       ? parsed.data.status === "active"
       : parsed.data.active;
-    const [updated] = await db
-      .update(companiesTable)
-      .set({
-        ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-        ...(parsed.data.timezone !== undefined
-          ? { timezone: parsed.data.timezone }
-          : {}),
-        ...(parsed.data.currency !== undefined
-          ? { currency: parsed.data.currency }
-          : {}),
-        ...(active === undefined ? {} : { active }),
-      })
-      .where(eq(companiesTable.id, company.id))
-      .returning();
+    const companyChanges = {
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.timezone !== undefined
+        ? { timezone: parsed.data.timezone }
+        : {}),
+      ...(parsed.data.currency !== undefined
+        ? { currency: parsed.data.currency }
+        : {}),
+      ...(active === undefined ? {} : { active }),
+    };
+    const [updated] = Object.keys(companyChanges).length
+      ? await db
+          .update(companiesTable)
+          .set(companyChanges)
+          .where(eq(companiesTable.id, company.id))
+          .returning()
+      : [company];
     if (parsed.data.employeeLimit !== undefined) {
       await db
         .update(subscriptionsTable)

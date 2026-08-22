@@ -91,8 +91,22 @@ function quoteIdentifier(identifier: string): string {
   return `"${identifier}"`;
 }
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, canonicalize(nested)]),
+    );
+  }
+  return value;
+}
+
 function canonicalPayload(data: Record<string, JsonRecord[]>): string {
-  return JSON.stringify({ formatVersion: BACKUP_FORMAT_VERSION, data });
+  return JSON.stringify(
+    canonicalize({ formatVersion: BACKUP_FORMAT_VERSION, data }),
+  );
 }
 
 function checksumFor(value: string): string {
