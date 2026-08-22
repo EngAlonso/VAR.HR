@@ -4189,10 +4189,9 @@ function Shell({ children }: { children: ReactNode }) {
     }
     const deltaX = event.clientX - start.x;
     if (Math.abs(deltaX) < 48) return;
-    const startedAtEdge = start.x >= window.innerWidth - 32;
     if (open) {
       if (deltaX > 0) setOpen(false);
-    } else if (startedAtEdge && deltaX < 0) {
+    } else if (deltaX < 0) {
       setOpen(true);
     }
   };
