@@ -4066,7 +4066,7 @@ function Shell({ children }: { children: ReactNode }) {
         style={{
           insetInlineStart: 0,
           insetInlineEnd: "auto",
-          "--nav-closed-transform": isArabic ? "100%" : "-100%",
+          ["--nav-closed-transform" as string]: isArabic ? "100%" : "-100%",
         }}
         dir={isArabic ? "rtl" : "ltr"}
       >
@@ -4159,7 +4159,7 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-[72px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border/80 bg-background/90 px-4 sm:flex sm:gap-0 sm:px-8">
+        <header className="relative sticky top-0 z-30 grid h-[72px] grid-cols-[minmax(0,1fr)_clamp(42px,14vw,56px)_minmax(0,1fr)] items-center gap-2 border-b border-border/80 bg-background/90 px-4 sm:flex sm:gap-0 sm:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
@@ -4179,9 +4179,9 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
-            <div className="flex min-w-0 items-center gap-2 truncate whitespace-nowrap font-semibold">
+            <div className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-semibold">
               <Building2 size={16} className="shrink-0 text-primary" />
-              {workspace.company.name}
+              <span className="min-w-0 truncate">{workspace.company.name}</span>
               <ChevronDown
                 size={14}
                 className="shrink-0 text-muted-foreground"
@@ -4202,14 +4202,14 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs font-medium text-muted-foreground sm:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
+            <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
               <select
                 aria-label={t("language")}
                 data-testid="select-language"
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as Locale)}
-                className="max-w-[76px] bg-transparent font-medium outline-none sm:max-w-none"
+                className="min-w-0 max-w-[76px] bg-transparent font-medium outline-none sm:max-w-none"
               >
                 {Object.entries(labels).map(([key, label]) => (
                   <option key={key} value={key}>
