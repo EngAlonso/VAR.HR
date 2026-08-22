@@ -2771,7 +2771,7 @@ components:
             $ref: "#/components/schemas/PlatformAlert"
     PlatformCompanyDetail:
       type: object
-      required: [id, name, slug, timezone, currency, active, status, planName, subscriptionStatus, employeeCount, activeEmployees, userCount, activeUsers, employeeLimit, owner, createdAt]
+      required: [id, name, slug, timezone, currency, active, status, planName, subscriptionStatus, employeeCount, activeEmployees, userCount, activeUsers, employeeLimit, ownerCount, monthlyPrice, annualPrice, owner, createdAt]
       properties:
         id: { type: string }
         name: { type: string }
@@ -2787,6 +2787,9 @@ components:
         userCount: { type: integer }
         activeUsers: { type: integer }
         employeeLimit: { type: integer }
+        ownerCount: { type: integer }
+        monthlyPrice: { type: number }
+        annualPrice: { type: number }
         owner:
           oneOf:
             - $ref: "#/components/schemas/PlatformOwnerAccount"

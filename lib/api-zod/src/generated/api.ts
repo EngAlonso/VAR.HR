@@ -2369,6 +2369,9 @@ export const GetPlatformSummaryResponse = zod.object({
   "userCount": zod.int(),
   "activeUsers": zod.int(),
   "employeeLimit": zod.int(),
+  "ownerCount": zod.int(),
+  "monthlyPrice": zod.number(),
+  "annualPrice": zod.number(),
   "owner": zod.union([zod.object({
   "id": zod.string(),
   "username": zod.string(),

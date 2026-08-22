@@ -22,6 +22,9 @@ export interface PlatformCompanyDetail {
   userCount: number;
   activeUsers: number;
   employeeLimit: number;
+  ownerCount: number;
+  monthlyPrice: number;
+  annualPrice: number;
   owner: PlatformOwnerAccount | null;
   createdAt: string;
 }

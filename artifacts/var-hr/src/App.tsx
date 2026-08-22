@@ -199,6 +199,9 @@ type PlatformCompanyDetail = {
   userCount: number;
   activeUsers: number;
   employeeLimit: number;
+  ownerCount: number;
+  monthlyPrice: number;
+  annualPrice: number;
   owner: {
     id: string;
     username: string;
@@ -10615,6 +10618,17 @@ function Platform() {
   };
   const activityLabel = (action: string) =>
     action.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const subscriptionPrice = (company: PlatformCompanyDetail) => {
+    const prices = [
+      company.monthlyPrice > 0
+        ? `${text("Monthly", "شهري")}: ${company.monthlyPrice} ${company.currency}`
+        : null,
+      company.annualPrice > 0
+        ? `${text("Annual", "سنوي")}: ${company.annualPrice} ${company.currency}`
+        : null,
+    ].filter(Boolean);
+    return prices.length ? prices.join(" · ") : text("Not set", "غير محدد");
+  };
   const metricCards: Array<{
     icon: typeof Building2;
     label: string;
@@ -10699,7 +10713,7 @@ function Platform() {
             {summary!.companies.map((company) => (
               <button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40" key={company.id} onClick={() => openCompany(company)}>
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{company.name}</div><div className="mt-1 text-xs text-muted-foreground">{company.slug}</div></div><Status value={company.status} /></div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-xs"><Info label={text("Employees", "الموظفون")} value={`${company.activeEmployees}/${company.employeeCount}`} /><Info label={text("Users", "المستخدمون")} value={`${company.activeUsers}/${company.userCount}`} /><Info label={text("Plan", "الخطة")} value={company.planName} /></div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs"><Info label={text("Company Owners", "مالكو الشركة")} value={company.ownerCount} /><Info label={text("Subscription price", "سعر الاشتراك")} value={subscriptionPrice(company)} /><Info label={text("Employees", "الموظفون")} value={`${company.activeEmployees}/${company.employeeLimit}`} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(company.createdAt)} /></div>
                 <div className="mt-3 text-xs text-primary">{text("Open details", "فتح التفاصيل")} <ArrowUpRight className="inline" size={13} /></div>
               </button>
             ))}

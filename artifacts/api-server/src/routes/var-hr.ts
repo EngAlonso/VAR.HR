@@ -6359,6 +6359,8 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
         planName: plansTable.name,
         employeeLimit: subscriptionsTable.employeeLimit,
         planEmployeeLimit: plansTable.employeeLimit,
+        monthlyPrice: subscriptionsTable.monthlyPrice,
+        annualPrice: subscriptionsTable.annualPrice,
       }).from(subscriptionsTable)
         .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id)),
       db.select({
@@ -6485,6 +6487,11 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
           subscription?.employeeLimit ??
           subscription?.planEmployeeLimit ??
           0,
+         ownerCount: companyAccounts.filter(
+           (account) => account.accountType === "company_owner",
+         ).length,
+         monthlyPrice: subscription?.monthlyPrice ?? 0,
+         annualPrice: subscription?.annualPrice ?? 0,
         owner: owner
           ? {
               id: owner.id,
