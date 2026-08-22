@@ -4359,7 +4359,7 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-[72px] grid-cols-[minmax(0,1fr)_clamp(42px,14vw,56px)_minmax(0,1fr)] items-center gap-2 border-b border-border/80 bg-background/90 px-4 sm:flex sm:gap-0 sm:px-8">
+        <header className="relative sticky top-0 z-30 grid h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-4 sm:flex sm:gap-0 sm:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
@@ -4376,6 +4376,16 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
+            <span className="flex h-9 w-[clamp(42px,14vw,56px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+              <BrandLogo
+                variant="short"
+                className="!h-full !w-full !max-w-none object-contain sm:hidden"
+              />
+              <BrandLogo
+                variant="horizontal"
+                className="hidden !h-full !w-full !max-w-none object-contain sm:block"
+              />
+            </span>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
@@ -4394,16 +4404,6 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <span className="flex h-9 w-[clamp(42px,14vw,56px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
-            <BrandLogo
-              variant="short"
-              className="!h-full !w-full !max-w-none object-contain sm:hidden"
-            />
-            <BrandLogo
-              variant="horizontal"
-              className="hidden !h-full !w-full !max-w-none object-contain sm:block"
-            />
-          </span>
           <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
               <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
