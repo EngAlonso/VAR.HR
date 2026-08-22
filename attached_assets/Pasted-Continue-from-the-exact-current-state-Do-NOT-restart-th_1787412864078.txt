@@ -1,0 +1,84 @@
+Continue from the exact current state. Do NOT restart the investigation and do NOT make random changes.
+
+The previous fix added:
+
+credentials: init.credentials ?? "include"
+
+to:
+
+lib/api-client-react/src/custom-fetch.ts
+
+Typecheck/build passed, but this did NOT prove the problem was fixed. The browser session is still producing repeated 401 responses, so do NOT consider the issue resolved.
+
+Important:
+Do NOT add more frontend workarounds.
+Do NOT disable authentication.
+Do NOT bypass `/api/auth/me`.
+Do NOT change the database/session architecture.
+Do NOT modify cookie settings blindly.
+Do NOT add arbitrary delays, retries, redirects, or localStorage-based fake authentication.
+
+The next task is to determine the actual root cause from a REAL Chromium browser session.
+
+Use the available Chromium/DevTools/browser automation environment and perform one real login.
+
+Trace this exact flow:
+
+POST /api/auth/login
+→ inspect response
+→ inspect Set-Cookie
+→ inspect browser Cookie Store
+→ inspect the next GET /api/workspace request
+→ inspect its actual Request Headers
+→ inspect whether `var_hr_session` is actually being sent
+→ inspect the server response and logs.
+
+You must determine which of these is actually happening:
+
+A) The browser receives Set-Cookie but does not store `var_hr_session`.
+
+B) The browser stores `var_hr_session` but does not send it to `/api/workspace`.
+
+C) The browser sends the Cookie, but the API cannot validate the session.
+
+D) The browser sends the Cookie and the API validates it, but another layer is returning 401.
+
+Do not guess between A/B/C/D.
+
+If the Cookie is not being stored, investigate the actual host/origin/proxy/cookie context and determine the correct production-safe fix.
+
+If the Cookie is stored but not sent, determine why and fix the actual browser/proxy/origin issue.
+
+If the Cookie is sent but the API rejects it, trace the session lookup and token/hash handling and fix the real issue.
+
+If the API accepts the Cookie but `/api/workspace` still returns 401, trace the exact middleware/authentication path and fix that.
+
+The final solution must be architectural and reusable, not a one-off workaround for `/api/workspace`.
+
+After identifying the real root cause, make the smallest correct fix and then perform a REAL browser verification:
+
+1. Clear all old VAR HR cookies.
+2. Open the site.
+3. Log in with valid credentials.
+4. Confirm `/api/auth/login` = 200.
+5. Confirm `var_hr_session` is actually stored by Chromium.
+6. Confirm `/api/auth/me` = 200.
+7. Confirm `/api/workspace` = 200.
+8. Confirm the dashboard opens without redirecting to `/login`.
+9. Refresh the browser and confirm the session survives.
+10. Log out.
+11. Log in again.
+12. Confirm the complete flow works again.
+
+Do not say "fixed" based only on build/typecheck/curl.
+
+The final report must clearly state:
+
+- Exact root cause.
+- Exact file(s) changed.
+- Why the fix is the correct architectural solution.
+- Whether `credentials: "include"` was actually part of the solution or not.
+- Actual browser results for login, auth/me, and workspace.
+- Whether the login loop is completely resolved.
+
+Do not change unrelated VAR HR functionality.
