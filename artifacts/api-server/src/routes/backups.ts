@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { backupRecordsTable, db } from "@workspace/db";
-import { createBackup, restoreBackup, backupDownloadName } from "../lib/backups";
+import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName } from "../lib/backups";
 import { writeAuthAudit } from "../lib/auth";
 import {
   WorkspaceAccessError,
@@ -101,6 +101,41 @@ router.post("/backups", async (req, res): Promise<void> => {
     entityType: "backup",
     entityId: record.id,
     metadata: { scope: record.scope },
+  });
+  res.status(201).json(serialize(record));
+});
+
+router.post("/backups/upload", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
+  const scope = context.role === "platform_owner" ? "platform" : "company";
+  const value = req.body?.backup;
+  if (!value) {
+    res.status(400).json({ error: "Upload a JSON backup file." });
+    return;
+  }
+  let record;
+  try {
+    record = await createUploadedBackup({
+      value,
+      scope,
+      companyId: scope === "company" ? context.companyId : null,
+      createdBy: context.accountId,
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Backup validation failed.",
+      code: "BACKUP_VALIDATION_FAILED",
+    });
+    return;
+  }
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId: record.companyId,
+    action: "backup_uploaded",
+    entityType: "backup",
+    entityId: record.id,
+    metadata: { scope: record.scope, sourceChecksum: record.metadata && typeof record.metadata === "object" && "sourceChecksum" in record.metadata ? record.metadata.sourceChecksum : undefined },
   });
   res.status(201).json(serialize(record));
 });

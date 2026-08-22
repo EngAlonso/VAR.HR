@@ -237,10 +237,12 @@ function validateEnvelope(value: unknown, expectedScope: BackupScope, companyId:
   if (
     !manifest ||
     manifest.formatVersion !== BACKUP_FORMAT_VERSION ||
+    typeof manifest.schemaVersion !== "string" ||
     manifest.scope !== expectedScope ||
     (expectedScope === "company" && manifest.companyId !== companyId) ||
     !envelope.data ||
-    manifest.integrity?.algorithm !== "sha256"
+    manifest.integrity?.algorithm !== "sha256" ||
+    manifest.includesExternalFiles !== false
   ) {
     throw new Error("Backup manifest is invalid or not valid for this scope.");
   }
@@ -254,6 +256,133 @@ function validateEnvelope(value: unknown, expectedScope: BackupScope, companyId:
     }
   }
   return envelope as BackupEnvelope;
+}
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Validate a downloaded backup and prepare it for this environment. Company
+ * exports carry the source tenant id; on migration that id is remapped to the
+ * authenticated tenant, while row ids and relationships remain intact.
+ */
+export function validateUploadedBackup(
+  value: unknown,
+  expectedScope: BackupScope,
+  targetCompanyId: string | null,
+): { payload: BackupEnvelope; sourceCompanyId: string | null; sourceChecksum: string } {
+  if (!value || typeof value !== "object") throw new Error("Backup file must contain a JSON object.");
+  const candidate = value as Partial<BackupEnvelope>;
+  const manifest = candidate.manifest;
+  if (!manifest || typeof manifest.schemaVersion !== "string") {
+    throw new Error("Backup manifest is missing or unsupported.");
+  }
+  if (manifest.scope !== expectedScope) {
+    throw new Error("This backup scope is not permitted for the current account.");
+  }
+  if (expectedScope === "platform" && manifest.companyId !== null) {
+    throw new Error("A platform backup must not contain a company scope.");
+  }
+  if (expectedScope === "company" && (typeof manifest.companyId !== "string" || !targetCompanyId)) {
+    throw new Error("A company backup requires a valid source and target company.");
+  }
+  if (!candidate.data || typeof candidate.data !== "object" || Array.isArray(candidate.data)) {
+    throw new Error("Backup data is missing.");
+  }
+  for (const table of insertOrder) {
+    const rows = (candidate.data as Record<string, unknown>)[table];
+    if (!Array.isArray(rows) || rows.some((row) => !isJsonRecord(row))) {
+      throw new Error(`Backup data for ${table} is invalid.`);
+    }
+  }
+  if (expectedScope === "company") {
+    const companyRows = candidate.data.var_hr_companies as JsonRecord[];
+    if (!companyRows.some((row) => row.id === manifest.companyId)) {
+      throw new Error("Backup is missing its company record.");
+    }
+    for (const table of [...companyScopedTables, companyUserTable]) {
+      for (const row of candidate.data[table] ?? []) {
+        if (row.company_id !== manifest.companyId) {
+          throw new Error(`Backup contains ${table} data outside its company.`);
+        }
+      }
+    }
+    const accountIds = new Set(
+      (candidate.data[companyUserTable] ?? [])
+        .map((row) => row.id)
+        .filter((id): id is string => typeof id === "string"),
+    );
+    for (const row of candidate.data[accountPermissionTable] ?? []) {
+      if (typeof row.account_id !== "string" || !accountIds.has(row.account_id)) {
+        throw new Error("Backup contains a permission for an unknown account.");
+      }
+    }
+  }
+  // Reject session material if a hand-edited file attempts to smuggle it in.
+  const serialized = JSON.stringify(candidate.data);
+  if (/"(?:token|tokenHash|token_hash|sessionToken|session_token)"\s*:/.test(serialized)) {
+    throw new Error("Backup contains session or token data and cannot be restored.");
+  }
+  // This checks the original downloaded file before any migration remapping.
+  const checked = validateEnvelope(value, expectedScope, expectedScope === "company" ? manifest.companyId : null);
+  const sourceCompanyId = checked.manifest.companyId;
+  const data = Object.fromEntries(
+    Object.entries(checked.data).map(([table, rows]) => [
+      table,
+      expectedScope === "company"
+        ? rows.map((row) => {
+            const copy = { ...row };
+            if ("company_id" in copy) copy.company_id = targetCompanyId;
+            if (table === "var_hr_companies" && copy.id === sourceCompanyId) copy.id = targetCompanyId;
+            return copy;
+          })
+        : rows,
+    ]),
+  ) as Record<string, JsonRecord[]>;
+  const checksum = checksumFor(canonicalPayload(data));
+  const payload: BackupEnvelope = {
+    manifest: {
+      ...checked.manifest,
+      companyId: expectedScope === "company" ? targetCompanyId : null,
+      integrity: { algorithm: "sha256", checksum },
+    },
+    data,
+  };
+  return { payload, sourceCompanyId, sourceChecksum: checked.manifest.integrity.checksum };
+}
+
+export async function createUploadedBackup(input: {
+  value: unknown;
+  scope: BackupScope;
+  companyId: string | null;
+  createdBy: string;
+}) {
+  const checked = validateUploadedBackup(input.value, input.scope, input.companyId);
+  const serialized = JSON.stringify(checked.payload);
+  const [record] = await db.insert(backupRecordsTable).values({
+    scope: input.scope,
+    companyId: input.companyId,
+    createdBy: input.createdBy,
+    status: "ready",
+    sizeBytes: Buffer.byteLength(serialized, "utf8"),
+    checksum: checked.payload.manifest.integrity.checksum,
+    metadata: {
+      formatVersion: BACKUP_FORMAT_VERSION,
+      schemaVersion: checked.payload.manifest.schemaVersion,
+      scope: input.scope,
+      companyId: input.companyId,
+      sourceCompanyId: checked.sourceCompanyId,
+      sourceChecksum: checked.sourceChecksum,
+      imported: true,
+      includesExternalFiles: false,
+      tableCounts: Object.fromEntries(
+        Object.entries(checked.payload.data).map(([table, rows]) => [table, rows.length]),
+      ),
+    },
+    payload: checked.payload,
+  }).returning();
+  return record;
 }
 
 const deleteOrder = [...insertOrder].reverse();

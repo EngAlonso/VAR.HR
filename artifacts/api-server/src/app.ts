@@ -29,7 +29,9 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
+// Backup files are database snapshots, so allow a bounded but practical JSON body.
+// The upload endpoint still rejects oversized payloads before any database write.
+app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

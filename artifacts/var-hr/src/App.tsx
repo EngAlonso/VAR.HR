@@ -1,6 +1,7 @@
 import {
   createContext,
   type ButtonHTMLAttributes,
+  type ChangeEvent,
   type FormEvent,
   type HTMLAttributes,
   type ReactNode,
@@ -9116,6 +9117,7 @@ function BackupRestore() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
+  const uploadInput = useRef<HTMLInputElement>(null);
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -9130,6 +9132,10 @@ function BackupRestore() {
         company: "نسخة الشركة",
         safety: "نسخة أمان",
         download: "تنزيل",
+        upload: "رفع نسخة احتياطية",
+        uploadHint: "اختر ملف JSON تم تنزيله مسبقاً للتحقق منه وتجهيزه للاستعادة.",
+        invalidFile: "الملف المحدد ليس JSON صالحاً.",
+        uploaded: "تم التحقق من النسخة وأصبحت جاهزة للاستعادة.",
         restore: "استعادة",
         delete: "حذف",
         empty: "لا توجد نسخ احتياطية",
@@ -9156,6 +9162,10 @@ function BackupRestore() {
         company: "Company backup",
         safety: "Safety backup",
         download: "Download",
+        upload: "Upload Backup",
+        uploadHint: "Choose a previously downloaded JSON backup to validate and stage for restore.",
+        invalidFile: "The selected file is not valid JSON.",
+        uploaded: "Backup validated and ready to restore.",
         restore: "Restore",
         delete: "Delete",
         empty: "No backups yet",
@@ -9253,6 +9263,31 @@ function BackupRestore() {
       setPending("");
     }
   };
+  const upload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setPending("upload");
+    setError("");
+    try {
+      let backup: unknown;
+      try {
+        backup = JSON.parse(await file.text());
+      } catch {
+        throw new Error(labels.invalidFile);
+      }
+      const imported = await authRequest<BackupSummary>("/api/backups/upload", {
+        method: "POST",
+        body: JSON.stringify({ backup }),
+      });
+      setBackups((current) => [imported, ...current]);
+      toast.success(labels.uploaded);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.failed);
+    } finally {
+      setPending("");
+    }
+  };
 
   if (!role || (role !== "platform_owner" && role !== "company_owner")) {
     return <WorkspaceState kind="unauthorized" />;
@@ -9264,10 +9299,28 @@ function BackupRestore() {
         title={labels.title}
         detail={labels.detail}
         action={
-          <Button onClick={create} disabled={pending === "create"}>
-            <Database size={15} />
-            {pending === "create" ? "…" : labels.create}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <input
+              ref={uploadInput}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(event) => void upload(event)}
+            />
+            <Button
+              variant="outline"
+              onClick={() => uploadInput.current?.click()}
+              disabled={pending !== ""}
+              title={labels.uploadHint}
+            >
+              <Upload size={15} />
+              {pending === "upload" ? "…" : labels.upload}
+            </Button>
+            <Button onClick={create} disabled={pending !== ""}>
+              <Database size={15} />
+              {pending === "create" ? "…" : labels.create}
+            </Button>
+          </div>
         }
       />
       <Card>
