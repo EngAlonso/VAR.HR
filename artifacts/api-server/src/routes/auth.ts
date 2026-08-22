@@ -54,6 +54,13 @@ const staffInputSchema = z.object({
 });
 const optionalPhone = z.string().trim().refine((value) => value === "" || /^\+?[0-9 ()-]{7,20}$/i.test(value), "Invalid phone number.");
 const optionalEmail = z.string().trim().refine((value) => value === "" || z.string().email().safeParse(value).success, "Invalid email address.");
+const requiredPermanentPassword = z.string().max(256).superRefine((value, ctx) => {
+  if (value.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password is required." });
+  } else if (value.length < 10) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password must be at least 10 characters." });
+  }
+});
 const accountUpdateSchema = z.object({
   displayRole: z.string().trim().min(1).max(80).optional(),
   fullName: z.string().trim().max(160).optional(),
@@ -84,7 +91,7 @@ const companyInputSchema = z.object({
   owners: z.array(z.object({
     fullName: z.string().trim().max(160).default(""),
     username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
-    password: z.string().min(10).max(256),
+    password: requiredPermanentPassword,
     primaryPhone: optionalPhone.default(""),
     backupPhones: z.array(optionalPhone).default([]),
     email: optionalEmail.default(""),
