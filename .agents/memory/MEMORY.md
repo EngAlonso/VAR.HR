@@ -4,3 +4,4 @@
 - [UUID route validation](uuid-route-validation.md) — validate generated string identifiers before Drizzle queries to avoid database-cast 500s.
 - [Responsive logo containment](responsive-logo-containment.md) — intrinsic logo assets need an explicit bounded frame when shared h-auto/max-width styles can override height utilities.
 - [Backup restore referential integrity](backup-restore-referential-integrity.md) — preserved backup records constrain which tenant rows restores may delete.
+- [Mobile drawer gesture input](mobile-drawer-gesture-input.md) — horizontal drawer swipes need pointer capture and an explicit touch-action policy.
