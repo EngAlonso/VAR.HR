@@ -2279,7 +2279,7 @@ export const createPlatformCompanyBodyOwnerCountMax = 20;
 
 export const createPlatformCompanyBodyOwnersItemUsernameMin = 3;
 
-export const createPlatformCompanyBodyOwnersItemPasswordMin = 10;
+export const createPlatformCompanyBodyOwnersItemPasswordMin = 6;
 
 export const createPlatformCompanyBodyOwnersMin = 0;
 export const createPlatformCompanyBodyOwnersMax = 20;

@@ -95,7 +95,7 @@ export type PlatformCompanyInputOwnersItem = {
   fullName?: string;
   /** @minLength 3 */
   username: string;
-  /** @minLength 10 */
+  /** @minLength 6 */
   password: string;
   primaryPhone?: string;
   backupPhones?: string[];

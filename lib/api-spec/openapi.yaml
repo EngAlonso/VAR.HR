@@ -1525,7 +1525,7 @@ components:
             properties:
               fullName: { type: string }
               username: { type: string, minLength: 3 }
-              password: { type: string, minLength: 10 }
+              password: { type: string, minLength: 6 }
               primaryPhone: { type: string }
               backupPhones: { type: array, items: { type: string } }
               email: { type: string, format: email }

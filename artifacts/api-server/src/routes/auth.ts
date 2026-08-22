@@ -57,8 +57,8 @@ const optionalEmail = z.string().trim().refine((value) => value === "" || z.stri
 const requiredPermanentPassword = z.string().max(256).superRefine((value, ctx) => {
   if (value.length === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password is required." });
-  } else if (value.length < 10) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password must be at least 10 characters." });
+  } else if (value.length < 6) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password must be at least 6 characters." });
   }
 });
 const accountUpdateSchema = z.object({
