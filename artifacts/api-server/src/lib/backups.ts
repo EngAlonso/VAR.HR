@@ -79,6 +79,7 @@ const companyScopedTables = new Set([
   "var_hr_attendance_locations",
   "var_hr_employee_identities",
   "var_hr_audit_logs",
+  "var_hr_auth_audit_events",
 ]);
 
 const companyUserTable = "var_hr_user_accounts";
@@ -93,6 +94,7 @@ function quoteIdentifier(identifier: string): string {
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
+  if (value instanceof Date) return value.toISOString();
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
@@ -263,7 +265,10 @@ async function deleteScope(
 ): Promise<void> {
   if (scope === "platform") {
     await client.query(`DELETE FROM "var_hr_auth_sessions"`);
-    for (const table of deleteOrder) {
+    for (const table of deleteOrder.filter(
+      (table) =>
+        table !== companyUserTable && table !== "var_hr_companies",
+    )) {
       await client.query(`DELETE FROM ${quoteIdentifier(table)}`);
     }
     return;
@@ -282,13 +287,24 @@ async function deleteScope(
     `DELETE FROM "${accountPermissionTable}" WHERE account_id = ANY($1::uuid[])`,
     [accountIds],
   );
+  if (accountIds.length) {
+    await client.query(
+      `UPDATE "var_hr_backup_records"
+       SET created_by = (
+         SELECT id FROM "${companyUserTable}"
+         WHERE account_type = 'platform_owner'
+         ORDER BY id
+         LIMIT 1
+       )
+       WHERE created_by = ANY($1::uuid[])`,
+      [accountIds],
+    );
+  }
   for (const table of deleteOrder) {
-    if (table === accountPermissionTable) continue;
-    if (table === "var_hr_companies") {
-      await client.query(`DELETE FROM ${quoteIdentifier(table)} WHERE id = $1`, [
-        companyId,
-      ]);
-    } else if (companyScopedTables.has(table) || table === companyUserTable) {
+    if (table === accountPermissionTable || table === "var_hr_companies") {
+      continue;
+    }
+    if (companyScopedTables.has(table) || table === companyUserTable) {
       await client.query(
         `DELETE FROM ${quoteIdentifier(table)} WHERE company_id = $1`,
         [companyId],
