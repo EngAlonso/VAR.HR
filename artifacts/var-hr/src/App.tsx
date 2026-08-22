@@ -21,12 +21,15 @@ import {
   Link,
   Route,
   Switch,
+  useParams,
   useLocation,
   Router as WouterRouter,
 } from "wouter";
 import {
   AlertCircle,
   Activity,
+  ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   BarChart3,
   Bell,
@@ -10471,6 +10474,7 @@ function Subscription() {
 function Platform() {
   const { t, locale, setLocale } = useI18n();
   const auth = useAuth();
+  const [, setLocation] = useLocation();
   const [summary, setSummary] = useState<PlatformSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -10512,30 +10516,7 @@ function Platform() {
     void load();
   }, []);
   const openCompany = (company: PlatformCompanyDetail) => {
-    setSelectedCompany(company);
-    setEmployeeLimit(String(company.employeeLimit));
-    setCompanyForm({
-      name: company.name,
-      address: company.address ?? "",
-      timezone: company.timezone,
-      currency: company.currency,
-    });
-    setOwnerPassword("");
-    setCompanyDetails(null);
-    void Promise.all([
-      authRequest<PlatformCompanyDetails>(
-        `/api/platform/companies/${encodeURIComponent(company.id)}/details`,
-      ),
-      authRequest<BackupSummary[]>(
-        `/api/backups?scope=company&companyId=${encodeURIComponent(company.id)}`,
-      ),
-    ]).then(([details, backups]) => {
-      setCompanyDetails(details);
-      setOwnerAccounts(details.owners);
-      setCompanyBackups(backups);
-    }).catch(() => {
-      toast.error(locale === "ar" ? "تعذر تحميل أدوات الدعم" : "Could not load support tools");
-    });
+    setLocation(`/platform/companies/${encodeURIComponent(company.id)}`);
   };
   const updateCompany = async (next: {
     name?: string;
@@ -10755,7 +10736,7 @@ function Platform() {
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-2">
             {summary!.companies.map((company) => (
-              <button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40" key={company.id} onClick={() => openCompany(company)}>
+               <button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40" key={company.id} onClick={() => openCompany(company)}>
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{company.name}</div><div className="mt-1 text-xs text-muted-foreground">{company.slug}</div></div><Status value={company.status} /></div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-xs"><Info label={text("Company Owners", "مالكو الشركة")} value={company.ownerCount} /><Info label={text("Subscription price", "سعر الاشتراك")} value={subscriptionPrice(company)} /><Info label={text("Employees", "الموظفون")} value={`${company.activeEmployees}/${company.employeeLimit}`} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(company.createdAt)} /></div>
                 <div className="mt-3 text-xs text-primary">{text("Open details", "فتح التفاصيل")} <ArrowUpRight className="inline" size={13} /></div>
@@ -10916,6 +10897,279 @@ function Platform() {
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function BackButton({ fallback = "/platform" }: { fallback?: string }) {
+  const { locale } = useI18n();
+  const [, setLocation] = useLocation();
+  const isArabic = locale === "ar";
+  return (
+    <Button
+      variant="outline"
+      onClick={() => {
+        if (window.history.length > 1) window.history.back();
+        else setLocation(fallback);
+      }}
+      aria-label={isArabic ? "العودة" : "Go back"}
+    >
+      {isArabic ? <ArrowRight size={15} /> : <ArrowLeft size={15} />}
+      {isArabic ? "رجوع" : "Back"}
+    </Button>
+  );
+}
+
+function PlatformCompanyDetailsPage() {
+  const { locale } = useI18n();
+  const auth = useAuth();
+  const params = useParams<{ companyId: string }>();
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const [details, setDetails] = useState<PlatformCompanyDetails | null>(null);
+  const [backups, setBackups] = useState<BackupSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [ownerPassword, setOwnerPassword] = useState("");
+  const [companyForm, setCompanyForm] = useState({
+    name: "",
+    address: "",
+    timezone: "",
+    currency: "",
+    employeeLimit: "",
+  });
+  const [, setLocation] = useLocation();
+
+  const load = async () => {
+    if (!params.companyId) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [nextDetails, nextBackups] = await Promise.all([
+        authRequest<PlatformCompanyDetails>(
+          `/api/platform/companies/${encodeURIComponent(params.companyId)}/details`,
+        ),
+        authRequest<BackupSummary[]>(
+          `/api/backups?scope=company&companyId=${encodeURIComponent(params.companyId)}`,
+        ),
+      ]);
+      setDetails(nextDetails);
+      setBackups(nextBackups);
+      setCompanyForm({
+        name: nextDetails.company.name,
+        address: nextDetails.company.address,
+        timezone: nextDetails.company.timezone,
+        currency: nextDetails.company.currency,
+        employeeLimit: String(
+          nextDetails.subscription?.employeeLimit ?? 0,
+        ),
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : text("Could not load company details.", "تعذر تحميل تفاصيل الشركة."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, [params.companyId]);
+
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  if (loading && !details) return <Skeleton className="h-[620px]" />;
+  if (error && !details) return <ErrorState retry={() => void load()} />;
+  if (!details) return <WorkspaceState kind="error" />;
+
+  const updateCompany = async () => {
+    setSaving(true);
+    try {
+      await authRequest(`/api/platform/companies/${encodeURIComponent(params.companyId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: companyForm.name,
+          address: companyForm.address,
+          timezone: companyForm.timezone,
+          currency: companyForm.currency,
+          employeeLimit: Number(companyForm.employeeLimit),
+        }),
+      });
+      await load();
+      toast.success(text("Company updated", "تم تحديث الشركة"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not update company.", "تعذر تحديث الشركة."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const updateOwner = async (account: AuthAccount, active: boolean) => {
+    setSaving(true);
+    try {
+      await authRequest(`/api/auth/accounts/${account.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ active }),
+      });
+      await load();
+      toast.success(text("Owner status updated", "تم تحديث حالة المالك"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not update owner.", "تعذر تحديث المالك"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const updateOwnerDetails = async (account: AuthAccount) => {
+    setSaving(true);
+    try {
+      await authRequest(`/api/auth/accounts/${account.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          fullName: account.fullName,
+          primaryPhone: account.primaryPhone,
+          backupPhones: account.backupPhones,
+          email: account.email,
+          backupEmails: account.backupEmails,
+        }),
+      });
+      await load();
+      toast.success(text("Owner details updated", "تم تحديث بيانات المالك"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not update owner details.", "تعذر تحديث بيانات المالك"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const setOwnerPermanentPassword = async (account: AuthAccount) => {
+    if (ownerPassword.length < 10) return;
+    setSaving(true);
+    try {
+      await authRequest(`/api/auth/accounts/${account.id}/set-password`, {
+        method: "POST",
+        body: JSON.stringify({ password: ownerPassword }),
+      });
+      setOwnerPassword("");
+      toast.success(text("Permanent password set", "تم تعيين كلمة المرور الدائمة"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not set password.", "تعذر تعيين كلمة المرور"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const createBackup = async () => {
+    setSaving(true);
+    try {
+      const backup = await authRequest<BackupSummary>("/api/backups", {
+        method: "POST",
+        body: JSON.stringify({ scope: "company", companyId: params.companyId }),
+      });
+      setBackups((current) => [backup, ...current]);
+      toast.success(text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const restoreBackupForCompany = async (backup: BackupSummary) => {
+    if (!window.confirm(text("Restore this company backup? A safety backup will be created first.", "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً."))) return;
+    setSaving(true);
+    try {
+      await authRequest(`/api/backups/${backup.id}/restore`, {
+        method: "POST",
+        body: JSON.stringify({ confirmation: "RESTORE" }),
+      });
+      await load();
+      toast.success(text("Company data restored", "تمت استعادة بيانات الشركة"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not restore backup.", "تعذر استعادة النسخة"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const status = details.company.active ? text("Active", "نشطة") : text("Suspended", "موقوفة");
+  const operationalGroups = [
+    ["Payroll", ["var_hr_payroll_periods", "var_hr_payroll_calculations", "var_hr_payroll_adjustments"]],
+    ["Attendance", ["var_hr_attendance", "var_hr_attendance_locations", "var_hr_biometric_events", "var_hr_biometric_sync_history"]],
+    ["People & structure", ["var_hr_departments", "var_hr_branches", "var_hr_employees", "var_hr_employee_hr_records", "var_hr_employee_identities"]],
+    ["Rules & schedules", ["var_hr_attendance_rules", "var_hr_work_schedules", "var_hr_holidays", "var_hr_leave_balances", "var_hr_leave_requests", "var_hr_permission_requests"]],
+  ] as const;
+  return (
+    <div className="animate-in space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BackButton />
+        <Badge tone={details.company.active ? "accent" : "neutral"}>{status}</Badge>
+      </div>
+      <SectionTitle
+        eyebrow={text("Platform administration", "إدارة المنصة")}
+        title={details.company.name}
+        detail={text("Company details and support controls", "تفاصيل الشركة وأدوات الدعم")}
+        action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} />{text("Refresh", "تحديث")}</Button>}
+      />
+
+      <Card className="border-primary/20 bg-primary/[.04] p-5">
+        <div className="flex items-center gap-2"><Building2 size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Platform Owner-entered company information", "بيانات الشركة التي أدخلها مالك المنصة")}</h2></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Info label={text("Company name", "اسم الشركة")} value={details.company.name} />
+          <Info label={text("Address", "العنوان")} value={details.company.address || "—"} />
+          <Info label={text("Slug", "المعرّف")} value={details.company.slug} />
+          <Info label={text("Timezone", "المنطقة الزمنية")} value={details.company.timezone} />
+          <Info label={text("Currency", "العملة")} value={details.company.currency} />
+          <Info label={text("Registration date", "تاريخ التسجيل")} value={date(details.company.createdAt)} />
+          <Info label={text("Subscription", "الاشتراك")} value={details.subscription ? `${details.subscription.planName} · ${details.subscription.status}` : text("Not configured", "غير مهيأ")} />
+          <Info label={text("Employee limit", "حد الموظفين")} value={details.subscription?.employeeLimit ?? "—"} />
+          <Info label={text("Monthly price", "السعر الشهري")} value={details.subscription?.monthlyPrice ? `${details.subscription.monthlyPrice} ${details.company.currency}` : "—"} />
+          <Info label={text("Annual price", "السعر السنوي")} value={details.subscription?.annualPrice ? `${details.subscription.annualPrice} ${details.company.currency}` : "—"} />
+        </div>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="flex items-center gap-2"><UserRound size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company Owners", "مالكو الشركة")}</h2></div>
+          <div className="mt-4 space-y-4">
+            {details.owners.length ? details.owners.map((account) => (
+              <div className="rounded-xl border border-border p-4" key={account.id}>
+                <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.fullName || account.username}</div><div className="text-xs text-muted-foreground">{account.username} · {account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm"><Info label={text("Phone", "الهاتف")} value={account.primaryPhone || "—"} /><Info label={text("Email", "البريد الإلكتروني")} value={account.email || "—"} /><Info label={text("Backup phones", "الهواتف الاحتياطية")} value={account.backupPhones.join(", ") || "—"} /><Info label={text("Backup emails", "البريد الاحتياطي")} value={account.backupEmails.join(", ") || "—"} /></div>
+                <div className="mt-3 flex flex-wrap gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateOwnerDetails(account)}>{text("Save owner details", "حفظ بيانات المالك")}</Button><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
+              </div>
+            )) : <Empty title={text("No Company Owner accounts found.", "لم يتم العثور على حسابات مالكي الشركة.")} detail="" />}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Live operational overview", "نظرة على البيانات التشغيلية الحالية")}</h2></div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label={text("Employees", "الموظفون")} value={details.employees.length} /><Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={details.staff.length} /><Info label={text("Biometric devices", "أجهزة البصمة")} value={details.devices.length} /><Info label={text("Integrity checksum", "بصمة التكامل")} value={details.integrity.checksum.slice(0, 16) + "…"} /></div>
+          <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور" : label === "People & structure" ? "الأفراد والهيكل" : "القواعد والجداول")}</div><div className="mt-2 grid grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span key={table}>{table.replace("var_hr_", " ").replaceAll("_", " ")}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
+        </Card>
+      </div>
+
+      <Card className="p-5">
+        <div className="flex items-center gap-2"><Users size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("People and biometric devices", "الأفراد وأجهزة البصمة")}</h2></div>
+        <div className="mt-4 grid gap-6 lg:grid-cols-3">
+          <div><h3 className="text-sm font-semibold">{text("Staff accounts", "حسابات الموظفين الإداريين")}</h3><div className="mt-2 space-y-1 text-sm">{details.staff.length ? details.staff.map((account) => <div key={account.id}>{account.fullName || account.username} <span className="text-muted-foreground">· {account.displayRole}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
+          <div><h3 className="text-sm font-semibold">{text("Employees", "الموظفون")}</h3><div className="mt-2 space-y-1 text-sm">{details.employees.length ? details.employees.map((employee) => <div key={String(employee.id)}>{String(employee.first_name ?? "")} {String(employee.last_name ?? "")}</div>) : <span className="text-muted-foreground">—</span>}</div></div>
+          <div><h3 className="text-sm font-semibold">{text("Biometric devices", "أجهزة البصمة")}</h3><div className="mt-2 space-y-1 text-sm">{details.devices.length ? details.devices.map((device) => <div key={String(device.id)}>{String(device.name ?? "Unnamed")} <span className="text-muted-foreground">· {String(device.status ?? "unknown")}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex items-center gap-2"><Settings size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company settings", "إعدادات الشركة")}</h2></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Field label={text("Company name", "اسم الشركة")} value={companyForm.name} onChange={(value) => setCompanyForm({ ...companyForm, name: value })} />
+          <Field label={text("Address", "العنوان")} value={companyForm.address} onChange={(value) => setCompanyForm({ ...companyForm, address: value })} />
+          <Field label={text("Timezone", "المنطقة الزمنية")} value={companyForm.timezone} onChange={(value) => setCompanyForm({ ...companyForm, timezone: value })} />
+          <Field label={text("Currency", "العملة")} value={companyForm.currency} onChange={(value) => setCompanyForm({ ...companyForm, currency: value.toUpperCase() })} />
+          <Field label={text("Employee limit", "حد الموظفين")} value={companyForm.employeeLimit} onChange={(value) => setCompanyForm({ ...companyForm, employeeLimit: value })} type="number" />
+        </div>
+        <div className="mt-4 flex justify-end"><Button disabled={saving} onClick={() => void updateCompany()}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button></div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Database size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h2></div><Button disabled={saving} onClick={() => void createBackup()}><Database size={15} />{text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}</Button></div>
+        <div className="mt-4 space-y-2">{backups.length ? backups.map((backup) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><div><div>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</div><div className="text-xs text-muted-foreground">{backup.checksum}</div></div><Button variant="outline" disabled={saving} onClick={() => void restoreBackupForCompany(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
+      </Card>
+
+      <Card className="p-5"><details><summary className="cursor-pointer font-semibold">{text("View all company-owned operational records", "عرض جميع سجلات الشركة التشغيلية")}</summary><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/60 p-4 text-xs text-muted-foreground">{JSON.stringify(details.operationalData, null, 2)}</pre></details></Card>
+      <div className="flex justify-start"><Button variant="outline" onClick={() => setLocation("/platform")}><Network size={15} />{text("Back to Platform control center", "العودة إلى مركز تحكم المنصة")}</Button></div>
     </div>
   );
 }
@@ -11237,6 +11491,7 @@ function Router() {
         <Route path="/backups" component={BackupRestore} />
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
+        <Route path="/platform/companies/:companyId" component={PlatformCompanyDetailsPage} />
         <Route path="/platform" component={Platform} />
         <Route component={NotFoundRoute} />
       </Switch>

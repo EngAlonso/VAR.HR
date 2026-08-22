@@ -1,0 +1,58 @@
+Update the navigation and Company Details experience.
+
+1. Platform Owner → Company Details
+Replace the current Company Details modal with a dedicated full page.
+
+The new Company Details page must:
+- Open as a separate route/page.
+- Display all existing company information in a clean, organized, professional layout.
+- Use clear sections/cards, appropriate spacing, typography, icons, and meaningful colors.
+- Separate Platform Owner-entered company information from live company operational data.
+- Clearly organize owners, staff accounts, employees, biometric devices, subscription, payroll, attendance, rules, departments, schedules, and other available company data.
+- Keep the existing Company Backup action available on this page.
+- Do not remove or change any existing company-management functionality.
+
+2. Add a reusable Back button/navigation pattern.
+
+The Back button must:
+- Return the user to the immediately previous page/context.
+- Use browser/history navigation when appropriate instead of hardcoding a specific destination.
+- Preserve the previous page's state whenever possible.
+- Work correctly with direct navigation and normal navigation.
+- Support both Arabic RTL and English LTR.
+- Use the existing VAR HR design system and branding.
+
+3. Apply this Back button pattern consistently across the entire application:
+- Platform Owner pages
+- Company Owner pages
+- HR/Admin/Manager pages
+- Employee pages
+- New detail pages
+- Existing detail/sub-pages where a clear parent context exists
+
+Do not blindly add duplicate Back buttons to every screen. Use the pattern where it improves page hierarchy and navigation.
+
+IMPORTANT:
+- Do not change authentication or session behavior.
+- Do not change tenant isolation.
+- Do not change permissions.
+- Do not change backup/restore logic.
+- Do not change existing business logic.
+- Do not modify database schemas unless absolutely required for routing.
+- Reuse existing components/design tokens where possible.
+- Keep the existing responsive behavior.
+- Preserve Arabic RTL and English LTR.
+- Do not create mock data.
+- Use the existing real API/data.
+
+Before editing, inspect the existing routing and navigation architecture and implement this as a reusable navigation component/pattern rather than duplicating button logic across pages.
+
+Verify:
+- Company Details opens as a dedicated page.
+- Back returns to the exact previous context.
+- Existing company list behavior remains intact.
+- Platform Owner, Company Owner, staff, and employee navigation still works.
+- Authentication and tenant isolation remain unchanged.
+- Typecheck and build pass.
+
+Do not perform screenshots or visual inspection.
