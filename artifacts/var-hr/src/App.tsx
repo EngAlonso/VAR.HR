@@ -4,9 +4,11 @@ import {
   type FormEvent,
   type HTMLAttributes,
   type ReactNode,
+  type TouchEvent,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -3293,7 +3295,7 @@ function Card({
     <section
       {...props}
       className={cn(
-        "rounded-xl border border-border bg-card shadow-[var(--shadow-sm)]",
+        "min-w-0 rounded-xl border border-border bg-card shadow-[var(--shadow-sm)]",
         className,
       )}
     >
@@ -3373,8 +3375,8 @@ function SectionTitle({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-      <div>
+    <div className="mobile-section-title mb-6 flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="min-w-0">
         <p className="mb-1 text-[11px] font-bold uppercase tracking-[.16em] text-primary">
           {eyebrow}
         </p>
@@ -4003,6 +4005,7 @@ function WorkspaceState({
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
   const isArabic = locale === "ar";
@@ -4024,6 +4027,25 @@ function Shell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
+  const handleTouchStart = (event: TouchEvent) => {
+    touchStartX.current = event.changedTouches[0]?.clientX ?? null;
+  };
+  const handleTouchEnd = (event: TouchEvent) => {
+    const startX = touchStartX.current;
+    touchStartX.current = null;
+    if (startX === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? startX;
+    const deltaX = endX - startX;
+    if (Math.abs(deltaX) < 48) return;
+    const startedAtEdge = isArabic
+      ? startX >= window.innerWidth - 32
+      : startX <= 32;
+    if (open) {
+      if (isArabic ? deltaX > 0 : deltaX < 0) setOpen(false);
+    } else if (startedAtEdge && (isArabic ? deltaX < 0 : deltaX > 0)) {
+      setOpen(true);
+    }
+  };
   if (workspaceQuery.isLoading) return <WorkspaceState kind="loading" />;
   if (workspaceQuery.isError || !workspaceQuery.data) {
     const status = queryStatus(workspaceQuery.error);
@@ -4054,6 +4076,8 @@ function Shell({ children }: { children: ReactNode }) {
     <div
       className="app-noise min-h-[100dvh] bg-background"
       dir={isArabic ? "rtl" : "ltr"}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <aside
         id="workspace-navigation"
@@ -4078,7 +4102,7 @@ function Shell({ children }: { children: ReactNode }) {
         <Button
           variant="quiet"
           className={cn(
-            "absolute top-4 p-2 text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground lg:hidden",
+            "absolute top-4 min-h-10 min-w-10 p-2 text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground lg:hidden",
             isArabic ? "left-4" : "right-4",
           )}
           onClick={() => setOpen(false)}
@@ -4163,7 +4187,7 @@ function Shell({ children }: { children: ReactNode }) {
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
-              className="min-h-9 min-w-9 p-2 lg:hidden"
+              className="min-h-10 min-w-10 p-2 lg:hidden"
               onClick={() => setOpen(true)}
               aria-label={t("openNavigation")}
               aria-controls="workspace-navigation"
@@ -4202,7 +4226,7 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs font-medium text-muted-foreground sm:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
+            <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
               <select
                 aria-label={t("language")}
@@ -4238,7 +4262,7 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] px-4 py-7 sm:px-8 sm:py-9">
+        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 py-5 sm:px-8 sm:py-9">
           {children}
         </main>
       </div>
@@ -5395,7 +5419,7 @@ function Employees() {
                   </p>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
+              <div className="mt-6 grid grid-cols-1 gap-3 text-sm min-[360px]:grid-cols-2">
                 <Info
                   label={t("employeeNumber")}
                   value={employee.data.employeeNumber}
@@ -6272,7 +6296,7 @@ function Requests() {
               )}
             </label>
             {kind === "leave" ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
                 <Field
                   label={t("from")}
                   type="date"
@@ -7717,7 +7741,7 @@ function Payroll() {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 p-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
                 {[
                   [t("basic"), calculation.data.totals.basicSalary],
                   [t("additions"), calculation.data.totals.additions],

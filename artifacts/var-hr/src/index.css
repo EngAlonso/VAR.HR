@@ -82,4 +82,35 @@
   .animate-in { animation: reveal .45s ease both; }
   .delay-1 { animation-delay: .05s; } .delay-2 { animation-delay: .1s; } .delay-3 { animation-delay: .15s; }
 }
+@media (max-width: 639px) {
+  .mobile-main {
+    min-width: 0;
+  }
+  .mobile-main .mobile-section-title > :last-child {
+    width: 100%;
+  }
+  .mobile-main .mobile-section-title > :last-child > button {
+    min-height: 2.5rem;
+  }
+  .mobile-main .overflow-x-auto {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .mobile-main table {
+    font-size: .75rem;
+  }
+  .mobile-main th,
+  .mobile-main td {
+    white-space: normal;
+  }
+  .mobile-main input,
+  .mobile-main select,
+  .mobile-main textarea {
+    min-height: 2.75rem;
+  }
+  .mobile-main button {
+    min-height: 2.5rem;
+  }
+}
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
