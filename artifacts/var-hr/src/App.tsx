@@ -76,6 +76,7 @@ import {
   ErrorBoundary,
   type ErrorFallbackProps,
 } from "@/components/error-boundary";
+import { useIsMobile } from "@/hooks/use-mobile";
 import NotFound from "@/pages/not-found";
 import {
   useGetWorkspace,
@@ -4146,6 +4147,7 @@ function Shell({ children }: { children: ReactNode }) {
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
   const isArabic = locale === "ar";
+  const isMobile = useIsMobile();
   const workspaceQuery = useGetWorkspace();
   const summaryQuery = useGetDashboardSummary({
     query: {
@@ -4169,21 +4171,21 @@ function Shell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
   const handleTouchStart = (event: TouchEvent) => {
+    if (!isArabic || !isMobile) return;
     touchStartX.current = event.changedTouches[0]?.clientX ?? null;
   };
   const handleTouchEnd = (event: TouchEvent) => {
+    if (!isArabic || !isMobile) return;
     const startX = touchStartX.current;
     touchStartX.current = null;
     if (startX === null) return;
     const endX = event.changedTouches[0]?.clientX ?? startX;
     const deltaX = endX - startX;
     if (Math.abs(deltaX) < 48) return;
-    const startedAtEdge = isArabic
-      ? startX >= window.innerWidth - 32
-      : startX <= 32;
+    const startedAtEdge = startX >= window.innerWidth - 32;
     if (open) {
-      if (isArabic ? deltaX > 0 : deltaX < 0) setOpen(false);
-    } else if (startedAtEdge && (isArabic ? deltaX < 0 : deltaX > 0)) {
+      if (deltaX > 0) setOpen(false);
+    } else if (startedAtEdge && deltaX < 0) {
       setOpen(true);
     }
   };
