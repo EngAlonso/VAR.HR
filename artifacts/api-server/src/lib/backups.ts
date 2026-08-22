@@ -116,6 +116,11 @@ async function rowsForTable(
       companyId,
     ])).rows;
   }
+  if (scope === "company" && table === "var_hr_companies") {
+    return (await client.query(`SELECT * FROM ${tableName} WHERE id = $1`, [
+      companyId,
+    ])).rows;
+  }
   if (scope === "company" && table === accountPermissionTable) {
     return [];
   }
@@ -290,6 +295,20 @@ async function insertScope(
     for (const row of data[table] ?? []) {
       if (scope === "company" && table === companyUserTable && row.company_id !== companyId) {
         throw new Error("Backup contains an account outside its company.");
+      }
+      if (
+        scope === "company" &&
+        companyScopedTables.has(table) &&
+        row.company_id !== companyId
+      ) {
+        throw new Error("Backup contains data outside its company.");
+      }
+      if (
+        scope === "company" &&
+        table === "var_hr_companies" &&
+        row.id !== companyId
+      ) {
+        throw new Error("Backup contains a company outside the restore scope.");
       }
       const json = JSON.stringify(row);
       await client.query(

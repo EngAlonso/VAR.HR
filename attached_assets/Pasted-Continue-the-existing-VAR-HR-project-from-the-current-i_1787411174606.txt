@@ -1,0 +1,169 @@
+Continue the existing VAR HR project from the current implementation state. This is a continuation from another ChatGPT account.
+
+Do NOT restart the implementation, do NOT redo the previous investigation, and do NOT make broad changes just to re-understand the project. Continue from the existing code.
+
+Feature currently being implemented
+
+We are implementing a production-ready Backup & Restore system for the VAR HR multi-tenant HR platform.
+
+There are two backup scopes:
+
+Platform Owner
+
+The platform owner must be able to:
+
+- Create a complete backup of the entire VAR HR platform.
+- Include all companies/tenants and all of their HR data.
+- Download/manage backups.
+- Restore the entire platform.
+- Restore must preserve relationships and tenant data correctly.
+
+Company Owner
+
+Each company owner must be able to:
+
+- Create a backup of ONLY their own company.
+- Download/manage their own backups.
+- Restore ONLY their own company.
+- Never access, download, or restore another company's backup/data.
+
+Tenant isolation must be enforced on the backend, not just by hiding UI controls.
+
+Already implemented
+
+The Backup & Restore backend foundation has already been implemented.
+
+It includes:
+
+- Versioned JSON backup envelope.
+- Backup scope metadata.
+- SHA-256 integrity validation.
+- PostgreSQL transaction-based restore.
+- Automatic safety backup before restore.
+- Strict Platform Owner vs Company Owner authorization.
+- Strict tenant/company ownership checks.
+- Backend-protected backup/restore endpoints.
+- The existing PostgreSQL/Drizzle architecture is being used.
+- No new parallel architecture was introduced.
+- The API/backend compiles successfully after resolving the initial integration issues.
+
+The project was also inspected and confirmed to have no external file/object-storage implementation currently used by the application. Therefore the current complete application dataset is database-backed, and there are no external uploaded files that need to be included at this stage.
+
+Where the previous implementation stopped
+
+The previous ChatGPT account stopped after beginning the user-facing Backup & Restore UI.
+
+The exact last implementation message was:
+
+«“The backend compiles with strict tenant scoping. I’m adding the user-facing Backup & Restore section next as a responsive card/list interface rather than a desktop-only table, with scope-specific actions and confirmation flows tied to the protected endpoints.”»
+
+The account then ran out of Free credits.
+
+Continue from here
+
+Your immediate task is:
+
+Finish the Backup & Restore UI and complete the feature.
+
+The UI should be responsive and mobile-friendly.
+
+For Platform Owner:
+
+- System Backup & Restore section.
+- Create full backup.
+- View backup history.
+- Show date/time, size, scope, and status.
+- Download backup.
+- Restore backup.
+- Delete backup where appropriate.
+
+For Company Owner:
+
+- Company Backup & Restore section.
+- Create company-only backup.
+- View only their own backups.
+- Download their own backup.
+- Restore their own backup.
+- Delete their own backup where appropriate.
+
+Use clear confirmation dialogs before destructive operations, especially restore and delete.
+
+Critical security requirements
+
+Do NOT rely only on frontend visibility.
+
+Every backend operation must enforce:
+
+- authenticated user
+- user role
+- tenant/company ID
+- backup ownership
+- backup scope
+
+A Company Owner must NEVER be able to:
+
+- Access another company's backup.
+- Download another company's backup.
+- Restore another company's backup.
+- Trigger a platform-wide restore.
+
+Restore safety
+
+Keep the existing restore safety implementation.
+
+A restore should:
+
+- Validate backup integrity.
+- Verify backup format/version.
+- Verify the backup scope.
+- Use a database transaction where appropriate.
+- Avoid leaving partially restored data after failure.
+- Create/use the automatic safety backup before destructive restoration as already implemented.
+
+Do not modify
+
+Do NOT modify:
+
+- Authentication
+- API architecture unnecessarily
+- Database architecture unnecessarily
+- Payroll logic
+- Attendance logic
+- Leave logic
+- Employee business logic
+- Dashboard functionality
+- Navigation destinations
+- Branding/logo assets
+- Existing mobile header fixes
+
+Only add/finish the Backup & Restore feature and any strictly necessary integration.
+
+Final testing required
+
+After finishing the UI, test the complete feature:
+
+1. Platform Owner creates a full backup.
+2. Full backup contains multiple companies and their related data.
+3. Platform Owner can restore the full backup.
+4. Company Owner creates a backup.
+5. Company backup contains ONLY that company.
+6. Company Owner cannot see another company's backup.
+7. Company Owner cannot download another company's backup.
+8. Company Owner cannot restore another company's backup.
+9. Company restore correctly restores the company's employees and HR records.
+10. Invalid/corrupted backup is rejected safely.
+11. Restore failure does not leave partial/corrupted data.
+12. Automatic safety backup works before restore.
+13. Backup/restore UI works properly on mobile.
+14. Desktop/tablet layouts remain stable.
+15. Existing authentication and application workflows remain functional.
+
+Important working rule
+
+Do NOT simply report that the feature is complete because the code compiles.
+
+Actually verify the critical permission and tenant-isolation scenarios.
+
+If something is already implemented, preserve it. Do not rewrite working backend logic unnecessarily.
+
+Continue directly from the current implementation and finish what was left incomplete.
