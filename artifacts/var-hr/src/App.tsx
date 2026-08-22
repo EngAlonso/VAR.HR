@@ -4259,12 +4259,20 @@ function Shell({ children }: { children: ReactNode }) {
               <BrandLogo variant="horizontal" className="w-full" />
             </div>
             <div className="mt-3 lg:hidden">
-              <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                {workspace.company.name}
-              </p>
-              <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
-                {auth.account.fullName}
-              </p>
+              {isPlatformOwner ? (
+                <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                  {auth.account.fullName}
+                </p>
+              ) : (
+                <>
+                  <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                    {workspace.company.name}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
+                    {auth.account.fullName}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
