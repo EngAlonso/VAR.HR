@@ -4159,7 +4159,7 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:px-8">
+        <header className="relative sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="outline"
@@ -4178,7 +4178,7 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
             <BrandLogo
               variant="short"
-              className="h-7 w-auto max-w-[104px] object-contain sm:hidden"
+              className="absolute left-1/2 top-1/2 h-9 w-auto max-w-[72px] -translate-x-1/2 -translate-y-1/2 object-contain sm:hidden"
             />
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
