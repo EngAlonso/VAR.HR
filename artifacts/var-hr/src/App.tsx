@@ -176,12 +176,18 @@ type AuthAccount = {
   employeeId: string | null;
   active: boolean;
   permissions: string[];
+  fullName: string;
+  primaryPhone: string;
+  backupPhones: string[];
+  email: string;
+  backupEmails: string[];
 };
 type PlatformCompanyDetail = {
   id: string;
   name: string;
   slug: string;
   timezone: string;
+  address?: string;
   currency: string;
   active: boolean;
   status: string;
@@ -10392,6 +10398,7 @@ function Platform() {
   const [employeeLimit, setEmployeeLimit] = useState("");
   const [companyForm, setCompanyForm] = useState({
     name: "",
+    address: "",
     timezone: "",
     currency: "",
   });
@@ -10427,6 +10434,7 @@ function Platform() {
     setEmployeeLimit(String(company.employeeLimit));
     setCompanyForm({
       name: company.name,
+      address: company.address ?? "",
       timezone: company.timezone,
       currency: company.currency,
     });
@@ -10447,6 +10455,7 @@ function Platform() {
   };
   const updateCompany = async (next: {
     name?: string;
+    address?: string;
     timezone?: string;
     currency?: string;
     status?: "active" | "suspended";
@@ -10488,6 +10497,21 @@ function Platform() {
       toast.success(locale === "ar" ? "تم تحديث حالة المالك" : "Owner status updated");
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Could not update owner");
+    }
+  };
+  const updateOwnerDetails = async (account: AuthAccount, changes: Partial<AuthAccount>) => {
+    setSaving(true);
+    try {
+      const result = await authRequest<{ account: AuthAccount }>(
+        `/api/auth/accounts/${account.id}`,
+        { method: "PATCH", body: JSON.stringify(changes) },
+      );
+      setOwnerAccounts((current) => current.map((item) => item.id === result.account.id ? result.account : item));
+      toast.success(locale === "ar" ? "تم تحديث بيانات المالك" : "Owner details updated");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Could not update owner details");
+    } finally {
+      setSaving(false);
     }
   };
   const setOwnerPermanentPassword = async (account: AuthAccount) => {
@@ -10684,16 +10708,25 @@ function Platform() {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-semibold">{text("Company name", "اسم الشركة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.name} onChange={(event) => setCompanyForm({ ...companyForm, name: event.target.value })} /></label>
                 <label className="text-sm font-semibold">{text("Timezone", "المنطقة الزمنية")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.timezone} onChange={(event) => setCompanyForm({ ...companyForm, timezone: event.target.value })} /></label>
+                <label className="text-sm font-semibold">{text("Company address", "عنوان الشركة")}<textarea className="mt-2 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal" value={companyForm.address ?? ""} onChange={(event) => setCompanyForm({ ...companyForm, address: event.target.value })} /></label>
                 <label className="text-sm font-semibold">{text("Currency", "العملة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" maxLength={3} value={companyForm.currency} onChange={(event) => setCompanyForm({ ...companyForm, currency: event.target.value.toUpperCase() })} /></label>
-                <label className="text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" type="number" min="1" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label>
+                <label className="text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" type="number" min="0" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label>
               </div>
-              <div className="mt-3 flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ name: companyForm.name, timezone: companyForm.timezone, currency: companyForm.currency, employeeLimit: Number(employeeLimit) })}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
+              <div className="mt-3 flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ name: companyForm.name, address: companyForm.address, timezone: companyForm.timezone, currency: companyForm.currency, employeeLimit: Number(employeeLimit) })}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
             </div>
             <div className="border-t border-border pt-5">
               <h3 className="font-semibold">{text("Company Owner access", "وصول مالك الشركة")}</h3>
               <div className="mt-3 space-y-3">
                 {ownerAccounts.length ? ownerAccounts.map((account) => <div className="rounded-lg border border-border p-3" key={account.id}>
                   <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.username}</div><div className="text-xs text-muted-foreground">{account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <Field label={text("Full name", "الاسم الكامل")} value={account.fullName} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, fullName: value } : item))} />
+                    <Field label={text("Primary phone", "الهاتف الأساسي")} value={account.primaryPhone} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, primaryPhone: value } : item))} />
+                    <Field label={text("Email", "البريد الإلكتروني")} type="email" value={account.email} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, email: value } : item))} />
+                    <Field label={text("Backup phones (comma separated)", "هواتف احتياطية")} value={account.backupPhones.join(", ")} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, backupPhones: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item))} />
+                    <Field label={text("Backup emails (comma separated)", "بريد احتياطي")} type="email" value={account.backupEmails.join(", ")} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, backupEmails: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item))} />
+                  </div>
+                  <Button className="mt-3 w-full" variant="outline" disabled={saving} onClick={() => void updateOwnerDetails(account, { fullName: account.fullName, primaryPhone: account.primaryPhone, backupPhones: account.backupPhones, email: account.email, backupEmails: account.backupEmails })}>{text("Save owner details", "حفظ بيانات المالك")}</Button>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row"><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
                 </div>) : <p className="text-sm text-muted-foreground">{text("No Company Owner account found.", "لم يتم العثور على مالك للشركة.")}</p>}
               </div>
@@ -10723,15 +10756,15 @@ function AddCompanyModal({
     backupPhones: "", email: "", backupEmails: "",
   });
   const [company, setCompany] = useState({
-    name: "", address: "", currency: "EGP", employeeLimit: "100",
-    monthlyPrice: "0", annualPrice: "0", ownerCount: "1",
+    name: "", address: "", currency: "", employeeLimit: "",
+    monthlyPrice: "", annualPrice: "", ownerCount: "0",
   });
-  const [owners, setOwners] = useState<NewCompanyOwner[]>([emptyOwner()]);
+  const [owners, setOwners] = useState<NewCompanyOwner[]>([]);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ name: string; usernames: string[] } | null>(null);
 
   const updateOwnerCount = (value: string) => {
-    const count = Math.max(1, Math.min(20, Number(value) || 1));
+    const count = Math.max(0, Math.min(20, Number(value) || 0));
     setCompany((current) => ({ ...current, ownerCount: String(count) }));
     setOwners((current) => Array.from({ length: count }, (_, index) => current[index] ?? emptyOwner()));
   };
@@ -10744,11 +10777,11 @@ function AddCompanyModal({
         body: JSON.stringify({
           name: company.name,
           address: company.address,
-          currency: company.currency.toUpperCase(),
-          employeeLimit: Number(company.employeeLimit),
+          ...(company.currency ? { currency: company.currency.toUpperCase() } : {}),
+          ...(company.employeeLimit ? { employeeLimit: Number(company.employeeLimit) } : {}),
           ownerCount: Number(company.ownerCount),
-          monthlyPrice: Number(company.monthlyPrice),
-          annualPrice: Number(company.annualPrice),
+          ...(company.monthlyPrice ? { monthlyPrice: Number(company.monthlyPrice) } : {}),
+          ...(company.annualPrice ? { annualPrice: Number(company.annualPrice) } : {}),
           owners: owners.map((owner) => ({
             ...owner,
             backupPhones: owner.backupPhones.split(",").map((item) => item.trim()).filter(Boolean),
@@ -10786,10 +10819,10 @@ function AddCompanyModal({
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Company information", "معلومات الشركة")}</div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={text("Company name", "اسم الشركة")} required value={company.name} onChange={(value) => setCompany({ ...company, name: value })} />
-              <Field label={text("Currency", "العملة")} required value={company.currency} onChange={(value) => setCompany({ ...company, currency: value })} />
-              <label className="text-sm font-semibold sm:col-span-2">{text("Company address", "عنوان الشركة")}<textarea required minLength={3} className="mt-2 min-h-20 w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm font-normal" value={company.address} onChange={(event) => setCompany({ ...company, address: event.target.value })} /></label>
-              <Field label={text("Employee limit", "حد الموظفين")} type="number" required value={company.employeeLimit} onChange={(value) => setCompany({ ...company, employeeLimit: value })} />
-              <Field label={text("Number of company owners", "عدد مالكي الشركة")} type="number" required value={company.ownerCount} onChange={updateOwnerCount} />
+              <Field label={text("Currency", "العملة")} value={company.currency} onChange={(value) => setCompany({ ...company, currency: value })} />
+              <label className="text-sm font-semibold sm:col-span-2">{text("Company address", "عنوان الشركة")}<textarea className="mt-2 min-h-20 w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm font-normal" value={company.address} onChange={(event) => setCompany({ ...company, address: event.target.value })} /></label>
+              <Field label={text("Employee limit", "حد الموظفين")} type="number" value={company.employeeLimit} onChange={(value) => setCompany({ ...company, employeeLimit: value })} />
+              <Field label={text("Number of company owners", "عدد مالكي الشركة")} type="number" min="0" value={company.ownerCount} onChange={updateOwnerCount} />
             </div>
           </div>
           <div>
@@ -10815,7 +10848,7 @@ function AddCompanyModal({
                       ["email", text("Email address", "البريد الإلكتروني")],
                       ["backupEmails", text("Backup emails (comma separated)", "بريد احتياطي (مفصول بفواصل)")]
                     ] as const).map(([key, label]) => (
-                      <Field key={key} label={label} type={key === "password" ? "password" : key.includes("email") ? "email" : "text"} required={["fullName", "username", "password", "primaryPhone", "email"].includes(key)} value={owner[key]} onChange={(value) => setOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item))} />
+                      <Field key={key} label={label} type={key === "password" ? "password" : key === "email" || key === "backupEmails" ? "email" : "text"} required={["username", "password"].includes(key)} value={owner[key]} onChange={(value) => setOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item))} />
                     ))}
                   </div>
                 </div>
@@ -10871,6 +10904,7 @@ function Field({
   value,
   onChange,
   type = "text",
+  min,
   required = false,
   autoComplete,
   placeholder,
@@ -10884,6 +10918,7 @@ function Field({
   value: any;
   onChange: (value: string) => void;
   type?: string;
+  min?: string | number;
   required?: boolean;
   autoComplete?: string;
   placeholder?: string;
@@ -10911,6 +10946,7 @@ function Field({
           name={name}
           required={required}
           type={inputType}
+          min={min}
           inputMode={authStyle && type === "text" ? "tel" : undefined}
           dir={authStyle ? "ltr" : undefined}
           spellCheck={false}

@@ -18,6 +18,6 @@ export interface PlatformCompanyUpdate {
   currency?: string;
   active?: boolean;
   status?: PlatformCompanyUpdateStatus;
-  /** @minimum 1 */
+  /** @minimum 0 */
   employeeLimit?: number;
 }

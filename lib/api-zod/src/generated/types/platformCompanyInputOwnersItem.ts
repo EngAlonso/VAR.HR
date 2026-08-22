@@ -7,15 +7,13 @@
  */
 
 export type PlatformCompanyInputOwnersItem = {
-  /** @minLength 2 */
-  fullName: string;
+  fullName?: string;
   /** @minLength 3 */
   username: string;
   /** @minLength 10 */
   password: string;
-  /** @minLength 7 */
-  primaryPhone: string;
+  primaryPhone?: string;
   backupPhones?: string[];
-  email: string;
+  email?: string;
   backupEmails?: string[];
 };

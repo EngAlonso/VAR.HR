@@ -2266,24 +2266,22 @@ export const ListPlatformCompaniesResponse = zod.array(ListPlatformCompaniesResp
  */
 export const createPlatformCompanyBodyNameMin = 2;
 
-export const createPlatformCompanyBodyAddressMin = 3;
-
 export const createPlatformCompanyBodyTimezoneDefault = `Africa/Cairo`;
 export const createPlatformCompanyBodyCurrencyDefault = `EGP`;
 export const createPlatformCompanyBodyCurrencyMin = 3;
 export const createPlatformCompanyBodyCurrencyMax = 3;
 
+export const createPlatformCompanyBodyEmployeeLimitMin = 0;
 
+export const createPlatformCompanyBodyOwnerCountDefault = 0;
+export const createPlatformCompanyBodyOwnerCountMin = 0;
 export const createPlatformCompanyBodyOwnerCountMax = 20;
-
-export const createPlatformCompanyBodyOwnersItemFullNameMin = 2;
 
 export const createPlatformCompanyBodyOwnersItemUsernameMin = 3;
 
 export const createPlatformCompanyBodyOwnersItemPasswordMin = 10;
 
-export const createPlatformCompanyBodyOwnersItemPrimaryPhoneMin = 7;
-
+export const createPlatformCompanyBodyOwnersMin = 0;
 export const createPlatformCompanyBodyOwnersMax = 20;
 
 export const createPlatformCompanyBodyMonthlyPriceMin = 0;
@@ -2294,23 +2292,23 @@ export const createPlatformCompanyBodyActiveDefault = true;
 
 export const CreatePlatformCompanyBody = zod.object({
   "name": zod.string().min(createPlatformCompanyBodyNameMin),
-  "address": zod.string().min(createPlatformCompanyBodyAddressMin),
+  "address": zod.string().optional(),
   "slug": zod.string().optional(),
   "timezone": zod.string().default(createPlatformCompanyBodyTimezoneDefault),
   "currency": zod.string().min(createPlatformCompanyBodyCurrencyMin).max(createPlatformCompanyBodyCurrencyMax).default(createPlatformCompanyBodyCurrencyDefault),
-  "employeeLimit": zod.int().min(1),
-  "ownerCount": zod.int().min(1).max(createPlatformCompanyBodyOwnerCountMax),
+  "employeeLimit": zod.int().min(createPlatformCompanyBodyEmployeeLimitMin).optional(),
+  "ownerCount": zod.int().min(createPlatformCompanyBodyOwnerCountMin).max(createPlatformCompanyBodyOwnerCountMax).default(createPlatformCompanyBodyOwnerCountDefault),
   "owners": zod.array(zod.object({
-  "fullName": zod.string().min(createPlatformCompanyBodyOwnersItemFullNameMin),
+  "fullName": zod.string().optional(),
   "username": zod.string().min(createPlatformCompanyBodyOwnersItemUsernameMin),
   "password": zod.string().min(createPlatformCompanyBodyOwnersItemPasswordMin),
-  "primaryPhone": zod.string().min(createPlatformCompanyBodyOwnersItemPrimaryPhoneMin),
+  "primaryPhone": zod.string().optional(),
   "backupPhones": zod.array(zod.string()).optional(),
-  "email": zod.email(),
+  "email": zod.email().optional(),
   "backupEmails": zod.array(zod.email()).optional()
-})).min(1).max(createPlatformCompanyBodyOwnersMax),
-  "monthlyPrice": zod.number().min(createPlatformCompanyBodyMonthlyPriceMin),
-  "annualPrice": zod.number().min(createPlatformCompanyBodyAnnualPriceMin),
+})).min(createPlatformCompanyBodyOwnersMin).max(createPlatformCompanyBodyOwnersMax).optional(),
+  "monthlyPrice": zod.number().min(createPlatformCompanyBodyMonthlyPriceMin).optional(),
+  "annualPrice": zod.number().min(createPlatformCompanyBodyAnnualPriceMin).optional(),
   "active": zod.boolean().default(createPlatformCompanyBodyActiveDefault)
 })
 
@@ -2412,6 +2410,7 @@ export const updatePlatformCompanyBodyNameMin = 2;
 export const updatePlatformCompanyBodyCurrencyMin = 3;
 export const updatePlatformCompanyBodyCurrencyMax = 3;
 
+export const updatePlatformCompanyBodyEmployeeLimitMin = 0;
 
 
 
@@ -2421,7 +2420,7 @@ export const UpdatePlatformCompanyBody = zod.object({
   "currency": zod.string().min(updatePlatformCompanyBodyCurrencyMin).max(updatePlatformCompanyBodyCurrencyMax).optional(),
   "active": zod.boolean().optional(),
   "status": zod.enum(['active', 'suspended']).optional(),
-  "employeeLimit": zod.int().min(1).optional()
+  "employeeLimit": zod.int().min(updatePlatformCompanyBodyEmployeeLimitMin).optional()
 })
 
 export const UpdatePlatformCompanyResponse = zod.unknown()

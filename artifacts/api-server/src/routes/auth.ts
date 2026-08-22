@@ -52,8 +52,15 @@ const staffInputSchema = z.object({
   permissions: z.array(z.string()).default([]),
   active: z.boolean().default(true),
 });
+const optionalPhone = z.string().trim().refine((value) => value === "" || /^\+?[0-9 ()-]{7,20}$/i.test(value), "Invalid phone number.");
+const optionalEmail = z.string().trim().refine((value) => value === "" || z.string().email().safeParse(value).success, "Invalid email address.");
 const accountUpdateSchema = z.object({
   displayRole: z.string().trim().min(1).max(80).optional(),
+  fullName: z.string().trim().max(160).optional(),
+  primaryPhone: optionalPhone.optional(),
+  backupPhones: z.array(optionalPhone).optional(),
+  email: optionalEmail.optional(),
+  backupEmails: z.array(optionalEmail).optional(),
   permissions: z.array(z.string()).optional(),
   active: z.boolean().optional(),
 });
@@ -62,7 +69,7 @@ const permanentPasswordSchema = z.object({
 });
 const companyInputSchema = z.object({
   name: z.string().trim().min(2).max(160),
-  address: z.string().trim().min(3).max(500),
+  address: z.string().trim().max(500).default(""),
   slug: z
     .string()
     .trim()
@@ -72,19 +79,19 @@ const companyInputSchema = z.object({
     .optional(),
   timezone: z.string().trim().min(1).max(80).default("Africa/Cairo"),
   currency: z.string().trim().length(3).default("EGP"),
-  employeeLimit: z.number().int().min(1).max(1_000_000),
-  ownerCount: z.number().int().min(1).max(20),
+  employeeLimit: z.number().int().min(0).max(1_000_000).default(0),
+  ownerCount: z.number().int().min(0).max(20).default(0),
   owners: z.array(z.object({
-    fullName: z.string().trim().min(2).max(160),
+    fullName: z.string().trim().max(160).default(""),
     username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
     password: z.string().min(10).max(256),
-    primaryPhone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/i),
-    backupPhones: z.array(z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/i)).default([]),
-    email: z.string().trim().email(),
-    backupEmails: z.array(z.string().trim().email()).default([]),
-  })).min(1).max(20),
-  monthlyPrice: z.number().finite().min(0).max(1_000_000_000),
-  annualPrice: z.number().finite().min(0).max(1_000_000_000),
+    primaryPhone: optionalPhone.default(""),
+    backupPhones: z.array(optionalPhone).default([]),
+    email: optionalEmail.default(""),
+    backupEmails: z.array(optionalEmail).default([]),
+  })).max(20).default([]),
+  monthlyPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
+  annualPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
   active: z.boolean().default(true),
 }).superRefine((value, ctx) => {
   if (value.owners.length !== value.ownerCount) {
@@ -93,10 +100,11 @@ const companyInputSchema = z.object({
 });
 const companyUpdateSchema = z.object({
   name: z.string().trim().min(2).max(160).optional(),
+  address: z.string().trim().max(500).optional(),
   timezone: z.string().trim().min(1).max(80).optional(),
   currency: z.string().trim().length(3).optional(),
   active: z.boolean().optional(),
-  employeeLimit: z.number().int().min(1).max(1_000_000).optional(),
+  employeeLimit: z.number().int().min(0).max(1_000_000).optional(),
   status: z.enum(["active", "suspended"]).optional(),
 });
 
@@ -115,6 +123,11 @@ function accountResponse(account: {
   employeeId: string | null;
   active: boolean;
   permissions?: string[];
+  fullName?: string;
+  primaryPhone?: string;
+  backupPhones?: string[];
+  email?: string;
+  backupEmails?: string[];
 }) {
   return {
     id: account.id,
@@ -125,6 +138,11 @@ function accountResponse(account: {
     employeeId: account.employeeId,
     active: account.active,
     permissions: account.permissions ?? [],
+    fullName: account.fullName ?? "",
+    primaryPhone: account.primaryPhone ?? "",
+    backupPhones: account.backupPhones ?? [],
+    email: account.email ?? "",
+    backupEmails: account.backupEmails ?? [],
   };
 }
 
@@ -447,6 +465,11 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
       ...(parsed.data.displayRole !== undefined
         ? { displayRole: parsed.data.displayRole }
         : {}),
+      ...(parsed.data.fullName !== undefined ? { fullName: parsed.data.fullName } : {}),
+      ...(parsed.data.primaryPhone !== undefined ? { primaryPhone: parsed.data.primaryPhone } : {}),
+      ...(parsed.data.backupPhones !== undefined ? { backupPhones: parsed.data.backupPhones } : {}),
+      ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}),
+      ...(parsed.data.backupEmails !== undefined ? { backupEmails: parsed.data.backupEmails } : {}),
       ...(parsed.data.active !== undefined
         ? { active: parsed.data.active }
         : {}),
@@ -678,7 +701,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       monthlyPrice: parsed.data.monthlyPrice,
       annualPrice: parsed.data.annualPrice,
     });
-    const owners = await tx
+    const owners = parsed.data.owners.length ? await tx
       .insert(userAccountsTable)
       .values(parsed.data.owners.map((owner) => ({
         username: owner.username,
@@ -693,7 +716,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
         companyId: company.id,
         active: parsed.data.active,
       })))
-      .returning();
+      .returning() : [];
     return { company, owners, department };
   });
   await writeAuthAudit({
@@ -763,6 +786,7 @@ router.patch(
       : parsed.data.active;
     const companyChanges = {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.address !== undefined ? { address: parsed.data.address } : {}),
       ...(parsed.data.timezone !== undefined
         ? { timezone: parsed.data.timezone }
         : {}),
@@ -795,6 +819,7 @@ router.patch(
       companyId: company.id,
       action:
         parsed.data.name !== undefined ||
+        parsed.data.address !== undefined ||
         parsed.data.timezone !== undefined ||
         parsed.data.currency !== undefined
           ? "company_updated"
@@ -808,6 +833,7 @@ router.patch(
           ? { employeeLimit: parsed.data.employeeLimit }
           : {}),
         ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+        ...(parsed.data.address !== undefined ? { address: parsed.data.address } : {}),
         ...(parsed.data.timezone !== undefined
           ? { timezone: parsed.data.timezone }
           : {}),
@@ -825,6 +851,7 @@ router.patch(
       company: {
         id: updated.id,
         name: updated.name,
+         address: updated.address,
         slug: updated.slug,
         timezone: updated.timezone,
         currency: updated.currency,

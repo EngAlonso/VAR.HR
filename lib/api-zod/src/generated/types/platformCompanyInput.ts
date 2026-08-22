@@ -10,8 +10,7 @@ import type { PlatformCompanyInputOwnersItem } from './platformCompanyInputOwner
 export interface PlatformCompanyInput {
   /** @minLength 2 */
   name: string;
-  /** @minLength 3 */
-  address: string;
+  address?: string;
   slug?: string;
   timezone?: string;
   /**
@@ -19,21 +18,21 @@ export interface PlatformCompanyInput {
      * @maxLength 3
      */
   currency?: string;
-  /** @minimum 1 */
-  employeeLimit: number;
+  /** @minimum 0 */
+  employeeLimit?: number;
   /**
-     * @minimum 1
+     * @minimum 0
      * @maximum 20
      */
-  ownerCount: number;
+  ownerCount?: number;
   /**
-     * @minItems 1
+     * @minItems 0
      * @maxItems 20
      */
-  owners: PlatformCompanyInputOwnersItem[];
+  owners?: PlatformCompanyInputOwnersItem[];
   /** @minimum 0 */
-  monthlyPrice: number;
+  monthlyPrice?: number;
   /** @minimum 0 */
-  annualPrice: number;
+  annualPrice?: number;
   active?: boolean;
 }
