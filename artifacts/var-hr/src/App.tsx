@@ -4058,14 +4058,16 @@ function Shell({ children }: { children: ReactNode }) {
       <aside
         id="workspace-navigation"
         className={cn(
-          "fixed inset-y-0 z-50 flex w-[248px] flex-col bg-secondary px-4 py-5 text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:translate-x-0",
-          isArabic ? "right-0" : "left-0",
+          "fixed inset-y-0 z-50 flex w-[min(248px,calc(100vw-1rem))] flex-col bg-secondary px-4 py-5 text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:translate-x-0",
           open
             ? "translate-x-0"
-            : isArabic
-              ? "translate-x-full"
-              : "-translate-x-full",
+            : "translate-x-[var(--nav-closed-transform)]",
         )}
+        style={{
+          insetInlineStart: 0,
+          insetInlineEnd: "auto",
+          "--nav-closed-transform": isArabic ? "100%" : "-100%",
+        }}
         dir={isArabic ? "rtl" : "ltr"}
       >
         <div className="flex items-center gap-3 px-3 pb-8">
