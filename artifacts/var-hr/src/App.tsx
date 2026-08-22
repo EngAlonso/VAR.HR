@@ -4159,8 +4159,8 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:px-8">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="relative sticky top-0 z-30 flex h-[72px] items-center justify-between gap-2 border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:gap-0 sm:px-8">
+          <div className="flex w-[calc(50%_-_32px)] min-w-0 shrink-0 items-center gap-3 sm:w-auto sm:flex-1">
             <Button
               variant="outline"
               className="min-h-9 min-w-9 p-2 lg:hidden"
@@ -4185,7 +4185,7 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
-            <div className="flex min-w-0 items-center gap-2 truncate font-semibold">
+            <div className="flex min-w-0 items-center gap-2 truncate whitespace-nowrap font-semibold">
               <Building2 size={16} className="shrink-0 text-primary" />
               {workspace.company.name}
               <ChevronDown
@@ -4194,7 +4194,7 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex w-[calc(50%_-_32px)] shrink-0 items-center justify-end gap-1 sm:w-auto sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground sm:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
