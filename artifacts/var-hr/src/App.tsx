@@ -4028,6 +4028,10 @@ function Shell({ children }: { children: ReactNode }) {
       enabled: Boolean(workspaceQuery.data),
     },
   });
+  const workspaceStatus = queryStatus(workspaceQuery.error);
+  useEffect(() => {
+    if (workspaceStatus === 401) void auth.signOut();
+  }, [auth.signOut, workspaceStatus]);
   useEffect(() => {
     setOpen(false);
   }, [location]);
@@ -4060,10 +4064,9 @@ function Shell({ children }: { children: ReactNode }) {
   };
   if (workspaceQuery.isLoading) return <WorkspaceState kind="loading" />;
   if (workspaceQuery.isError || !workspaceQuery.data) {
-    const status = queryStatus(workspaceQuery.error);
     return (
       <WorkspaceState
-        kind={status === 401 || status === 403 ? "unauthorized" : "error"}
+        kind={workspaceStatus === 403 ? "error" : "unauthorized"}
         retry={() => void workspaceQuery.refetch()}
       />
     );
