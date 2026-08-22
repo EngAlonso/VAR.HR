@@ -81,6 +81,11 @@ export interface TemporaryPassword {
   temporaryPassword: string;
 }
 
+export interface PermanentPasswordInput {
+  /** @minLength 10 */
+  password: string;
+}
+
 export interface AuthAccountCredentials {
   account: AuthAccount;
   temporaryPassword: string;
@@ -117,6 +122,14 @@ export const PlatformCompanyUpdateStatus = {
 } as const;
 
 export interface PlatformCompanyUpdate {
+  /** @minLength 2 */
+  name?: string;
+  timezone?: string;
+  /**
+     * @minLength 3
+     * @maxLength 3
+     */
+  currency?: string;
   active?: boolean;
   status?: PlatformCompanyUpdateStatus;
   /** @minimum 1 */
@@ -1450,6 +1463,8 @@ export interface PlatformCompanyDetail {
   id: string;
   name: string;
   slug: string;
+  timezone: string;
+  currency: string;
   active: boolean;
   status: string;
   planName: string;
@@ -1568,6 +1583,10 @@ export type DateToParameter = string;
 export type ReportPeriodIdParameter = string;
 
 export type UpdateAuthAccount200 = {
+  account: AuthAccount;
+};
+
+export type SetAuthAccountPassword200 = {
   account: AuthAccount;
 };
 

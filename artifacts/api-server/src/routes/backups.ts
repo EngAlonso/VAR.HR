@@ -2,6 +2,7 @@ import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { backupRecordsTable, db } from "@workspace/db";
 import { createBackup, restoreBackup, backupDownloadName } from "../lib/backups";
+import { writeAuthAudit } from "../lib/auth";
 import {
   WorkspaceAccessError,
   getTenantContext,
@@ -39,16 +40,27 @@ router.get("/backups", async (req, res): Promise<void> => {
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const rows =
     context.role === "platform_owner"
-      ? await dbSelectPlatform()
+      ? await dbSelectPlatform(
+          req.query.scope === "company"
+            ? String(req.query.companyId ?? "")
+            : undefined,
+        )
       : await dbSelectCompany(context.companyId);
   res.json(rows.map(serialize));
 });
 
-async function dbSelectPlatform() {
+async function dbSelectPlatform(companyId?: string) {
   return db
     .select()
     .from(backupRecordsTable)
-    .where(isNull(backupRecordsTable.companyId))
+    .where(
+      companyId
+        ? and(
+            eq(backupRecordsTable.scope, "company"),
+            eq(backupRecordsTable.companyId, companyId),
+          )
+        : isNull(backupRecordsTable.companyId),
+    )
     .orderBy(desc(backupRecordsTable.createdAt));
 }
 
@@ -82,6 +94,14 @@ router.post("/backups", async (req, res): Promise<void> => {
     companyId: scope === "company" ? context.companyId : null,
     createdBy: context.accountId,
   });
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId: record.companyId,
+    action: "backup_created",
+    entityType: "backup",
+    entityId: record.id,
+    metadata: { scope: record.scope },
+  });
   res.status(201).json(serialize(record));
 });
 
@@ -91,7 +111,7 @@ async function ownedRecord(id: string, context: Awaited<ReturnType<typeof getTen
     .from(backupRecordsTable)
     .where(
       context.role === "platform_owner"
-        ? and(eq(backupRecordsTable.id, id), isNull(backupRecordsTable.companyId))
+        ? eq(backupRecordsTable.id, id)
         : and(
             eq(backupRecordsTable.id, id),
             eq(backupRecordsTable.scope, "company"),
@@ -118,6 +138,14 @@ router.delete("/backups/:id", async (req, res): Promise<void> => {
   const record = await ownedRecord(req.params.id, context);
   if (!record) throw new WorkspaceAccessError("Backup is not available for this workspace.");
   await db.delete(backupRecordsTable).where(eq(backupRecordsTable.id, record.id));
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId: record.companyId,
+    action: "backup_deleted",
+    entityType: "backup",
+    entityId: record.id,
+    metadata: { scope: record.scope },
+  });
   res.status(204).send();
 });
 
@@ -130,8 +158,11 @@ router.post("/backups/:id/restore", async (req, res): Promise<void> => {
   }
   const record = await ownedRecord(req.params.id, context);
   if (!record) throw new WorkspaceAccessError("Backup is not available for this workspace.");
-  const scope = context.role === "platform_owner" ? "platform" : "company";
-  const companyId = scope === "company" ? context.companyId : null;
+  if (record.scope !== "platform" && record.scope !== "company") {
+    throw new WorkspaceAccessError("Backup scope is invalid.");
+  }
+  const scope = record.scope;
+  const companyId = record.companyId;
   await createBackup({
     scope,
     companyId,
@@ -139,6 +170,14 @@ router.post("/backups/:id/restore", async (req, res): Promise<void> => {
     status: "safety",
   });
   await restoreBackup(record.id, scope, companyId);
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId,
+    action: "backup_restored",
+    entityType: "backup",
+    entityId: record.id,
+    metadata: { scope },
+  });
   res.json({ restored: true, scope, backupId: record.id });
 });
 

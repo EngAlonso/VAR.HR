@@ -57,6 +57,9 @@ const accountUpdateSchema = z.object({
   permissions: z.array(z.string()).optional(),
   active: z.boolean().optional(),
 });
+const permanentPasswordSchema = z.object({
+  password: z.string().min(10).max(256),
+});
 const companyInputSchema = z.object({
   name: z.string().trim().min(2).max(160),
   slug: z
@@ -79,6 +82,9 @@ const companyInputSchema = z.object({
   active: z.boolean().default(true),
 });
 const companyUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(160).optional(),
+  timezone: z.string().trim().min(1).max(80).optional(),
+  currency: z.string().trim().length(3).optional(),
   active: z.boolean().optional(),
   employeeLimit: z.number().int().min(1).max(1_000_000).optional(),
   status: z.enum(["active", "suspended"]).optional(),
@@ -290,6 +296,42 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
   );
 });
 
+router.get(
+  "/platform/companies/:companyId/owners",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (context.role !== "platform_owner") {
+      res.status(403).json({
+        error: "Only the Platform Owner can manage Company Owner accounts.",
+        code: "PLATFORM_ACCESS_DENIED",
+      });
+      return;
+    }
+    const companyId = Array.isArray(req.params.companyId)
+      ? req.params.companyId[0]
+      : req.params.companyId;
+    const parsedCompanyId = z.string().uuid().safeParse(companyId);
+    if (!parsedCompanyId.success) {
+      res.status(400).json({
+        error: "A valid company ID is required.",
+        code: "INVALID_COMPANY",
+      });
+      return;
+    }
+    const accounts = await db
+      .select()
+      .from(userAccountsTable)
+      .where(
+        and(
+          eq(userAccountsTable.companyId, parsedCompanyId.data),
+          eq(userAccountsTable.accountType, "company_owner"),
+        ),
+      )
+      .orderBy(asc(userAccountsTable.username));
+    res.json(accounts.map((account) => accountResponse(account)));
+  },
+);
+
 router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (context.role !== "company_owner") {
@@ -477,6 +519,59 @@ router.post(
   },
 );
 
+router.post(
+  "/auth/accounts/:accountId/set-password",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const accountId = Array.isArray(req.params.accountId)
+      ? req.params.accountId[0]
+      : req.params.accountId;
+    const parsed = permanentPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: errorMessage(parsed.error), code: "INVALID_PASSWORD" });
+      return;
+    }
+    const [account] = await db
+      .select()
+      .from(userAccountsTable)
+      .where(eq(userAccountsTable.id, accountId))
+      .limit(1);
+    if (!account) {
+      res
+        .status(404)
+        .json({ error: "Account not found.", code: "ACCOUNT_NOT_FOUND" });
+      return;
+    }
+    if (
+      context.role !== "platform_owner" ||
+      account.accountType !== "company_owner"
+    ) {
+      res.status(403).json({
+        error: "Only the Platform Owner can set a Company Owner password.",
+        code: "ACCOUNT_ACCESS_DENIED",
+      });
+      return;
+    }
+    await db
+      .update(userAccountsTable)
+      .set({ passwordHash: hashPassword(parsed.data.password), updatedAt: new Date() })
+      .where(eq(userAccountsTable.id, account.id));
+    await db
+      .delete(authSessionsTable)
+      .where(eq(authSessionsTable.accountId, account.id));
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId: account.companyId,
+      action: "company_owner_password_set",
+      entityType: "account",
+      entityId: account.id,
+    });
+    res.json({ account: accountResponse(account) });
+  },
+);
+
 router.post("/platform/companies", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (context.role !== "platform_owner") {
@@ -624,7 +719,16 @@ router.patch(
       : parsed.data.active;
     const [updated] = await db
       .update(companiesTable)
-      .set({ ...(active === undefined ? {} : { active }) })
+      .set({
+        ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+        ...(parsed.data.timezone !== undefined
+          ? { timezone: parsed.data.timezone }
+          : {}),
+        ...(parsed.data.currency !== undefined
+          ? { currency: parsed.data.currency }
+          : {}),
+        ...(active === undefined ? {} : { active }),
+      })
       .where(eq(companiesTable.id, company.id))
       .returning();
     if (parsed.data.employeeLimit !== undefined) {
@@ -643,12 +747,27 @@ router.patch(
       accountId: context.accountId,
       companyId: company.id,
       action:
-        active === undefined
-          ? "subscription_limit_changed"
-          : "company_status_changed",
+        parsed.data.name !== undefined ||
+        parsed.data.timezone !== undefined ||
+        parsed.data.currency !== undefined
+          ? "company_updated"
+          : active === undefined
+            ? "subscription_limit_changed"
+            : "company_status_changed",
       entityType: "company",
       entityId: company.id,
-      metadata: { employeeLimit: parsed.data.employeeLimit },
+      metadata: {
+        ...(parsed.data.employeeLimit !== undefined
+          ? { employeeLimit: parsed.data.employeeLimit }
+          : {}),
+        ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+        ...(parsed.data.timezone !== undefined
+          ? { timezone: parsed.data.timezone }
+          : {}),
+        ...(parsed.data.currency !== undefined
+          ? { currency: parsed.data.currency }
+          : {}),
+      },
     });
     const [subscription] = await db
       .select()
@@ -660,6 +779,8 @@ router.patch(
         id: updated.id,
         name: updated.name,
         slug: updated.slug,
+        timezone: updated.timezone,
+        currency: updated.currency,
         active: updated.active,
         employeeLimit:
           parsed.data.employeeLimit ?? subscription?.employeeLimit ?? 0,

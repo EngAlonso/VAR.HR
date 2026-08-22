@@ -6467,6 +6467,8 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
         id: company.id,
         name: company.name,
         slug: company.slug,
+         timezone: company.timezone,
+         currency: company.currency,
         active: company.active,
         status: company.active
           ? subscription?.status === "active"

@@ -78,6 +78,7 @@ import type {
   PayrollCalculation,
   PayrollPeriod,
   PayrollPeriodInput,
+  PermanentPasswordInput,
   PermissionRequest,
   PermissionRequestInput,
   PlatformCompany,
@@ -87,6 +88,7 @@ import type {
   PlatformSummary,
   Report,
   RequestDecisionInput,
+  SetAuthAccountPassword200,
   StaffAccountInput,
   SubscriptionStatus,
   TemporaryPassword,
@@ -644,6 +646,83 @@ export const useCreateStaffAccount = <TError = ErrorType<unknown>,
       return useMutation(getCreateStaffAccountMutationOptions(options));
     }
 
+export const getListPlatformCompanyOwnersUrl = (companyId: string,) => {
+
+
+
+
+  return `/api/platform/companies/${companyId}/owners`
+}
+
+/**
+ * @summary List Company Owner accounts for a company
+ */
+export const listPlatformCompanyOwners = async (companyId: string, options?: Parameters<typeof customFetch>[1]): Promise<AuthAccount[]> => {
+
+  return customFetch<AuthAccount[]>(getListPlatformCompanyOwnersUrl(companyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlatformCompanyOwnersQueryKey = (companyId: string,) => {
+    return [
+    `/api/platform/companies/${companyId}/owners`
+    ] as const;
+    }
+
+
+export const getListPlatformCompanyOwnersQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformCompanyOwners>>, TError = ErrorType<unknown>>(companyId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformCompanyOwners>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlatformCompanyOwnersQueryKey(companyId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformCompanyOwners>>> = ({ signal }) => listPlatformCompanyOwners(companyId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: companyId !== null && companyId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlatformCompanyOwners>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlatformCompanyOwnersQueryResult = NonNullable<Awaited<ReturnType<typeof listPlatformCompanyOwners>>>
+export type ListPlatformCompanyOwnersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List Company Owner accounts for a company
+ */
+
+export function useListPlatformCompanyOwners<TData = Awaited<ReturnType<typeof listPlatformCompanyOwners>>, TError = ErrorType<unknown>>(
+ companyId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformCompanyOwners>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlatformCompanyOwnersQueryOptions(companyId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getUpdateAuthAccountUrl = (accountId: string,) => {
 
 
@@ -785,6 +864,78 @@ export const useResetAuthAccountPassword = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getResetAuthAccountPasswordMutationOptions(options));
+    }
+
+export const getSetAuthAccountPasswordUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/auth/accounts/${accountId}/set-password`
+}
+
+/**
+ * @summary Set a permanent password for a Company Owner
+ */
+export const setAuthAccountPassword = async (accountId: string,
+    permanentPasswordInput: PermanentPasswordInput, options?: Parameters<typeof customFetch>[1]): Promise<SetAuthAccountPassword200> => {
+
+  return customFetch<SetAuthAccountPassword200>(getSetAuthAccountPasswordUrl(accountId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(permanentPasswordInput)
+  }
+);}
+
+
+
+
+
+export const getSetAuthAccountPasswordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAuthAccountPassword>>, TError,{accountId: string;data: BodyType<PermanentPasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setAuthAccountPassword>>, TError,{accountId: string;data: BodyType<PermanentPasswordInput>}, TContext> => {
+
+const mutationKey = ['setAuthAccountPassword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAuthAccountPassword>>, {accountId: string;data: BodyType<PermanentPasswordInput>}> = (props) => {
+          const {accountId,data} = props ?? {};
+
+          return  setAuthAccountPassword(accountId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetAuthAccountPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof setAuthAccountPassword>>>
+    export type SetAuthAccountPasswordMutationBody = BodyType<PermanentPasswordInput>
+    export type SetAuthAccountPasswordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set a permanent password for a Company Owner
+ */
+export const useSetAuthAccountPassword = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAuthAccountPassword>>, TError,{accountId: string;data: BodyType<PermanentPasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setAuthAccountPassword>>,
+        TError,
+        {accountId: string;data: BodyType<PermanentPasswordInput>},
+        TContext
+      > => {
+      return useMutation(getSetAuthAccountPasswordMutationOptions(options));
     }
 
 export const getGetWorkspaceUrl = () => {

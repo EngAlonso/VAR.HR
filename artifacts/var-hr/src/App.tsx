@@ -181,6 +181,8 @@ type PlatformCompanyDetail = {
   id: string;
   name: string;
   slug: string;
+  timezone: string;
+  currency: string;
   active: boolean;
   status: string;
   planName: string;
@@ -10379,6 +10381,15 @@ function Platform() {
   const [selectedCompany, setSelectedCompany] =
     useState<PlatformCompanyDetail | null>(null);
   const [employeeLimit, setEmployeeLimit] = useState("");
+  const [companyForm, setCompanyForm] = useState({
+    name: "",
+    timezone: "",
+    currency: "",
+  });
+  const [ownerAccounts, setOwnerAccounts] = useState<AuthAccount[]>([]);
+  const [companyBackups, setCompanyBackups] = useState<BackupSummary[]>([]);
+  const [ownerPassword, setOwnerPassword] = useState("");
+  const [audit, setAudit] = useState<PlatformActivity[]>([]);
   const [saving, setSaving] = useState(false);
   if (auth.account.accountType !== "platform_owner")
     return <WorkspaceState kind="unauthorized" />;
@@ -10386,7 +10397,12 @@ function Platform() {
     setLoading(true);
     setError("");
     try {
-      setSummary(await authRequest<PlatformSummary>("/api/platform/summary"));
+      const [nextSummary, nextAudit] = await Promise.all([
+        authRequest<PlatformSummary>("/api/platform/summary"),
+        authRequest<PlatformActivity[]>("/api/auth/audit"),
+      ]);
+      setSummary(nextSummary);
+      setAudit(nextAudit);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load platform data.");
     } finally {
@@ -10399,8 +10415,33 @@ function Platform() {
   const openCompany = (company: PlatformCompanyDetail) => {
     setSelectedCompany(company);
     setEmployeeLimit(String(company.employeeLimit));
+    setCompanyForm({
+      name: company.name,
+      timezone: company.timezone,
+      currency: company.currency,
+    });
+    setOwnerPassword("");
+    void Promise.all([
+      authRequest<AuthAccount[]>(
+        `/api/platform/companies/${encodeURIComponent(company.id)}/owners`,
+      ),
+      authRequest<BackupSummary[]>(
+        `/api/backups?scope=company&companyId=${encodeURIComponent(company.id)}`,
+      ),
+    ]).then(([accounts, backups]) => {
+      setOwnerAccounts(accounts.filter((account) => account.accountType === "company_owner"));
+      setCompanyBackups(backups);
+    }).catch(() => {
+      toast.error(locale === "ar" ? "تعذر تحميل أدوات الدعم" : "Could not load support tools");
+    });
   };
-  const updateCompany = async (next: { status?: "active" | "suspended"; employeeLimit?: number }) => {
+  const updateCompany = async (next: {
+    name?: string;
+    timezone?: string;
+    currency?: string;
+    status?: "active" | "suspended";
+    employeeLimit?: number;
+  }) => {
     if (!selectedCompany) return;
     setSaving(true);
     try {
@@ -10410,10 +10451,66 @@ function Platform() {
       });
       await load();
       const refreshed = summary?.companies.find((company) => company.id === selectedCompany.id);
-      if (refreshed) setSelectedCompany({ ...refreshed, ...next, active: next.status ? next.status === "active" : refreshed.active });
+      if (refreshed) {
+        setSelectedCompany({
+          ...refreshed,
+          ...next,
+          active: next.status ? next.status === "active" : refreshed.active,
+        });
+      }
       toast.success(locale === "ar" ? "تم تحديث الشركة" : "Company updated");
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Could not update company.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const updateOwner = async (account: AuthAccount, active: boolean) => {
+    try {
+      const result = await authRequest<{ account: AuthAccount }>(
+        `/api/auth/accounts/${account.id}`,
+        { method: "PATCH", body: JSON.stringify({ active }) },
+      );
+      setOwnerAccounts((current) =>
+        current.map((item) => (item.id === result.account.id ? result.account : item)),
+      );
+      await load();
+      toast.success(locale === "ar" ? "تم تحديث حالة المالك" : "Owner status updated");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Could not update owner");
+    }
+  };
+  const setOwnerPermanentPassword = async (account: AuthAccount) => {
+    if (ownerPassword.length < 10) {
+      toast.error(locale === "ar" ? "استخدم كلمة مرور من 10 أحرف على الأقل" : "Use at least 10 characters");
+      return;
+    }
+    setSaving(true);
+    try {
+      await authRequest(`/api/auth/accounts/${account.id}/set-password`, {
+        method: "POST",
+        body: JSON.stringify({ password: ownerPassword }),
+      });
+      setOwnerPassword("");
+      toast.success(locale === "ar" ? "تم تعيين كلمة المرور الدائمة" : "Permanent password set");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Could not set password");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const restoreCompanyBackup = async (backup: BackupSummary) => {
+    if (!window.confirm(text("Restore this company backup? A safety backup will be created first.", "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً."))) return;
+    setSaving(true);
+    try {
+      await authRequest(`/api/backups/${backup.id}/restore`, {
+        method: "POST",
+        body: JSON.stringify({ confirmation: "RESTORE" }),
+      });
+      await load();
+      toast.success(locale === "ar" ? "تمت استعادة بيانات الشركة" : "Company data restored");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Could not restore backup");
     } finally {
       setSaving(false);
     }
@@ -10535,13 +10632,54 @@ function Platform() {
           </Card>
         </div>
       </div>
+      <Card className="mt-6">
+        <div className="flex items-center gap-2 border-b border-border p-5">
+          <LifeBuoy size={17} className="text-primary" />
+          <div>
+            <h2 className="font-display text-lg font-semibold">
+              {text("Support & admin tools", "أدوات الدعم والإدارة")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {text("Manage Company Owners, company settings, backups, and platform audit history.", "إدارة مالكي الشركات وإعداداتها ونسخها الاحتياطية وسجل المنصة.")}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-3">
+          <Info label={text("Company Owner accounts", "حسابات مالكي الشركات")} value={summary!.companies.filter((company) => company.owner).length} />
+          <Info label={text("Audit events available", "أحداث التدقيق المتاحة")} value={audit.length} />
+          <Link href="/backups" className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">
+            {text("Open backup administration", "فتح إدارة النسخ الاحتياطية")} <ArrowUpRight size={14} />
+          </Link>
+        </div>
+      </Card>
       {selectedCompany && (
         <Modal title={selectedCompany.name} onClose={() => setSelectedCompany(null)}>
           <div className="space-y-5">
             <div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">{selectedCompany.slug}</div><div className="mt-1 font-semibold">{selectedCompany.planName}</div></div><Status value={selectedCompany.status} /></div>
             <div className="grid gap-3 sm:grid-cols-2"><Info label={text("Company Owner", "مالك الشركة")} value={selectedCompany.owner?.username ?? text("Not assigned", "غير معين")} /><Info label={text("Owner status", "حالة المالك")} value={selectedCompany.owner ? (selectedCompany.owner.active ? text("Active", "نشط") : text("Inactive", "غير نشط")) : "—"} /><Info label={text("Employees", "الموظفون")} value={`${selectedCompany.activeEmployees} active / ${selectedCompany.employeeCount} total`} /><Info label={text("Users", "المستخدمون")} value={`${selectedCompany.activeUsers} active / ${selectedCompany.userCount} total`} /><Info label={text("Subscription", "الاشتراك")} value={statusLabels[selectedCompany.subscriptionStatus] ?? selectedCompany.subscriptionStatus} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(selectedCompany.createdAt)} /></div>
-            <div className="border-t border-border pt-5"><label className="block text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" type="number" min="1" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label></div>
-            <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ employeeLimit: Number(employeeLimit) })}>{text("Save limit", "حفظ الحد")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
+            <div className="border-t border-border pt-5">
+              <h3 className="font-semibold">{text("Company information", "معلومات الشركة")}</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold">{text("Company name", "اسم الشركة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.name} onChange={(event) => setCompanyForm({ ...companyForm, name: event.target.value })} /></label>
+                <label className="text-sm font-semibold">{text("Timezone", "المنطقة الزمنية")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.timezone} onChange={(event) => setCompanyForm({ ...companyForm, timezone: event.target.value })} /></label>
+                <label className="text-sm font-semibold">{text("Currency", "العملة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" maxLength={3} value={companyForm.currency} onChange={(event) => setCompanyForm({ ...companyForm, currency: event.target.value.toUpperCase() })} /></label>
+                <label className="text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" type="number" min="1" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label>
+              </div>
+              <div className="mt-3 flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ name: companyForm.name, timezone: companyForm.timezone, currency: companyForm.currency, employeeLimit: Number(employeeLimit) })}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
+            </div>
+            <div className="border-t border-border pt-5">
+              <h3 className="font-semibold">{text("Company Owner access", "وصول مالك الشركة")}</h3>
+              <div className="mt-3 space-y-3">
+                {ownerAccounts.length ? ownerAccounts.map((account) => <div className="rounded-lg border border-border p-3" key={account.id}>
+                  <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.username}</div><div className="text-xs text-muted-foreground">{account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row"><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
+                </div>) : <p className="text-sm text-muted-foreground">{text("No Company Owner account found.", "لم يتم العثور على مالك للشركة.")}</p>}
+              </div>
+            </div>
+            <div className="border-t border-border pt-5">
+              <h3 className="font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h3>
+              <div className="mt-3 space-y-2">{companyBackups.length ? companyBackups.map((backup) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><span>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span><Button variant="outline" disabled={saving} onClick={() => void restoreCompanyBackup(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
+            </div>
           </div>
         </Modal>
       )}

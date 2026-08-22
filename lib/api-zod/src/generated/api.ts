@@ -127,6 +127,26 @@ export const CreateStaffAccountResponse = zod.object({
 
 
 /**
+ * @summary List Company Owner accounts for a company
+ */
+export const ListPlatformCompanyOwnersParams = zod.object({
+  "companyId": zod.uuid()
+})
+
+export const ListPlatformCompanyOwnersResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "accountType": zod.enum(['platform_owner', 'company_owner', 'staff', 'employee']),
+  "displayRole": zod.string(),
+  "companyId": zod.string().nullable(),
+  "employeeId": zod.string().nullable(),
+  "active": zod.boolean(),
+  "permissions": zod.array(zod.string())
+})
+export const ListPlatformCompanyOwnersResponse = zod.array(ListPlatformCompanyOwnersResponseItem)
+
+
+/**
  * @summary Update a managed account
  */
 export const UpdateAuthAccountParams = zod.object({
@@ -163,6 +183,35 @@ export const ResetAuthAccountPasswordParams = zod.object({
 export const ResetAuthAccountPasswordResponse = zod.object({
   "username": zod.string(),
   "temporaryPassword": zod.string()
+})
+
+
+/**
+ * @summary Set a permanent password for a Company Owner
+ */
+export const SetAuthAccountPasswordParams = zod.object({
+  "accountId": zod.coerce.string()
+})
+
+export const setAuthAccountPasswordBodyPasswordMin = 10;
+
+
+
+export const SetAuthAccountPasswordBody = zod.object({
+  "password": zod.string().min(setAuthAccountPasswordBodyPasswordMin)
+})
+
+export const SetAuthAccountPasswordResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "accountType": zod.enum(['platform_owner', 'company_owner', 'staff', 'employee']),
+  "displayRole": zod.string(),
+  "companyId": zod.string().nullable(),
+  "employeeId": zod.string().nullable(),
+  "active": zod.boolean(),
+  "permissions": zod.array(zod.string())
+})
 })
 
 
@@ -2286,6 +2335,8 @@ export const GetPlatformSummaryResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
+  "timezone": zod.string(),
+  "currency": zod.string(),
   "active": zod.boolean(),
   "status": zod.string(),
   "planName": zod.string(),
@@ -2331,10 +2382,18 @@ export const UpdatePlatformCompanyParams = zod.object({
   "companyId": zod.coerce.string()
 })
 
+export const updatePlatformCompanyBodyNameMin = 2;
+
+export const updatePlatformCompanyBodyCurrencyMin = 3;
+export const updatePlatformCompanyBodyCurrencyMax = 3;
+
 
 
 
 export const UpdatePlatformCompanyBody = zod.object({
+  "name": zod.string().min(updatePlatformCompanyBodyNameMin).optional(),
+  "timezone": zod.string().optional(),
+  "currency": zod.string().min(updatePlatformCompanyBodyCurrencyMin).max(updatePlatformCompanyBodyCurrencyMax).optional(),
   "active": zod.boolean().optional(),
   "status": zod.enum(['active', 'suspended']).optional(),
   "employeeLimit": zod.int().min(1).optional()

@@ -11,6 +11,8 @@ export interface PlatformCompanyDetail {
   id: string;
   name: string;
   slug: string;
+  timezone: string;
+  currency: string;
   active: boolean;
   status: string;
   planName: string;

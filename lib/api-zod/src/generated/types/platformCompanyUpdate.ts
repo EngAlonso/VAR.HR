@@ -8,6 +8,14 @@
 import type { PlatformCompanyUpdateStatus } from './platformCompanyUpdateStatus';
 
 export interface PlatformCompanyUpdate {
+  /** @minLength 2 */
+  name?: string;
+  timezone?: string;
+  /**
+     * @minLength 3
+     * @maxLength 3
+     */
+  currency?: string;
   active?: boolean;
   status?: PlatformCompanyUpdateStatus;
   /** @minimum 1 */
