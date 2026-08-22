@@ -34,6 +34,7 @@ import {
   getTenantContext,
   type TenantContext,
 } from "../lib/tenant-context";
+import { buildBackupPayload } from "../lib/backups";
 
 const router: IRouter = Router();
 const credentialsSchema = z.object({
@@ -364,6 +365,91 @@ router.get(
       )
       .orderBy(asc(userAccountsTable.username));
     res.json(accounts.map((account) => accountResponse(account)));
+  },
+);
+
+router.get(
+  "/platform/companies/:companyId/details",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (context.role !== "platform_owner") {
+      res.status(403).json({
+        error: "Only the Platform Owner can view company details.",
+        code: "PLATFORM_ACCESS_DENIED",
+      });
+      return;
+    }
+    const companyId = Array.isArray(req.params.companyId)
+      ? req.params.companyId[0]
+      : req.params.companyId;
+    const parsedCompanyId = z.string().uuid().safeParse(companyId);
+    if (!parsedCompanyId.success) {
+      res.status(400).json({ error: "A valid company ID is required.", code: "INVALID_COMPANY" });
+      return;
+    }
+    const [company] = await db
+      .select()
+      .from(companiesTable)
+      .where(eq(companiesTable.id, parsedCompanyId.data))
+      .limit(1);
+    if (!company) {
+      res.status(404).json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
+      return;
+    }
+    const [subscription] = await db
+      .select({ subscription: subscriptionsTable, plan: plansTable })
+      .from(subscriptionsTable)
+      .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id))
+      .where(eq(subscriptionsTable.companyId, company.id))
+      .limit(1);
+    const backup = await buildBackupPayload("company", company.id);
+    const accounts = (backup.payload.data.var_hr_user_accounts ?? []).map((account) => ({
+      id: String(account.id ?? ""),
+      username: String(account.username ?? ""),
+      accountType: String(account.account_type ?? ""),
+      displayRole: String(account.display_role ?? ""),
+      companyId: account.company_id == null ? null : String(account.company_id),
+      employeeId: account.employee_id == null ? null : String(account.employee_id),
+      active: Boolean(account.active),
+      fullName: String(account.full_name ?? ""),
+      primaryPhone: String(account.primary_phone ?? ""),
+      backupPhones: Array.isArray(account.backup_phones) ? account.backup_phones : [],
+      email: String(account.email ?? ""),
+      backupEmails: Array.isArray(account.backup_emails) ? account.backup_emails : [],
+    }));
+    const owners = accounts.filter((account) => account.accountType === "company_owner");
+    const staff = accounts.filter(
+      (account) =>
+        account.accountType === "staff" || account.accountType === "manager",
+    );
+    const employees = backup.payload.data.var_hr_employees ?? [];
+    const devices = backup.payload.data.var_hr_devices ?? [];
+    const operationalData = Object.fromEntries(
+      Object.entries(backup.payload.data)
+        .filter(([table]) => !["var_hr_companies", "var_hr_user_accounts", "var_hr_permissions", "var_hr_plans"].includes(table))
+        .map(([table, rows]) => [table, rows]),
+    );
+    res.json({
+      company,
+      subscription: subscription
+        ? {
+            status: subscription.subscription.status,
+            monthlyPrice: subscription.subscription.monthlyPrice,
+            annualPrice: subscription.subscription.annualPrice,
+            employeeLimit: subscription.subscription.employeeLimit ?? subscription.plan.employeeLimit,
+            planName: subscription.plan.name,
+          }
+        : null,
+      owners,
+      staff,
+      employees,
+      devices,
+      operationalData,
+      tableCounts: Object.fromEntries(
+        Object.entries(backup.payload.data).map(([table, rows]) => [table, rows.length]),
+      ),
+      integrity: backup.payload.manifest.integrity,
+    });
   },
 );
 

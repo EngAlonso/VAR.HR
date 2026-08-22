@@ -210,6 +210,31 @@ type PlatformCompanyDetail = {
   } | null;
   createdAt: string;
 };
+type PlatformCompanyDetails = {
+  company: {
+    name: string;
+    slug: string;
+    address: string;
+    timezone: string;
+    currency: string;
+    active: boolean;
+    createdAt: string;
+  };
+  subscription: {
+    status: string;
+    monthlyPrice: number;
+    annualPrice: number;
+    employeeLimit: number;
+    planName: string;
+  } | null;
+  owners: AuthAccount[];
+  staff: AuthAccount[];
+  employees: Array<Record<string, unknown>>;
+  devices: Array<Record<string, unknown>>;
+  operationalData: Record<string, Array<Record<string, unknown>>>;
+  tableCounts: Record<string, number>;
+  integrity: { algorithm: string; checksum: string };
+};
 type PlatformActivity = {
   id: string;
   action: string;
@@ -10459,6 +10484,7 @@ function Platform() {
     currency: "",
   });
   const [ownerAccounts, setOwnerAccounts] = useState<AuthAccount[]>([]);
+  const [companyDetails, setCompanyDetails] = useState<PlatformCompanyDetails | null>(null);
   const [companyBackups, setCompanyBackups] = useState<BackupSummary[]>([]);
   const [ownerPassword, setOwnerPassword] = useState("");
   const [audit, setAudit] = useState<PlatformActivity[]>([]);
@@ -10495,15 +10521,17 @@ function Platform() {
       currency: company.currency,
     });
     setOwnerPassword("");
+    setCompanyDetails(null);
     void Promise.all([
-      authRequest<AuthAccount[]>(
-        `/api/platform/companies/${encodeURIComponent(company.id)}/owners`,
+      authRequest<PlatformCompanyDetails>(
+        `/api/platform/companies/${encodeURIComponent(company.id)}/details`,
       ),
       authRequest<BackupSummary[]>(
         `/api/backups?scope=company&companyId=${encodeURIComponent(company.id)}`,
       ),
-    ]).then(([accounts, backups]) => {
-      setOwnerAccounts(accounts.filter((account) => account.accountType === "company_owner"));
+    ]).then(([details, backups]) => {
+      setCompanyDetails(details);
+      setOwnerAccounts(details.owners);
       setCompanyBackups(backups);
     }).catch(() => {
       toast.error(locale === "ar" ? "تعذر تحميل أدوات الدعم" : "Could not load support tools");
@@ -10601,6 +10629,22 @@ function Platform() {
       toast.success(locale === "ar" ? "تمت استعادة بيانات الشركة" : "Company data restored");
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Could not restore backup");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const createCompanyBackup = async () => {
+    if (!selectedCompany) return;
+    setSaving(true);
+    try {
+      const backup = await authRequest<BackupSummary>("/api/backups", {
+        method: "POST",
+        body: JSON.stringify({ scope: "company", companyId: selectedCompany.id }),
+      });
+      setCompanyBackups((current) => [backup, ...current]);
+      toast.success(text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة."));
     } finally {
       setSaving(false);
     }
@@ -10770,6 +10814,73 @@ function Platform() {
           <div className="space-y-5">
             <div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">{selectedCompany.slug}</div><div className="mt-1 font-semibold">{selectedCompany.planName}</div></div><Status value={selectedCompany.status} /></div>
             <div className="grid gap-3 sm:grid-cols-2"><Info label={text("Company Owner", "مالك الشركة")} value={selectedCompany.owner?.username ?? text("Not assigned", "غير معين")} /><Info label={text("Owner status", "حالة المالك")} value={selectedCompany.owner ? (selectedCompany.owner.active ? text("Active", "نشط") : text("Inactive", "غير نشط")) : "—"} /><Info label={text("Employees", "الموظفون")} value={`${selectedCompany.activeEmployees} active / ${selectedCompany.employeeCount} total`} /><Info label={text("Users", "المستخدمون")} value={`${selectedCompany.activeUsers} active / ${selectedCompany.userCount} total`} /><Info label={text("Subscription", "الاشتراك")} value={statusLabels[selectedCompany.subscriptionStatus] ?? selectedCompany.subscriptionStatus} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(selectedCompany.createdAt)} /></div>
+             {companyDetails ? (
+               <>
+                 <div className="border-t border-border pt-5">
+                   <h3 className="font-semibold">{text("Company information entered by Platform Owner", "بيانات الشركة التي أدخلها مالك المنصة")}</h3>
+                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                     <Info label={text("Company name", "اسم الشركة")} value={companyDetails.company.name} />
+                     <Info label={text("Address", "العنوان")} value={companyDetails.company.address} />
+                     <Info label={text("Currency", "العملة")} value={companyDetails.company.currency} />
+                     <Info label={text("Employee limit", "حد الموظفين")} value={companyDetails.subscription?.employeeLimit ?? selectedCompany.employeeLimit} />
+                     <Info label={text("Monthly subscription price", "سعر الاشتراك الشهري")} value={companyDetails.subscription?.monthlyPrice ? `${companyDetails.subscription.monthlyPrice} ${companyDetails.company.currency}` : text("Not set", "غير محدد")} />
+                     <Info label={text("Annual subscription price", "سعر الاشتراك السنوي")} value={companyDetails.subscription?.annualPrice ? `${companyDetails.subscription.annualPrice} ${companyDetails.company.currency}` : text("Not set", "غير محدد")} />
+                     <Info label={text("Registration date", "تاريخ التسجيل")} value={date(companyDetails.company.createdAt)} />
+                     <Info label={text("Company Owners", "مالكو الشركة")} value={companyDetails.owners.length} />
+                   </div>
+                 </div>
+                 <div className="border-t border-border pt-5">
+                   <h3 className="font-semibold">{text("Company Owner accounts", "حسابات مالكي الشركة")}</h3>
+                   <div className="mt-3 space-y-3">
+                     {companyDetails.owners.length ? companyDetails.owners.map((account) => (
+                       <div className="rounded-lg border border-border p-3" key={account.id}>
+                         <div className="font-semibold">{account.fullName || account.username}</div>
+                         <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                           <Info label={text("Username", "اسم المستخدم")} value={account.username} />
+                           <Info label={text("Phone", "الهاتف")} value={account.primaryPhone} />
+                           <Info label={text("Backup phones", "الهواتف الاحتياطية")} value={account.backupPhones.join(", ")} />
+                           <Info label={text("Email", "البريد الإلكتروني")} value={account.email} />
+                           <Info label={text("Backup emails", "البريد الاحتياطي")} value={account.backupEmails.join(", ")} />
+                         </div>
+                       </div>
+                     )) : <p className="text-sm text-muted-foreground">{text("No Company Owner accounts found.", "لم يتم العثور على حسابات مالكي الشركة.")}</p>}
+                   </div>
+                 </div>
+                 <div className="border-t border-border pt-5">
+                   <h3 className="font-semibold">{text("Live company data", "بيانات الشركة الحالية")}</h3>
+                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                     <Info label={text("Employees", "الموظفون")} value={companyDetails.employees.length} />
+                     <Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={companyDetails.staff.length} />
+                     <Info label={text("Connected devices", "الأجهزة المتصلة")} value={companyDetails.devices.length} />
+                     <Info label={text("Subscription", "الاشتراك")} value={companyDetails.subscription ? `${companyDetails.subscription.planName} · ${companyDetails.subscription.status}` : text("Not configured", "غير مهيأ")} />
+                   </div>
+                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                     <div className="rounded-lg border border-border p-3">
+                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Employees", "الموظفون")}</div>
+                       <div className="mt-2 space-y-1 text-sm">{companyDetails.employees.length ? companyDetails.employees.map((employee) => <div key={String(employee.id)}>{String(employee.first_name ?? "")} {String(employee.last_name ?? "")}</div>) : <span className="text-muted-foreground">—</span>}</div>
+                     </div>
+                     <div className="rounded-lg border border-border p-3">
+                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")}</div>
+                       <div className="mt-2 space-y-1 text-sm">{companyDetails.staff.length ? companyDetails.staff.map((account) => <div key={account.id}>{account.fullName || account.username} <span className="text-muted-foreground">· {account.username}</span></div>) : <span className="text-muted-foreground">—</span>}</div>
+                     </div>
+                     <div className="rounded-lg border border-border p-3">
+                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Devices", "الأجهزة")}</div>
+                       <div className="mt-2 space-y-1 text-sm">{companyDetails.devices.length ? companyDetails.devices.map((device) => <div key={String(device.id)}>{String(device.name ?? "Unnamed")} <span className="text-muted-foreground">· {String(device.status ?? "unknown")}</span></div>) : <span className="text-muted-foreground">—</span>}</div>
+                     </div>
+                     <div className="rounded-lg border border-border p-3">
+                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Operational data records", "سجلات البيانات التشغيلية")}</div>
+                       <div className="mt-2 grid grid-cols-2 gap-1 text-sm">{Object.entries(companyDetails.tableCounts).filter(([table]) => table !== "var_hr_companies" && table !== "var_hr_user_accounts").map(([table, count]) => <div key={table}><span className="text-muted-foreground">{table.replace("var_hr_", "")}</span>: {count}</div>)}</div>
+                     </div>
+                   </div>
+                   <details className="mt-3 rounded-lg border border-border p-3">
+                     <summary className="cursor-pointer text-sm font-semibold">{text("View all company-owned operational records", "عرض جميع سجلات الشركة التشغيلية")}</summary>
+                     <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{JSON.stringify(companyDetails.operationalData, null, 2)}</pre>
+                   </details>
+                 </div>
+               </>
+             ) : (
+               <div className="rounded-lg bg-muted/60 p-4 text-sm text-muted-foreground">{text("Loading complete company details…", "جارٍ تحميل تفاصيل الشركة الكاملة…")}</div>
+             )}
             <div className="border-t border-border pt-5">
               <h3 className="font-semibold">{text("Company information", "معلومات الشركة")}</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -10798,8 +10909,8 @@ function Platform() {
                 </div>) : <p className="text-sm text-muted-foreground">{text("No Company Owner account found.", "لم يتم العثور على مالك للشركة.")}</p>}
               </div>
             </div>
-            <div className="border-t border-border pt-5">
-              <h3 className="font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h3>
+             <div className="border-t border-border pt-5">
+               <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h3><Button variant="outline" disabled={saving || !companyDetails} onClick={() => void createCompanyBackup()}>{text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}</Button></div>
               <div className="mt-3 space-y-2">{companyBackups.length ? companyBackups.map((backup) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><span>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span><Button variant="outline" disabled={saving} onClick={() => void restoreCompanyBackup(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
             </div>
           </div>

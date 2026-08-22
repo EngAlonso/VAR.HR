@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { backupRecordsTable, db } from "@workspace/db";
+import { z } from "zod";
+import { backupRecordsTable, companiesTable, db } from "@workspace/db";
 import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName } from "../lib/backups";
 import { writeAuthAudit } from "../lib/auth";
 import {
@@ -89,9 +90,32 @@ router.post("/backups", async (req, res): Promise<void> => {
   if (!scope || (scope === "platform" && context.role !== "platform_owner")) {
     throw new WorkspaceAccessError("This account cannot create that backup scope.");
   }
+  const requestedCompanyId =
+    scope === "company" && context.role === "platform_owner"
+      ? z.string().uuid().safeParse(req.body?.companyId)
+      : null;
+  const companyId =
+    scope === "company"
+      ? context.role === "platform_owner"
+        ? requestedCompanyId?.success
+          ? requestedCompanyId.data
+          : null
+        : context.companyId
+      : null;
+  if (scope === "company" && !companyId) {
+    throw new WorkspaceAccessError("A valid company ID is required.");
+  }
+  if (scope === "company") {
+    const [company] = await db
+      .select({ id: companiesTable.id })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, companyId!))
+      .limit(1);
+    if (!company) throw new WorkspaceAccessError("Company not found.");
+  }
   const record = await createBackup({
     scope,
-    companyId: scope === "company" ? context.companyId : null,
+    companyId,
     createdBy: context.accountId,
   });
   await writeAuthAudit({
