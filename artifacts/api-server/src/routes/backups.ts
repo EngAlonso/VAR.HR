@@ -204,7 +204,7 @@ router.post("/backups/:id/restore", async (req, res): Promise<void> => {
     createdBy: context.accountId,
     status: "safety",
   });
-  await restoreBackup(record.id, scope, companyId);
+  await restoreBackup(record.id, scope, companyId, context.accountId);
   await writeAuthAudit({
     accountId: context.accountId,
     companyId,

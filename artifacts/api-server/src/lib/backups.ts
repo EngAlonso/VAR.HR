@@ -391,9 +391,13 @@ async function deleteScope(
   client: QueryClient,
   scope: BackupScope,
   companyId: string | null,
+  preservedAccountId: string | null,
 ): Promise<void> {
   if (scope === "platform") {
-    await client.query(`DELETE FROM "var_hr_auth_sessions"`);
+    await client.query(
+      `DELETE FROM "var_hr_auth_sessions" WHERE account_id <> $1`,
+      [preservedAccountId],
+    );
     // Platform restores preserve user accounts, but employees are replaced.
     // Clear these FK references inside the same transaction so PostgreSQL can
     // remove the old employees without deleting or disabling authentication.
@@ -574,6 +578,7 @@ export async function restoreBackup(
   recordId: string,
   expectedScope: BackupScope,
   companyId: string | null,
+  preservedAccountId: string | null = null,
 ): Promise<void> {
   const [record] = await db
     .select()
@@ -588,7 +593,7 @@ export async function restoreBackup(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await deleteScope(client, expectedScope, companyId);
+    await deleteScope(client, expectedScope, companyId, preservedAccountId);
     const restoreData =
       expectedScope === "platform"
         ? await reconcilePlatformAccounts(
