@@ -3,7 +3,7 @@ name: Responsive logo containment
 description: Prevents tall intrinsic brand assets from expanding beyond responsive headers.
 ---
 
-When a logo asset has a tall or stacked intrinsic aspect ratio, render it inside a dedicated responsive frame with explicit dimensions, `overflow-hidden`, and `object-contain`. Do not rely on an image height utility alone when a shared image class also applies `height: auto` and `max-width: 100%`.
+When a logo asset has a tall or stacked intrinsic aspect ratio, render it inside a dedicated responsive frame with explicit dimensions, `overflow-hidden`, and `object-contain`. Do not rely on an image height utility alone when a shared image class also applies `height: auto` and `max-width: 100%`. For a centered responsive header, keep that frame as a sibling of the navigation/company and language-control zones so grid allocation can protect all three areas.
 
 **Why:** The shared image styling allowed the stacked mobile logo to resolve to the full containing width, so it expanded vertically and overlapped dashboard content despite an apparent height class.
 
