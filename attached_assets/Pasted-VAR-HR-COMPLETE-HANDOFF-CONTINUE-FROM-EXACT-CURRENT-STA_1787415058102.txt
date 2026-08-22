@@ -1,0 +1,587 @@
+VAR HR — COMPLETE HANDOFF / CONTINUE FROM EXACT CURRENT STATE
+
+You are continuing an existing VAR HR HR platform project from another ChatGPT account.
+
+IMPORTANT:
+Do NOT restart the project.
+Do NOT repeat previous investigations.
+Do NOT redesign existing systems.
+Do NOT spend credits rediscovering things already established below.
+
+Treat everything in this handoff as the current known project state and continue from the remaining task only.
+
+==================================================
+PROJECT
+==================================================
+
+VAR HR is a premium multi-tenant HR management platform.
+
+Main roles:
+- Platform Owner
+- Company Owner
+- Employee
+
+The platform supports:
+- Authentication
+- Multi-tenancy
+- Employee management
+- Attendance
+- Leave/requests
+- Rules
+- Reports
+- Payroll
+- Schedules
+- Holidays
+- Devices
+- Notifications
+- Subscriptions
+- Audit logs
+- Backup & Restore
+- Platform administration
+- Arabic RTL
+- English/LTR
+- Responsive mobile/tablet/desktop layouts
+
+Tech stack includes:
+- React frontend
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- Generated API client
+- Managed web/API workflows
+
+Preserve the existing architecture.
+
+==================================================
+1. AUTHENTICATION — ALREADY FIXED
+==================================================
+
+There was a login loop:
+
+POST /api/auth/login → 200
+GET /api/workspace → 401
+→ user returned to login
+
+Root cause was identified:
+
+The shared generated API client did not reliably include browser credentials/cookies.
+
+The correct architectural fix was made in:
+
+lib/api-client-react/src/custom-fetch.ts
+
+The shared fetch now defaults to:
+
+credentials: init.credentials ?? "include"
+
+This was NOT a route-specific workaround.
+
+Real Chromium verification proved the fix works:
+
+POST /api/auth/login → 200
+Set-Cookie received
+var_hr_session stored by Chromium
+/api/auth/me → 200
+/api/workspace → 200
+Browser refresh → session remains active
+Logout → cookie cleared
+Second login → successful
+
+Therefore:
+
+DO NOT modify authentication again unless an actual regression is proven.
+
+Do NOT change:
+- session architecture
+- cookie configuration
+- auth routes
+- database session logic
+- auth middleware
+- tenant authentication
+- login flow
+
+==================================================
+2. BACKUP & RESTORE — ALREADY IMPLEMENTED
+==================================================
+
+A production-oriented Backup & Restore system exists.
+
+Platform Owner:
+- Can create complete platform backups
+- Can download backups
+- Can restore platform backups
+- Can delete backups
+- Safety backup is automatically created before restore
+
+Company Owner:
+- Can create company-scoped backups
+- Can download/restore company data
+- Cannot access other companies' data
+
+Existing protections include:
+- Scope validation
+- Ownership validation
+- Tenant isolation
+- SHA-256 integrity validation
+- Versioned backup envelope
+- Transaction-based restore
+- Automatic safety backup before restore
+
+A tenant-isolation issue was previously discovered and fixed:
+
+Company backups now include only the active company's record/data.
+Restore validation rejects company-scoped rows belonging to another company.
+
+Do NOT redesign Backup & Restore.
+
+Do NOT change tenant isolation unless a real security bug is proven.
+
+==================================================
+3. MOBILE RESPONSIVE UX — ALREADY IMPROVED
+==================================================
+
+The mobile interface was specifically improved instead of simply shrinking the desktop layout.
+
+Implemented improvements include:
+- safer narrow-screen content bounds
+- responsive card layouts
+- stacked narrow forms/details
+- improved mobile section headers
+- larger touch targets
+- improved table scrolling
+- graceful text wrapping
+- better mobile spacing
+- prevention of card/dashboard overflow
+- responsive mobile controls
+
+Important tested widths:
+- 320px
+- 360px
+- 390px
+- 402px
+- tablet
+- 1440px desktop
+
+Mobile navigation drawer gestures were also implemented:
+
+Arabic / RTL:
+- swipe from right → left = OPEN drawer
+- swipe from left → right = CLOSE drawer
+
+LTR:
+- swipe from left → right = OPEN drawer
+- swipe from right → left = CLOSE drawer
+
+Existing:
+- hamburger button
+- overlay
+- Escape
+- navigation links
+
+must continue working.
+
+Do NOT undo the existing mobile responsive work.
+
+Do NOT change existing logo assets.
+
+==================================================
+4. HEADER / LOGO — PREVIOUS ISSUES ALREADY FIXED
+==================================================
+
+Previous mobile logo problems were fixed.
+
+The existing VAR HR logo asset must remain unchanged.
+
+Do NOT:
+- recreate the logo
+- crop the logo
+- redesign the logo
+- replace the logo asset
+- undo its responsive containment
+
+Desktop logo was also previously fixed and must remain visible.
+
+The mobile header currently uses a three-zone structure:
+
+Company/navigation zone
+VAR HR logo zone
+Language/control zone
+
+Intended structure:
+
+minmax(0, 1fr) auto minmax(0, 1fr)
+
+The zones are direct siblings.
+
+Element order must remain unchanged.
+
+RTL/LTR behavior must remain unchanged.
+
+==================================================
+5. CURRENT PLATFORM OWNER WORK — THIS IS THE MAIN CURRENT TASK
+==================================================
+
+The Platform Owner experience was audited and found to be incomplete.
+
+A dedicated Platform Owner dashboard is now being implemented.
+
+The goal:
+
+Platform Owner must manage the ENTIRE VAR HR PLATFORM.
+
+Company Owner must manage ONLY their company.
+
+Employee must manage ONLY their own employee experience.
+
+Platform Owner should NOT be treated like a normal Company Owner.
+
+The normal company HR dashboard must NOT be the primary Platform Owner experience.
+
+==================================================
+6. PLATFORM AGGREGATION ENDPOINT — ALREADY IMPLEMENTED
+==================================================
+
+A platform-only aggregation endpoint was added.
+
+It returns real platform-wide data.
+
+The endpoint was verified successfully.
+
+Known real seeded response:
+
+- Total companies: 1
+- Total employees: 4
+- Total platform users: 7
+- Active subscriptions: 1
+- Recent activity events: 12
+- Current platform alerts: 0
+
+The endpoint returned HTTP 200 for an authenticated Platform Owner.
+
+The generated API contract/client was also updated successfully.
+
+Do NOT replace this endpoint unnecessarily.
+
+==================================================
+7. PLATFORM /platform ROUTE — ALREADY IMPLEMENTED
+==================================================
+
+The /platform route is now intended to be the dedicated Platform Owner home/dashboard.
+
+Platform Owner should be redirected to /platform instead of being treated as a normal company workspace user.
+
+Company Owners and Employees must retain their existing navigation and routes.
+
+The Platform Owner dashboard should show real platform-level information such as:
+
+- Total companies
+- Active companies
+- Suspended companies
+- Total employees
+- Total platform users
+- Subscription summary
+- Recently registered companies
+- Recent platform activity
+- Platform alerts
+
+Additional Platform Owner surfaces should include where already supported:
+
+Company management
+Company details
+Company status
+Employee limits
+Company Owner information
+Subscription information
+Platform activity/audit
+Platform settings
+
+Use real database data.
+
+NEVER use fake/demo statistics.
+
+==================================================
+8. EXISTING PLATFORM APIs / CAPABILITIES
+==================================================
+
+Existing company creation API:
+
+POST /api/platform/companies
+
+It can:
+- create company
+- create company slug
+- set employee limit
+- create initial Company Owner
+- create initial department
+- create subscription/plan
+- create Company Owner account
+- return temporary password
+- create authentication audit event
+
+Existing company listing:
+
+GET /api/platform/companies
+
+Existing company update API:
+
+PATCH /api/platform/companies/:companyId
+
+Backend already supports:
+- activate company
+- suspend company
+- change employee limit
+- update account status accordingly
+- write audit events
+
+However, the UI capabilities were previously incomplete.
+
+Platform backup APIs already exist:
+
+GET /api/backups
+POST /api/backups
+GET /api/backups/:id/download
+POST /api/backups/:id/restore
+DELETE /api/backups/:id
+
+Authentication audit API:
+
+GET /api/auth/audit
+
+Platform Owner can access cross-company authentication audit events.
+
+==================================================
+9. KNOWN PLATFORM OWNER GAPS FROM PREVIOUS AUDIT
+==================================================
+
+The following were identified as missing or incomplete:
+
+Platform-wide metrics
+- Total registered companies
+- Active company aggregation
+- Suspended company aggregation
+- Total employees
+- Total users
+- Subscription summary
+- Expiration monitoring
+- Recent companies
+- Recent platform activity
+- Platform alerts
+
+Company management UI
+- Company details
+- Company Owner visibility
+- Company Owner status
+- Activate/suspend controls
+- Employee limit controls
+- Subscription information
+- Company/user statistics
+
+Platform users management
+- No complete platform-wide user administration surface yet
+
+Platform activity/audit UI
+- Authentication audit API exists
+- Operational audit data exists
+- Readable Platform Owner activity UI was missing
+
+Platform settings
+- Platform settings UI was missing
+
+Platform notifications
+- Platform-level alerts/notification center was missing
+
+Important:
+Subscription expiration monitoring cannot honestly be implemented using fake data because the existing subscription schema did not contain a real expiration/renewal date field.
+
+Do NOT invent subscription expiration dates.
+
+==================================================
+10. LAST IMPLEMENTATION STATE BEFORE ACCOUNT SWITCH
+==================================================
+
+The previous ChatGPT implemented the Platform Owner dashboard and aggregation endpoint.
+
+The implementation sequence was:
+
+1. Inspected existing Platform Owner APIs/data.
+2. Added a platform-only aggregation endpoint.
+3. Generated the API client/contract.
+4. Replaced the existing limited Platform Owner page with a proper platform dashboard.
+5. Updated role-specific shell navigation.
+6. Platform Owners are redirected to /platform.
+7. Company Owners and Employees retain their existing routes.
+8. Fixed two small TypeScript UI issues.
+9. Typechecking passed.
+10. Managed API/frontend workflows were restarted.
+11. Real platform summary endpoint returned:
+
+1 company
+4 employees
+7 platform users
+1 active subscription
+12 recent activity events
+0 alerts
+
+12. Browser smoke test:
+- authenticated successfully
+- reached /platform
+- /api/platform/summary returned 200
+
+The smoke test then failed its TEXT ASSERTIONS because the expected English labels did not match the actual rendered localized/updated UI.
+
+IMPORTANT:
+
+This was NOT proven to be an application failure.
+
+The previous session was about to inspect:
+- actual rendered text
+- browser console
+- actual visual UI
+
+before making any further change.
+
+Then the Free quota was exhausted.
+
+==================================================
+11. EXACT REMAINING TASK
+==================================================
+
+Continue from the current implementation.
+
+DO NOT rebuild the Platform Owner dashboard from scratch.
+
+First inspect the actual current /platform implementation and rendered UI.
+
+The first question is:
+
+Is the application actually wrong, or were the smoke-test text selectors simply outdated?
+
+Do NOT assume failure from the selector mismatch.
+
+Perform final browser/visual verification at:
+
+320px
+360px
+390px
+402px
+tablet
+1440px
+
+Verify:
+
+Platform Owner:
+- reaches /platform
+- does not see the normal company dashboard as primary experience
+- sees real platform metrics
+- sees company management
+- sees recent activity
+- sees alerts section
+- can interact with implemented company controls
+- sees correct platform branding
+- has no layout overlap
+- has no clipping
+- has no unexpected horizontal overflow
+- has proper touch targets on mobile
+
+Verify RTL:
+- Arabic layout
+- correct direction
+- drawer behavior
+- cards/actions alignment
+- readable Arabic text
+
+Verify LTR:
+- English layout
+- correct direction
+- normal drawer behavior
+- correct alignment
+
+Verify desktop:
+- 1440px layout remains clean
+- no desktop regressions
+
+Verify tablet.
+
+Verify existing roles:
+- Company Owner behavior unchanged
+- Employee behavior unchanged
+- Existing authentication unchanged
+- Existing tenant isolation unchanged
+
+==================================================
+12. VERY IMPORTANT SAFETY RULES
+==================================================
+
+Do NOT:
+- restart the architecture
+- redesign the entire application
+- change authentication
+- change database structure unnecessarily
+- change session/cookie behavior
+- change tenant isolation
+- change business logic
+- change existing navigation destinations for Company Owners/Employees
+- change logo assets
+- undo mobile fixes
+- create replacement workflows
+- create fake data
+- add arbitrary CSS margins/offsets
+- make route-specific authentication hacks
+
+Only make a change if an actual bug is observed.
+
+If the Platform Owner UI is correct and the only issue is outdated smoke-test text selectors:
+
+DO NOT modify application behavior.
+
+Only update the test selector if an existing regression test actually exists and needs correction.
+
+==================================================
+13. VERIFICATION STANDARD
+==================================================
+
+Do not say "fixed" just because:
+- TypeScript passes
+- Build passes
+- API returns 200
+
+The Platform Owner UI must be visually inspected.
+
+Do not claim visual verification if the browser could not actually render the authenticated /platform page.
+
+If authenticated browser verification is unavailable, clearly state that limitation instead of guessing.
+
+==================================================
+14. CURRENT GOAL
+==================================================
+
+The final desired result is:
+
+PLATFORM OWNER
+↓
+/platform
+↓
+Real platform-wide dashboard
+↓
+Companies
+Users
+Employees
+Subscriptions
+Activity
+Alerts
+Backups
+Platform settings
+
+COMPANY OWNER
+↓
+Own company only
+↓
+Normal HR workspace
+
+EMPLOYEE
+↓
+Own employee workspace
+
+The three experiences must remain properly separated.
+
+Continue from this exact state and finish ONLY the remaining verification/fixes.
