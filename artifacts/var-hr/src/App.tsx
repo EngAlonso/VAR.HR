@@ -4238,8 +4238,18 @@ function Shell({ children }: { children: ReactNode }) {
         dir={isArabic ? "rtl" : "ltr"}
       >
         <div className="flex items-center gap-3 px-3 pb-8">
-          <div className="w-full max-w-[176px] overflow-hidden rounded-lg bg-white p-1.5">
-            <BrandLogo variant="horizontal" className="w-full" />
+          <div className="w-full">
+            <div className="w-full max-w-[176px] overflow-hidden rounded-lg bg-white p-1.5">
+              <BrandLogo variant="horizontal" className="w-full" />
+            </div>
+            <div className="mt-3 lg:hidden">
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                {workspace.company.name}
+              </p>
+              <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
+                {auth.account.fullName}
+              </p>
+            </div>
           </div>
         </div>
         <Button
@@ -4346,7 +4356,7 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
-            <div className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-semibold">
+            <div className="hidden min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-semibold lg:flex">
               <Building2 size={16} className="shrink-0 text-primary" />
               <span className="min-w-0 truncate">
                 {isPlatformOwner
@@ -4372,7 +4382,7 @@ function Shell({ children }: { children: ReactNode }) {
             />
           </span>
           <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
-            <div className="hidden text-xs font-medium text-muted-foreground sm:block">
+              <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
             <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
