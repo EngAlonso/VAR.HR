@@ -267,6 +267,12 @@ const nav: NavItem[] = [
     roles: ["platform_owner", "company_owner"],
   },
   {
+    href: "/backups",
+    key: "backupRestore",
+    icon: Database,
+    roles: ["platform_owner", "company_owner"],
+  },
+  {
     href: "/accounts",
     key: "accountManagement",
     icon: UserPlus,
@@ -304,6 +310,7 @@ const copy = {
     schedules: "Schedules",
     holidays: "Holidays",
     syncHistory: "Sync history",
+    backupRestore: "Backup & restore",
     subscription: "Subscription",
     platformOwner: "Platform owner",
     accountManagement: "Account management",
@@ -611,6 +618,7 @@ const copy = {
     schedules: "الجداول",
     holidays: "العطلات",
     syncHistory: "سجل المزامنة",
+    backupRestore: "النسخ الاحتياطي والاستعادة",
     subscription: "الاشتراك",
     platformOwner: "مالك المنصة",
     workspace: "مساحة العمل",
@@ -699,6 +707,8 @@ const copy = {
     reports: "Rapports",
     payroll: "Paie",
     devices: "Appareils",
+    syncHistory: "Historique de synchronisation",
+    backupRestore: "Sauvegarde et restauration",
     subscription: "Abonnement",
     platformOwner: "Propriétaire de la plateforme",
     workspace: "Espace de travail",
@@ -786,6 +796,8 @@ const copy = {
     reports: "Berichte",
     payroll: "Lohnabrechnung",
     devices: "Geräte",
+    syncHistory: "Synchronisationsverlauf",
+    backupRestore: "Sicherung und Wiederherstellung",
     subscription: "Abonnement",
     platformOwner: "Plattforminhaber",
     workspace: "Arbeitsbereich",
@@ -8979,6 +8991,269 @@ function SyncHistory() {
   );
 }
 
+type BackupSummary = {
+  id: string;
+  scope: "platform" | "company";
+  companyId: string | null;
+  status: string;
+  sizeBytes: number;
+  checksum: string;
+  metadata: {
+    schemaVersion?: string;
+    tableCounts?: Record<string, number>;
+    includesExternalFiles?: boolean;
+  };
+  createdAt: string;
+};
+
+function BackupRestore() {
+  const { locale, t } = useI18n();
+  const workspace = useGetWorkspace();
+  const [backups, setBackups] = useState<BackupSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState("");
+  const [error, setError] = useState("");
+  const isArabic = locale === "ar";
+  const role = workspace.data?.role;
+  const isPlatformOwner = role === "platform_owner";
+  const labels = isArabic
+    ? {
+        title: "النسخ الاحتياطي والاستعادة",
+        detail: isPlatformOwner
+          ? "أنشئ نسخة كاملة من المنصة أو استعدها بأمان."
+          : "احمِ بيانات شركتك واستعدها داخل نطاقها فقط.",
+        create: isPlatformOwner ? "نسخة منصة جديدة" : "نسخة شركة جديدة",
+        platform: "نسخة المنصة",
+        company: "نسخة الشركة",
+        safety: "نسخة أمان",
+        download: "تنزيل",
+        restore: "استعادة",
+        delete: "حذف",
+        empty: "لا توجد نسخ احتياطية",
+        loading: "جارٍ تحميل النسخ الاحتياطية…",
+        failed: "تعذر تحميل النسخ الاحتياطية.",
+        created: "تم إنشاء النسخة الاحتياطية.",
+        restored: "تمت الاستعادة بنجاح.",
+        confirm:
+          "الاستعادة تستبدل بيانات هذا النطاق بالكامل. سيتم إنشاء نسخة أمان أولاً. هل تريد المتابعة؟",
+        confirmDelete: "هل تريد حذف هذه النسخة؟",
+        external:
+          "لا توجد ملفات خارجية في هذا النظام حالياً؛ النسخ تغطي بيانات قاعدة البيانات.",
+        integrity: "سلامة SHA-256",
+        records: "سجلات البيانات",
+        size: "الحجم",
+      }
+    : {
+        title: "Backup & restore",
+        detail: isPlatformOwner
+          ? "Create or safely restore a complete platform snapshot."
+          : "Protect and restore your company data within its tenant boundary.",
+        create: isPlatformOwner ? "New platform backup" : "New company backup",
+        platform: "Platform backup",
+        company: "Company backup",
+        safety: "Safety backup",
+        download: "Download",
+        restore: "Restore",
+        delete: "Delete",
+        empty: "No backups yet",
+        loading: "Loading backups…",
+        failed: "Backups could not be loaded.",
+        created: "Backup created.",
+        restored: "Restore completed.",
+        confirm:
+          "Restore replaces all data in this scope. A safety backup will be created first. Continue?",
+        confirmDelete: "Delete this backup?",
+        external:
+          "There is no external file storage in this system currently; backups cover database data.",
+        integrity: "SHA-256 integrity",
+        records: "Data records",
+        size: "Size",
+      };
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setBackups(await authRequest<BackupSummary[]>("/api/backups"));
+    } catch {
+      setError(labels.failed);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (role === "platform_owner" || role === "company_owner") void load();
+  }, [role]);
+
+  const create = async () => {
+    setPending("create");
+    setError("");
+    try {
+      await authRequest("/api/backups", {
+        method: "POST",
+        body: JSON.stringify({ scope: isPlatformOwner ? "platform" : "company" }),
+      });
+      toast.success(labels.created);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.failed);
+    } finally {
+      setPending("");
+    }
+  };
+  const restore = async (backup: BackupSummary) => {
+    if (!window.confirm(labels.confirm)) return;
+    setPending(backup.id);
+    setError("");
+    try {
+      await authRequest(`/api/backups/${backup.id}/restore`, {
+        method: "POST",
+        body: JSON.stringify({ confirmation: "RESTORE" }),
+      });
+      toast.success(labels.restored);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.failed);
+    } finally {
+      setPending("");
+    }
+  };
+  const download = async (backup: BackupSummary) => {
+    setPending(`download-${backup.id}`);
+    try {
+      const response = await fetch(`/api/backups/${backup.id}/download`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Download failed.");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `var-hr-${backup.scope}-backup-${backup.id.slice(0, 8)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.failed);
+    } finally {
+      setPending("");
+    }
+  };
+  const remove = async (backup: BackupSummary) => {
+    if (!window.confirm(labels.confirmDelete)) return;
+    setPending(`delete-${backup.id}`);
+    try {
+      await authRequest(`/api/backups/${backup.id}`, { method: "DELETE" });
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.failed);
+    } finally {
+      setPending("");
+    }
+  };
+
+  if (!role || (role !== "platform_owner" && role !== "company_owner")) {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("backupRestore")}
+        title={labels.title}
+        detail={labels.detail}
+        action={
+          <Button onClick={create} disabled={pending === "create"}>
+            <Database size={15} />
+            {pending === "create" ? "…" : labels.create}
+          </Button>
+        }
+      />
+      <Card>
+        <div className="flex flex-col gap-2 border-b border-border p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>{labels.external}</span>
+          <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            v1 · PostgreSQL
+          </span>
+        </div>
+        {error && (
+          <div className="m-5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        {loading ? (
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+        ) : backups.length === 0 ? (
+          <Empty title={labels.empty} detail={labels.detail} />
+        ) : (
+          <div className="divide-y divide-border">
+            {backups.map((backup) => (
+              <div className="p-5" key={backup.id}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">
+                        {backup.scope === "platform" ? labels.platform : labels.company}
+                      </span>
+                      <Status value={backup.status === "safety" ? "completed" : "active"} />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(backup.createdAt).toLocaleString(
+                        isArabic ? "ar-EG" : "en-GB",
+                      )}
+                    </p>
+                    <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">
+                      {labels.integrity}: {backup.checksum}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
+                    <Info label={labels.size} value={`${Math.ceil(backup.sizeBytes / 1024)} KB`} />
+                    <Info
+                      label={labels.records}
+                      value={Object.values(backup.metadata.tableCounts ?? {}).reduce(
+                        (sum, count) => sum + count,
+                        0,
+                      )}
+                    />
+                    <Info label="Schema" value={backup.metadata.schemaVersion ?? "v1"} />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => void download(backup)}
+                    disabled={pending !== ""}
+                  >
+                    <Download size={14} />
+                    {labels.download}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void restore(backup)}
+                    disabled={pending !== ""}
+                  >
+                    <RefreshCw size={14} />
+                    {pending === backup.id ? "…" : labels.restore}
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    onClick={() => void remove(backup)}
+                    disabled={pending !== ""}
+                  >
+                    <X size={14} />
+                    {labels.delete}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
@@ -10374,6 +10649,7 @@ function Router() {
         <Route path="/holidays" component={Holidays} />
         <Route path="/devices" component={Devices} />
         <Route path="/sync-history" component={SyncHistory} />
+        <Route path="/backups" component={BackupRestore} />
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform" component={Platform} />

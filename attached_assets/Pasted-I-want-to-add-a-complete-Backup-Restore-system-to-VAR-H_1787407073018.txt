@@ -1,0 +1,203 @@
+I want to add a complete Backup & Restore system to VAR HR.
+
+The system must support two different backup scopes with strict permission separation.
+
+1. Platform Owner / Website Owner Backup
+
+The VAR HR platform owner must be able to create a complete backup of the entire system.
+
+The full platform backup should include everything necessary to completely restore the system, including:
+
+- All companies/tenants
+- Company profiles and settings
+- All employees
+- Employee information
+- Attendance records
+- Leave records
+- Permissions
+- Payroll-related data
+- Departments
+- Positions
+- Work schedules
+- Rules and configurations
+- Company subscriptions
+- Notifications where applicable
+- Audit/log data where appropriate
+- Uploaded files/documents if they are stored by the application
+- Any other database records required for a complete system restoration
+
+The platform owner should be able to:
+
+- Create a new full backup manually.
+- See existing backups.
+- See backup date/time.
+- See backup size.
+- Download/export a backup.
+- Delete old backups according to the appropriate permissions.
+- Restore the entire platform from a selected backup.
+
+A full platform restore must restore the system consistently, including the relationships between companies and their data.
+
+2. Company Owner Backup
+
+Each company owner should have a separate Company Backup & Restore section.
+
+A company owner must ONLY be able to back up and restore data belonging to their own company.
+
+Their backup must NOT contain:
+
+- Other companies
+- Other tenants
+- Platform-owner data
+- Other companies' employees or records
+- Global platform administration data
+
+The company backup should include all data belonging to that company that is necessary to restore the company's HR environment, including its employees and related HR records.
+
+The company owner should be able to:
+
+- Create a company backup.
+- View their own backups.
+- Download/export their backup.
+- Delete their own backups if permitted.
+- Restore their company from one of their backups.
+
+3. Strict Multi-Tenant Security
+
+This is extremely important.
+
+A company owner must NEVER be able to access another company's backup.
+
+The backend must enforce tenant isolation at the authorization/data layer.
+
+Do NOT rely only on hiding UI buttons.
+
+Every backup and restore operation must verify:
+
+- Current authenticated user.
+- User role.
+- Company/tenant ID.
+- Backup ownership/scope.
+- Required permissions.
+
+A company restore must never be capable of affecting another company.
+
+4. Restore Safety
+
+Restoration is a destructive/high-impact operation, so implement proper safeguards.
+
+Before restoring:
+
+- Require explicit confirmation.
+- Clearly explain what will be replaced/restored.
+- Prevent accidental restoration.
+- Validate backup integrity before restoring.
+- Use database transactions where possible.
+- If the restore fails, avoid leaving the database in a partially restored state.
+- Create an automatic safety backup before performing a restore when appropriate.
+
+For platform-wide restoration, make sure the entire system remains internally consistent.
+
+5. Backup Format
+
+Use a reliable, versioned backup format.
+
+The backup should contain enough metadata to identify:
+
+- Backup version
+- Creation date/time
+- Backup scope ("platform" or "company")
+- Company/tenant ID when applicable
+- Application/schema version
+- Data integrity information
+
+Do not create a backup format that depends on the current UI.
+
+The backup must be usable for restoration even if the UI changes later.
+
+6. Files and Uploaded Documents
+
+If the application stores uploaded files/documents outside the database, the backup system must account for them as well.
+
+A backup should not claim to be a "complete backup" if important company data exists outside the database and is not included.
+
+Inspect the current storage architecture first and determine what needs to be included.
+
+7. UI
+
+Add a professional Backup & Restore section.
+
+For the Platform Owner:
+
+System Backup & Restore
+
+For the Company Owner:
+
+Company Backup & Restore
+
+Show useful information such as:
+
+- Backup type
+- Date/time
+- Size
+- Scope
+- Status
+- Restore action
+- Download action
+- Delete action where allowed
+
+The interface should be responsive and work properly on mobile as well.
+
+8. Important Architecture Requirements
+
+Before implementing, inspect the existing database schema, authentication/roles, tenant isolation, storage system, and API architecture.
+
+Do NOT blindly implement a generic backup system.
+
+Reuse the existing architecture wherever possible.
+
+Keep the backup/restore logic on the backend/server side.
+
+Do NOT expose database credentials or sensitive infrastructure information to the frontend.
+
+Do NOT modify authentication, payroll, attendance, or other business logic unnecessarily.
+
+9. Permissions
+
+There must be two clearly separated permission levels:
+
+Platform Owner
+
+- Full platform backup
+- Full platform restore
+- Manage platform backups
+
+Company Owner
+
+- Backup own company only
+- Restore own company only
+- Manage own company backups
+
+No company user should ever receive platform-wide backup/restore permissions.
+
+10. Verification
+
+After implementation, test at minimum:
+
+1. Platform owner creates a full backup.
+2. Full backup contains multiple companies and their related data.
+3. Platform owner restores a backup successfully.
+4. Company owner creates a backup.
+5. Company backup contains ONLY that company's data.
+6. Company owner cannot access another company's backup.
+7. Company owner cannot restore another company's data.
+8. Company restore restores the company's employees and HR records correctly.
+9. Invalid/corrupted backup is rejected safely.
+10. Restore failure does not leave partially corrupted data.
+11. Uploaded files/documents are included or explicitly handled.
+12. Mobile UI works correctly.
+13. Existing authentication, API, database behavior, dashboard functionality, and business logic remain stable.
+
+Do not make this a superficial UI feature.
+
+Implement it as a real, secure, production-ready multi-tenant Backup & Restore system with proper backend authorization, data isolation, integrity validation, and restoration safety.
