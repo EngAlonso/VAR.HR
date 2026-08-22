@@ -4176,10 +4176,12 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <BrandLogo
-              variant="short"
-              className="absolute left-1/2 top-1/2 h-9 w-auto max-w-[72px] -translate-x-1/2 -translate-y-1/2 object-contain sm:hidden"
-            />
+            <span className="absolute left-1/2 top-1/2 flex h-9 w-[clamp(42px,14vw,56px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden sm:hidden">
+              <BrandLogo
+                variant="short"
+                className="!h-full !w-full !max-w-none object-contain"
+              />
+            </span>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
