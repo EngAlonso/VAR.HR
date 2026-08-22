@@ -4,8 +4,8 @@ import {
   type ChangeEvent,
   type FormEvent,
   type HTMLAttributes,
+  type PointerEvent,
   type ReactNode,
-  type TouchEvent,
   useContext,
   useEffect,
   useMemo,
@@ -4143,7 +4143,7 @@ function WorkspaceState({
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
-  const touchStartX = useRef<number | null>(null);
+  const pointerStart = useRef<{ id: number; x: number } | null>(null);
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
   const isArabic = locale === "ar";
@@ -4170,23 +4170,35 @@ function Shell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
-  const handleTouchStart = (event: TouchEvent) => {
-    if (!isArabic || !isMobile) return;
-    touchStartX.current = event.changedTouches[0]?.clientX ?? null;
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isArabic || !isMobile || event.pointerType !== "touch") return;
+    pointerStart.current = { id: event.pointerId, x: event.clientX };
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
-  const handleTouchEnd = (event: TouchEvent) => {
-    if (!isArabic || !isMobile) return;
-    const startX = touchStartX.current;
-    touchStartX.current = null;
-    if (startX === null) return;
-    const endX = event.changedTouches[0]?.clientX ?? startX;
-    const deltaX = endX - startX;
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (
+      !start ||
+      start.id !== event.pointerId ||
+      !isArabic ||
+      !isMobile ||
+      event.pointerType !== "touch"
+    ) {
+      return;
+    }
+    const deltaX = event.clientX - start.x;
     if (Math.abs(deltaX) < 48) return;
-    const startedAtEdge = startX >= window.innerWidth - 32;
+    const startedAtEdge = start.x >= window.innerWidth - 32;
     if (open) {
       if (deltaX > 0) setOpen(false);
     } else if (startedAtEdge && deltaX < 0) {
       setOpen(true);
+    }
+  };
+  const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    if (pointerStart.current?.id === event.pointerId) {
+      pointerStart.current = null;
     }
   };
   if (workspaceQuery.isLoading) return <WorkspaceState kind="loading" />;
@@ -4219,8 +4231,12 @@ function Shell({ children }: { children: ReactNode }) {
     <div
       className="app-noise min-h-[100dvh] bg-background"
       dir={isArabic ? "rtl" : "ltr"}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      style={{
+        touchAction: isArabic && isMobile ? "pan-y" : undefined,
+      }}
     >
       <aside
         id="workspace-navigation"
