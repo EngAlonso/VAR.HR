@@ -1246,7 +1246,7 @@ paths:
     post:
       operationId: createPlatformCompany
       tags: [platform]
-      summary: Create a company and its first Company Owner
+      summary: Create a company and its Company Owner accounts
       requestBody:
         required: true
         content:
@@ -1506,15 +1506,32 @@ components:
         temporaryPassword: { type: string }
     PlatformCompanyInput:
       type: object
-      required: [name, employeeLimit, ownerUsername]
+      required: [name, address, employeeLimit, ownerCount, owners, monthlyPrice, annualPrice]
       properties:
         name: { type: string, minLength: 2 }
+        address: { type: string, minLength: 3 }
         slug: { type: string }
         timezone: { type: string, default: Africa/Cairo }
         currency: { type: string, minLength: 3, maxLength: 3, default: EGP }
         employeeLimit: { type: integer, minimum: 1 }
-        ownerUsername: { type: string, minLength: 3 }
-        ownerPassword: { type: ["string", "null"], minLength: 10 }
+        ownerCount: { type: integer, minimum: 1, maximum: 20 }
+        owners:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            required: [fullName, username, password, primaryPhone, email]
+            properties:
+              fullName: { type: string, minLength: 2 }
+              username: { type: string, minLength: 3 }
+              password: { type: string, minLength: 10 }
+              primaryPhone: { type: string, minLength: 7 }
+              backupPhones: { type: array, items: { type: string } }
+              email: { type: string, format: email }
+              backupEmails: { type: array, items: { type: string, format: email } }
+        monthlyPrice: { type: number, minimum: 0 }
+        annualPrice: { type: number, minimum: 0 }
         active: { type: boolean, default: true }
     PlatformCompanyUpdate:
       type: object
@@ -1529,7 +1546,7 @@ components:
         employeeLimit: { type: integer, minimum: 1 }
     PlatformCompanyCredentials:
       type: object
-      required: [company, owner, temporaryPassword]
+      required: [company, owners]
       properties:
         company:
           type: object
@@ -1542,8 +1559,10 @@ components:
             currency: { type: string }
             active: { type: boolean }
             employeeLimit: { type: integer }
-        owner: { $ref: "#/components/schemas/AuthAccount" }
-        temporaryPassword: { type: string }
+            address: { type: string }
+        owners:
+          type: array
+          items: { $ref: "#/components/schemas/AuthAccount" }
     HealthStatus:
       type: object
       required: [status]

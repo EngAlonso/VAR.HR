@@ -10,6 +10,5 @@ import type { PlatformCompanyCredentialsCompany } from './platformCompanyCredent
 
 export interface PlatformCompanyCredentials {
   company: PlatformCompanyCredentialsCompany;
-  owner: AuthAccount;
-  temporaryPassword: string;
+  owners: AuthAccount[];
 }

@@ -5,10 +5,13 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlatformCompanyInputOwnersItem } from './platformCompanyInputOwnersItem';
 
 export interface PlatformCompanyInput {
   /** @minLength 2 */
   name: string;
+  /** @minLength 3 */
+  address: string;
   slug?: string;
   timezone?: string;
   /**
@@ -18,12 +21,19 @@ export interface PlatformCompanyInput {
   currency?: string;
   /** @minimum 1 */
   employeeLimit: number;
-  /** @minLength 3 */
-  ownerUsername: string;
   /**
-     * @minLength 10
-     * @nullable
+     * @minimum 1
+     * @maximum 20
      */
-  ownerPassword?: string | null;
+  ownerCount: number;
+  /**
+     * @minItems 1
+     * @maxItems 20
+     */
+  owners: PlatformCompanyInputOwnersItem[];
+  /** @minimum 0 */
+  monthlyPrice: number;
+  /** @minimum 0 */
+  annualPrice: number;
   active?: boolean;
 }

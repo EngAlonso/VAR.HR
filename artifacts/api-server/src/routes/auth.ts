@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request } from "express";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   accountPermissionsTable,
@@ -62,6 +62,7 @@ const permanentPasswordSchema = z.object({
 });
 const companyInputSchema = z.object({
   name: z.string().trim().min(2).max(160),
+  address: z.string().trim().min(3).max(500),
   slug: z
     .string()
     .trim()
@@ -72,14 +73,23 @@ const companyInputSchema = z.object({
   timezone: z.string().trim().min(1).max(80).default("Africa/Cairo"),
   currency: z.string().trim().length(3).default("EGP"),
   employeeLimit: z.number().int().min(1).max(1_000_000),
-  ownerUsername: z
-    .string()
-    .trim()
-    .min(3)
-    .max(80)
-    .regex(/^[a-zA-Z0-9._-]+$/),
-  ownerPassword: z.string().min(10).max(256).optional(),
+  ownerCount: z.number().int().min(1).max(20),
+  owners: z.array(z.object({
+    fullName: z.string().trim().min(2).max(160),
+    username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
+    password: z.string().min(10).max(256),
+    primaryPhone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/i),
+    backupPhones: z.array(z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/i)).default([]),
+    email: z.string().trim().email(),
+    backupEmails: z.array(z.string().trim().email()).default([]),
+  })).min(1).max(20),
+  monthlyPrice: z.number().finite().min(0).max(1_000_000_000),
+  annualPrice: z.number().finite().min(0).max(1_000_000_000),
   active: z.boolean().default(true),
+}).superRefine((value, ctx) => {
+  if (value.owners.length !== value.ownerCount) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["owners"], message: "The owner count must exactly match the owner accounts provided." });
+  }
 });
 const companyUpdateSchema = z.object({
   name: z.string().trim().min(2).max(160).optional(),
@@ -595,22 +605,40 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 70);
-  const ownerPassword = parsed.data.ownerPassword ?? randomStaffPassword();
+  const usernames = parsed.data.owners.map((owner) => owner.username.toLowerCase());
+  const emails = parsed.data.owners.flatMap((owner) => [owner.email, ...owner.backupEmails].map((email) => email.toLowerCase()));
+  const phones = parsed.data.owners.flatMap((owner) => [owner.primaryPhone, ...owner.backupPhones].map((phone) => phone.replace(/\D/g, "")));
+  if (new Set(usernames).size !== usernames.length || new Set(emails).size !== emails.length || new Set(phones).size !== phones.length) {
+    res.status(409).json({ error: "Owner usernames, emails, and phone numbers must be unique.", code: "DUPLICATE_OWNER_CONTACT" });
+    return;
+  }
   const [existingSlug] = await db
     .select({ id: companiesTable.id })
     .from(companiesTable)
     .where(eq(companiesTable.slug, slug))
     .limit(1);
-  const [existingOwner] = await db
-    .select({ id: userAccountsTable.id })
-    .from(userAccountsTable)
-    .where(eq(userAccountsTable.username, parsed.data.ownerUsername))
-    .limit(1);
-  if (existingSlug || existingOwner) {
+  const existingAccounts = await db
+    .select({
+      username: userAccountsTable.username,
+      email: userAccountsTable.email,
+      primaryPhone: userAccountsTable.primaryPhone,
+      backupPhones: userAccountsTable.backupPhones,
+      backupEmails: userAccountsTable.backupEmails,
+    })
+    .from(userAccountsTable);
+  const existingUsernames = new Set(existingAccounts.map((account) => account.username.toLowerCase()));
+  const existingEmails = new Set(existingAccounts.flatMap((account) => [account.email, ...account.backupEmails]).filter(Boolean).map((email) => email.toLowerCase()));
+  const existingPhones = new Set(existingAccounts.flatMap((account) => [account.primaryPhone, ...account.backupPhones]).filter(Boolean).map((phone) => phone.replace(/\D/g, "")));
+  const duplicateUsername = usernames.some((username) => existingUsernames.has(username));
+  const duplicateEmail = emails.some((email) => existingEmails.has(email));
+  const duplicatePhone = phones.some((phone) => existingPhones.has(phone));
+  if (existingSlug || duplicateUsername || duplicateEmail || duplicatePhone) {
     res.status(409).json({
       error: existingSlug
         ? "That company slug is already in use."
-        : "That owner username is already in use.",
+        : duplicateUsername ? "That owner username is already in use."
+          : duplicateEmail ? "That owner email is already in use."
+            : "That owner phone number is already in use.",
       code: "DUPLICATE_COMPANY",
     });
     return;
@@ -621,6 +649,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       .values({
         name: parsed.data.name,
         slug,
+        address: parsed.data.address,
         timezone: parsed.data.timezone,
         currency: parsed.data.currency,
         active: parsed.data.active,
@@ -646,19 +675,26 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       planId: plan.id,
       employeeLimit: parsed.data.employeeLimit,
       status: parsed.data.active ? "active" : "cancelled",
+      monthlyPrice: parsed.data.monthlyPrice,
+      annualPrice: parsed.data.annualPrice,
     });
-    const [owner] = await tx
+    const owners = await tx
       .insert(userAccountsTable)
-      .values({
-        username: parsed.data.ownerUsername,
-        passwordHash: hashPassword(ownerPassword),
+      .values(parsed.data.owners.map((owner) => ({
+        username: owner.username,
+        fullName: owner.fullName,
+        primaryPhone: owner.primaryPhone,
+        backupPhones: owner.backupPhones,
+        email: owner.email,
+        backupEmails: owner.backupEmails,
+        passwordHash: hashPassword(owner.password),
         accountType: "company_owner",
         displayRole: "Company Owner",
         companyId: company.id,
         active: parsed.data.active,
-      })
+      })))
       .returning();
-    return { company, owner, department };
+    return { company, owners, department };
   });
   await writeAuthAudit({
     accountId: context.accountId,
@@ -667,18 +703,26 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
     entityType: "company",
     entityId: result.company.id,
   });
+  await Promise.all(result.owners.map((owner) => writeAuthAudit({
+    accountId: context.accountId,
+    companyId: result.company.id,
+    action: "company_owner_account_created",
+    entityType: "account",
+    entityId: owner.id,
+    metadata: { username: owner.username },
+  })));
   res.status(201).json({
     company: {
       id: result.company.id,
       name: result.company.name,
       slug: result.company.slug,
+      address: result.company.address,
       timezone: result.company.timezone,
       currency: result.company.currency,
       active: result.company.active,
       employeeLimit: parsed.data.employeeLimit,
     },
-    owner: accountResponse(result.owner),
-    temporaryPassword: ownerPassword,
+    owners: result.owners.map(accountResponse),
   });
 });
 

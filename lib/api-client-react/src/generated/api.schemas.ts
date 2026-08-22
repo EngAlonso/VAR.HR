@@ -91,9 +91,25 @@ export interface AuthAccountCredentials {
   temporaryPassword: string;
 }
 
+export type PlatformCompanyInputOwnersItem = {
+  /** @minLength 2 */
+  fullName: string;
+  /** @minLength 3 */
+  username: string;
+  /** @minLength 10 */
+  password: string;
+  /** @minLength 7 */
+  primaryPhone: string;
+  backupPhones?: string[];
+  email: string;
+  backupEmails?: string[];
+};
+
 export interface PlatformCompanyInput {
   /** @minLength 2 */
   name: string;
+  /** @minLength 3 */
+  address: string;
   slug?: string;
   timezone?: string;
   /**
@@ -103,13 +119,20 @@ export interface PlatformCompanyInput {
   currency?: string;
   /** @minimum 1 */
   employeeLimit: number;
-  /** @minLength 3 */
-  ownerUsername: string;
   /**
-     * @minLength 10
-     * @nullable
+     * @minimum 1
+     * @maximum 20
      */
-  ownerPassword?: string | null;
+  ownerCount: number;
+  /**
+     * @minItems 1
+     * @maxItems 20
+     */
+  owners: PlatformCompanyInputOwnersItem[];
+  /** @minimum 0 */
+  monthlyPrice: number;
+  /** @minimum 0 */
+  annualPrice: number;
   active?: boolean;
 }
 
@@ -144,12 +167,12 @@ export type PlatformCompanyCredentialsCompany = {
   currency?: string;
   active: boolean;
   employeeLimit: number;
+  address?: string;
 };
 
 export interface PlatformCompanyCredentials {
   company: PlatformCompanyCredentialsCompany;
-  owner: AuthAccount;
-  temporaryPassword: string;
+  owners: AuthAccount[];
 }
 
 export interface HealthStatus {

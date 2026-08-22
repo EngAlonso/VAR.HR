@@ -78,6 +78,8 @@ export const subscriptionsTable = pgTable("var_hr_subscriptions", {
   planId: uuid("plan_id").notNull().references(() => plansTable.id),
   status: text("status").notNull().default("trial"),
   employeeLimit: integer("employee_limit"),
+  monthlyPrice: numeric("monthly_price", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
+  annualPrice: numeric("annual_price", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

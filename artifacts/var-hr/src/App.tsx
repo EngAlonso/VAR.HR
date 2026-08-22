@@ -229,6 +229,15 @@ type PlatformSummary = {
     detail: string;
   }>;
 };
+type NewCompanyOwner = {
+  fullName: string;
+  username: string;
+  password: string;
+  primaryPhone: string;
+  backupPhones: string;
+  email: string;
+  backupEmails: string;
+};
 type AuthContextValue = { account: AuthAccount; signOut: () => Promise<void> };
 const AuthContext = createContext<AuthContextValue | null>(null);
 function useAuth() {
@@ -10391,6 +10400,7 @@ function Platform() {
   const [ownerPassword, setOwnerPassword] = useState("");
   const [audit, setAudit] = useState<PlatformActivity[]>([]);
   const [saving, setSaving] = useState(false);
+  const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   if (auth.account.accountType !== "platform_owner")
     return <WorkspaceState kind="unauthorized" />;
   const load = async () => {
@@ -10552,6 +10562,10 @@ function Platform() {
         action={
           <div className="flex items-center gap-2">
             <Badge tone="accent">{text("Platform scope", "نطاق المنصة")}</Badge>
+            <Button onClick={() => setAddCompanyOpen(true)}>
+              <Plus size={15} />
+              {text("Add Company", "إضافة شركة")}
+            </Button>
             <Button variant="outline" onClick={() => void load()} disabled={loading}>
               <RefreshCw size={15} />
               {text("Refresh", "تحديث")}
@@ -10652,6 +10666,14 @@ function Platform() {
           </Link>
         </div>
       </Card>
+      {addCompanyOpen && (
+        <AddCompanyModal
+          onClose={() => setAddCompanyOpen(false)}
+          onCreated={async () => {
+            await load();
+          }}
+        />
+      )}
       {selectedCompany && (
         <Modal title={selectedCompany.name} onClose={() => setSelectedCompany(null)}>
           <div className="space-y-5">
@@ -10684,6 +10706,129 @@ function Platform() {
         </Modal>
       )}
     </div>
+  );
+}
+
+function AddCompanyModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => Promise<void>;
+}) {
+  const { locale } = useI18n();
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const emptyOwner = (): NewCompanyOwner => ({
+    fullName: "", username: "", password: "", primaryPhone: "",
+    backupPhones: "", email: "", backupEmails: "",
+  });
+  const [company, setCompany] = useState({
+    name: "", address: "", currency: "EGP", employeeLimit: "100",
+    monthlyPrice: "0", annualPrice: "0", ownerCount: "1",
+  });
+  const [owners, setOwners] = useState<NewCompanyOwner[]>([emptyOwner()]);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ name: string; usernames: string[] } | null>(null);
+
+  const updateOwnerCount = (value: string) => {
+    const count = Math.max(1, Math.min(20, Number(value) || 1));
+    setCompany((current) => ({ ...current, ownerCount: String(count) }));
+    setOwners((current) => Array.from({ length: count }, (_, index) => current[index] ?? emptyOwner()));
+  };
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const response = await authRequest<{ company: { name: string }; owners: AuthAccount[] }>("/api/platform/companies", {
+        method: "POST",
+        body: JSON.stringify({
+          name: company.name,
+          address: company.address,
+          currency: company.currency.toUpperCase(),
+          employeeLimit: Number(company.employeeLimit),
+          ownerCount: Number(company.ownerCount),
+          monthlyPrice: Number(company.monthlyPrice),
+          annualPrice: Number(company.annualPrice),
+          owners: owners.map((owner) => ({
+            ...owner,
+            backupPhones: owner.backupPhones.split(",").map((item) => item.trim()).filter(Boolean),
+            backupEmails: owner.backupEmails.split(",").map((item) => item.trim()).filter(Boolean),
+          })),
+          active: true,
+        }),
+      });
+      setResult({ name: response.company.name, usernames: response.owners.map((owner) => owner.username) });
+      await onCreated();
+      toast.success(text("Company and owner accounts created", "تم إنشاء الشركة وحسابات المالكين"));
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not create company.", "تعذر إنشاء الشركة."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Modal title={text("Add Company", "إضافة شركة")} onClose={onClose}>
+      {result ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <div className="font-semibold">{text("Company created successfully", "تم إنشاء الشركة بنجاح")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{result.name}</div>
+          </div>
+          <div className="rounded-xl bg-muted/60 p-4">
+            <div className="text-sm font-semibold">{text("Created owner usernames", "أسماء مستخدمي المالكين المنشأة")}</div>
+            <div className="mt-2 space-y-1 font-mono text-sm">{result.usernames.map((username) => <div key={username}>{username}</div>)}</div>
+          </div>
+          <Button className="w-full" onClick={onClose}>{text("Done", "تم")}</Button>
+        </div>
+      ) : (
+        <form className="space-y-5" onSubmit={(event) => void submit(event)}>
+          <div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Company information", "معلومات الشركة")}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={text("Company name", "اسم الشركة")} required value={company.name} onChange={(value) => setCompany({ ...company, name: value })} />
+              <Field label={text("Currency", "العملة")} required value={company.currency} onChange={(value) => setCompany({ ...company, currency: value })} />
+              <label className="text-sm font-semibold sm:col-span-2">{text("Company address", "عنوان الشركة")}<textarea required minLength={3} className="mt-2 min-h-20 w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm font-normal" value={company.address} onChange={(event) => setCompany({ ...company, address: event.target.value })} /></label>
+              <Field label={text("Employee limit", "حد الموظفين")} type="number" required value={company.employeeLimit} onChange={(value) => setCompany({ ...company, employeeLimit: value })} />
+              <Field label={text("Number of company owners", "عدد مالكي الشركة")} type="number" required value={company.ownerCount} onChange={updateOwnerCount} />
+            </div>
+          </div>
+          <div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Subscription pricing", "أسعار الاشتراك")}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={text("Monthly price", "السعر الشهري")} type="number" value={company.monthlyPrice} onChange={(value) => setCompany({ ...company, monthlyPrice: value })} />
+              <Field label={text("Annual price", "السعر السنوي")} type="number" value={company.annualPrice} onChange={(value) => setCompany({ ...company, annualPrice: value })} />
+            </div>
+          </div>
+          <div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Company owner accounts", "حسابات مالكي الشركة")}</div>
+            <div className="space-y-4">
+              {owners.map((owner, index) => (
+                <div className="rounded-xl border border-border p-4" key={index}>
+                  <div className="mb-3 font-semibold">{text("Owner", "المالك")} {index + 1}</div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {([
+                      ["fullName", text("Full name", "الاسم الكامل")],
+                      ["username", text("Username", "اسم المستخدم")],
+                      ["password", text("Permanent password", "كلمة المرور الدائمة")],
+                      ["primaryPhone", text("Primary phone", "الهاتف الأساسي")],
+                      ["backupPhones", text("Backup phones (comma separated)", "هواتف احتياطية (مفصولة بفواصل)")],
+                      ["email", text("Email address", "البريد الإلكتروني")],
+                      ["backupEmails", text("Backup emails (comma separated)", "بريد احتياطي (مفصول بفواصل)")]
+                    ] as const).map(([key, label]) => (
+                      <Field key={key} label={label} type={key === "password" ? "password" : key.includes("email") ? "email" : "text"} required={["fullName", "username", "password", "primaryPhone", "email"].includes(key)} value={owner[key]} onChange={(value) => setOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item))} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button type="button" variant="quiet" onClick={onClose}>{text("Cancel", "إلغاء")}</Button>
+            <Button type="submit" disabled={saving}>{saving ? text("Creating…", "جارٍ الإنشاء…") : text("Create company", "إنشاء الشركة")}</Button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }
 

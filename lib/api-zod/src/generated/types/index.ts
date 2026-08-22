@@ -139,6 +139,7 @@ export * from './platformCompanyCredentials';
 export * from './platformCompanyCredentialsCompany';
 export * from './platformCompanyDetail';
 export * from './platformCompanyInput';
+export * from './platformCompanyInputOwnersItem';
 export * from './platformCompanyStatus';
 export * from './platformCompanyUpdate';
 export * from './platformCompanyUpdateStatus';

@@ -1,0 +1,51 @@
+Improve the Platform Owner "Add Company" feature.
+
+Currently there is no clear button/action to add a new company. Add a prominent "Add Company" button in the Platform Owner company management area.
+
+When creating a company, the Platform Owner must be able to enter:
+
+Company Information:
+- Company name
+- Company address
+- Currency
+- Employee limit
+
+Company Owners:
+- Number of company owners
+- Dynamically create an owner-account form for each owner based on that number
+- For each owner:
+  - Full name
+  - Username
+  - Password
+  - Primary phone number
+  - Additional/backup phone numbers
+  - Email address
+  - Additional/backup email addresses
+
+Subscription:
+- Monthly subscription price
+- Annual subscription price
+
+Important rules:
+- The number of Company Owner accounts must exactly match the number entered for owners.
+- Each owner must have a separate account and login credentials.
+- Passwords are permanent passwords, not temporary or one-time passwords.
+- The Platform Owner creates the initial passwords and can later reset them without knowing the old password.
+- Do not display or retrieve existing passwords after they are stored.
+- Validate usernames, emails, phone numbers, required fields, and duplicate accounts before creating the company.
+- The employee limit must be stored and enforced by the existing company rules.
+- Store the selected currency with the company.
+- Store monthly and annual subscription prices with the company/subscription data.
+
+After successful creation:
+- Create the company.
+- Create exactly the requested number of Company Owner accounts.
+- Create the required subscription record.
+- Associate every owner account with the correct company.
+- Record the company creation and owner-account creation actions in the existing audit system.
+- Show a clear success result with the created company and owner usernames.
+- Never expose stored password hashes or existing passwords.
+
+Keep all existing authentication, tenant isolation, Company Owner permissions, Platform Owner permissions, Backup/Restore, and existing staff-account management unchanged.
+
+Do not modify unrelated features.

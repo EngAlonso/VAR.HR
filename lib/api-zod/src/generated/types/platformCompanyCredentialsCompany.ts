@@ -14,4 +14,5 @@ export type PlatformCompanyCredentialsCompany = {
   currency?: string;
   active: boolean;
   employeeLimit: number;
+  address?: string;
 };

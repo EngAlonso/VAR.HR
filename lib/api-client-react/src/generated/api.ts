@@ -5578,7 +5578,7 @@ export const getCreatePlatformCompanyUrl = () => {
 }
 
 /**
- * @summary Create a company and its first Company Owner
+ * @summary Create a company and its Company Owner accounts
  */
 export const createPlatformCompany = async (platformCompanyInput: PlatformCompanyInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformCompanyCredentials> => {
 
@@ -5627,7 +5627,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreatePlatformCompanyMutationError = ErrorType<unknown>
 
     /**
- * @summary Create a company and its first Company Owner
+ * @summary Create a company and its Company Owner accounts
  */
 export const useCreatePlatformCompany = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformCompany>>, TError,{data: BodyType<PlatformCompanyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

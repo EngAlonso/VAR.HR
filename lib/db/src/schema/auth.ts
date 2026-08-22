@@ -17,6 +17,11 @@ import { devicesTable } from "./integrations";
 export const userAccountsTable = pgTable("var_hr_user_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),
   username: text("username").notNull().unique(),
+  fullName: text("full_name").notNull().default(""),
+  primaryPhone: text("primary_phone").notNull().default(""),
+  backupPhones: text("backup_phones").array().notNull().default([]),
+  email: text("email").notNull().default(""),
+  backupEmails: text("backup_emails").array().notNull().default([]),
   passwordHash: text("password_hash").notNull(),
   accountType: text("account_type").notNull(),
   displayRole: text("display_role").notNull().default("Staff"),
