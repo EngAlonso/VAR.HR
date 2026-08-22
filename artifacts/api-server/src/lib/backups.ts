@@ -473,7 +473,7 @@ async function reconcilePlatformCompanies(
   data: Record<string, JsonRecord[]>,
 ): Promise<Record<string, JsonRecord[]>> {
   const existing = await client.query(
-    `SELECT id::text, slug FROM "${companyUserTable === "var_hr_user_accounts" ? "var_hr_companies" : "var_hr_companies"}"`,
+    `SELECT id::text, slug FROM "var_hr_companies"`,
   );
   const idsBySlug = new Map(
     existing.rows
@@ -496,6 +496,37 @@ async function reconcilePlatformCompanies(
         }
         if (table === "var_hr_companies" && typeof copy.id === "string") {
           copy.id = sourceToTarget.get(copy.id) ?? copy.id;
+        }
+        return copy;
+      }),
+    ]),
+  );
+}
+
+async function reconcilePlatformAccounts(
+  client: QueryClient,
+  data: Record<string, JsonRecord[]>,
+): Promise<Record<string, JsonRecord[]>> {
+  const existing = await client.query(
+    `SELECT id::text, username FROM "${companyUserTable}"`,
+  );
+  const idsByUsername = new Map(
+    existing.rows
+      .filter((row) => typeof row.id === "string" && typeof row.username === "string")
+      .map((row) => [row.username as string, row.id as string]),
+  );
+  const sourceToTarget = new Map<string, string>();
+  for (const row of data[companyUserTable] ?? []) {
+    if (typeof row.id !== "string" || typeof row.username !== "string") continue;
+    sourceToTarget.set(row.id, idsByUsername.get(row.username) ?? row.id);
+  }
+  return Object.fromEntries(
+    Object.entries(data).map(([table, rows]) => [
+      table,
+      rows.map((row) => {
+        const copy = { ...row };
+        if (typeof copy.account_id === "string") {
+          copy.account_id = sourceToTarget.get(copy.account_id) ?? copy.account_id;
         }
         return copy;
       }),
@@ -560,7 +591,10 @@ export async function restoreBackup(
     await deleteScope(client, expectedScope, companyId);
     const restoreData =
       expectedScope === "platform"
-        ? await reconcilePlatformCompanies(client, envelope.data)
+        ? await reconcilePlatformAccounts(
+            client,
+            await reconcilePlatformCompanies(client, envelope.data),
+          )
         : envelope.data;
     await insertScope(client, expectedScope, companyId, restoreData);
     if (expectedScope === "platform") {
