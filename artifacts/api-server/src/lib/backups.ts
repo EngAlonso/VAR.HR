@@ -394,6 +394,12 @@ async function deleteScope(
 ): Promise<void> {
   if (scope === "platform") {
     await client.query(`DELETE FROM "var_hr_auth_sessions"`);
+    // Platform restores preserve user accounts, but employees are replaced.
+    // Clear these FK references inside the same transaction so PostgreSQL can
+    // remove the old employees without deleting or disabling authentication.
+    await client.query(
+      `UPDATE "${companyUserTable}" SET employee_id = NULL WHERE employee_id IS NOT NULL`,
+    );
     for (const table of deleteOrder.filter(
       (table) =>
         table !== companyUserTable && table !== "var_hr_companies",
@@ -440,6 +446,61 @@ async function deleteScope(
       );
     }
   }
+}
+
+async function reconcilePlatformAccountEmployees(
+  client: QueryClient,
+  data: Record<string, JsonRecord[]>,
+): Promise<void> {
+  for (const row of data[companyUserTable] ?? []) {
+    if (typeof row.username !== "string" || typeof row.employee_id !== "string") {
+      continue;
+    }
+    // Existing accounts are preserved by username. New accounts already carry
+    // their restored employee_id from insertScope; this also safely updates
+    // preserved accounts to the employee id from the uploaded snapshot.
+    await client.query(
+      `UPDATE "${companyUserTable}"
+       SET employee_id = $1
+       WHERE username = $2`,
+      [row.employee_id, row.username],
+    );
+  }
+}
+
+async function reconcilePlatformCompanies(
+  client: QueryClient,
+  data: Record<string, JsonRecord[]>,
+): Promise<Record<string, JsonRecord[]>> {
+  const existing = await client.query(
+    `SELECT id::text, slug FROM "${companyUserTable === "var_hr_user_accounts" ? "var_hr_companies" : "var_hr_companies"}"`,
+  );
+  const idsBySlug = new Map(
+    existing.rows
+      .filter((row) => typeof row.id === "string" && typeof row.slug === "string")
+      .map((row) => [row.slug as string, row.id as string]),
+  );
+  const sourceToTarget = new Map<string, string>();
+  for (const row of data["var_hr_companies"] ?? []) {
+    if (typeof row.id !== "string" || typeof row.slug !== "string") continue;
+    const targetId = idsBySlug.get(row.slug) ?? row.id;
+    sourceToTarget.set(row.id, targetId);
+  }
+  return Object.fromEntries(
+    Object.entries(data).map(([table, rows]) => [
+      table,
+      rows.map((row) => {
+        const copy = { ...row };
+        if (typeof copy.company_id === "string") {
+          copy.company_id = sourceToTarget.get(copy.company_id) ?? copy.company_id;
+        }
+        if (table === "var_hr_companies" && typeof copy.id === "string") {
+          copy.id = sourceToTarget.get(copy.id) ?? copy.id;
+        }
+        return copy;
+      }),
+    ]),
+  );
 }
 
 async function insertScope(
@@ -497,7 +558,14 @@ export async function restoreBackup(
   try {
     await client.query("BEGIN");
     await deleteScope(client, expectedScope, companyId);
-    await insertScope(client, expectedScope, companyId, envelope.data);
+    const restoreData =
+      expectedScope === "platform"
+        ? await reconcilePlatformCompanies(client, envelope.data)
+        : envelope.data;
+    await insertScope(client, expectedScope, companyId, restoreData);
+    if (expectedScope === "platform") {
+      await reconcilePlatformAccountEmployees(client, restoreData);
+    }
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
