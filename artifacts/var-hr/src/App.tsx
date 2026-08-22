@@ -11094,7 +11094,7 @@ function PlatformCompanyDetailsPage() {
     ["Rules & schedules", ["var_hr_attendance_rules", "var_hr_work_schedules", "var_hr_holidays", "var_hr_leave_balances", "var_hr_leave_requests", "var_hr_permission_requests"]],
   ] as const;
   return (
-    <div className="animate-in space-y-6">
+    <div className="company-details-page min-w-0 max-w-full animate-in space-y-6 overflow-x-clip break-words">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BackButton />
         <Badge tone={details.company.active ? "accent" : "neutral"}>{status}</Badge>
@@ -11138,13 +11138,13 @@ function PlatformCompanyDetailsPage() {
         <Card className="p-5">
           <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Live operational overview", "نظرة على البيانات التشغيلية الحالية")}</h2></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label={text("Employees", "الموظفون")} value={details.employees.length} /><Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={details.staff.length} /><Info label={text("Biometric devices", "أجهزة البصمة")} value={details.devices.length} /><Info label={text("Integrity checksum", "بصمة التكامل")} value={details.integrity.checksum.slice(0, 16) + "…"} /></div>
-          <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور" : label === "People & structure" ? "الأفراد والهيكل" : "القواعد والجداول")}</div><div className="mt-2 grid grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span key={table}>{table.replace("var_hr_", " ").replaceAll("_", " ")}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
+          <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور" : label === "People & structure" ? "الأفراد والهيكل" : "القواعد والجداول")}</div><div className="mt-2 grid min-w-0 grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span className="min-w-0 break-words" key={table}>{table.replace("var_hr_", " ").replaceAll("_", " ")}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
         </Card>
       </div>
 
       <Card className="p-5">
         <div className="flex items-center gap-2"><Users size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("People and biometric devices", "الأفراد وأجهزة البصمة")}</h2></div>
-        <div className="mt-4 grid gap-6 lg:grid-cols-3">
+          <div className="mt-4 grid min-w-0 gap-6 lg:grid-cols-3">
           <div><h3 className="text-sm font-semibold">{text("Staff accounts", "حسابات الموظفين الإداريين")}</h3><div className="mt-2 space-y-1 text-sm">{details.staff.length ? details.staff.map((account) => <div key={account.id}>{account.fullName || account.username} <span className="text-muted-foreground">· {account.displayRole}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
           <div><h3 className="text-sm font-semibold">{text("Employees", "الموظفون")}</h3><div className="mt-2 space-y-1 text-sm">{details.employees.length ? details.employees.map((employee) => <div key={String(employee.id)}>{String(employee.first_name ?? "")} {String(employee.last_name ?? "")}</div>) : <span className="text-muted-foreground">—</span>}</div></div>
           <div><h3 className="text-sm font-semibold">{text("Biometric devices", "أجهزة البصمة")}</h3><div className="mt-2 space-y-1 text-sm">{details.devices.length ? details.devices.map((device) => <div key={String(device.id)}>{String(device.name ?? "Unnamed")} <span className="text-muted-foreground">· {String(device.status ?? "unknown")}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
@@ -11165,7 +11165,7 @@ function PlatformCompanyDetailsPage() {
 
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Database size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h2></div><Button disabled={saving} onClick={() => void createBackup()}><Database size={15} />{text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}</Button></div>
-        <div className="mt-4 space-y-2">{backups.length ? backups.map((backup) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><div><div>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</div><div className="text-xs text-muted-foreground">{backup.checksum}</div></div><Button variant="outline" disabled={saving} onClick={() => void restoreBackupForCompany(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
+          <div className="mt-4 space-y-2">{backups.length ? backups.map((backup) => <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><div className="min-w-0 flex-1"><div>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</div><div className="break-all text-xs text-muted-foreground">{backup.checksum}</div></div><Button variant="outline" disabled={saving} onClick={() => void restoreBackupForCompany(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
       </Card>
 
       <Card className="p-5"><details><summary className="cursor-pointer font-semibold">{text("View all company-owned operational records", "عرض جميع سجلات الشركة التشغيلية")}</summary><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/60 p-4 text-xs text-muted-foreground">{JSON.stringify(details.operationalData, null, 2)}</pre></details></Card>
