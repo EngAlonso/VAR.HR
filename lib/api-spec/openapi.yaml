@@ -1214,6 +1214,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlatformCompanyCredentials"
+  /platform/summary:
+    get:
+      operationId: getPlatformSummary
+      tags: [platform]
+      summary: Get platform-wide administration metrics and activity
+      responses:
+        "200":
+          description: Platform administration summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSummary"
   /platform/companies/{companyId}:
     patch:
       operationId: updatePlatformCompany
@@ -2650,3 +2662,86 @@ components:
         activeEmployees: { type: integer }
         employeeLimit: { type: integer }
         lastActivity: { type: string, format: date-time }
+    PlatformSummary:
+      type: object
+      required: [metrics, subscriptionStatus, companies, activity, alerts]
+      properties:
+        metrics:
+          type: object
+          required: [totalCompanies, activeCompanies, suspendedCompanies, totalEmployees, totalPlatformUsers, activeSubscriptions]
+          properties:
+            totalCompanies: { type: integer }
+            activeCompanies: { type: integer }
+            suspendedCompanies: { type: integer }
+            totalEmployees: { type: integer }
+            totalPlatformUsers: { type: integer }
+            activeSubscriptions: { type: integer }
+        subscriptionStatus:
+          type: object
+          required: [trial, active, past_due, cancelled]
+          properties:
+            trial: { type: integer }
+            active: { type: integer }
+            past_due: { type: integer }
+            cancelled: { type: integer }
+        companies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformCompanyDetail"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformActivity"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformAlert"
+    PlatformCompanyDetail:
+      type: object
+      required: [id, name, slug, active, status, planName, subscriptionStatus, employeeCount, activeEmployees, userCount, activeUsers, employeeLimit, owner, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        active: { type: boolean }
+        status: { type: string }
+        planName: { type: string }
+        subscriptionStatus: { type: string }
+        employeeCount: { type: integer }
+        activeEmployees: { type: integer }
+        userCount: { type: integer }
+        activeUsers: { type: integer }
+        employeeLimit: { type: integer }
+        owner:
+          oneOf:
+            - $ref: "#/components/schemas/PlatformOwnerAccount"
+            - type: "null"
+        createdAt: { type: string, format: date-time }
+    PlatformOwnerAccount:
+      type: object
+      required: [id, username, displayRole, active]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayRole: { type: string }
+        active: { type: boolean }
+    PlatformActivity:
+      type: object
+      required: [id, action, entityType, entityId, accountId, companyId, metadata, createdAt]
+      properties:
+        id: { type: string }
+        action: { type: string }
+        entityType: { type: string }
+        entityId: { type: ["string", "null"] }
+        accountId: { type: ["string", "null"] }
+        companyId: { type: ["string", "null"] }
+        metadata: { type: object }
+        createdAt: { type: string, format: date-time }
+    PlatformAlert:
+      type: object
+      required: [id, severity, title, detail]
+      properties:
+        id: { type: string }
+        severity: { type: string, enum: [info, warning, critical] }
+        title: { type: string }
+        detail: { type: string }

@@ -2265,6 +2265,66 @@ export const CreatePlatformCompanyResponse = zod.object({
 
 
 /**
+ * @summary Get platform-wide administration metrics and activity
+ */
+export const GetPlatformSummaryResponse = zod.object({
+  "metrics": zod.object({
+  "totalCompanies": zod.int(),
+  "activeCompanies": zod.int(),
+  "suspendedCompanies": zod.int(),
+  "totalEmployees": zod.int(),
+  "totalPlatformUsers": zod.int(),
+  "activeSubscriptions": zod.int()
+}),
+  "subscriptionStatus": zod.object({
+  "trial": zod.int(),
+  "active": zod.int(),
+  "past_due": zod.int(),
+  "cancelled": zod.int()
+}),
+  "companies": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "active": zod.boolean(),
+  "status": zod.string(),
+  "planName": zod.string(),
+  "subscriptionStatus": zod.string(),
+  "employeeCount": zod.int(),
+  "activeEmployees": zod.int(),
+  "userCount": zod.int(),
+  "activeUsers": zod.int(),
+  "employeeLimit": zod.int(),
+  "owner": zod.union([zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "displayRole": zod.string(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "createdAt": zod.iso.datetime({"offset":true})
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "action": zod.string(),
+  "entityType": zod.string(),
+  "entityId": zod.string().nullable(),
+  "accountId": zod.string().nullable(),
+  "companyId": zod.string().nullable(),
+  "metadata": zod.looseObject({
+
+}),
+  "createdAt": zod.iso.datetime({"offset":true})
+})),
+  "alerts": zod.array(zod.object({
+  "id": zod.string(),
+  "severity": zod.enum(['info', 'warning', 'critical']),
+  "title": zod.string(),
+  "detail": zod.string()
+}))
+})
+
+
+/**
  * @summary Suspend or change the employee limit for a company
  */
 export const UpdatePlatformCompanyParams = zod.object({

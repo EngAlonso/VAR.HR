@@ -84,6 +84,7 @@ import type {
   PlatformCompanyCredentials,
   PlatformCompanyInput,
   PlatformCompanyUpdate,
+  PlatformSummary,
   Report,
   RequestDecisionInput,
   StaffAccountInput,
@@ -5487,6 +5488,83 @@ export const useCreatePlatformCompany = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreatePlatformCompanyMutationOptions(options));
     }
+
+export const getGetPlatformSummaryUrl = () => {
+
+
+
+
+  return `/api/platform/summary`
+}
+
+/**
+ * @summary Get platform-wide administration metrics and activity
+ */
+export const getPlatformSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<PlatformSummary> => {
+
+  return customFetch<PlatformSummary>(getGetPlatformSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformSummaryQueryKey = () => {
+    return [
+    `/api/platform/summary`
+    ] as const;
+    }
+
+
+export const getGetPlatformSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformSummary>>> = ({ signal }) => getPlatformSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformSummary>>>
+export type GetPlatformSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get platform-wide administration metrics and activity
+ */
+
+export function useGetPlatformSummary<TData = Awaited<ReturnType<typeof getPlatformSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUpdatePlatformCompanyUrl = (companyId: string,) => {
 

@@ -1423,6 +1423,86 @@ export interface PlatformCompany {
   lastActivity: string;
 }
 
+export type PlatformSummaryMetrics = {
+  totalCompanies: number;
+  activeCompanies: number;
+  suspendedCompanies: number;
+  totalEmployees: number;
+  totalPlatformUsers: number;
+  activeSubscriptions: number;
+};
+
+export type PlatformSummarySubscriptionStatus = {
+  trial: number;
+  active: number;
+  past_due: number;
+  cancelled: number;
+};
+
+export interface PlatformOwnerAccount {
+  id: string;
+  username: string;
+  displayRole: string;
+  active: boolean;
+}
+
+export interface PlatformCompanyDetail {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  status: string;
+  planName: string;
+  subscriptionStatus: string;
+  employeeCount: number;
+  activeEmployees: number;
+  userCount: number;
+  activeUsers: number;
+  employeeLimit: number;
+  owner: PlatformOwnerAccount | null;
+  createdAt: string;
+}
+
+export type PlatformActivityMetadata = { [key: string]: unknown };
+
+export interface PlatformActivity {
+  id: string;
+  action: string;
+  entityType: string;
+  /** @nullable */
+  entityId: string | null;
+  /** @nullable */
+  accountId: string | null;
+  /** @nullable */
+  companyId: string | null;
+  metadata: PlatformActivityMetadata;
+  createdAt: string;
+}
+
+export type PlatformAlertSeverity = typeof PlatformAlertSeverity[keyof typeof PlatformAlertSeverity];
+
+
+export const PlatformAlertSeverity = {
+  info: 'info',
+  warning: 'warning',
+  critical: 'critical',
+} as const;
+
+export interface PlatformAlert {
+  id: string;
+  severity: PlatformAlertSeverity;
+  title: string;
+  detail: string;
+}
+
+export interface PlatformSummary {
+  metrics: PlatformSummaryMetrics;
+  subscriptionStatus: PlatformSummarySubscriptionStatus;
+  companies: PlatformCompanyDetail[];
+  activity: PlatformActivity[];
+  alerts: PlatformAlert[];
+}
+
 export type SearchParameter = string;
 
 export type StatusParameter = typeof StatusParameter[keyof typeof StatusParameter];

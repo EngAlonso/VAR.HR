@@ -25,8 +25,10 @@ import {
 } from "wouter";
 import {
   AlertCircle,
+  Activity,
   ArrowUpRight,
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -51,10 +53,12 @@ import {
   Printer,
   RefreshCw,
   Search,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Upload,
   UserPlus,
+  UserRound,
   Users,
   X,
   Zap,
@@ -172,6 +176,56 @@ type AuthAccount = {
   employeeId: string | null;
   active: boolean;
   permissions: string[];
+};
+type PlatformCompanyDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  status: string;
+  planName: string;
+  subscriptionStatus: string;
+  employeeCount: number;
+  activeEmployees: number;
+  userCount: number;
+  activeUsers: number;
+  employeeLimit: number;
+  owner: {
+    id: string;
+    username: string;
+    displayRole: string;
+    active: boolean;
+  } | null;
+  createdAt: string;
+};
+type PlatformActivity = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  accountId: string | null;
+  companyId: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+type PlatformSummary = {
+  metrics: {
+    totalCompanies: number;
+    activeCompanies: number;
+    suspendedCompanies: number;
+    totalEmployees: number;
+    totalPlatformUsers: number;
+    activeSubscriptions: number;
+  };
+  subscriptionStatus: Record<"trial" | "active" | "past_due" | "cancelled", number>;
+  companies: PlatformCompanyDetail[];
+  activity: PlatformActivity[];
+  alerts: Array<{
+    id: string;
+    severity: "info" | "warning" | "critical";
+    title: string;
+    detail: string;
+  }>;
 };
 type AuthContextValue = { account: AuthAccount; signOut: () => Promise<void> };
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -294,6 +348,21 @@ const secondaryNav: NavItem[] = [
     icon: Network,
     roles: ["platform_owner"],
     capability: "platform.view",
+  },
+];
+const platformNav: NavItem[] = [
+  {
+    href: "/platform",
+    key: "platformOwner",
+    icon: Network,
+    roles: ["platform_owner"],
+    capability: "platform.view",
+  },
+  {
+    href: "/backups",
+    key: "backupRestore",
+    icon: Database,
+    roles: ["platform_owner"],
   },
 ];
 
@@ -3947,7 +4016,14 @@ function AuthGate() {
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
-    if (account && location === "/login") setLocation("/");
+    if (!account) return;
+    if (location === "/login") {
+      setLocation(
+        account.accountType === "platform_owner" ? "/platform" : "/",
+      );
+    } else if (account.accountType === "platform_owner" && location === "/") {
+      setLocation("/platform");
+    }
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
   if (!account)
@@ -4082,8 +4158,9 @@ function Shell({ children }: { children: ReactNode }) {
   const canSee = (item: NavItem) =>
     item.roles.includes(workspace.role as WorkspaceRole) &&
     (!item.capability || capabilities.includes(item.capability));
-  const visibleNav = nav.filter(canSee);
-  const visibleSecondaryNav = secondaryNav.filter(canSee);
+  const isPlatformOwner = workspace.role === "platform_owner";
+  const visibleNav = (isPlatformOwner ? platformNav : nav).filter(canSee);
+  const visibleSecondaryNav = isPlatformOwner ? [] : secondaryNav.filter(canSee);
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
@@ -4220,7 +4297,13 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
             <div className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-semibold">
               <Building2 size={16} className="shrink-0 text-primary" />
-              <span className="min-w-0 truncate">{workspace.company.name}</span>
+              <span className="min-w-0 truncate">
+                {isPlatformOwner
+                  ? locale === "ar"
+                    ? "إدارة المنصة"
+                    : "Platform administration"
+                  : workspace.company.name}
+              </span>
               <ChevronDown
                 size={14}
                 className="shrink-0 text-muted-foreground"
@@ -10288,178 +10371,180 @@ function Subscription() {
 }
 
 function Platform() {
-  const { t, locale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const auth = useAuth();
-  const q = useListPlatformCompanies();
-  const [form, setForm] = useState({
-    name: "",
-    slug: "",
-    employeeLimit: "50",
-    ownerUsername: "",
-    ownerPassword: "",
-  });
+  const [summary, setSummary] = useState<PlatformSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedCompany, setSelectedCompany] =
+    useState<PlatformCompanyDetail | null>(null);
+  const [employeeLimit, setEmployeeLimit] = useState("");
   const [saving, setSaving] = useState(false);
-  const [oneTimePassword, setOneTimePassword] = useState("");
   if (auth.account.accountType !== "platform_owner")
     return <WorkspaceState kind="unauthorized" />;
-  const createCompany = async (event: FormEvent) => {
-    event.preventDefault();
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setSummary(await authRequest<PlatformSummary>("/api/platform/summary"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load platform data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, []);
+  const openCompany = (company: PlatformCompanyDetail) => {
+    setSelectedCompany(company);
+    setEmployeeLimit(String(company.employeeLimit));
+  };
+  const updateCompany = async (next: { status?: "active" | "suspended"; employeeLimit?: number }) => {
+    if (!selectedCompany) return;
     setSaving(true);
     try {
-      const result = await authRequest<{ temporaryPassword: string }>(
-        "/api/platform/companies",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            ...form,
-            slug: form.slug || undefined,
-            employeeLimit: Number(form.employeeLimit),
-            ownerPassword: form.ownerPassword || undefined,
-          }),
-        },
-      );
-      setOneTimePassword(result.temporaryPassword);
-      setForm({
-        name: "",
-        slug: "",
-        employeeLimit: "50",
-        ownerUsername: "",
-        ownerPassword: "",
+      await authRequest(`/api/platform/companies/${selectedCompany.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(next),
       });
-      await q.refetch();
-      toast.success(locale === "ar" ? "تم إنشاء الشركة" : "Company created");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not create company.",
-      );
+      await load();
+      const refreshed = summary?.companies.find((company) => company.id === selectedCompany.id);
+      if (refreshed) setSelectedCompany({ ...refreshed, ...next, active: next.status ? next.status === "active" : refreshed.active });
+      toast.success(locale === "ar" ? "تم تحديث الشركة" : "Company updated");
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Could not update company.");
     } finally {
       setSaving(false);
     }
   };
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  if (loading && !summary) return <Skeleton className="h-[520px]" />;
+  if (error && !summary) return <ErrorState retry={() => void load()} />;
+  const metrics = summary!.metrics;
+  const statusLabels: Record<string, string> = {
+    active: text("Active", "نشطة"),
+    trial: text("Trial", "تجريبية"),
+    past_due: text("Past due", "متأخرة"),
+    cancelled: text("Cancelled", "ملغاة"),
+    suspended: text("Suspended", "موقوفة"),
+  };
+  const activityLabel = (action: string) =>
+    action.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const metricCards: Array<{
+    icon: typeof Building2;
+    label: string;
+    value: number;
+  }> = [
+    { icon: Building2, label: text("Total companies", "إجمالي الشركات"), value: metrics.totalCompanies },
+    { icon: Check, label: text("Active companies", "الشركات النشطة"), value: metrics.activeCompanies },
+    { icon: Bell, label: text("Suspended companies", "الشركات الموقوفة"), value: metrics.suspendedCompanies },
+    { icon: Users, label: text("Total employees", "إجمالي الموظفين"), value: metrics.totalEmployees },
+    { icon: UserRound, label: text("Platform users", "مستخدمو المنصة"), value: metrics.totalPlatformUsers },
+    { icon: Zap, label: text("Active subscriptions", "الاشتراكات النشطة"), value: metrics.activeSubscriptions },
+  ];
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={t("separateAdmin")}
-        title={t("platformTitle")}
-        detail={t("platformDetail")}
-        action={<Badge tone="accent">{t("platformScope")}</Badge>}
-      />
-      <div className="grid gap-6 xl:grid-cols-[.72fr_1.28fr]">
-        <Card>
-          <div className="border-b border-border p-5">
-            <h2 className="font-display text-lg font-semibold">
-              {locale === "ar" ? "إنشاء شركة" : "Create company"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "ar"
-                ? "أنشئ الشركة وبيانات دخول مالك الشركة دفعة واحدة."
-                : "Create the company and its first Company Owner in one step."}
-            </p>
-          </div>
-          <form onSubmit={createCompany} className="space-y-4 p-5">
-            <Field
-              label={locale === "ar" ? "اسم الشركة" : "Company name"}
-              value={form.name}
-              onChange={(value) => setForm({ ...form, name: value })}
-              required
-            />
-            <Field
-              label="Slug"
-              value={form.slug}
-              onChange={(value) => setForm({ ...form, slug: value })}
-            />
-            <Field
-              label={locale === "ar" ? "حد الموظفين" : "Employee limit"}
-              type="number"
-              value={form.employeeLimit}
-              onChange={(value) => setForm({ ...form, employeeLimit: value })}
-              required
-            />
-            <Field
-              label={locale === "ar" ? "اسم مستخدم المالك" : "Owner username"}
-              value={form.ownerUsername}
-              onChange={(value) => setForm({ ...form, ownerUsername: value })}
-              required
-            />
-            <Field
-              label={
-                locale === "ar"
-                  ? "كلمة مرور المالك (اختياري)"
-                  : "Owner password (optional)"
-              }
-              type="password"
-              value={form.ownerPassword}
-              onChange={(value) => setForm({ ...form, ownerPassword: value })}
-            />
-            <Button type="submit" disabled={saving}>
-              <Plus size={15} />
-              {saving
-                ? "…"
-                : locale === "ar"
-                  ? "إنشاء الشركة"
-                  : "Create company"}
+        eyebrow={text("Platform administration", "إدارة المنصة")}
+        title={text("Platform control center", "مركز تحكم المنصة")}
+        detail={text(
+          "Operate the entire VAR HR platform from one cross-company administration surface.",
+          "أدر منصة VAR HR بالكامل من مساحة واحدة عبر جميع الشركات.",
+        )}
+        action={
+          <div className="flex items-center gap-2">
+            <Badge tone="accent">{text("Platform scope", "نطاق المنصة")}</Badge>
+            <Button variant="outline" onClick={() => void load()} disabled={loading}>
+              <RefreshCw size={15} />
+              {text("Refresh", "تحديث")}
             </Button>
-          </form>
-          {oneTimePassword && (
-            <div className="mx-5 mb-5 rounded-xl border border-accent/30 bg-accent/10 p-4">
-              <div className="flex items-center gap-2 font-semibold text-primary-dark">
-                <KeyRound size={16} />
-                {locale === "ar"
-                  ? "كلمة مرور المالك المؤقتة"
-                  : "Temporary owner password"}
-              </div>
-              <code className="mt-2 block rounded bg-background px-3 py-2 font-mono text-lg tracking-widest">
-                {oneTimePassword}
-              </code>
-              <p className="mt-2 text-xs text-primary-dark">
-                {locale === "ar"
-                  ? "تظهر مرة واحدة فقط."
-                  : "Shown once only; it is not stored in plaintext."}
-              </p>
+          </div>
+        }
+      />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        {metricCards.map(({ icon: Icon, label, value }) => (
+          <Card className="p-4 sm:p-5" key={label}>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-[.12em]">{label}</span>
+              <span className="rounded-lg bg-primary/10 p-2 text-primary"><Icon size={16} /></span>
             </div>
-          )}
-        </Card>
+            <div className="mt-5 font-display text-3xl font-semibold">{value}</div>
+          </Card>
+        ))}
+      </div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
         <Card>
-          {q.isLoading ? (
-            <Skeleton className="m-5 h-48" />
-          ) : q.isError ? (
-            <ErrorState retry={() => q.refetch()} />
-          ) : q.data?.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="px-5 py-3">{t("company")}</th>
-                    <th className="px-4 py-3">{t("status")}</th>
-                    <th className="px-4 py-3">{t("plan")}</th>
-                    <th className="px-4 py-3">{t("seats")}</th>
-                    <th className="px-5 py-3">{t("lastActivity")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {q.data.map((c: any) => (
-                    <tr key={c.id}>
-                      <td className="px-5 py-4 font-semibold">{c.name}</td>
-                      <td className="px-4 py-4">
-                        <Status value={c.status} />
-                      </td>
-                      <td className="px-4 py-4">{planLabel(c.planName, t)}</td>
-                      <td className="px-4 py-4 font-mono text-xs">
-                        {c.activeEmployees} / {c.employeeLimit}
-                      </td>
-                      <td className="px-5 py-4 text-muted-foreground">
-                        {date(c.lastActivity)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="flex items-center justify-between border-b border-border p-5">
+            <div>
+              <h2 className="font-display text-lg font-semibold">{text("Platform alerts", "تنبيهات المنصة")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{text("Important issues across the platform.", "أهم المشكلات عبر المنصة.")}</p>
             </div>
-          ) : (
-            <Empty title={t("noCompanies")} detail={t("noTenants")} />
-          )}
+            <Bell size={18} className="text-accent" />
+          </div>
+          {summary!.alerts.length ? (
+            <div className="divide-y divide-border">
+              {summary!.alerts.map((alert) => (
+                <div className="flex gap-3 p-5" key={alert.id}>
+                  <AlertCircle className={cn("mt-0.5 shrink-0", alert.severity === "critical" ? "text-destructive" : "text-accent")} size={17} />
+                  <div><div className="font-semibold">{alert.title}</div><p className="mt-1 text-sm text-muted-foreground">{alert.detail}</p></div>
+                </div>
+              ))}
+            </div>
+          ) : <Empty title={text("No platform alerts", "لا توجد تنبيهات")} detail={text("The platform currently has no recorded alerts.", "لا توجد تنبيهات مسجلة حالياً.")} />}
+        </Card>
+        <Card className="p-5">
+          <div className="flex items-center gap-2"><Zap size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Subscription posture", "حالة الاشتراكات")}</h2></div>
+          <div className="mt-5 space-y-3">
+            {Object.entries(summary!.subscriptionStatus).map(([status, count]) => <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-3 text-sm" key={status}><span>{statusLabels[status] ?? status}</span><span className="font-mono font-semibold">{count}</span></div>)}
+          </div>
+          <p className="mt-5 text-xs leading-5 text-muted-foreground">{text("Expiration tracking is not shown because the current subscription data has no expiration date.", "لا يتم عرض انتهاء الاشتراك لأن بيانات الاشتراك الحالية لا تحتوي على تاريخ انتهاء.")}</p>
         </Card>
       </div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <Card>
+          <div className="flex items-center justify-between border-b border-border p-5">
+            <div><h2 className="font-display text-lg font-semibold">{text("Companies", "الشركات")}</h2><p className="mt-1 text-sm text-muted-foreground">{text("Manage company status, owners, limits, and subscription posture.", "إدارة حالة الشركات والمالكين والحدود والاشتراكات.")}</p></div>
+            <Badge tone="neutral">{summary!.companies.length} {text("registered", "مسجلة")}</Badge>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2">
+            {summary!.companies.map((company) => (
+              <button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40" key={company.id} onClick={() => openCompany(company)}>
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{company.name}</div><div className="mt-1 text-xs text-muted-foreground">{company.slug}</div></div><Status value={company.status} /></div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs"><Info label={text("Employees", "الموظفون")} value={`${company.activeEmployees}/${company.employeeCount}`} /><Info label={text("Users", "المستخدمون")} value={`${company.activeUsers}/${company.userCount}`} /><Info label={text("Plan", "الخطة")} value={company.planName} /></div>
+                <div className="mt-3 text-xs text-primary">{text("Open details", "فتح التفاصيل")} <ArrowUpRight className="inline" size={13} /></div>
+              </button>
+            ))}
+          </div>
+        </Card>
+        <div className="space-y-6">
+          <Card>
+            <div className="flex items-center gap-2 border-b border-border p-5"><Activity size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Recent platform activity", "نشاط المنصة الأخير")}</h2></div>
+            <div className="divide-y divide-border">
+              {summary!.activity.length ? summary!.activity.slice(0, 6).map((event) => <div className="p-4" key={event.id}><div className="font-semibold text-sm">{activityLabel(event.action)}</div><div className="mt-1 text-xs text-muted-foreground">{event.entityType} · {date(event.createdAt)} {time(event.createdAt)}</div></div>) : <Empty title={text("No recent activity", "لا يوجد نشاط حديث")} detail={text("Platform events will appear here.", "ستظهر أحداث المنصة هنا.")} />}
+            </div>
+            <div className="border-t border-border p-4"><Link href="/platform" className="text-sm font-bold text-primary">{text("View platform activity", "عرض نشاط المنصة")}</Link></div>
+          </Card>
+          <Card className="p-5">
+            <div className="flex items-center gap-2"><Settings size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Platform settings", "إعدادات المنصة")}</h2></div>
+            <div className="mt-4 space-y-3 text-sm">
+              <label className="block"><span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Administration language", "لغة الإدارة")}</span><select className="h-10 w-full rounded-lg border border-input bg-background px-3" value={locale} onChange={(event) => setLocale(event.target.value as Locale)}><option value="en">English</option><option value="ar">العربية</option><option value="fr">Français</option><option value="de">Deutsch</option></select></label>
+              <div className="rounded-lg bg-muted/60 p-3"><div className="font-medium">{text("Backup scope", "نطاق النسخ الاحتياطي")}</div><div className="mt-1 text-xs text-muted-foreground">{text("Complete platform backups are available in Backup & restore.", "النسخ الكاملة للمنصة متاحة في النسخ الاحتياطي والاستعادة.")}</div></div>
+              <Link href="/backups" className="inline-flex text-sm font-bold text-primary">{text("Open Backup & restore", "فتح النسخ الاحتياطي والاستعادة")} <ArrowUpRight size={14} /></Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+      {selectedCompany && (
+        <Modal title={selectedCompany.name} onClose={() => setSelectedCompany(null)}>
+          <div className="space-y-5">
+            <div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">{selectedCompany.slug}</div><div className="mt-1 font-semibold">{selectedCompany.planName}</div></div><Status value={selectedCompany.status} /></div>
+            <div className="grid gap-3 sm:grid-cols-2"><Info label={text("Company Owner", "مالك الشركة")} value={selectedCompany.owner?.username ?? text("Not assigned", "غير معين")} /><Info label={text("Owner status", "حالة المالك")} value={selectedCompany.owner ? (selectedCompany.owner.active ? text("Active", "نشط") : text("Inactive", "غير نشط")) : "—"} /><Info label={text("Employees", "الموظفون")} value={`${selectedCompany.activeEmployees} active / ${selectedCompany.employeeCount} total`} /><Info label={text("Users", "المستخدمون")} value={`${selectedCompany.activeUsers} active / ${selectedCompany.userCount} total`} /><Info label={text("Subscription", "الاشتراك")} value={statusLabels[selectedCompany.subscriptionStatus] ?? selectedCompany.subscriptionStatus} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(selectedCompany.createdAt)} /></div>
+            <div className="border-t border-border pt-5"><label className="block text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" type="number" min="1" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ employeeLimit: Number(employeeLimit) })}>{text("Save limit", "حفظ الحد")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

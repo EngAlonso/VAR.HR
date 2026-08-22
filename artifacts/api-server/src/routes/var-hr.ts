@@ -140,6 +140,7 @@ import {
   attendanceLocationsTable,
   attendanceTable,
   auditLogsTable,
+  authAuditEventsTable,
   biometricEventsTable,
   biometricSyncHistoryTable,
   branchesTable,
@@ -6327,6 +6328,178 @@ router.get("/platform/companies", async (req, res): Promise<void> => {
     });
   }
   res.json(ListPlatformCompaniesResponse.parse(rows));
+});
+
+router.get("/platform/summary", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (context.role !== "platform_owner") {
+    res.status(403).json({ error: message(req, "platformAdmin") });
+    return;
+  }
+
+  const [companies, employees, accounts, subscriptions, activity] =
+    await Promise.all([
+      db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt)),
+      db.select({
+        id: employeesTable.id,
+        companyId: employeesTable.companyId,
+        status: employeesTable.status,
+      }).from(employeesTable),
+      db.select({
+        id: userAccountsTable.id,
+        username: userAccountsTable.username,
+        displayRole: userAccountsTable.displayRole,
+        companyId: userAccountsTable.companyId,
+        active: userAccountsTable.active,
+        accountType: userAccountsTable.accountType,
+      }).from(userAccountsTable),
+      db.select({
+        companyId: subscriptionsTable.companyId,
+        status: subscriptionsTable.status,
+        planName: plansTable.name,
+        employeeLimit: subscriptionsTable.employeeLimit,
+        planEmployeeLimit: plansTable.employeeLimit,
+      }).from(subscriptionsTable)
+        .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id)),
+      db.select({
+        id: authAuditEventsTable.id,
+        action: authAuditEventsTable.action,
+        entityType: authAuditEventsTable.entityType,
+        entityId: authAuditEventsTable.entityId,
+        accountId: authAuditEventsTable.accountId,
+        companyId: authAuditEventsTable.companyId,
+        metadata: authAuditEventsTable.metadata,
+        createdAt: authAuditEventsTable.createdAt,
+      }).from(authAuditEventsTable)
+        .orderBy(desc(authAuditEventsTable.createdAt))
+        .limit(12),
+    ]);
+
+  const employeesByCompany = new Map<string, { total: number; active: number }>();
+  for (const employee of employees) {
+    const current = employeesByCompany.get(employee.companyId) ?? {
+      total: 0,
+      active: 0,
+    };
+    current.total += 1;
+    if (employee.status === "active") current.active += 1;
+    employeesByCompany.set(employee.companyId, current);
+  }
+  const accountsByCompany = new Map<string, typeof accounts>();
+  for (const account of accounts) {
+    if (!account.companyId) continue;
+    const current = accountsByCompany.get(account.companyId) ?? [];
+    current.push(account);
+    accountsByCompany.set(account.companyId, current);
+  }
+  const subscriptionByCompany = new Map(
+    subscriptions.map((subscription) => [subscription.companyId, subscription]),
+  );
+  const ownerByCompany = new Map(
+    accounts
+      .filter((account) => account.accountType === "company_owner" && account.companyId)
+      .map((account) => [account.companyId!, account]),
+  );
+
+  const statusCounts = {
+    trial: 0,
+    active: 0,
+    past_due: 0,
+    cancelled: 0,
+  };
+  for (const subscription of subscriptions) {
+    if (subscription.status in statusCounts) {
+      statusCounts[subscription.status as keyof typeof statusCounts] += 1;
+    }
+  }
+
+  const platformAlerts = [
+    ...companies
+      .filter((company) => !company.active)
+      .map((company) => ({
+        id: `company-suspended-${company.id}`,
+        severity: "warning" as const,
+        title: "Company suspended",
+        detail: `${company.name} is not accepting active workspace access.`,
+      })),
+    ...subscriptions
+      .filter((subscription) => subscription.status === "past_due")
+      .map((subscription) => {
+        const company = companies.find((item) => item.id === subscription.companyId);
+        return {
+          id: `subscription-past-due-${subscription.companyId}`,
+          severity: "critical" as const,
+          title: "Subscription needs attention",
+          detail: `${company?.name ?? "A company"} has a past-due subscription.`,
+        };
+      }),
+    ...companies
+      .filter((company) => !ownerByCompany.has(company.id))
+      .map((company) => ({
+        id: `company-owner-missing-${company.id}`,
+        severity: "critical" as const,
+        title: "Company Owner missing",
+        detail: `${company.name} has no Company Owner account.`,
+      })),
+  ];
+
+  res.json({
+    metrics: {
+      totalCompanies: companies.length,
+      activeCompanies: companies.filter((company) => company.active).length,
+      suspendedCompanies: companies.filter((company) => !company.active).length,
+      totalEmployees: employees.length,
+      totalPlatformUsers: accounts.length,
+      activeSubscriptions: subscriptions.filter(
+        (subscription) => subscription.status === "active",
+      ).length,
+    },
+    subscriptionStatus: statusCounts,
+    companies: companies.map((company) => {
+      const companyEmployees = employeesByCompany.get(company.id) ?? {
+        total: 0,
+        active: 0,
+      };
+      const companyAccounts = accountsByCompany.get(company.id) ?? [];
+      const subscription = subscriptionByCompany.get(company.id);
+      const owner = ownerByCompany.get(company.id);
+      return {
+        id: company.id,
+        name: company.name,
+        slug: company.slug,
+        active: company.active,
+        status: company.active
+          ? subscription?.status === "active"
+            ? "active"
+            : subscription?.status ?? "trial"
+          : "suspended",
+        planName: subscription?.planName ?? "Unconfigured",
+        subscriptionStatus: subscription?.status ?? "trial",
+        employeeCount: companyEmployees.total,
+        activeEmployees: companyEmployees.active,
+        userCount: companyAccounts.length,
+        activeUsers: companyAccounts.filter((account) => account.active).length,
+        employeeLimit:
+          subscription?.employeeLimit ??
+          subscription?.planEmployeeLimit ??
+          0,
+        owner: owner
+          ? {
+              id: owner.id,
+              username: owner.username,
+              displayRole: owner.displayRole,
+              active: owner.active,
+            }
+          : null,
+        createdAt: company.createdAt.toISOString(),
+      };
+    }),
+    activity: activity.map((event) => ({
+      ...event,
+      createdAt: event.createdAt.toISOString(),
+    })),
+    alerts: platformAlerts.slice(0, 8),
+  });
 });
 
 export default router;
