@@ -8,6 +8,8 @@
 
 export interface InitialPlatformOwnerInput {
   /** @minLength 1 */
+  fullName: string;
+  /** @minLength 1 */
   username: string;
   /** @minLength 6 */
   password: string;

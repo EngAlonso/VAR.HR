@@ -61,6 +61,7 @@ import type {
   EmployeeScheduleInput,
   EmployeeUpdate,
   GetAttendanceReportParams,
+  GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
   GetReportParams,
   HealthStatus,
@@ -414,6 +415,83 @@ export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAuthMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetInitialPlatformOwnerProvisioningStatusUrl = () => {
+
+
+
+
+  return `/api/auth/provision/platform-owner/status`
+}
+
+/**
+ * @summary Check whether initial Platform Owner setup is available
+ */
+export const getInitialPlatformOwnerProvisioningStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetInitialPlatformOwnerProvisioningStatus200> => {
+
+  return customFetch<GetInitialPlatformOwnerProvisioningStatus200>(getGetInitialPlatformOwnerProvisioningStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInitialPlatformOwnerProvisioningStatusQueryKey = () => {
+    return [
+    `/api/auth/provision/platform-owner/status`
+    ] as const;
+    }
+
+
+export const getGetInitialPlatformOwnerProvisioningStatusQueryOptions = <TData = Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInitialPlatformOwnerProvisioningStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>> = ({ signal }) => getInitialPlatformOwnerProvisioningStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInitialPlatformOwnerProvisioningStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>>
+export type GetInitialPlatformOwnerProvisioningStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check whether initial Platform Owner setup is available
+ */
+
+export function useGetInitialPlatformOwnerProvisioningStatus<TData = Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInitialPlatformOwnerProvisioningStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInitialPlatformOwnerProvisioningStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

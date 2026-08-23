@@ -91,6 +91,7 @@ export * from './employeeStatus';
 export * from './employeeUpdate';
 export * from './employeeUpdateStatus';
 export * from './getAttendanceReportParams';
+export * from './getInitialPlatformOwnerProvisioningStatus200';
 export * from './getMyPayrollParams';
 export * from './getReportLeaveType';
 export * from './getReportParams';

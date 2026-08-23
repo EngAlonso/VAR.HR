@@ -20,6 +20,8 @@ export interface LoginInput {
 
 export interface InitialPlatformOwnerInput {
   /** @minLength 1 */
+  fullName: string;
+  /** @minLength 1 */
   username: string;
   /** @minLength 6 */
   password: string;
@@ -1653,6 +1655,10 @@ export type DateFromParameter = string;
 export type DateToParameter = string;
 
 export type ReportPeriodIdParameter = string;
+
+export type GetInitialPlatformOwnerProvisioningStatus200 = {
+  setupAvailable: boolean;
+};
 
 export type UpdatePlatformCompanyOwners200 = {
   owners: AuthAccount[];

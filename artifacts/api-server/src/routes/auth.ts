@@ -42,6 +42,7 @@ const credentialsSchema = z.object({
   password: z.string().min(1).max(256),
 });
 const initialPlatformOwnerSchema = z.object({
+  fullName: z.string().trim().min(1).max(160),
   username: z.string().trim().min(1).max(120),
   password: z.string().min(6).max(256),
 });
@@ -279,6 +280,16 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
+router.get("/auth/provision/platform-owner/status", async (_req, res): Promise<void> => {
+  res.set("Cache-Control", "no-store");
+  const [existing] = await db
+    .select({ id: userAccountsTable.id })
+    .from(userAccountsTable)
+    .where(eq(userAccountsTable.accountType, "platform_owner"))
+    .limit(1);
+  res.json({ setupAvailable: !existing });
+});
+
 router.post("/auth/provision/platform-owner", async (req, res): Promise<void> => {
   const provisioningEnabled =
     process.env.NODE_ENV !== "production" &&
@@ -312,6 +323,7 @@ router.post("/auth/provision/platform-owner", async (req, res): Promise<void> =>
     const [created] = await tx
       .insert(userAccountsTable)
       .values({
+        fullName: parsed.data.fullName,
         username: parsed.data.username,
         passwordHash: hashPassword(parsed.data.password),
         accountType: "platform_owner",

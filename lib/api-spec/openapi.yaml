@@ -93,6 +93,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthMeResponse"
+  /auth/provision/platform-owner/status:
+    get:
+      operationId: getInitialPlatformOwnerProvisioningStatus
+      tags: [auth]
+      summary: Check whether initial Platform Owner setup is available
+      responses:
+        "200":
+          description: Initial setup availability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [setupAvailable]
+                properties:
+                  setupAvailable: { type: boolean }
   /auth/logout:
     post:
       operationId: logout
@@ -1480,8 +1495,9 @@ components:
         password: { type: string, minLength: 1 }
     InitialPlatformOwnerInput:
       type: object
-      required: [username, password]
+      required: [fullName, username, password]
       properties:
+        fullName: { type: string, minLength: 1 }
         username: { type: string, minLength: 1 }
         password: { type: string, minLength: 6 }
     AuthPermission:

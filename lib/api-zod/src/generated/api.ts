@@ -48,11 +48,13 @@ export const LoginResponse = zod.object({
  * @summary Provision the initial Platform Owner account
  */
 
+
 export const provisionInitialPlatformOwnerBodyPasswordMin = 6;
 
 
 
 export const ProvisionInitialPlatformOwnerBody = zod.object({
+  "fullName": zod.string().min(1),
   "username": zod.string().min(1),
   "password": zod.string().min(provisionInitialPlatformOwnerBodyPasswordMin)
 })
@@ -85,6 +87,14 @@ export const GetAuthMeResponse = zod.object({
   "active": zod.boolean(),
   "permissions": zod.array(zod.string())
 })
+})
+
+
+/**
+ * @summary Check whether initial Platform Owner setup is available
+ */
+export const GetInitialPlatformOwnerProvisioningStatusResponse = zod.object({
+  "setupAvailable": zod.boolean()
 })
 
 

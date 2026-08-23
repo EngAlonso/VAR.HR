@@ -1,0 +1,64 @@
+I am continuing the VAR HR project from a previous ChatGPT account/conversation.
+
+Current issue:
+The original Founder / Platform Owner account was removed from the database during the Demo/Test Data cleanup. Therefore, logging in with the Founder username "01200229946" returns HTTP 401 because the account no longer exists.
+
+Already implemented:
+
+- Demo/seed business data was removed.
+- Automatic startup seeding was removed.
+- Authentication, permissions, and tenant isolation were preserved.
+- A secure one-time Founder / Platform Owner Provisioning mechanism was implemented.
+- Provisioning does NOT run automatically at startup.
+- It is intended to allow creation of the first Platform Owner only when no Platform Owner exists.
+- It uses the existing password hashing and session infrastructure.
+- The OpenAPI contract was updated.
+- Typecheck passed.
+- The first live provisioning test returned HTTP 404 because the old API process was still running.
+- The API workflow was then restarted.
+- The previous agent stopped before completing the final provisioning test.
+- There is currently no proper UI for creating the initial Founder.
+
+IMPORTANT:
+Do not rebuild or duplicate anything that already exists. Inspect the current code and git diff first and continue from the exact current state.
+
+Tasks:
+
+1. Complete the existing Founder Provisioning verification after the API restart.
+2. Verify this exact flow:
+   Founder Provisioning → Login → Session Creation → "/api/auth/me"
+3. Do not modify or delete existing data.
+4. Do not reintroduce demo seeds or demo accounts.
+5. Do not change authentication, permissions, or tenant isolation.
+6. Do not create a second Founder if a Platform Owner already exists.
+7. If the existing provisioning mechanism works, add a simple "Initial Founder Setup" UI that is accessible only when there are zero Platform Owner accounts.
+8. The setup page should contain:
+   - Founder Full Name
+   - Username
+   - Password
+   - Confirm Password
+9. Password minimum: 6 characters.
+10. Do not impose additional password complexity requirements.
+11. Never expose or log the password.
+12. After the first Founder is successfully created, the setup page must no longer be accessible.
+13. Redirect the user to the normal Login page after successful creation.
+14. Keep all existing authentication and session behavior unchanged.
+15. Do not modify unrelated features.
+
+Before making any changes:
+
+- Inspect the current implementation.
+- Inspect the git diff.
+- Confirm exactly what the previous agent already implemented.
+- Only make changes that are actually necessary.
+
+At the end, report:
+
+- What was already implemented.
+- What you completed.
+- Founder provisioning result.
+- Login result.
+- "/api/auth/me" result.
+- Any remaining issue.
+
+Do not take screenshots or perform visual inspection.

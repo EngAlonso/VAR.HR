@@ -3904,7 +3904,13 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
+function Login({
+  onSignedIn,
+  setupAvailable,
+}: {
+  onSignedIn: (account: AuthAccount) => void;
+  setupAvailable: boolean;
+}) {
   const { locale, setLocale } = useI18n();
   const loginLogo = locale === "ar" ? arabicLoginLogo : horizontalLogo;
   const [username, setUsername] = useState("");
@@ -4032,6 +4038,14 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               <ArrowUpRight className="rtl:-scale-x-100" size={16} />
             </Button>
           </form>
+          {setupAvailable && (
+            <Link
+              href="/setup"
+              className="mt-5 block text-center text-xs font-semibold text-primary hover:underline"
+            >
+              {locale === "ar" ? "إعداد حساب المؤسس الأول" : "Initial Founder Setup"}
+            </Link>
+          )}
           <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground">
             {authLabel(locale, "sessionProtected")}
           </p>
@@ -4041,9 +4055,112 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
   );
 }
 
+function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
+  const { locale } = useI18n();
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+  const isArabic = locale === "ar";
+  const copy = isArabic
+    ? {
+        eyebrow: "إعداد أولي آمن",
+        title: "إنشاء حساب المؤسس",
+        detail: "أنشئ أول حساب مالك للمنصة لبدء استخدام VAR HR.",
+        fullName: "الاسم الكامل",
+        username: "اسم المستخدم",
+        password: "كلمة المرور",
+        confirmPassword: "تأكيد كلمة المرور",
+        create: "إنشاء حساب المؤسس",
+        creating: "جارٍ إنشاء الحساب…",
+        mismatch: "كلمتا المرور غير متطابقتين.",
+        tooShort: "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+        failed: "تعذر إنشاء الحساب. يرجى المحاولة مرة أخرى.",
+      }
+    : {
+        eyebrow: "Secure first-time setup",
+        title: "Create the initial Founder",
+        detail: "Create the first Platform Owner account to start using VAR HR.",
+        fullName: "Founder full name",
+        username: "Username",
+        password: "Password",
+        confirmPassword: "Confirm password",
+        create: "Create Founder account",
+        creating: "Creating account…",
+        mismatch: "Passwords do not match.",
+        tooShort: "Password must be at least 6 characters.",
+        failed: "Could not create the account. Please try again.",
+      };
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (password.length < 6) {
+      setError(copy.tooShort);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(copy.mismatch);
+      return;
+    }
+    setPending(true);
+    try {
+      await authRequest("/api/auth/provision/platform-owner", {
+        method: "POST",
+        body: JSON.stringify({ fullName, username, password }),
+      });
+      onComplete();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.failed);
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div
+      className="login-shell min-h-[100dvh] bg-secondary px-4 py-5 text-sidebar-foreground sm:px-8 sm:py-8"
+      dir={isArabic ? "rtl" : "ltr"}
+    >
+      <div className="mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-md items-center lg:min-h-[calc(100dvh-4rem)]">
+        <Card className="w-full border-white/10 bg-card p-6 shadow-2xl sm:p-9">
+          <BrandLogo variant="horizontal" className="w-[168px]" />
+          <div className="mt-9">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">
+              {copy.eyebrow}
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">
+              {copy.title}
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {copy.detail}
+            </p>
+          </div>
+          <form onSubmit={submit} className="mt-7 space-y-[18px]">
+            <Field label={copy.fullName} value={fullName} onChange={setFullName} required autoComplete="name" />
+            <Field label={copy.username} value={username} onChange={setUsername} required autoComplete="username" />
+            <Field label={copy.password} value={password} onChange={setPassword} required type="password" min={6} autoComplete="new-password" showPasswordToggle showPasswordLabel={authLabel(locale, "showPassword")} hidePasswordLabel={authLabel(locale, "hidePassword")} />
+            <Field label={copy.confirmPassword} value={confirmPassword} onChange={setConfirmPassword} required type="password" min={6} autoComplete="new-password" showPasswordToggle showPasswordLabel={authLabel(locale, "showPassword")} hidePasswordLabel={authLabel(locale, "hidePassword")} />
+            {error && (
+              <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+            <Button type="submit" className="h-12 w-full justify-center rounded-xl text-[15px]" disabled={pending}>
+              {pending ? copy.creating : copy.create}
+              <ArrowUpRight className="rtl:-scale-x-100" size={16} />
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function AuthGate() {
   const [account, setAccount] = useState<AuthAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [setupAvailable, setSetupAvailable] = useState(false);
   const [location, setLocation] = useLocation();
   const signOut = async () => {
     await authRequest("/api/auth/logout", { method: "POST" }).catch(
@@ -4054,9 +4171,24 @@ function AuthGate() {
     setLocation("/login");
   };
   useEffect(() => {
-    void authRequest<{ user: AuthAccount }>("/api/auth/me")
-      .then((result) => setAccount(result.user))
-      .catch(() => setAccount(null))
+    void Promise.all([
+      authRequest<{ user: AuthAccount }>("/api/auth/me"),
+      authRequest<{ setupAvailable: boolean }>(
+        "/api/auth/provision/platform-owner/status",
+      ),
+    ])
+      .then(([session, setup]) => {
+        setAccount(session.user);
+        setSetupAvailable(setup.setupAvailable);
+      })
+      .catch(async () => {
+        setAccount(null);
+        await authRequest<{ setupAvailable: boolean }>(
+          "/api/auth/provision/platform-owner/status",
+        )
+          .then((setup) => setSetupAvailable(setup.setupAvailable))
+          .catch(() => setSetupAvailable(false));
+      })
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
@@ -4071,8 +4203,12 @@ function AuthGate() {
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
   if (!account)
+    if (setupAvailable && location === "/setup")
+      return <InitialFounderSetup onComplete={() => setLocation("/login")} />;
+  if (!account)
     return (
       <Login
+        setupAvailable={setupAvailable}
         onSignedIn={(next) => {
           setAccount(next);
           setLocation(
