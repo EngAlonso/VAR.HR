@@ -3994,6 +3994,10 @@ function authLabel(
     | "active"
     | "save"
     | "resetPassword"
+    | "editPermissions"
+    | "savePermissions"
+    | "permissionsUpdated"
+    | "permissionsUpdateFailed"
     | "managementDetail"
     | "accountManagement",
 ) {
@@ -4040,6 +4044,10 @@ function authLabel(
       active: "Active",
       save: "Save",
       resetPassword: "Reset password",
+      editPermissions: "Manage permissions",
+      savePermissions: "Save permissions",
+      permissionsUpdated: "Permissions updated",
+      permissionsUpdateFailed: "Could not update permissions.",
       managementDetail:
         "Create staff accounts and grant only the access they need.",
       accountManagement: "Account management",
@@ -4086,6 +4094,10 @@ function authLabel(
       active: "نشط",
       save: "حفظ",
       resetPassword: "إعادة تعيين كلمة المرور",
+      editPermissions: "إدارة الصلاحيات",
+      savePermissions: "حفظ الصلاحيات",
+      permissionsUpdated: "تم تحديث الصلاحيات",
+      permissionsUpdateFailed: "تعذر تحديث الصلاحيات.",
       managementDetail:
         "أنشئ حسابات الموظفين وامنح كل حساب الصلاحيات التي يحتاجها فقط.",
       accountManagement: "إدارة الحسابات",
@@ -4117,6 +4129,31 @@ function permissionLabel(
     "organization.manage": "إدارة الهيكل التنظيمي",
   };
   return labels[permission.key] ?? permission.label;
+}
+
+function permissionDescription(
+  locale: Locale,
+  permission: { key: string; description?: string },
+): string {
+  if (locale !== "ar") return permission.description ?? "";
+  const descriptions: Record<string, string> = {
+    "employees.view": "عرض بيانات الموظفين.",
+    "employees.manage": "إضافة الموظفين وتعديلهم وإدارتهم.",
+    "employees.credentials": "إدارة بيانات اعتماد الموظفين.",
+    "attendance.view": "عرض سجلات الحضور والانصراف.",
+    "attendance.correct": "تصحيح سجلات الحضور.",
+    "leave.approve": "اعتماد طلبات الإجازات.",
+    "permissions.approve": "اعتماد طلبات الأذونات.",
+    "payroll.view": "عرض بيانات وحسابات الرواتب.",
+    "reports.view": "عرض التقارير.",
+    "reports.export": "تصدير التقارير.",
+    devices: "إدارة إعدادات الأجهزة.",
+    "sync-history": "عرض سجل المزامنة.",
+    schedules: "إدارة جداول العمل.",
+    holidays: "إدارة عطلات الشركة.",
+    "organization.manage": "إدارة الأقسام والفروع والهيكل التنظيمي.",
+  };
+  return descriptions[permission.key] ?? permission.description ?? "";
 }
 
 function BrandLogo({
@@ -9918,7 +9955,7 @@ function Accounts() {
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
   const [permissions, setPermissions] = useState<
-    Array<{ key: string; label: string }>
+    Array<{ key: string; label: string; description?: string }>
   >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -9929,14 +9966,16 @@ function Accounts() {
     permissions: [] as string[],
   });
   const [oneTimePassword, setOneTimePassword] = useState("");
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const load = async () => {
     setLoading(true);
     try {
       const [accountResult, permissionResult] = await Promise.all([
         authRequest<AuthAccount[]>("/api/auth/accounts"),
-        authRequest<Array<{ key: string; label: string }>>(
-          "/api/auth/permissions",
-        ),
+        authRequest<
+          Array<{ key: string; label: string; description?: string }>
+        >("/api/auth/permissions"),
       ]);
       setAccounts(accountResult);
       setPermissions(permissionResult);
@@ -9995,6 +10034,41 @@ function Accounts() {
       );
     }
   };
+  const selectAccount = (account: AuthAccount) => {
+    setSelectedAccountId(account.id);
+    setSelectedPermissions(account.permissions);
+  };
+  const savePermissions = async () => {
+    if (!selectedAccountId) return;
+    setSaving(true);
+    try {
+      const result = await authRequest<{ account: AuthAccount }>(
+        `/api/auth/accounts/${selectedAccountId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ permissions: selectedPermissions }),
+        },
+      );
+      setAccounts((current) =>
+        current.map((account) =>
+          account.id === result.account.id ? result.account : account,
+        ),
+      );
+      setSelectedPermissions(result.account.permissions);
+      toast.success(authLabel(locale, "permissionsUpdated"));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : authLabel(locale, "permissionsUpdateFailed"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+  const selectedAccount = accounts.find(
+    (account) => account.id === selectedAccountId,
+  );
   if (workspace.data?.role !== "company_owner")
     return <WorkspaceState kind="unauthorized" />;
   return (
@@ -10065,6 +10139,11 @@ function Accounts() {
                     />
                     <span>
                       {permissionLabel(locale, permission)}
+                      {permissionDescription(locale, permission) && (
+                        <span className="block text-xs text-muted-foreground">
+                          {permissionDescription(locale, permission)}
+                        </span>
+                      )}
                       <span className="block text-xs text-muted-foreground">
                         {permission.key}
                       </span>
@@ -10120,6 +10199,57 @@ function Accounts() {
               </p>
             </div>
           )}
+          {selectedAccount && (
+            <div className="m-5 rounded-xl border border-primary/20 bg-primary/[.04] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">
+                    {authLabel(locale, "editPermissions")}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedAccount.username} · {selectedAccount.displayRole}
+                  </p>
+                </div>
+                <Button
+                  disabled={saving}
+                  onClick={() => void savePermissions()}
+                >
+                  {authLabel(locale, "savePermissions")}
+                </Button>
+              </div>
+              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-lg border border-border bg-background p-3">
+                {permissions.map((permission) => (
+                  <label
+                    className="flex items-start gap-2 text-sm"
+                    key={`edit-${permission.key}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPermissions.includes(permission.key)}
+                      onChange={(event) =>
+                        setSelectedPermissions((current) =>
+                          event.target.checked
+                            ? [...current, permission.key]
+                            : current.filter((key) => key !== permission.key),
+                        )
+                      }
+                    />
+                    <span>
+                      {permissionLabel(locale, permission)}
+                      {permissionDescription(locale, permission) && (
+                        <span className="block text-xs text-muted-foreground">
+                          {permissionDescription(locale, permission)}
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">
+                        {permission.key}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-16" />
@@ -10146,6 +10276,13 @@ function Accounts() {
                       {authLabel(locale, "permissionsCount")}
                     </p>
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => selectAccount(account)}
+                  >
+                    <ShieldCheck size={15} />
+                    {authLabel(locale, "editPermissions")}
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => void reset(account.id)}
