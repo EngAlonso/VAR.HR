@@ -11214,6 +11214,26 @@ function PlatformCompanyDetailsPage() {
     ["People & structure", ["var_hr_departments", "var_hr_branches", "var_hr_employees", "var_hr_employee_hr_records", "var_hr_employee_identities"]],
     ["Rules & schedules", ["var_hr_attendance_rules", "var_hr_work_schedules", "var_hr_holidays", "var_hr_leave_balances", "var_hr_leave_requests", "var_hr_permission_requests"]],
   ] as const;
+  const operationalTableLabels: Record<string, string> = {
+    var_hr_payroll_periods: "فترات الرواتب",
+    var_hr_payroll_calculations: "حسابات الرواتب",
+    var_hr_payroll_adjustments: "تسويات الرواتب",
+    var_hr_attendance: "سجلات الحضور والانصراف",
+    var_hr_attendance_locations: "مواقع الحضور",
+    var_hr_biometric_events: "أحداث البصمة",
+    var_hr_biometric_sync_history: "سجل مزامنة البصمة",
+    var_hr_departments: "الأقسام",
+    var_hr_branches: "الفروع",
+    var_hr_employees: "الموظفون",
+    var_hr_employee_hr_records: "سجلات الموارد البشرية للموظفين",
+    var_hr_employee_identities: "هويات الموظفين",
+    var_hr_attendance_rules: "قواعد الحضور والانصراف",
+    var_hr_work_schedules: "جداول العمل",
+    var_hr_holidays: "العطلات",
+    var_hr_leave_balances: "أرصدة الإجازات",
+    var_hr_leave_requests: "طلبات الإجازات",
+    var_hr_permission_requests: "طلبات الأذونات",
+  };
   return (
     <div className="company-details-page min-w-0 max-w-full animate-in space-y-6 overflow-x-clip break-words">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -11304,7 +11324,7 @@ function PlatformCompanyDetailsPage() {
         <Card className="p-5">
           <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Live operational overview", "نظرة على البيانات التشغيلية الحالية")}</h2></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label={text("Employees", "الموظفون")} value={details.employees.length} /><Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={details.staff.length} /><Info label={text("Biometric devices", "أجهزة البصمة")} value={details.devices.length} /><Info label={text("Integrity checksum", "بصمة التكامل")} value={details.integrity.checksum.slice(0, 16) + "…"} /></div>
-           <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور والانصراف" : label === "People & structure" ? "الموظفون" : "القواعد")}</div><div className="mt-2 grid min-w-0 grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span className="min-w-0 break-words" key={table}>{table.replace("var_hr_", " ").replaceAll("_", " ")}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
+           <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور والانصراف" : label === "People & structure" ? "الموظفون" : "القواعد")}</div><div className="mt-2 grid min-w-0 grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span className="min-w-0 break-words" key={table}>{operationalTableLabels[table]}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
         </Card>
       </div>
 
