@@ -1,0 +1,142 @@
+You are taking over an existing VAR HR project that has already been extensively implemented and tested.
+
+Do NOT rebuild, redesign, or re-architect anything. First inspect the current project state and continue from the existing implementation.
+
+Important project context
+
+The following major areas are already working and should NOT be unnecessarily changed:
+
+- Authentication / Login
+- Workspace loading and authentication flow
+- Platform Owner / Founder account behavior
+- Company Owner / Company Admin experience
+- Tenant isolation
+- Existing permissions/business logic
+- Existing API contracts
+- Existing branding and design system
+- RTL/LTR behavior
+- Existing language switcher
+- Existing responsive/mobile layout
+
+Current task we were working on
+
+We were doing a full Arabic localization audit for the Company Owner / Company Admin experience.
+
+The goal is:
+
+When the language is Arabic, the entire Company Owner/Admin interface should be properly Arabic.
+
+When the language is English, the exact same interface should correctly display English.
+
+Work already completed before moving the project
+
+The previous agent audited the localization system and discovered that the main problem was not the newer page-specific dictionaries.
+
+There was a shared/legacy translation dictionary containing 123 keys used by Company Owner/Admin screens that were missing Arabic translations, causing those strings to fall back to English.
+
+The previous agent already:
+
+- Added the missing Arabic translations for those shared keys.
+- Routed remaining visible Account Management literals through the existing locale helper.
+- Addressed strings such as:
+  - loading text
+  - counts
+  - optional labels
+  - permissions
+  - inactive state
+  - one-time password note
+  - error states
+  - empty states
+- Started localizing permission labels returned from the API as well.
+
+IMPORTANT: Do not redo this work
+
+Inspect the current code first.
+
+Assume the above changes are already present unless the actual code proves otherwise.
+
+The previous agent was interrupted by the daily quota while doing the final verification.
+
+Your immediate task
+
+Continue from the current state and finish the localization work.
+
+1. Inspect the existing i18n implementation.
+
+2. Verify the Arabic translations that were already added.
+
+3. Finish localization of any remaining Company Owner/Admin permission labels or user-facing API values that can appear in English.
+
+4. Perform a static scan across the entire Company Owner / Company Admin experience for remaining hardcoded user-facing English strings.
+
+5. Check:
+   
+   - Account Management
+   - Permissions
+   - Roles
+   - Company Settings
+   - Employee Management
+   - Attendance settings
+   - Leave settings
+   - Payroll settings
+   - Notifications
+   - Reports
+   - Backup & Restore
+   - Security
+   - Sidebar/navigation
+   - Buttons
+   - Forms
+   - Placeholders
+   - Tables
+   - Filters
+   - Dropdowns
+   - Dialogs/modals
+   - Empty states
+   - Loading states
+   - Validation messages
+   - Error messages
+   - Status labels
+   - Tooltips
+
+6. Any user-facing static English string that supports localization must use the existing i18n system.
+
+7. Reuse existing translation keys whenever possible. Do not create duplicate keys unnecessarily.
+
+8. Do not hardcode Arabic directly into components if the existing i18n system can handle it.
+
+9. Preserve the existing English translations.
+
+10. Make sure every newly localized string responds correctly to the existing language switcher.
+
+11. Arabic must remain RTL and English must remain LTR.
+
+12. Do NOT redesign the interface.
+
+13. Do NOT change business logic.
+
+14. Do NOT change authentication, authorization, tenant isolation, API contracts, database behavior, or existing working functionality.
+
+Verification
+
+After finishing:
+
+- Run the project's existing typecheck.
+- Run the existing build/verification commands.
+- Perform a final static scan for Company Owner/Admin hardcoded English UI strings.
+- If possible, verify both:
+  - Arabic → all relevant UI is Arabic
+  - English → all relevant UI is English
+
+If you find anything unrelated to localization, do not modify it.
+
+At the end, give me a concise report containing:
+
+- Files changed
+- Localization areas fixed
+- Remaining English strings, if any
+- Which remaining strings are intentionally technical/proper names
+- Typecheck result
+- Build result
+- Final localization verification result
+
+Again: continue from the existing implementation; do not start the project over and do not redo completed work.
