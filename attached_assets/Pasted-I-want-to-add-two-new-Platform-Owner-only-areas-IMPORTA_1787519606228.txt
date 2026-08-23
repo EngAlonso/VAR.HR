@@ -1,0 +1,249 @@
+I want to add two new Platform Owner-only areas.
+
+IMPORTANT:
+These features are ONLY for the Platform Owner / Founder.
+Company Owners and employees must never have access to them.
+
+Do not change the existing Company Owner or automated employee flows.
+
+==================================================
+1. Platform Database Administration
+==================================================
+
+Add a dedicated Platform Owner-only area called:
+
+Arabic:
+إدارة قاعدة البيانات
+
+English:
+Database Administration
+
+This area is for emergency/support operations and should allow the Platform Owner to manage the application's database data.
+
+The Platform Owner should be able to:
+
+### View database data
+
+Browse the application's database tables/entities and inspect their records.
+
+Show useful information such as:
+- Table/entity name
+- Record count
+- Records/data
+- IDs
+- Created/updated dates where available
+
+### Export data
+
+Allow the Platform Owner to export database data as Excel (.xlsx).
+
+Requirements:
+- Export selected table/entity.
+- Export filtered/selected records if supported.
+- Keep Arabic/English column labels where appropriate.
+- Do not expose password hashes or sensitive authentication secrets in normal exports.
+- Do not export session tokens, cookies, API keys, or other secrets.
+
+### Manual editing
+
+Allow the Platform Owner to manually edit database records for emergency/support purposes.
+
+Support:
+- Edit individual record
+- Update individual fields
+- Save changes
+- Delete individual record
+
+Use the existing API/database architecture rather than giving the browser direct database access.
+
+### Delete / Clear operations
+
+Provide controlled emergency operations for:
+
+1. Delete one record.
+2. Delete selected records.
+3. Clear selected data/entity/table.
+4. Clear a specific subset of data using filters where safely supported.
+5. Clear an entire table/entity only when explicitly confirmed.
+
+DO NOT provide a single accidental "Delete Database" button.
+
+For destructive operations:
+
+- Require a strong confirmation dialog.
+- Clearly explain exactly what will be deleted.
+- Require the Platform Owner to type a confirmation phrase for dangerous operations.
+- For example:
+  "DELETE EMPLOYEES"
+  or the equivalent Arabic confirmation phrase.
+- Show affected record count before deletion.
+- Prevent accidental double submission.
+- Show success/failure result.
+
+### Safety
+
+This is an emergency administration tool, so preserve database integrity.
+
+Do NOT allow arbitrary SQL execution from the browser.
+
+Do NOT allow the user to execute DROP DATABASE, DROP TABLE, arbitrary SQL, or destructive SQL directly.
+
+Use controlled server-side operations with explicit allowlists for editable/deletable entities and fields.
+
+Respect foreign keys and existing database relationships.
+
+If deleting a record would violate a relationship, show a clear error instead of corrupting or bypassing the database.
+
+### Audit logging
+
+Every database administration action MUST be logged.
+
+Log:
+- Platform Owner ID
+- Action
+- Entity/table
+- Record ID(s) when applicable
+- Fields changed
+- Before/after values where safe
+- Number of records affected
+- Timestamp
+- Success/failure
+
+Never put passwords, password hashes, session tokens, or other secrets into the audit log.
+
+==================================================
+2. Platform Owner Account Settings
+==================================================
+
+Create a separate Platform Owner-only area:
+
+Arabic:
+إعدادات الحساب
+
+English:
+Account Settings
+
+This is ONLY for the currently authenticated Platform Owner's own account.
+
+Allow the Platform Owner to change:
+
+- Full Name
+- Phone Number / Login Username
+- Password
+
+### Name
+Allow normal Arabic or English names and spaces.
+
+### Phone
+The phone number is the login username.
+
+Keep existing phone validation and uniqueness rules.
+
+If the phone changes, update the login username consistently.
+
+### Password
+
+Allow the Platform Owner to change their own password.
+
+For normal password change:
+- Require current/old password.
+- Require new password.
+- Minimum 6 characters.
+- No forced uppercase/lowercase/number/special-character complexity unless already required by the existing system.
+- Hash the new password securely.
+- Never store plaintext password.
+
+The Platform Owner's own password change is different from a Company Owner resetting a staff password.
+
+Do NOT allow this screen to edit another user's account.
+
+==================================================
+Authorization / Security
+==================================================
+
+Database Administration:
+- Platform Owner ONLY.
+- Company Owners must receive 403.
+- Employees must receive 403.
+- Never rely only on hiding the UI.
+- Enforce authorization on the backend.
+
+Account Settings:
+- Platform Owner can modify ONLY their own account.
+- Company Owners cannot access this Platform Owner settings endpoint.
+- One Platform Owner must not be able to modify another Platform Owner unless an existing explicit platform-admin feature already supports that behavior.
+
+Preserve:
+- Authentication
+- Platform Owner context where companyId can be NULL
+- Tenant isolation
+- Company Owner permissions
+- Employee permissions
+- Existing backup/restore system
+
+==================================================
+UI / UX
+==================================================
+
+Keep these as TWO separate areas.
+
+Platform navigation should contain something similar to:
+
+إدارة قاعدة البيانات
+- البيانات
+- تصدير Excel
+- تعديل
+- حذف
+- تنظيف البيانات
+
+إعدادات الحساب
+- البيانات الشخصية
+- رقم الهاتف
+- كلمة المرور
+
+Use the existing design system.
+
+Support Arabic/English language switching.
+Support RTL/LTR.
+
+For dangerous database actions, make the UI visually clear that these are emergency/destructive operations.
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+==================================================
+
+Before coding:
+
+1. Inspect the existing database schema.
+2. Inspect the existing Platform Owner authorization.
+3. Inspect existing audit logging.
+4. Inspect existing backup/restore implementation.
+5. Inspect all database entities/tables.
+6. Determine which entities are safe to expose/edit/delete.
+7. Do NOT assume every database table can safely be edited or deleted.
+
+Start with a controlled database administration layer rather than exposing raw database access.
+
+Reuse existing APIs, validation, authorization, audit logging, and UI components wherever possible.
+
+Do not modify unrelated Company Owner or employee functionality.
+
+After implementation run:
+
+- Full typecheck
+- Frontend build
+- API build
+- Formatting/diff check
+- Runtime verification
+
+Also verify that:
+- Company Owner cannot access Database Administration.
+- Employee cannot access it.
+- Platform Owner can access it.
+- Export produces a valid .xlsx file.
+- Individual edits work.
+- Individual deletion works.
+- Dangerous clear operations require confirmation.
+- All destructive actions are audited.
+- Platform Owner can update their own name/phone/password.
+- Old password is required for normal self-password change.

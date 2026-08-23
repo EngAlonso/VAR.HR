@@ -417,6 +417,18 @@ const platformNav: NavItem[] = [
     icon: Database,
     roles: ["platform_owner"],
   },
+  {
+    href: "/platform/database",
+    key: "databaseAdministration",
+    icon: ShieldCheck,
+    roles: ["platform_owner"],
+  },
+  {
+    href: "/platform/account-settings",
+    key: "accountSettings",
+    icon: Settings,
+    roles: ["platform_owner"],
+  },
 ];
 
 const copy = {
@@ -436,6 +448,8 @@ const copy = {
     subscription: "Subscription",
     platformOwner: "Platform owner",
     accountManagement: "Account management",
+    databaseAdministration: "Database Administration",
+    accountSettings: "Account Settings",
     workspace: "Workspace",
     departmentOperations: "Operations",
     departmentPeopleCulture: "People & Culture",
@@ -1750,6 +1764,8 @@ const pageCopy = {
     presencePercent: "{percent}% حضور",
     lateAbsent: "{late} متأخر · {absent} غائب",
     accountManagement: "إدارة الحسابات",
+    databaseAdministration: "إدارة قاعدة البيانات",
+    accountSettings: "إعدادات الحساب",
   },
   fr: {
     employeesEyebrow: "Registre des effectifs",
@@ -10114,6 +10130,480 @@ function BackupRestore() {
   );
 }
 
+type AdminEntity = {
+  key: string;
+  label: string;
+  columns: string[];
+  editable: string[];
+};
+type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
+
+function DatabaseAdministration() {
+  const { locale } = useI18n();
+  const auth = useAuth();
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const [entities, setEntities] = useState<AdminEntity[]>([]);
+  const [entity, setEntity] = useState("");
+  const [data, setData] = useState<AdminData | null>(null);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState("");
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  const loadEntities = async () => {
+    const result = await authRequest<AdminEntity[]>(
+      "/api/platform/database/entities",
+    );
+    setEntities(result);
+    if (!entity && result[0]) setEntity(result[0].key);
+  };
+  const load = async () => {
+    if (!entity) return;
+    setLoading(true);
+    setError("");
+    try {
+      setData(
+        await authRequest<AdminData>(
+          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}`,
+        ),
+      );
+      setSelected([]);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not load data.", "تعذر تحميل البيانات."),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    void loadEntities().catch(() =>
+      setError(
+        text(
+          "Could not load database entities.",
+          "تعذر تحميل كيانات قاعدة البيانات.",
+        ),
+      ),
+    );
+  }, []);
+  useEffect(() => {
+    if (entity) void load();
+  }, [entity]);
+  const save = async () => {
+    if (!editing || !data) return;
+    setPending("save");
+    try {
+      const values = Object.fromEntries(
+        data.editable
+          .filter((key) => key in editing)
+          .map((key) => [key, editing[key]]),
+      );
+      await authRequest(`/api/platform/database/${data.key}/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ values }),
+      });
+      setEditing(null);
+      await load();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not save record.", "تعذر حفظ السجل."),
+      );
+    } finally {
+      setPending("");
+    }
+  };
+  const remove = async (ids: string[]) => {
+    const phrase = ids.length > 1 ? "DELETE SELECTED" : "DELETE RECORD";
+    const typed = window.prompt(
+      text(
+        `This will permanently delete ${ids.length} record(s). Type ${phrase} to continue.`,
+        `سيتم حذف ${ids.length} سجل نهائياً. اكتب ${phrase} للمتابعة.`,
+      ),
+    );
+    if (typed !== phrase) return;
+    setPending("delete");
+    try {
+      await authRequest(`/api/platform/database/${entity}`, {
+        method: "DELETE",
+        body: JSON.stringify({
+          ids,
+          confirmation: ids.length > 1 ? phrase : undefined,
+        }),
+      });
+      await load();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text(
+              "Delete failed. Relationships may prevent this record from being removed.",
+              "فشل الحذف. قد تمنع العلاقات حذف هذا السجل.",
+            ),
+      );
+    } finally {
+      setPending("");
+    }
+  };
+  const clear = async () => {
+    const phrase = `CLEAR ${entity.toUpperCase()}`;
+    const typed = window.prompt(
+      text(
+        `This emergency operation will delete all matching records. Type ${phrase} to continue.`,
+        `سيحذف هذا الإجراء الطارئ كل السجلات المطابقة. اكتب ${phrase} للمتابعة.`,
+      ),
+    );
+    if (typed !== phrase) return;
+    setPending("clear");
+    try {
+      await authRequest(`/api/platform/database/${entity}/clear`, {
+        method: "POST",
+        body: JSON.stringify({ confirmation: phrase, search }),
+      });
+      await load();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text("Clear failed.", "فشل تنظيف البيانات."),
+      );
+    } finally {
+      setPending("");
+    }
+  };
+  const exportData = async () => {
+    setPending("export");
+    try {
+      const response = await fetch(`/api/platform/database/${entity}/export`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(text("Export failed.", "فشل التصدير."));
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${entity}.xlsx`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text("Export failed.", "فشل التصدير."),
+      );
+    } finally {
+      setPending("");
+    }
+  };
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={text("Platform Owner only", "للمالك فقط")}
+        title={text("Database Administration", "إدارة قاعدة البيانات")}
+        detail={text(
+          "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
+          "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
+        )}
+      />
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border p-5 lg:flex-row lg:items-end">
+          <label className="flex-1 text-sm font-semibold">
+            {text("Data entity", "كيان البيانات")}
+            <select
+              className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+              value={entity}
+              onChange={(event) => setEntity(event.target.value)}
+            >
+              {entities.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {locale === "ar" ? item.key : item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex-1 text-sm font-semibold">
+            {text("Filter records", "تصفية السجلات")}
+            <input
+              className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={text("Search values", "ابحث في القيم")}
+            />
+          </label>
+          <Button
+            variant="outline"
+            onClick={() => void load()}
+            disabled={pending !== ""}
+          >
+            {text("Refresh", "تحديث")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void exportData()}
+            disabled={pending !== "" || !data}
+          >
+            <Download size={14} />
+            {pending === "export" ? "…" : text("Export Excel", "تصدير Excel")}
+          </Button>
+        </div>
+        {error && (
+          <div className="m-5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 p-4 text-sm">
+          <span className="font-semibold text-destructive">
+            {text("Emergency destructive operations", "عمليات طارئة مدمرة")}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="danger"
+              disabled={pending !== "" || selected.length === 0}
+              onClick={() => void remove(selected)}
+            >
+              {text("Delete selected", "حذف المحدد")}
+            </Button>
+            <Button
+              variant="danger"
+              disabled={pending !== "" || !data}
+              onClick={() => void clear()}
+            >
+              {pending === "clear"
+                ? "…"
+                : text(
+                    "Clear filtered/entity data",
+                    "تنظيف البيانات المصفاة/الكيان",
+                  )}
+            </Button>
+          </div>
+        </div>
+        {loading ? (
+          <div className="p-5">
+            <Skeleton className="h-64" />
+          </div>
+        ) : data && data.rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
+              <thead className="bg-muted/60">
+                <tr>
+                  <th className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.length === data.rows.length}
+                      onChange={(event) =>
+                        setSelected(
+                          event.target.checked
+                            ? data.rows.map((row) => String(row.id))
+                            : [],
+                        )
+                      }
+                    />
+                  </th>
+                  {data.columns.map((column) => (
+                    <th className="p-3 font-semibold" key={column}>
+                      {column}
+                    </th>
+                  ))}
+                  <th className="p-3">{text("Actions", "الإجراءات")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.rows.map((row) => (
+                  <tr key={String(row.id)}>
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(String(row.id))}
+                        onChange={(event) =>
+                          setSelected((current) =>
+                            event.target.checked
+                              ? [...current, String(row.id)]
+                              : current.filter((id) => id !== String(row.id)),
+                          )
+                        }
+                      />
+                    </td>
+                    {data.columns.map((column) => (
+                      <td
+                        className="max-w-[240px] truncate p-3 align-top"
+                        key={column}
+                      >
+                        {typeof row[column] === "object"
+                          ? JSON.stringify(row[column])
+                          : String(row[column] ?? "—")}
+                      </td>
+                    ))}
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditing({ ...row })}
+                        >
+                          {text("Edit", "تعديل")}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => void remove([String(row.id)])}
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty
+            title={text("No records found", "لا توجد سجلات")}
+            detail={text(
+              "Try another entity or filter.",
+              "جرّب كياناً أو تصفية أخرى.",
+            )}
+          />
+        )}
+      </Card>
+      {editing && data && (
+        <Modal
+          title={text("Edit record", "تعديل السجل")}
+          onClose={() => setEditing(null)}
+          className="max-w-2xl"
+        >
+          <div className="space-y-3">
+            {data.editable.map((key) => (
+              <Field
+                key={key}
+                label={key}
+                value={String(editing[key] ?? "")}
+                onChange={(value) => setEditing({ ...editing, [key]: value })}
+              />
+            ))}
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="quiet" onClick={() => setEditing(null)}>
+              {text("Cancel", "إلغاء")}
+            </Button>
+            <Button onClick={() => void save()} disabled={pending !== ""}>
+              {pending === "save" ? "…" : text("Save changes", "حفظ التغييرات")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function PlatformAccountSettings() {
+  const { locale } = useI18n();
+  const auth = useAuth();
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const [fullName, setFullName] = useState(auth.account.fullName);
+  const [username, setUsername] = useState(auth.account.username);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  if (auth.account.accountType !== "platform_owner")
+    return <WorkspaceState kind="unauthorized" />;
+  const save = async () => {
+    setPending(true);
+    try {
+      await authRequest("/api/platform/account", {
+        method: "PATCH",
+        body: JSON.stringify({
+          fullName,
+          username,
+          currentPassword: currentPassword || undefined,
+          newPassword: newPassword || undefined,
+        }),
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      toast.success(
+        text("Account settings updated.", "تم تحديث إعدادات الحساب."),
+      );
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text(
+              "Could not update account settings.",
+              "تعذر تحديث إعدادات الحساب.",
+            ),
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={text("Platform Owner only", "للمالك فقط")}
+        title={text("Account Settings", "إعدادات الحساب")}
+        detail={text(
+          "Update only your currently authenticated Platform Owner account.",
+          "حدّث حساب مالك المنصة المصادق عليه حالياً فقط.",
+        )}
+      />
+      <Card className="max-w-2xl p-5">
+        <div className="space-y-4">
+          <Field
+            label={text("Full name", "الاسم الكامل")}
+            value={fullName}
+            onChange={setFullName}
+          />
+          <Field
+            label={text(
+              "Phone number / login username",
+              "رقم الهاتف / اسم تسجيل الدخول",
+            )}
+            value={username}
+            onChange={setUsername}
+          />
+          <div className="border-t border-border pt-4">
+            <h2 className="font-semibold">
+              {text("Change password", "تغيير كلمة المرور")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {text(
+                "Enter your current password to set a new password (minimum 6 characters).",
+                "أدخل كلمة المرور الحالية لتعيين كلمة مرور جديدة (6 أحرف على الأقل).",
+              )}
+            </p>
+            <div className="mt-3 space-y-3">
+              <Field
+                label={text("Current password", "كلمة المرور الحالية")}
+                type="password"
+                value={currentPassword}
+                onChange={setCurrentPassword}
+              />
+              <Field
+                label={text("New password", "كلمة المرور الجديدة")}
+                type="password"
+                value={newPassword}
+                onChange={setNewPassword}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => void save()} disabled={pending}>
+              {pending
+                ? "…"
+                : text("Save account settings", "حفظ إعدادات الحساب")}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
@@ -14331,6 +14821,11 @@ function Router() {
         <Route path="/devices" component={Devices} />
         <Route path="/sync-history" component={SyncHistory} />
         <Route path="/backups" component={BackupRestore} />
+        <Route path="/platform/database" component={DatabaseAdministration} />
+        <Route
+          path="/platform/account-settings"
+          component={PlatformAccountSettings}
+        />
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
