@@ -11267,7 +11267,11 @@ function AddCompanyModal({
     }
   };
   return (
-    <Modal title={text("Add Company", "إضافة شركة")} onClose={onClose}>
+    <Modal
+      title={text("Add Company", "إضافة شركة")}
+      onClose={onClose}
+      className="max-w-2xl"
+    >
       {result ? (
         <div className="space-y-4">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
@@ -11281,9 +11285,21 @@ function AddCompanyModal({
           <Button className="w-full" onClick={onClose}>{text("Done", "تم")}</Button>
         </div>
       ) : (
-        <form className="space-y-5" onSubmit={(event) => void submit(event)}>
-          <div>
-            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Company information", "معلومات الشركة")}</div>
+        <form className="space-y-4 sm:space-y-5" onSubmit={(event) => void submit(event)}>
+          <section className="rounded-2xl border border-border bg-muted/25 p-4 sm:p-5">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary shadow-sm">
+                <Building2 size={18} />
+              </div>
+              <div>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  {text("Company information", "معلومات الشركة")}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {text("Set the identity and operating defaults for this workspace.", "أدخل هوية مساحة العمل وإعداداتها التشغيلية الأساسية.")}
+                </p>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={text("Company name", "اسم الشركة")} required value={company.name} onChange={(value) => setCompany({ ...company, name: value })} />
               <Field label={text("Currency", "العملة")} value={company.currency} onChange={(value) => setCompany({ ...company, currency: value })} />
@@ -11291,20 +11307,55 @@ function AddCompanyModal({
               <Field label={text("Employee limit", "حد الموظفين")} type="number" value={company.employeeLimit} onChange={(value) => setCompany({ ...company, employeeLimit: value })} />
               <Field label={text("Number of company owners", "عدد مالكي الشركة")} type="number" min="0" value={company.ownerCount} onChange={updateOwnerCount} />
             </div>
-          </div>
-          <div>
-            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Subscription pricing", "أسعار الاشتراك")}</div>
+          </section>
+          <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 sm:p-5">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary-dark">
+                <Coins size={18} />
+              </div>
+              <div>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  {text("Subscription pricing", "أسعار الاشتراك")}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {text("Define the pricing reference for this company subscription.", "حدد مرجع التسعير لاشتراك هذه الشركة.")}
+                </p>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={text("Monthly price", "السعر الشهري")} type="number" value={company.monthlyPrice} onChange={(value) => setCompany({ ...company, monthlyPrice: value })} />
               <Field label={text("Annual price", "السعر السنوي")} type="number" value={company.annualPrice} onChange={(value) => setCompany({ ...company, annualPrice: value })} />
             </div>
-          </div>
-          <div>
-            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{text("Company owner accounts", "حسابات مالكي الشركة")}</div>
-            <div className="space-y-4">
+          </section>
+          <section className="rounded-2xl border border-secondary/15 bg-secondary/[0.03] p-4 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                  <Users size={18} />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-semibold text-foreground">
+                    {text("Company owner accounts", "حسابات مالكي الشركة")}
+                  </h3>
+                  <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+                    {text("Create secure sign-in accounts for the people who will manage this company.", "أنشئ حسابات دخول آمنة للأشخاص الذين سيديرون هذه الشركة.")}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary-dark">
+                {company.ownerCount} {text("owner accounts", "حسابات مالك")}
+              </div>
+            </div>
+            <div className="space-y-3">
               {owners.map((owner, index) => (
-                <div className="rounded-xl border border-border p-4" key={index}>
-                  <div className="mb-3 font-semibold">{text("Owner", "المالك")} {index + 1}</div>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5" key={index}>
+                  <div className="mb-4 flex items-center gap-2 border-b border-border/70 pb-3">
+                    <div className="grid size-7 place-items-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">{index + 1}</div>
+                    <div>
+                      <div className="text-sm font-semibold">{text("Owner account", "حساب المالك")} {index + 1}</div>
+                      <div className="text-xs text-muted-foreground">{text("Account details and recovery contacts", "بيانات الحساب ووسائل الاسترداد")}</div>
+                    </div>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {([
                       ["fullName", text("Full name", "الاسم الكامل")],
@@ -11321,10 +11372,10 @@ function AddCompanyModal({
                 </div>
               ))}
             </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
-            <Button type="button" variant="quiet" onClick={onClose}>{text("Cancel", "إلغاء")}</Button>
-            <Button type="submit" disabled={saving}>{saving ? text("Creating…", "جارٍ الإنشاء…") : text("Create company", "إنشاء الشركة")}</Button>
+          </section>
+          <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={onClose}>{text("Cancel", "إلغاء")}</Button>
+            <Button type="submit" className="w-full sm:w-auto" disabled={saving}>{saving ? text("Creating…", "جارٍ الإنشاء…") : text("Create company", "إنشاء الشركة")}</Button>
           </div>
         </form>
       )}
@@ -11336,10 +11387,12 @@ function Modal({
   title,
   onClose,
   children,
+  className = "",
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const { t } = useI18n();
   return (
@@ -11347,7 +11400,10 @@ function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)] animate-in"
+        className={cn(
+          "max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-md)] animate-in sm:p-6",
+          className,
+        )}
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">{title}</h2>
