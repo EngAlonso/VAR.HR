@@ -3995,6 +3995,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               required
               autoComplete="username"
               placeholder={authLabel(locale, "mobilePlaceholder")}
+              placeholderAlign={locale === "ar" ? "right" : undefined}
               authStyle
             />
             <Field
@@ -4006,6 +4007,7 @@ function Login({ onSignedIn }: { onSignedIn: (account: AuthAccount) => void }) {
               required
               autoComplete="current-password"
               placeholder={authLabel(locale, "passwordPlaceholder")}
+              placeholderAlign={locale === "ar" ? "right" : undefined}
               showPasswordToggle
               showPasswordLabel={authLabel(locale, "showPassword")}
               hidePasswordLabel={authLabel(locale, "hidePassword")}
@@ -11598,6 +11600,7 @@ function Field({
   showPasswordToggle = false,
   showPasswordLabel = "",
   hidePasswordLabel = "",
+  placeholderAlign,
   authStyle = false,
 }: {
   label: string;
@@ -11612,6 +11615,7 @@ function Field({
   showPasswordToggle?: boolean;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
+  placeholderAlign?: "left" | "right";
   authStyle?: boolean;
 }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -11645,7 +11649,9 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
             showPasswordToggle ? "pe-11" : ""
-          } ${authStyle ? "text-foreground" : ""}`}
+          } ${authStyle ? "text-foreground" : ""} ${
+            placeholderAlign === "right" ? "placeholder:text-right" : ""
+          }`}
         />
         {showPasswordToggle && type === "password" && (
           <button
