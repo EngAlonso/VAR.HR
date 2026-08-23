@@ -1,0 +1,78 @@
+Please audit the entire Company Owner / Company Admin experience for Arabic localization.
+
+The current account has several areas that are still showing English text even when the language is set to Arabic. For example, Account Management, Permissions, and other settings/admin sections.
+
+Requirements
+
+1. Full Arabic localization audit
+   
+   - Go through the complete Company Owner / Company Admin interface.
+   - Find every user-facing English string that is still hardcoded or missing from the Arabic translations.
+   - This includes:
+     - Account Management
+     - Permissions
+     - Roles
+     - Company settings
+     - Employee management
+     - Attendance/settings
+     - Leave settings
+     - Payroll/settings
+     - Notifications
+     - Reports
+     - Backup & Restore
+     - Security
+     - Navigation/sidebar items
+     - Buttons
+     - Form labels
+     - Placeholders
+     - Empty states
+     - Validation/error messages
+     - Dialogs/modals
+     - Tooltips
+     - Status labels
+     - Tables and filters
+
+2. Use the existing i18n system
+   
+   - Do NOT simply replace English text with hardcoded Arabic.
+   - Any user-facing text that supports localization must use the project's existing translation/i18n mechanism.
+   - Add missing Arabic translation keys where necessary.
+   - Preserve the existing English translations as the English locale.
+
+3. Language switcher behavior
+   
+   - Any newly discovered static/user-facing English text must respond correctly to the existing language switcher.
+   - When Arabic is selected → Arabic should be displayed.
+   - When English is selected → English should be displayed.
+   - Do not create separate Arabic-only UI that bypasses the language system.
+
+4. Do not change business logic
+   
+   - This is a localization/UI task only.
+   - Do not modify permissions logic, authentication, tenant isolation, API contracts, database behavior, or business rules unless absolutely required to connect an existing UI string to the translation system.
+
+5. RTL/LTR
+   
+   - Arabic must continue to use the existing RTL behavior.
+   - English must continue to use LTR.
+   - Do not introduce layout regressions while replacing strings.
+
+6. Important
+   
+   - Search the actual Company Owner flows, not just the main dashboard.
+   - Check nested pages, settings pages, dialogs, dropdowns, tables, and error states.
+   - Also search the codebase for hardcoded English user-facing strings that belong to the Company Owner experience.
+   - Reuse existing translation keys when an equivalent key already exists instead of creating duplicates.
+
+Verification
+
+After making the changes:
+
+- Test the Company Owner experience in Arabic.
+- Switch to English and verify the same areas correctly display English.
+- Verify there are no obvious untranslated English UI strings remaining.
+- Verify RTL/LTR behavior remains correct.
+- Run the project's existing typecheck/build/verification workflow.
+- Report exactly which areas/files were changed and whether any remaining English strings are intentionally kept (for example technical identifiers, proper names, or unavoidable third-party UI).
+
+Do not redesign the UI. Keep the existing VAR HR branding, layout, components, and behavior intact.

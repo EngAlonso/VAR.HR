@@ -814,6 +814,129 @@ const copy = {
     present: "حاضر",
     late: "متأخر",
     absent: "غائب",
+    activeEmployees: "الموظفون النشطون",
+    activeTenantStructured: "هيكل مساحة العمل النشطة.",
+    addBiometricDevice: "إضافة جهاز بصمة",
+    addConfiguration: "إضافة إعداد",
+    addDevice: "إضافة جهاز",
+    addEmployee: "إضافة موظف",
+    address: "العنوان",
+    allStatuses: "كل الحالات",
+    annualLeave: "إجازة سنوية",
+    attendancePolicyUpdated: "تم تحديث سياسة الحضور",
+    biometricDevices: "أجهزة البصمة",
+    branch: "الفرع",
+    branchCreated: "تم إنشاء الفرع",
+    calculate: "حساب",
+    calculating: "جارٍ الحساب…",
+    calculationExplanation: "شرح الحساب",
+    calculationHistory: "سجل الحسابات",
+    cancel: "إلغاء",
+    checkIn: "تسجيل الحضور",
+    checkInNow: "تسجيل الحضور الآن",
+    checkOut: "تسجيل الانصراف",
+    checkOutNow: "تسجيل الانصراف الآن",
+    chooseReportingWindow: "اختر نطاق التقرير",
+    company: "الشركة",
+    connectedOperations: "العمليات المتصلة",
+    couldNotCreateEmployee: "تعذر إنشاء الموظف",
+    couldNotSubmitRequest: "تعذر إرسال الطلب",
+    createEmployee: "إنشاء موظف",
+    createRequest: "إنشاء طلب",
+    currentEmployeeContext: "سياق الموظف الحالي",
+    currentPlan: "الخطة الحالية",
+    date: "التاريخ",
+    daysRemaining: "الأيام المتبقية",
+    department: "القسم",
+    departmentCreated: "تم إنشاء القسم",
+    disabled: "معطل",
+    email: "البريد الإلكتروني",
+    emergencyContactName: "اسم جهة اتصال الطوارئ",
+    emergencyContactPhone: "هاتف الطوارئ",
+    employee: "الموظف",
+    employeeNumber: "رقم الموظف",
+    employeeProfile: "ملف الموظف",
+    employeeProfileLoadFailed: "تعذر تحميل ملف الموظف.",
+    employeeStatusUpdated: "تم تحديث حالة الموظف",
+    employmentType: "نوع التوظيف",
+    end: "النهاية",
+    evidenceAnalysis: "الأدلة والتحليل",
+    exceptionsSurfaced: "يتم عرض الاستثناءات بوضوح.",
+    from: "من",
+    goodMorningAmina: "صباح الخير، أمينة",
+    gpsPolicy: "سياسة GPS",
+    hours: "الساعات",
+    hrProfile: "ملفي في الموارد البشرية",
+    hrProfileDetail: "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
+    hrRecord: "سجل الموارد البشرية",
+    hrRecordCreateHint: "أكمل الحقول أدناه لإنشاء سجل الموارد البشرية للموظف.",
+    hrRecordLoadFailed: "تعذر تحميل سجل الموارد البشرية.",
+    hrRecordNotFound: "لم يتم إنشاء سجل موارد بشرية لهذا الموظف بعد.",
+    hrRecordSaveFailed: "تعذر حفظ سجل الموارد البشرية",
+    hrRecordSaved: "تم حفظ سجل الموارد البشرية",
+    hrRecordUnauthorized: "غير مصرح لك بعرض سجل الموارد البشرية هذا.",
+    includedCapabilities: "الإمكانات المضمنة",
+    inspectCalculation: "فحص الحساب ←",
+    jobTitle: "المسمى الوظيفي",
+    joined: "تاريخ الانضمام",
+    leave: "الإجازة",
+    leaveBalances: "أرصدة الإجازات",
+    liveWorkspace: "مساحة العمل المباشرة",
+    loadingOperationalDate: "جارٍ تحميل التاريخ التشغيلي…",
+    locationVerification: "التحقق من الموقع",
+    manager: "المدير",
+    markInactive: "تعيين كغير نشط",
+    mondayOperationalOverview: "نظرة تشغيلية ليوم الاثنين",
+    newRequest: "طلب جديد",
+    noAlertsInQueue: "لا توجد تنبيهات في قائمة الانتظار",
+    noEmployeeContext: "لا يوجد سياق موظف",
+    noEmployeeContextDetail: "لم تربط مساحة العمل هوية موظف بهذه الجلسة.",
+    noEmployeesMatch: "لا يوجد موظفون يطابقون هذا العرض",
+    noPayrollPeriods: "لا توجد فترات رواتب",
+    notes: "ملاحظات",
+    openQueue: "فتح قائمة الانتظار",
+    operatingFootprint: "النطاق التشغيلي",
+    operatingPictureClean: "الصورة التشغيلية واضحة حالياً.",
+    optional: "اختياري",
+    overtimeAfterMinutes: "العمل الإضافي بعد (بالدقائق)",
+    overtimeHours: "ساعات العمل الإضافي",
+    ownProfileOnly: "يمكن للموظفين عرض ملف الموارد البشرية الخاص بهم فقط.",
+    payrollPosture: "حالة الرواتب",
+    peopleAccountedFor: "الأشخاص المشمولون",
+    periods: "الفترات",
+    permission: "الإذن",
+    planCapacity: "الخطة والسعة",
+    queueHygiene: "نظافة قائمة الانتظار",
+    reactivateEmployee: "إعادة تنشيط الموظف",
+    reason: "السبب",
+    records: "السجلات",
+    requestApproved: "تمت الموافقة على الطلب",
+    requestRejected: "تم رفض الطلب",
+    requestSubmitted: "تم إرسال الطلب",
+    requestsToDecide: "طلبات بانتظار القرار",
+    required: "مطلوب",
+    role: "الدور",
+    salary: "الراتب",
+    saveAttendancePolicy: "حفظ سياسة الحضور",
+    saveHrRecord: "حفظ سجل الموارد البشرية",
+    saving: "جارٍ الحفظ…",
+    savingPolicy: "جارٍ حفظ السياسة…",
+    scheduledStart: "بدء مجدول",
+    seatsRemaining: "المقاعد المتبقية",
+    selectBranch: "اختر الفرع",
+    signalsRequiringAttention: "مؤشرات تتطلب الانتباه",
+    start: "البداية",
+    status: "الحالة",
+    submitRequest: "إرسال الطلب",
+    sync: "مزامنة",
+    syncRequested: "تم طلب المزامنة",
+    to: "إلى",
+    todayAtAGlance: "لمحة عن اليوم",
+    todayRegister: "سجل اليوم",
+    type: "النوع",
+    workEnds: "ينتهي العمل",
+    workStarts: "يبدأ العمل",
+    workingHours: "ساعات العمل",
   },
   fr: {
     overview: "Vue d’ensemble",
@@ -3777,6 +3900,15 @@ function authLabel(
     | "temporaryPassword"
     | "copyPassword"
     | "copied"
+     | "loading"
+     | "accountsCount"
+     | "shownOnce"
+     | "optional"
+     | "inactive"
+     | "permissionsCount"
+     | "loadFailed"
+     | "createFailed"
+     | "resetFailed"
     | "createStaff"
     | "staffAccounts"
     | "role"
@@ -3814,6 +3946,15 @@ function authLabel(
       temporaryPassword: "Temporary password",
       copyPassword: "Copy password",
       copied: "Copied",
+      loading: "Loading…",
+      accountsCount: "{count} accounts",
+      shownOnce: "This value is shown once. It is not stored in plaintext.",
+      optional: "optional",
+      inactive: "Inactive",
+      permissionsCount: "permissions",
+      loadFailed: "Could not load account management.",
+      createFailed: "Could not create account.",
+      resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
       staffAccounts: "Staff accounts",
       role: "Display role",
@@ -3851,6 +3992,15 @@ function authLabel(
       temporaryPassword: "كلمة المرور المؤقتة",
       copyPassword: "نسخ كلمة المرور",
       copied: "تم النسخ",
+      loading: "جارٍ التحميل…",
+      accountsCount: "{count} حسابات",
+      shownOnce: "تظهر هذه القيمة مرة واحدة فقط ولا يتم تخزينها كنص صريح.",
+      optional: "اختياري",
+      inactive: "غير نشط",
+      permissionsCount: "صلاحيات",
+      loadFailed: "تعذر تحميل إدارة الحسابات.",
+      createFailed: "تعذر إنشاء الحساب.",
+      resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
       staffAccounts: "حسابات الموظفين",
       role: "المسمى الوظيفي",
@@ -3864,6 +4014,31 @@ function authLabel(
     },
   };
   return labels[locale === "ar" ? "ar" : "en"][key];
+}
+
+function permissionLabel(
+  locale: Locale,
+  permission: { key: string; label: string },
+): string {
+  if (locale !== "ar") return permission.label;
+  const labels: Record<string, string> = {
+    "employees.view": "عرض الموظفين",
+    "employees.manage": "إدارة الموظفين",
+    "employees.credentials": "بيانات اعتماد الموظفين",
+    "attendance.view": "عرض الحضور",
+    "attendance.correct": "تصحيح الحضور",
+    "leave.approve": "اعتماد الإجازات",
+    "permissions.approve": "اعتماد الأذونات",
+    "payroll.view": "عرض الرواتب",
+    "reports.view": "عرض التقارير",
+    "reports.export": "تصدير التقارير",
+    "devices": "الأجهزة",
+    "sync-history": "سجل المزامنة",
+    "schedules": "الجداول",
+    "holidays": "العطلات",
+    "organization.manage": "إدارة الهيكل التنظيمي",
+  };
+  return labels[permission.key] ?? permission.label;
 }
 
 function BrandLogo({
@@ -9631,7 +9806,7 @@ function Accounts() {
       setAccounts(accountResult);
       setPermissions(permissionResult);
     } catch {
-      toast.error("Could not load account management.");
+      toast.error(authLabel(locale, "loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -9661,7 +9836,7 @@ function Accounts() {
       toast.success(authLabel(locale, "accountCreated"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not create account.",
+        error instanceof Error ? error.message : authLabel(locale, "createFailed"),
       );
     } finally {
       setSaving(false);
@@ -9677,7 +9852,7 @@ function Accounts() {
       toast.success(authLabel(locale, "temporaryPassword"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not reset password.",
+        error instanceof Error ? error.message : authLabel(locale, "resetFailed"),
       );
     }
   };
@@ -9720,7 +9895,7 @@ function Accounts() {
               required
             />
             <Field
-              label={`${authLabel(locale, "password")} (optional)`}
+              label={`${authLabel(locale, "password")} (${authLabel(locale, "optional")})`}
               type="password"
               value={form.password}
               onChange={(value) => setForm({ ...form, password: value })}
@@ -9750,7 +9925,7 @@ function Accounts() {
                       }
                     />
                     <span>
-                      {permission.label}
+                      {permissionLabel(locale, permission)}
                       <span className="block text-xs text-muted-foreground">
                         {permission.key}
                       </span>
@@ -9773,7 +9948,12 @@ function Accounts() {
               {authLabel(locale, "staffAccounts")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {loading ? "Loading…" : `${accounts.length} accounts`}
+              {loading
+                ? authLabel(locale, "loading")
+                : authLabel(locale, "accountsCount").replace(
+                    "{count}",
+                    String(accounts.length),
+                  )}
             </p>
           </div>
           {oneTimePassword && (
@@ -9797,7 +9977,7 @@ function Accounts() {
                 </Button>
               </div>
               <p className="mt-2 text-xs text-primary-dark">
-                This value is shown once. It is not stored in plaintext.
+                {authLabel(locale, "shownOnce")}
               </p>
             </div>
           )}
@@ -9819,12 +9999,12 @@ function Accounts() {
                       <Badge tone={account.active ? "good" : "neutral"}>
                         {account.active
                           ? authLabel(locale, "active")
-                          : "Inactive"}
+                          : authLabel(locale, "inactive")}
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {account.displayRole} · {account.permissions.length}{" "}
-                      permissions
+                      {authLabel(locale, "permissionsCount")}
                     </p>
                   </div>
                   <Button
@@ -9840,7 +10020,7 @@ function Accounts() {
           ) : (
             <Empty
               title={authLabel(locale, "staffAccounts")}
-              detail="No staff accounts yet."
+              detail={locale === "ar" ? "لا توجد حسابات موظفين بعد." : "No staff accounts yet."}
             />
           )}
         </Card>
