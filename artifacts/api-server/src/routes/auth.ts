@@ -63,6 +63,7 @@ const requiredPermanentPassword = z.string().max(256).superRefine((value, ctx) =
   }
 });
 const accountUpdateSchema = z.object({
+  username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/).optional(),
   displayRole: z.string().trim().min(1).max(80).optional(),
   fullName: z.string().trim().max(160).optional(),
   primaryPhone: optionalPhone.optional(),
@@ -114,6 +115,36 @@ const companyUpdateSchema = z.object({
   active: z.boolean().optional(),
   employeeLimit: z.number().int().min(0).max(1_000_000).optional(),
   status: z.enum(["active", "suspended"]).optional(),
+});
+const companyOwnersUpdateSchema = z.object({
+  ownerCount: z.number().int().min(0).max(20),
+  owners: z.array(z.object({
+    id: z.string().uuid().optional(),
+    fullName: z.string().trim().max(160).default(""),
+    username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
+    password: z.string().min(10).max(256).optional(),
+    primaryPhone: optionalPhone.default(""),
+    backupPhones: z.array(optionalPhone).default([]),
+    email: optionalEmail.default(""),
+    backupEmails: z.array(optionalEmail).default([]),
+  })).max(20),
+}).superRefine((value, ctx) => {
+  if (value.owners.length < value.ownerCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["owners"],
+      message: "The owner accounts provided must cover the requested owner count.",
+    });
+  }
+  for (const owner of value.owners) {
+    if (!owner.id && !owner.password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["owners"],
+        message: "A permanent password is required for each new owner account.",
+      });
+    }
+  }
 });
 
 function errorMessage(error: unknown): string {
@@ -549,12 +580,78 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     });
     return;
   }
+  if (parsed.data.username !== undefined && parsed.data.username !== account.username) {
+    const [existingUsername] = await db
+      .select({ id: userAccountsTable.id })
+      .from(userAccountsTable)
+      .where(eq(userAccountsTable.username, parsed.data.username))
+      .limit(1);
+    if (existingUsername && existingUsername.id !== account.id) {
+      res.status(409).json({
+        error: "That username is already in use.",
+        code: "USERNAME_TAKEN",
+      });
+      return;
+    }
+  }
+  if (
+    parsed.data.primaryPhone !== undefined ||
+    parsed.data.backupPhones !== undefined ||
+    parsed.data.email !== undefined ||
+    parsed.data.backupEmails !== undefined
+  ) {
+    const allAccounts = await db
+      .select({
+        id: userAccountsTable.id,
+        email: userAccountsTable.email,
+        primaryPhone: userAccountsTable.primaryPhone,
+        backupPhones: userAccountsTable.backupPhones,
+        backupEmails: userAccountsTable.backupEmails,
+      })
+      .from(userAccountsTable);
+    const nextEmails = [
+      parsed.data.email ?? account.email,
+      ...(parsed.data.backupEmails ?? account.backupEmails),
+    ].filter(Boolean).map((email) => email.toLowerCase());
+    const nextPhones = [
+      parsed.data.primaryPhone ?? account.primaryPhone,
+      ...(parsed.data.backupPhones ?? account.backupPhones),
+    ].filter(Boolean).map((phone) => phone.replace(/\D/g, ""));
+    const conflicting = allAccounts.filter((candidate) => candidate.id !== account.id);
+    const existingEmails = new Set(
+      conflicting
+        .flatMap((candidate) => [candidate.email, ...candidate.backupEmails])
+        .filter(Boolean)
+        .map((email) => email.toLowerCase()),
+    );
+    const existingPhones = new Set(
+      conflicting
+        .flatMap((candidate) => [candidate.primaryPhone, ...candidate.backupPhones])
+        .filter(Boolean)
+        .map((phone) => phone.replace(/\D/g, "")),
+    );
+    if (new Set(nextEmails).size !== nextEmails.length || nextEmails.some((email) => existingEmails.has(email))) {
+      res.status(409).json({
+        error: "That owner email is already in use.",
+        code: "DUPLICATE_OWNER_CONTACT",
+      });
+      return;
+    }
+    if (new Set(nextPhones).size !== nextPhones.length || nextPhones.some((phone) => existingPhones.has(phone))) {
+      res.status(409).json({
+        error: "That owner phone number is already in use.",
+        code: "DUPLICATE_OWNER_CONTACT",
+      });
+      return;
+    }
+  }
   const permissions = parsed.data.permissions
     ? await allowedPermissionKeys(parsed.data.permissions)
     : undefined;
   const [updated] = await db
     .update(userAccountsTable)
     .set({
+      ...(parsed.data.username !== undefined ? { username: parsed.data.username } : {}),
       ...(parsed.data.displayRole !== undefined
         ? { displayRole: parsed.data.displayRole }
         : {}),
@@ -575,7 +672,16 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     accountId: context.accountId,
     companyId: account.companyId,
     action:
-      parsed.data.active === undefined
+      parsed.data.active === undefined &&
+      parsed.data.permissions === undefined &&
+      (parsed.data.username !== undefined ||
+        parsed.data.fullName !== undefined ||
+        parsed.data.primaryPhone !== undefined ||
+        parsed.data.backupPhones !== undefined ||
+        parsed.data.email !== undefined ||
+        parsed.data.backupEmails !== undefined)
+        ? "account_details_changed"
+        : parsed.data.active === undefined
         ? "permissions_changed"
         : "account_status_changed",
     entityType: "account",
@@ -953,6 +1059,241 @@ router.patch(
           parsed.data.employeeLimit ?? subscription?.employeeLimit ?? 0,
       },
     });
+  },
+);
+
+router.patch(
+  "/platform/companies/:companyId/owners",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (context.role !== "platform_owner") {
+      res.status(403).json({
+        error: "Only the Platform Owner can manage Company Owner accounts.",
+        code: "PLATFORM_ACCESS_DENIED",
+      });
+      return;
+    }
+    const companyId = Array.isArray(req.params.companyId)
+      ? req.params.companyId[0]
+      : req.params.companyId;
+    const parsedCompanyId = z.string().uuid().safeParse(companyId);
+    if (!parsedCompanyId.success) {
+      res.status(400).json({
+        error: "A valid company ID is required.",
+        code: "INVALID_COMPANY",
+      });
+      return;
+    }
+    const parsed = companyOwnersUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: errorMessage(parsed.error),
+        code: "INVALID_OWNER_ACCOUNTS",
+      });
+      return;
+    }
+    const [company] = await db
+      .select({ id: companiesTable.id })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, parsedCompanyId.data))
+      .limit(1);
+    if (!company) {
+      res.status(404).json({
+        error: "Company not found.",
+        code: "COMPANY_NOT_FOUND",
+      });
+      return;
+    }
+    const existingOwners = await db
+      .select()
+      .from(userAccountsTable)
+      .where(
+        and(
+          eq(userAccountsTable.companyId, company.id),
+          eq(userAccountsTable.accountType, "company_owner"),
+        ),
+      )
+      .orderBy(asc(userAccountsTable.username));
+    const existingOwnerIds = new Set(existingOwners.map((owner) => owner.id));
+    const submittedExistingIds = parsed.data.owners
+      .map((owner) => owner.id)
+      .filter((id): id is string => Boolean(id));
+    if (
+      new Set(submittedExistingIds).size !== submittedExistingIds.length ||
+      submittedExistingIds.some((id) => !existingOwnerIds.has(id)) ||
+      existingOwners.some((owner) => !submittedExistingIds.includes(owner.id))
+    ) {
+      res.status(400).json({
+        error: "The submitted owner accounts do not match this company.",
+        code: "OWNER_ACCOUNT_MISMATCH",
+      });
+      return;
+    }
+    const retainedOwners = parsed.data.owners.slice(0, parsed.data.ownerCount);
+    const retainedIds = new Set(
+      retainedOwners
+        .map((owner) => owner.id)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const allAccounts = await db
+      .select({
+        id: userAccountsTable.id,
+        username: userAccountsTable.username,
+        email: userAccountsTable.email,
+        primaryPhone: userAccountsTable.primaryPhone,
+        backupPhones: userAccountsTable.backupPhones,
+        backupEmails: userAccountsTable.backupEmails,
+      })
+      .from(userAccountsTable);
+    const submittedUsernames = parsed.data.owners.map((owner) => owner.username.toLowerCase());
+    const submittedEmails = parsed.data.owners
+      .flatMap((owner) => [owner.email, ...owner.backupEmails])
+      .filter(Boolean)
+      .map((email) => email.toLowerCase());
+    const submittedPhones = parsed.data.owners
+      .flatMap((owner) => [owner.primaryPhone, ...owner.backupPhones])
+      .filter(Boolean)
+      .map((phone) => phone.replace(/\D/g, ""));
+    const otherAccounts = allAccounts.filter(
+      (account) => !existingOwnerIds.has(account.id),
+    );
+    const existingUsernames = new Set(
+      otherAccounts.map((account) => account.username.toLowerCase()),
+    );
+    const existingEmails = new Set(
+      otherAccounts
+        .flatMap((account) => [account.email, ...account.backupEmails])
+        .filter(Boolean)
+        .map((email) => email.toLowerCase()),
+    );
+    const existingPhones = new Set(
+      otherAccounts
+        .flatMap((account) => [account.primaryPhone, ...account.backupPhones])
+        .filter(Boolean)
+        .map((phone) => phone.replace(/\D/g, "")),
+    );
+    if (
+      new Set(submittedUsernames).size !== submittedUsernames.length ||
+      submittedUsernames.some((username) => existingUsernames.has(username))
+    ) {
+      res.status(409).json({
+        error: "That owner username is already in use.",
+        code: "USERNAME_TAKEN",
+      });
+      return;
+    }
+    if (
+      new Set(submittedEmails).size !== submittedEmails.length ||
+      submittedEmails.some((email) => existingEmails.has(email))
+    ) {
+      res.status(409).json({
+        error: "That owner email is already in use.",
+        code: "DUPLICATE_OWNER_CONTACT",
+      });
+      return;
+    }
+    if (
+      new Set(submittedPhones).size !== submittedPhones.length ||
+      submittedPhones.some((phone) => existingPhones.has(phone))
+    ) {
+      res.status(409).json({
+        error: "That owner phone number is already in use.",
+        code: "DUPLICATE_OWNER_CONTACT",
+      });
+      return;
+    }
+    const auditEvents: Array<{
+      action: string;
+      entityId: string;
+      metadata?: Record<string, unknown>;
+    }> = [];
+    const result = await db.transaction(async (tx) => {
+      const owners = [];
+      for (const owner of retainedOwners) {
+        if (owner.id) {
+          const [updated] = await tx
+            .update(userAccountsTable)
+            .set({
+              username: owner.username,
+              fullName: owner.fullName,
+              primaryPhone: owner.primaryPhone,
+              backupPhones: owner.backupPhones,
+              email: owner.email,
+              backupEmails: owner.backupEmails,
+              active: true,
+              updatedAt: new Date(),
+            })
+            .where(eq(userAccountsTable.id, owner.id))
+            .returning();
+          owners.push(updated);
+          auditEvents.push({
+            action: "company_owner_updated",
+            entityId: owner.id,
+            metadata: { username: owner.username },
+          });
+        } else {
+          const [created] = await tx
+            .insert(userAccountsTable)
+            .values({
+              username: owner.username,
+              fullName: owner.fullName,
+              primaryPhone: owner.primaryPhone,
+              backupPhones: owner.backupPhones,
+              email: owner.email,
+              backupEmails: owner.backupEmails,
+              passwordHash: hashPassword(owner.password ?? ""),
+              accountType: "company_owner",
+              displayRole: "Company Owner",
+              companyId: company.id,
+              active: true,
+            })
+            .returning();
+          owners.push(created);
+          auditEvents.push({
+            action: "company_owner_account_created",
+            entityId: created.id,
+            metadata: { username: created.username },
+          });
+        }
+      }
+      for (const owner of existingOwners) {
+        if (!retainedIds.has(owner.id)) {
+          await tx
+            .update(userAccountsTable)
+            .set({ active: false, updatedAt: new Date() })
+            .where(eq(userAccountsTable.id, owner.id));
+          auditEvents.push({
+            action: "company_owner_account_deactivated",
+            entityId: owner.id,
+            metadata: { reason: "owner_count_reduced" },
+          });
+        }
+      }
+      return owners;
+    });
+    await Promise.all(
+      auditEvents.map((event) =>
+        writeAuthAudit({
+          accountId: context.accountId,
+          companyId: company.id,
+          action: event.action,
+          entityType: "account",
+          entityId: event.entityId,
+          metadata: event.metadata,
+        }),
+      ),
+    );
+    const owners = await db
+      .select()
+      .from(userAccountsTable)
+      .where(
+        and(
+          eq(userAccountsTable.companyId, company.id),
+          eq(userAccountsTable.accountType, "company_owner"),
+        ),
+      )
+      .orderBy(asc(userAccountsTable.username));
+    res.json({ owners: owners.map(accountResponse), updated: result.length });
   },
 );
 

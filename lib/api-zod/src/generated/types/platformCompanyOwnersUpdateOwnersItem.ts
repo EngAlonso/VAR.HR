@@ -6,15 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AuthAccountUpdate {
-  /** @minLength 3 */
-  username?: string;
+export type PlatformCompanyOwnersUpdateOwnersItem = {
+  /** @nullable */
+  id?: string | null;
   fullName?: string;
+  /** @minLength 3 */
+  username: string;
+  /**
+     * @minLength 10
+     * @nullable
+     */
+  password?: string | null;
   primaryPhone?: string;
   backupPhones?: string[];
   email?: string;
   backupEmails?: string[];
-  displayRole?: string;
-  permissions?: string[];
-  active?: boolean;
-}
+};

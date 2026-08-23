@@ -84,6 +84,7 @@ import type {
   PlatformCompany,
   PlatformCompanyCredentials,
   PlatformCompanyInput,
+  PlatformCompanyOwnersUpdate,
   PlatformCompanyUpdate,
   PlatformSummary,
   Report,
@@ -93,6 +94,7 @@ import type {
   SubscriptionStatus,
   TemporaryPassword,
   UpdateAuthAccount200,
+  UpdatePlatformCompanyOwners200,
   WorkSchedule,
   WorkScheduleInput,
   WorkspaceContext
@@ -722,6 +724,78 @@ export function useListPlatformCompanyOwners<TData = Awaited<ReturnType<typeof l
 
 
 
+
+export const getUpdatePlatformCompanyOwnersUrl = (companyId: string,) => {
+
+
+
+
+  return `/api/platform/companies/${companyId}/owners`
+}
+
+/**
+ * @summary Update, add, or safely deactivate Company Owner accounts
+ */
+export const updatePlatformCompanyOwners = async (companyId: string,
+    platformCompanyOwnersUpdate: PlatformCompanyOwnersUpdate, options?: Parameters<typeof customFetch>[1]): Promise<UpdatePlatformCompanyOwners200> => {
+
+  return customFetch<UpdatePlatformCompanyOwners200>(getUpdatePlatformCompanyOwnersUrl(companyId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformCompanyOwnersUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePlatformCompanyOwnersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformCompanyOwners>>, TError,{companyId: string;data: BodyType<PlatformCompanyOwnersUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformCompanyOwners>>, TError,{companyId: string;data: BodyType<PlatformCompanyOwnersUpdate>}, TContext> => {
+
+const mutationKey = ['updatePlatformCompanyOwners'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformCompanyOwners>>, {companyId: string;data: BodyType<PlatformCompanyOwnersUpdate>}> = (props) => {
+          const {companyId,data} = props ?? {};
+
+          return  updatePlatformCompanyOwners(companyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformCompanyOwnersMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformCompanyOwners>>>
+    export type UpdatePlatformCompanyOwnersMutationBody = BodyType<PlatformCompanyOwnersUpdate>
+    export type UpdatePlatformCompanyOwnersMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update, add, or safely deactivate Company Owner accounts
+ */
+export const useUpdatePlatformCompanyOwners = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformCompanyOwners>>, TError,{companyId: string;data: BodyType<PlatformCompanyOwnersUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformCompanyOwners>>,
+        TError,
+        {companyId: string;data: BodyType<PlatformCompanyOwnersUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformCompanyOwnersMutationOptions(options));
+    }
 
 export const getUpdateAuthAccountUrl = (accountId: string,) => {
 

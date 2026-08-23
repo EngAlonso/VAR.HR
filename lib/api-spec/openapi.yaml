@@ -141,6 +141,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AuthAccount"
+    patch:
+      operationId: updatePlatformCompanyOwners
+      tags: [platform]
+      summary: Update, add, or safely deactivate Company Owner accounts
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformCompanyOwnersUpdate"
+      responses:
+        "200":
+          description: Updated Company Owner accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [owners]
+                properties:
+                  owners:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuthAccount"
+                  updated: { type: integer }
   /auth/accounts/{accountId}:
     patch:
       operationId: updateAuthAccount
@@ -1482,6 +1511,16 @@ components:
     AuthAccountUpdate:
       type: object
       properties:
+        username: { type: string, minLength: 3 }
+        fullName: { type: string }
+        primaryPhone: { type: string }
+        backupPhones:
+          type: array
+          items: { type: string }
+        email: { type: string }
+        backupEmails:
+          type: array
+          items: { type: string }
         displayRole: { type: string }
         permissions:
           type: array
@@ -1544,6 +1583,26 @@ components:
           type: string
           enum: [active, suspended]
         employeeLimit: { type: integer, minimum: 0 }
+    PlatformCompanyOwnersUpdate:
+      type: object
+      required: [ownerCount, owners]
+      properties:
+        ownerCount: { type: integer, minimum: 0, maximum: 20 }
+        owners:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [username]
+            properties:
+              id: { type: ["string", "null"], format: uuid }
+              fullName: { type: string }
+              username: { type: string, minLength: 3 }
+              password: { type: ["string", "null"], minLength: 10 }
+              primaryPhone: { type: string }
+              backupPhones: { type: array, items: { type: string } }
+              email: { type: string }
+              backupEmails: { type: array, items: { type: string } }
     PlatformCompanyCredentials:
       type: object
       required: [company, owners]

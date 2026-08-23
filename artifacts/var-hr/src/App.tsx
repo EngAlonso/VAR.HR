@@ -10957,6 +10957,8 @@ function PlatformCompanyDetailsPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [ownerPassword, setOwnerPassword] = useState("");
+  const [ownerCount, setOwnerCount] = useState(0);
+  const [newOwners, setNewOwners] = useState<NewCompanyOwner[]>([]);
   const [companyForm, setCompanyForm] = useState({
     name: "",
     address: "",
@@ -10990,6 +10992,7 @@ function PlatformCompanyDetailsPage() {
           nextDetails.subscription?.employeeLimit ?? 0,
         ),
       });
+      setOwnerCount(nextDetails.owners.length);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : text("Could not load company details.", "تعذر تحميل تفاصيل الشركة."));
     } finally {
@@ -11050,6 +11053,7 @@ function PlatformCompanyDetailsPage() {
       await authRequest(`/api/auth/accounts/${account.id}`, {
         method: "PATCH",
         body: JSON.stringify({
+          username: account.username,
           fullName: account.fullName,
           primaryPhone: account.primaryPhone,
           backupPhones: account.backupPhones,
@@ -11061,6 +11065,97 @@ function PlatformCompanyDetailsPage() {
       toast.success(text("Owner details updated", "تم تحديث بيانات المالك"));
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : text("Could not update owner details.", "تعذر تحديث بيانات المالك"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const emptyOwner = (): NewCompanyOwner => ({
+    fullName: "",
+    username: "",
+    password: "",
+    primaryPhone: "",
+    backupPhones: "",
+    email: "",
+    backupEmails: "",
+  });
+  const updateOwnerCount = (value: string) => {
+    const count = Math.max(0, Math.min(20, Number(value) || 0));
+    setOwnerCount(count);
+    const additionalCount = Math.max(0, count - details.owners.length);
+    setNewOwners((current) =>
+      Array.from(
+        { length: additionalCount },
+        (_, index) => current[index] ?? emptyOwner(),
+      ),
+    );
+  };
+  const saveOwnerAccounts = async () => {
+    if (
+      ownerCount < details.owners.length &&
+      !window.confirm(
+        text(
+          "The extra owner accounts will be deactivated and retained safely; they will not be deleted. Continue?",
+          "سيتم تعطيل حسابات المالكين الزائدة والاحتفاظ بها بأمان، ولن يتم حذفها. هل تريد المتابعة؟",
+        ),
+      )
+    ) {
+      return;
+    }
+    if (newOwners.length < Math.max(0, ownerCount - details.owners.length)) {
+      toast.error(
+        text(
+          "Complete the additional owner account fields before saving.",
+          "أكمل بيانات حسابات المالكين الإضافية قبل الحفظ.",
+        ),
+      );
+      return;
+    }
+    setSaving(true);
+    try {
+      await authRequest(
+        `/api/platform/companies/${encodeURIComponent(params.companyId)}/owners`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            ownerCount,
+            owners: [
+              ...details.owners.map((account) => ({
+                id: account.id,
+                username: account.username,
+                fullName: account.fullName,
+                primaryPhone: account.primaryPhone,
+                backupPhones: account.backupPhones,
+                email: account.email,
+                backupEmails: account.backupEmails,
+              })),
+              ...newOwners.map((owner) => ({
+                username: owner.username,
+                fullName: owner.fullName,
+                password: owner.password,
+                primaryPhone: owner.primaryPhone,
+                backupPhones: owner.backupPhones
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+                email: owner.email,
+                backupEmails: owner.backupEmails
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              })),
+            ],
+          }),
+        },
+      );
+      setNewOwners([]);
+      await load();
+      toast.success(text("Company Owners updated", "تم تحديث مالكي الشركة"));
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not update Company Owners.", "تعذر تحديث مالكي الشركة."),
+      );
     } finally {
       setSaving(false);
     }
@@ -11149,18 +11244,63 @@ function PlatformCompanyDetailsPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-5">
-          <div className="flex items-center gap-2"><UserRound size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company Owners", "مالكو الشركة")}</h2></div>
+         <Card className="p-5">
+           <div className="flex flex-wrap items-start justify-between gap-3">
+             <div className="flex items-center gap-2">
+               <UserRound size={18} className="text-primary" />
+               <div>
+                 <h2 className="font-display text-lg font-semibold">{text("Company Owners", "مالكو الشركة")}</h2>
+                 <p className="mt-1 text-xs text-muted-foreground">{text("Edit owner details or adjust the number of owner accounts.", "عدّل بيانات المالكين أو غيّر عدد حسابات مالكي الشركة.")}</p>
+               </div>
+             </div>
+             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+               <Field label={text("Number of Company Owners", "عدد مالكي الشركة")} type="number" min="0" value={String(ownerCount)} onChange={updateOwnerCount} />
+               <Button variant="outline" disabled={saving} onClick={() => void saveOwnerAccounts()}>{text("Save owner changes", "حفظ تغييرات المالكين")}</Button>
+             </div>
+           </div>
+           {ownerCount < details.owners.length && (
+             <div className="mt-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs leading-relaxed text-primary-dark">
+               {text("Reducing the count will deactivate the extra owner accounts and retain them for audit and recovery. No accounts will be deleted.", "سيؤدي تقليل العدد إلى تعطيل حسابات المالكين الزائدة والاحتفاظ بها للتدقيق والاسترداد. لن يتم حذف أي حساب.")}
+             </div>
+           )}
           <div className="mt-4 space-y-4">
             {details.owners.length ? details.owners.map((account) => (
               <div className="rounded-xl border border-border p-4" key={account.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.fullName || account.username}</div><div className="text-xs text-muted-foreground">{account.username} · {account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm"><Info label={text("Phone", "الهاتف")} value={account.primaryPhone || "—"} /><Info label={text("Email", "البريد الإلكتروني")} value={account.email || "—"} /><Info label={text("Backup phones", "الهواتف الاحتياطية")} value={account.backupPhones.join(", ") || "—"} /><Info label={text("Backup emails", "البريد الاحتياطي")} value={account.backupEmails.join(", ") || "—"} /></div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field label={text("Owner full name", "الاسم الكامل للمالك")} value={account.fullName} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, fullName: value } : item) } : current)} />
+                  <Field label={text("Username", "اسم المستخدم")} value={account.username} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, username: value } : item) } : current)} />
+                  <Field label={text("Primary phone", "الهاتف الأساسي")} value={account.primaryPhone} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, primaryPhone: value } : item) } : current)} />
+                  <Field label={text("Backup phone numbers", "أرقام الهواتف الاحتياطية")} value={account.backupPhones.join(", ")} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, backupPhones: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item) } : current)} />
+                  <Field label={text("Email", "البريد الإلكتروني")} type="email" value={account.email} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, email: value } : item) } : current)} />
+                  <Field label={text("Backup emails", "البريد الإلكتروني الاحتياطي")} type="email" value={account.backupEmails.join(", ")} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, backupEmails: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item) } : current)} />
+                </div>
                 <div className="mt-3 flex flex-wrap gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateOwnerDetails(account)}>{text("Save owner details", "حفظ بيانات المالك")}</Button><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
               </div>
             )) : <Empty title={text("No Company Owner accounts found.", "لم يتم العثور على حسابات مالكي الشركة.")} detail="" />}
           </div>
         </Card>
+        {newOwners.length > 0 && (
+          <Card className="p-5 lg:col-span-2">
+            <div className="mb-3 flex items-center gap-2"><UserPlus size={16} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Additional owner accounts", "حسابات المالكين الإضافية")}</h2></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {newOwners.map((owner, index) => (
+                <div className="rounded-xl border border-primary/30 bg-primary/[.03] p-4" key={`new-owner-${index}`}>
+                  <div className="mb-3 font-semibold">{text("New owner account", "حساب مالك جديد")} {index + 1}</div>
+                  <div className="space-y-3">
+                    <Field label={text("Owner full name", "الاسم الكامل للمالك")} value={owner.fullName} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, fullName: value } : item))} />
+                    <Field label={text("Username", "اسم المستخدم")} required value={owner.username} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, username: value } : item))} />
+                    <Field label={text("Permanent password", "كلمة المرور الدائمة")} type="password" required value={owner.password} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, password: value } : item))} />
+                    <Field label={text("Primary phone", "الهاتف الأساسي")} value={owner.primaryPhone} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, primaryPhone: value } : item))} />
+                    <Field label={text("Backup phone numbers", "أرقام الهواتف الاحتياطية")} value={owner.backupPhones} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, backupPhones: value } : item))} />
+                    <Field label={text("Email", "البريد الإلكتروني")} type="email" value={owner.email} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: value } : item))} />
+                    <Field label={text("Backup emails", "البريد الإلكتروني الاحتياطي")} value={owner.backupEmails} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, backupEmails: value } : item))} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         <Card className="p-5">
           <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Live operational overview", "نظرة على البيانات التشغيلية الحالية")}</h2></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label={text("Employees", "الموظفون")} value={details.employees.length} /><Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={details.staff.length} /><Info label={text("Biometric devices", "أجهزة البصمة")} value={details.devices.length} /><Info label={text("Integrity checksum", "بصمة التكامل")} value={details.integrity.checksum.slice(0, 16) + "…"} /></div>

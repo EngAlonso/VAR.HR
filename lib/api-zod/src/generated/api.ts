@@ -147,13 +147,70 @@ export const ListPlatformCompanyOwnersResponse = zod.array(ListPlatformCompanyOw
 
 
 /**
+ * @summary Update, add, or safely deactivate Company Owner accounts
+ */
+export const UpdatePlatformCompanyOwnersParams = zod.object({
+  "companyId": zod.uuid()
+})
+
+export const updatePlatformCompanyOwnersBodyOwnerCountMin = 0;
+export const updatePlatformCompanyOwnersBodyOwnerCountMax = 20;
+
+export const updatePlatformCompanyOwnersBodyOwnersItemUsernameMin = 3;
+
+export const updatePlatformCompanyOwnersBodyOwnersItemPasswordMin = 10;
+
+export const updatePlatformCompanyOwnersBodyOwnersMax = 20;
+
+
+
+export const UpdatePlatformCompanyOwnersBody = zod.object({
+  "ownerCount": zod.int().min(updatePlatformCompanyOwnersBodyOwnerCountMin).max(updatePlatformCompanyOwnersBodyOwnerCountMax),
+  "owners": zod.array(zod.object({
+  "id": zod.uuid().nullish(),
+  "fullName": zod.string().optional(),
+  "username": zod.string().min(updatePlatformCompanyOwnersBodyOwnersItemUsernameMin),
+  "password": zod.string().min(updatePlatformCompanyOwnersBodyOwnersItemPasswordMin).nullish(),
+  "primaryPhone": zod.string().optional(),
+  "backupPhones": zod.array(zod.string()).optional(),
+  "email": zod.string().optional(),
+  "backupEmails": zod.array(zod.string()).optional()
+})).max(updatePlatformCompanyOwnersBodyOwnersMax)
+})
+
+export const UpdatePlatformCompanyOwnersResponse = zod.object({
+  "owners": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "accountType": zod.enum(['platform_owner', 'company_owner', 'staff', 'employee']),
+  "displayRole": zod.string(),
+  "companyId": zod.string().nullable(),
+  "employeeId": zod.string().nullable(),
+  "active": zod.boolean(),
+  "permissions": zod.array(zod.string())
+})),
+  "updated": zod.int().optional()
+})
+
+
+/**
  * @summary Update a managed account
  */
 export const UpdateAuthAccountParams = zod.object({
   "accountId": zod.coerce.string()
 })
 
+export const updateAuthAccountBodyUsernameMin = 3;
+
+
+
 export const UpdateAuthAccountBody = zod.object({
+  "username": zod.string().min(updateAuthAccountBodyUsernameMin).optional(),
+  "fullName": zod.string().optional(),
+  "primaryPhone": zod.string().optional(),
+  "backupPhones": zod.array(zod.string()).optional(),
+  "email": zod.string().optional(),
+  "backupEmails": zod.array(zod.string()).optional(),
   "displayRole": zod.string().optional(),
   "permissions": zod.array(zod.string()).optional(),
   "active": zod.boolean().optional()

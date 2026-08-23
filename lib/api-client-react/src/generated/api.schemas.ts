@@ -71,6 +71,13 @@ export interface StaffAccountInput {
 }
 
 export interface AuthAccountUpdate {
+  /** @minLength 3 */
+  username?: string;
+  fullName?: string;
+  primaryPhone?: string;
+  backupPhones?: string[];
+  email?: string;
+  backupEmails?: string[];
   displayRole?: string;
   permissions?: string[];
   active?: boolean;
@@ -154,6 +161,33 @@ export interface PlatformCompanyUpdate {
   status?: PlatformCompanyUpdateStatus;
   /** @minimum 0 */
   employeeLimit?: number;
+}
+
+export type PlatformCompanyOwnersUpdateOwnersItem = {
+  /** @nullable */
+  id?: string | null;
+  fullName?: string;
+  /** @minLength 3 */
+  username: string;
+  /**
+     * @minLength 10
+     * @nullable
+     */
+  password?: string | null;
+  primaryPhone?: string;
+  backupPhones?: string[];
+  email?: string;
+  backupEmails?: string[];
+};
+
+export interface PlatformCompanyOwnersUpdate {
+  /**
+     * @minimum 0
+     * @maximum 20
+     */
+  ownerCount: number;
+  /** @maxItems 20 */
+  owners: PlatformCompanyOwnersUpdateOwnersItem[];
 }
 
 export type PlatformCompanyCredentialsCompany = {
@@ -1604,6 +1638,11 @@ export type DateFromParameter = string;
 export type DateToParameter = string;
 
 export type ReportPeriodIdParameter = string;
+
+export type UpdatePlatformCompanyOwners200 = {
+  owners: AuthAccount[];
+  updated?: number;
+};
 
 export type UpdateAuthAccount200 = {
   account: AuthAccount;
