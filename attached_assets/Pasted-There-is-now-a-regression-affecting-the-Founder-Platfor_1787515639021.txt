@@ -1,0 +1,99 @@
+There is now a regression affecting the Founder / Platform Owner account.
+
+When I log in using the Founder account, the application displays:
+
+حدث خطأ ما
+حدث خطأ في هذا الجزء من التطبيق. لا يزال باقي التطبيق قيد التشغيل.
+حاول مرة أخرى
+
+The rest of the application remains running.
+
+IMPORTANT
+
+Do NOT change anything yet.
+
+First investigate the exact root cause.
+
+The Founder / Platform Owner flow was previously working, so treat this as a regression.
+
+Investigation
+
+Trace the complete post-login Founder flow:
+
+1. Successful Founder login.
+2. Session/cookie authentication.
+3. Platform Owner context initialization.
+4. Workspace/platform context requests.
+5. Founder dashboard/page initialization.
+6. All API requests made immediately after login.
+7. React error boundary/component that produces this Arabic error message.
+
+Check:
+
+- Browser console errors.
+- Network/API responses.
+- HTTP status codes.
+- API/server logs.
+- Frontend stack trace.
+- Platform Owner authorization/context logic.
+- Any request that assumes the user has a company/tenant.
+- Any component that assumes "company_id" is non-null.
+
+Important architectural context
+
+A Founder / Platform Owner is NOT necessarily associated with a company.
+
+Platform Owner accounts can legitimately have:
+
+"company_id = NULL"
+
+Therefore, do NOT force the Founder into a Company/Tenant workspace just to make the error disappear.
+
+The application already has a distinction between:
+
+Platform Owner context
+
+and
+
+Company/Tenant context
+
+Preserve that distinction.
+
+Also check
+
+Because we recently modified the Company Owner/staff-account system, make sure those changes did NOT accidentally affect:
+
+- Platform Owner account loading
+- Platform Owner permissions
+- Platform Owner navigation
+- Platform Owner dashboard
+- "/api/workspace"
+- tenant context resolution
+- account-management API queries
+- shared auth context
+
+Do not modify the employee/staff-account functionality while investigating this issue.
+
+Required approach
+
+First identify:
+
+Which exact component/request is throwing the error and why.
+
+Then make the smallest possible fix.
+
+Do NOT redesign the dashboard.
+Do NOT change authentication architecture.
+Do NOT change tenant isolation.
+Do NOT change Company Owner permissions.
+Do NOT remove error boundaries.
+Do NOT hide the error.
+
+After the fix:
+
+- Test Founder login.
+- Confirm the Founder dashboard loads.
+- Confirm Platform Owner functionality still works.
+- Confirm Company Owner/staff functionality remains unaffected.
+- Run typecheck/build.
+- Report the exact root cause and files changed.
