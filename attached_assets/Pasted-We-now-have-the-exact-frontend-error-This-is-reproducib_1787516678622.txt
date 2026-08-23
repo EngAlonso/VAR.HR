@@ -1,0 +1,81 @@
+We now have the exact frontend error. This is reproducible.
+
+Browser console:
+
+Invalid hook call. Hooks can only be called inside of the body of a function component.
+
+The exact stack is:
+
+use-mobile.tsx:6
+  useState
+  useIsMobile
+
+App.tsx:4665
+  Shell
+
+App.tsx:14150
+  Router
+
+App.tsx:4607
+  AuthGate
+
+Then:
+
+TypeError: Cannot read properties of null (reading 'useState')
+at useIsMobile (use-mobile.tsx:6:41)
+at Shell (App.tsx:4665:20)
+
+This is the actual cause of the Founder error boundary.
+
+IMPORTANT:
+Do NOT modify Founder authorization, tenant context, companyId, workspace logic, permissions, or backend behavior.
+
+Investigate the frontend hook problem only.
+
+First inspect:
+
+1. artifacts/var-hr/src/hooks/use-mobile.tsx
+2. Its React imports.
+3. App.tsx import of useIsMobile.
+4. package.json dependencies.
+5. React and react-dom versions.
+6. pnpm workspace dependency graph.
+7. Whether more than one React copy is installed/bundled.
+8. Vite aliases/dedupe configuration.
+9. Whether useIsMobile is actually being called as a hook from inside Shell, rather than being invoked at module scope or conditionally.
+
+The stack shows:
+
+useIsMobile() → Shell()
+
+so verify that the call is legal and unconditional within the Shell component.
+
+Also inspect whether use-mobile.tsx imports React from a different package/path/version than App.tsx.
+
+Do NOT blindly rewrite useIsMobile.
+
+Determine whether this is:
+
+A) a Rules of Hooks violation,
+B) duplicate React instances,
+C) React/react-dom version mismatch,
+D) bad Vite/pnpm dependency resolution,
+or E) an incorrect import/call pattern.
+
+After identifying the exact cause, make the smallest targeted fix.
+
+Then verify:
+
+- Founder login
+- Founder dashboard renders
+- No Invalid hook call
+- Company Owner login still works
+- Staff account management still works
+- API remains unchanged
+
+Run:
+- typecheck
+- production build
+- runtime preview
+
+Report the exact root cause and files changed.
