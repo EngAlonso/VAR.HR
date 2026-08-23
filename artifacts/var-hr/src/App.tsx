@@ -10965,6 +10965,8 @@ function PlatformCompanyDetailsPage() {
     timezone: "",
     currency: "",
     employeeLimit: "",
+    monthlyPrice: "",
+    annualPrice: "",
   });
   const [, setLocation] = useLocation();
 
@@ -10991,6 +10993,12 @@ function PlatformCompanyDetailsPage() {
         employeeLimit: String(
           nextDetails.subscription?.employeeLimit ?? 0,
         ),
+        monthlyPrice: nextDetails.subscription?.monthlyPrice
+          ? String(nextDetails.subscription.monthlyPrice)
+          : "",
+        annualPrice: nextDetails.subscription?.annualPrice
+          ? String(nextDetails.subscription.annualPrice)
+          : "",
       });
       setOwnerCount(nextDetails.owners.length);
     } catch (cause) {
@@ -11022,6 +11030,12 @@ function PlatformCompanyDetailsPage() {
           timezone: companyForm.timezone,
           currency: companyForm.currency,
           employeeLimit: Number(companyForm.employeeLimit),
+          monthlyPrice: companyForm.monthlyPrice === ""
+            ? 0
+            : Number(companyForm.monthlyPrice),
+          annualPrice: companyForm.annualPrice === ""
+            ? 0
+            : Number(companyForm.annualPrice),
         }),
       });
       await load();
@@ -11345,6 +11359,8 @@ function PlatformCompanyDetailsPage() {
           <Field label={text("Timezone", "المنطقة الزمنية")} value={companyForm.timezone} onChange={(value) => setCompanyForm({ ...companyForm, timezone: value })} />
           <Field label={text("Currency", "العملة")} value={companyForm.currency} onChange={(value) => setCompanyForm({ ...companyForm, currency: value.toUpperCase() })} />
           <Field label={text("Employee limit", "حد الموظفين")} value={companyForm.employeeLimit} onChange={(value) => setCompanyForm({ ...companyForm, employeeLimit: value })} type="number" />
+          <Field label={text("Monthly subscription price", "سعر الاشتراك الشهري")} value={companyForm.monthlyPrice} onChange={(value) => setCompanyForm({ ...companyForm, monthlyPrice: value })} type="number" min="0" />
+          <Field label={text("Annual subscription price", "سعر الاشتراك السنوي")} value={companyForm.annualPrice} onChange={(value) => setCompanyForm({ ...companyForm, annualPrice: value })} type="number" min="0" />
         </div>
         <div className="mt-4 flex justify-end"><Button disabled={saving} onClick={() => void updateCompany()}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button></div>
       </Card>

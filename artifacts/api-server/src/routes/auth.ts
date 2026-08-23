@@ -114,6 +114,8 @@ const companyUpdateSchema = z.object({
   currency: z.string().trim().length(3).optional(),
   active: z.boolean().optional(),
   employeeLimit: z.number().int().min(0).max(1_000_000).optional(),
+  monthlyPrice: z.number().finite().min(0).max(1_000_000_000).optional(),
+  annualPrice: z.number().finite().min(0).max(1_000_000_000).optional(),
   status: z.enum(["active", "suspended"]).optional(),
 });
 const companyOwnersUpdateSchema = z.object({
@@ -980,6 +982,18 @@ router.patch(
         .json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
       return;
     }
+    const [currentSubscription] = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(eq(subscriptionsTable.companyId, company.id))
+      .limit(1);
+    const priceChanged =
+      parsed.data.monthlyPrice !== undefined ||
+      parsed.data.annualPrice !== undefined;
+    const nextMonthlyPrice =
+      parsed.data.monthlyPrice ?? currentSubscription?.monthlyPrice ?? 0;
+    const nextAnnualPrice =
+      parsed.data.annualPrice ?? currentSubscription?.annualPrice ?? 0;
     const active = parsed.data.status
       ? parsed.data.status === "active"
       : parsed.data.active;
@@ -1007,6 +1021,15 @@ router.patch(
         .set({ employeeLimit: parsed.data.employeeLimit })
         .where(eq(subscriptionsTable.companyId, company.id));
     }
+    if (priceChanged) {
+      await db
+        .update(subscriptionsTable)
+        .set({
+          monthlyPrice: nextMonthlyPrice,
+          annualPrice: nextAnnualPrice,
+        })
+        .where(eq(subscriptionsTable.companyId, company.id));
+    }
     if (active !== undefined) {
       await db
         .update(userAccountsTable)
@@ -1017,6 +1040,9 @@ router.patch(
       accountId: context.accountId,
       companyId: company.id,
       action:
+        priceChanged
+          ? "subscription_pricing_changed"
+          :
         parsed.data.name !== undefined ||
         parsed.data.address !== undefined ||
         parsed.data.timezone !== undefined ||
@@ -1038,6 +1064,18 @@ router.patch(
           : {}),
         ...(parsed.data.currency !== undefined
           ? { currency: parsed.data.currency }
+          : {}),
+        ...(priceChanged
+          ? {
+              before: {
+                monthlyPrice: currentSubscription?.monthlyPrice ?? 0,
+                annualPrice: currentSubscription?.annualPrice ?? 0,
+              },
+              after: {
+                monthlyPrice: nextMonthlyPrice,
+                annualPrice: nextAnnualPrice,
+              },
+            }
           : {}),
       },
     });

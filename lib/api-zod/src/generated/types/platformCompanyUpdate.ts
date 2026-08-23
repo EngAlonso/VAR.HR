@@ -20,4 +20,8 @@ export interface PlatformCompanyUpdate {
   status?: PlatformCompanyUpdateStatus;
   /** @minimum 0 */
   employeeLimit?: number;
+  /** @minimum 0 */
+  monthlyPrice?: number;
+  /** @minimum 0 */
+  annualPrice?: number;
 }

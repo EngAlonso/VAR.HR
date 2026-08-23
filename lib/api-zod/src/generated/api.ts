@@ -2459,7 +2459,7 @@ export const GetPlatformSummaryResponse = zod.object({
 
 
 /**
- * @summary Suspend or change the employee limit for a company
+ * @summary Update company settings and subscription pricing
  */
 export const UpdatePlatformCompanyParams = zod.object({
   "companyId": zod.coerce.string()
@@ -2472,6 +2472,10 @@ export const updatePlatformCompanyBodyCurrencyMax = 3;
 
 export const updatePlatformCompanyBodyEmployeeLimitMin = 0;
 
+export const updatePlatformCompanyBodyMonthlyPriceMin = 0;
+
+export const updatePlatformCompanyBodyAnnualPriceMin = 0;
+
 
 
 export const UpdatePlatformCompanyBody = zod.object({
@@ -2480,7 +2484,9 @@ export const UpdatePlatformCompanyBody = zod.object({
   "currency": zod.string().min(updatePlatformCompanyBodyCurrencyMin).max(updatePlatformCompanyBodyCurrencyMax).optional(),
   "active": zod.boolean().optional(),
   "status": zod.enum(['active', 'suspended']).optional(),
-  "employeeLimit": zod.int().min(updatePlatformCompanyBodyEmployeeLimitMin).optional()
+  "employeeLimit": zod.int().min(updatePlatformCompanyBodyEmployeeLimitMin).optional(),
+  "monthlyPrice": zod.number().min(updatePlatformCompanyBodyMonthlyPriceMin).optional(),
+  "annualPrice": zod.number().min(updatePlatformCompanyBodyAnnualPriceMin).optional()
 })
 
 export const UpdatePlatformCompanyResponse = zod.unknown()

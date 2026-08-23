@@ -5800,7 +5800,7 @@ export const getUpdatePlatformCompanyUrl = (companyId: string,) => {
 }
 
 /**
- * @summary Suspend or change the employee limit for a company
+ * @summary Update company settings and subscription pricing
  */
 export const updatePlatformCompany = async (companyId: string,
     platformCompanyUpdate: PlatformCompanyUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
@@ -5850,7 +5850,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdatePlatformCompanyMutationError = ErrorType<unknown>
 
     /**
- * @summary Suspend or change the employee limit for a company
+ * @summary Update company settings and subscription pricing
  */
 export const useUpdatePlatformCompany = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformCompany>>, TError,{companyId: string;data: BodyType<PlatformCompanyUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}

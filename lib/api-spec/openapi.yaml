@@ -1305,7 +1305,7 @@ paths:
     patch:
       operationId: updatePlatformCompany
       tags: [platform]
-      summary: Suspend or change the employee limit for a company
+      summary: Update company settings and subscription pricing
       parameters:
         - name: companyId
           in: path
@@ -1583,6 +1583,8 @@ components:
           type: string
           enum: [active, suspended]
         employeeLimit: { type: integer, minimum: 0 }
+        monthlyPrice: { type: number, minimum: 0 }
+        annualPrice: { type: number, minimum: 0 }
     PlatformCompanyOwnersUpdate:
       type: object
       required: [ownerCount, owners]
