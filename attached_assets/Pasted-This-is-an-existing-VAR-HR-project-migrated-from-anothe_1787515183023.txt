@@ -1,0 +1,192 @@
+This is an existing VAR HR project migrated from another Replit account.
+
+Do NOT restart the project, redesign it, or redo completed work.
+
+Current project state
+
+The following functionality has already been implemented and verified:
+
+- Authentication / Login
+- Platform Owner / Founder flow
+- Company Owner/Admin flow
+- Tenant isolation
+- Permissions system
+- Create Account permissions
+- Manage Permissions
+- Select All / Deselect All permissions
+- Arabic/English localization
+- Localized validation errors
+- Employee/staff password minimum length = 6 characters
+- Company Owner password reset functionality
+- Employee self password change using the old password
+- Existing automated employee-account flow must remain separate
+
+Current task in progress
+
+We are correcting the manual Company Owner → Staff Account creation model.
+
+There are two distinct account concepts:
+
+1. Manual management/staff accounts
+
+These are accounts created manually by the Company Owner for people such as:
+
+- HR
+- Manager
+- Payroll administrator
+- Attendance/Biometric administrator
+- Other staff who receive selected permissions
+
+The Company Owner manually chooses:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Password
+- Permissions
+
+The employee logs in using the phone number.
+
+2. Automated employee/worker accounts
+
+This is a separate future workflow.
+
+DO NOT modify or redesign this flow now.
+
+---
+
+Work already done in the previous run
+
+The previous agent traced the database and confirmed that the existing schema already contains:
+
+- "full_name" → human/display employee name
+- "primary_phone" → employee phone number
+
+The old manual staff endpoint incorrectly ignored these fields and required a free-form username.
+
+The previous agent already started and implemented the model correction:
+
+- Added separate Employee Name field.
+- Added separate Phone Number field.
+- Added Job Title field.
+- Kept Password field.
+- Kept Permissions selector.
+- Backend now derives the login username from the validated phone number.
+- Account list now separates employee name and phone number.
+- Company Owner account list/reset behavior was updated to exclude automated employee accounts.
+- Existing permission system was preserved.
+- Existing Owner authorization and tenant isolation were preserved.
+- Existing platform-owner flows were preserved.
+- Automated employee account creation was left untouched.
+- API contract/type regeneration was started.
+
+The previous run stopped because the daily quota was reached immediately before final verification.
+
+Your immediate task
+
+Continue from the current code state.
+
+DO NOT redo the implementation above.
+
+Finish only the remaining work:
+
+1. Regenerate the API contract/generated types if required.
+2. Run shared library typecheck.
+3. Run API typecheck.
+4. Run frontend typecheck.
+5. Run production builds.
+6. Run formatting/diff checks.
+7. Restart affected workflows if necessary.
+8. Verify the manual staff account flow.
+
+Required manual staff behavior
+
+Create Account should have:
+
+اسم الموظف
+
+- Human-readable name.
+- Arabic allowed.
+- English allowed.
+- Spaces allowed.
+
+رقم الهاتف
+
+- This becomes the login username.
+- Must use the existing phone validation.
+- Must remain unique.
+
+المسمى الوظيفي
+
+كلمة المرور
+
+- Minimum 6 characters.
+- No uppercase/lowercase/number/special-character requirement.
+
+الصلاحيات
+
+- Existing permission selector.
+- Existing Select All / Deselect All functionality.
+
+After creation:
+
+- Employee name is stored/displayed as the person's name.
+- Phone is the login username.
+- Password is stored securely as a hash.
+- Selected permissions are persisted.
+
+Account management
+
+Company Owner should see only the manually created management/staff accounts in this specific account-management section.
+
+For each account:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Permissions
+- Status
+
+Company Owner can manage permissions and reset the password of staff accounts belonging to their own company.
+
+Company Owner must NOT be able to:
+
+- Manage another company's staff.
+- Reset another company's staff.
+- Change another Company Owner's password.
+- Manage another Company Owner's account through this staff-management flow.
+
+Password behavior
+
+Employee changing their own password requires the old password.
+
+Company Owner resetting a staff account password does NOT require the old password.
+
+Do not expose or weaken password security.
+
+Important
+
+Do NOT change:
+
+- Authentication architecture
+- Authorization logic
+- Tenant isolation
+- Database permission model
+- Existing permission keys
+- Automated employee account flow
+- Platform Owner behavior
+- Existing branding/layout unless required for the new fields
+- Existing working localization
+
+Final verification
+
+After completing the remaining work, report:
+
+- Exact files changed
+- What was already implemented vs what you completed
+- Typecheck results
+- Build results
+- Workflow status
+- Any remaining issue or verification limitation
+
+If you find unrelated pre-existing errors, do not fix them unless they directly block this task.
