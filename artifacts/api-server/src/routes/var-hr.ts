@@ -1235,8 +1235,8 @@ async function recordAudit(
 ) {
   await db.insert(auditLogsTable).values({
     companyId,
-    actorType: "workspace_demo",
-    actorId: "demo-actor",
+    actorType: "system",
+    actorId: "system",
     action,
     entityType,
     entityId,
@@ -4290,8 +4290,8 @@ router.post("/employees/import", async (req, res): Promise<void> => {
         };
         await tx.insert(auditLogsTable).values({
           companyId: context.companyId,
-          actorType: "workspace_demo",
-          actorId: "demo-actor",
+          actorType: "system",
+          actorId: "system",
           action: "created",
           entityType: "employee",
           entityId: employee.id,

@@ -41,7 +41,6 @@ export class WorkspaceAccessError extends Error {
   }
 }
 
-const DEFAULT_TENANT = "northstar";
 const LOCALES = ["en", "ar", "fr", "de"] as const;
 export type WorkspaceLocale = (typeof LOCALES)[number];
 

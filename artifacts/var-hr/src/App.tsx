@@ -449,7 +449,6 @@ const copy = {
     activeWorkspace: "Active workspace",
     support: "Support",
     language: "Language",
-    demoSafe: "Demo-safe workspace",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
     languageEnglish: "English",
@@ -756,7 +755,6 @@ const copy = {
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
     language: "اللغة",
-    demoSafe: "مساحة عمل آمنة للعرض",
     openNavigation: "فتح التنقل",
     closeNavigation: "إغلاق التنقل",
     languageEnglish: "الإنجليزية",
@@ -846,7 +844,6 @@ const copy = {
     activeWorkspace: "Espace actif",
     support: "Assistance",
     language: "Langue",
-    demoSafe: "Espace de démonstration sécurisé",
     openNavigation: "Ouvrir la navigation",
     closeNavigation: "Fermer la navigation",
     languageEnglish: "Anglais",
@@ -935,7 +932,6 @@ const copy = {
     activeWorkspace: "Aktiver Arbeitsbereich",
     support: "Support",
     language: "Sprache",
-    demoSafe: "Sicherer Demo-Arbeitsbereich",
     openNavigation: "Navigation öffnen",
     closeNavigation: "Navigation schließen",
     languageEnglish: "Englisch",
@@ -2124,7 +2120,6 @@ const commonCopy = {
     activeWorkspace: "Active workspace",
     support: "Support",
     language: "Language",
-    demoSafe: "Demo-safe workspace",
     authNotConnected:
       "Authentication is not connected. Data remains scoped to the active API workspace.",
     authLoading: "Loading the secure workspace…",
@@ -2176,7 +2171,6 @@ const commonCopy = {
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
     language: "اللغة",
-    demoSafe: "مساحة عمل آمنة للعرض",
     authNotConnected:
       "المصادقة غير متصلة. تظل البيانات محصورة في مساحة عمل API النشطة.",
     authLoading: "جارٍ تحميل مساحة العمل الآمنة…",
@@ -2228,7 +2222,6 @@ const commonCopy = {
     activeWorkspace: "Espace actif",
     support: "Assistance",
     language: "Langue",
-    demoSafe: "Espace de démonstration sécurisé",
     authNotConnected:
       "L’authentification n’est pas connectée. Les données restent liées à l’espace API actif.",
     authLoading: "Chargement de l’espace de travail sécurisé…",
@@ -2280,7 +2273,6 @@ const commonCopy = {
     activeWorkspace: "Aktiver Arbeitsbereich",
     support: "Support",
     language: "Sprache",
-    demoSafe: "Sicherer Demo-Arbeitsbereich",
     authNotConnected:
       "Die Authentifizierung ist nicht verbunden. Daten bleiben auf den aktiven API-Arbeitsbereich begrenzt.",
     authLoading: "Sicherer Arbeitsbereich wird geladen…",
@@ -4338,9 +4330,6 @@ function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            <ShieldCheck size={15} className="text-primary" /> {t("demoSafe")}
-          </div>
           <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/55">
             {t("authNotConnected")}
           </p>

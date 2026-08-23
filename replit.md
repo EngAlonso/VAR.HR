@@ -12,7 +12,7 @@ VAR HR is a multilingual, multi-tenant HR operations workspace for managing empl
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string (provided by the Replit database)
-- The API startup runs the existing `@workspace/db` Drizzle push before the existing demo-data bootstrap, so fresh environments initialize schema before authenticated routes are served.
+- The API startup runs the existing `@workspace/db` Drizzle push before authenticated routes are served.
 - The managed artifact workflows are `artifacts/var-hr: web`, `artifacts/api-server: API Server`, and `artifacts/mockup-sandbox: Component Preview Server`.
 
 ## Stack
@@ -27,7 +27,7 @@ VAR HR is a multilingual, multi-tenant HR operations workspace for managing empl
 ## Where things live
 
 - `artifacts/var-hr` — React + Vite frontend and product navigation
-- `artifacts/api-server` — Express API routes and demo-data initialization
+- `artifacts/api-server` — Express API routes and account/workspace operations
 - `lib/api-spec/openapi.yaml` — source-of-truth API contract
 - `lib/api-zod` — generated server validation schemas
 - `lib/api-client-react` — generated React Query hooks
@@ -46,7 +46,7 @@ VAR HR is a multilingual, multi-tenant HR operations workspace for managing empl
 
 ## Product
 
-The current operational foundation includes a company-owner workspace with employee, department, branch, attendance, leave, permission, attendance-rule, report, payroll-calculation, device, subscription, and platform-owner surfaces. Seeded Northstar Logistics data is available for development validation.
+The current operational foundation includes a company-owner workspace with employee, department, branch, attendance, leave, permission, attendance-rule, report, payroll-calculation, device, subscription, and platform-owner surfaces. Workspaces and records are created through the product flows.
 
 ## User preferences
 
@@ -56,10 +56,9 @@ The product should feel premium, precise, enterprise-grade, multilingual, and su
 
 - Run API codegen after changing `lib/api-spec/openapi.yaml`.
 - Apply the development schema with `pnpm --filter @workspace/db run push` before starting the API in a fresh database.
-- The API repeats this non-destructive schema check at startup; initialized databases are left intact and the existing bootstrap remains idempotent.
+- The API repeats this non-destructive schema check at startup; initialized databases are left intact.
 - Use managed artifact workflows rather than creating replacement workflows.
 - Do not introduce an auth provider or claim physical biometric hardware success. The deterministic mock provider is intentionally limited to local/test synchronization.
-- Development seed credentials are created only for local validation; set `VAR_HR_PLATFORM_PASSWORD` and `VAR_HR_OWNER_PASSWORD` when overriding them.
 - Passwords are returned only as one-time temporary values from account creation/reset/onboarding responses and are never persisted in plaintext.
 
 ## Pointers

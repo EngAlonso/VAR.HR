@@ -20,9 +20,3 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
-
-[userenv]
-
-[userenv.shared]
-FOUNDER_PASSWORD = "Alonso01200"
-FOUNDER_PHONE = "01200229946"

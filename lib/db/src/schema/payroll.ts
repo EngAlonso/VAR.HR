@@ -58,7 +58,7 @@ export const payrollAdjustmentsTable = pgTable("var_hr_payroll_adjustments", {
   category: text("category").notNull().default("variable"),
   amount: numeric("amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
   reason: text("reason").notNull(),
-  createdBy: text("created_by").notNull().default("workspace_demo"),
+  createdBy: text("created_by").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

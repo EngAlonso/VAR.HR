@@ -1,6 +1,5 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { initializeDemoData } from "./lib/seed";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -34,7 +33,6 @@ async function start(): Promise<void> {
   if (stdout.trim()) logger.info({ output: stdout.trim() }, "Database schema check complete");
   if (stderr.trim()) logger.warn({ output: stderr.trim() }, "Database schema command reported diagnostics");
 
-  await initializeDemoData();
   app.listen(port, (err) => {
     if (err) {
       logger.error({ err }, "Error listening on port");

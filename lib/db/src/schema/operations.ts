@@ -109,8 +109,8 @@ export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
 export const auditLogsTable = pgTable("var_hr_audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
-  actorType: text("actor_type").notNull().default("workspace_demo"),
-  actorId: text("actor_id").notNull().default("demo-actor"),
+  actorType: text("actor_type").notNull().default("system"),
+  actorId: text("actor_id").notNull().default("system"),
   action: text("action").notNull(),
   entityType: text("entity_type").notNull(),
   entityId: text("entity_id"),
