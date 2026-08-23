@@ -3986,6 +3986,8 @@ function authLabel(
     | "permissionsCount"
     | "loadFailed"
     | "createFailed"
+     | "usernameInvalid"
+     | "passwordTooShort"
     | "resetFailed"
     | "createStaff"
     | "staffAccounts"
@@ -4036,6 +4038,9 @@ function authLabel(
       permissionsCount: "permissions",
       loadFailed: "Could not load account management.",
       createFailed: "Could not create account.",
+      usernameInvalid:
+        "Username may contain English letters, numbers, and only these symbols: . _ -",
+      passwordTooShort: "Password must contain at least 10 characters.",
       resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
       staffAccounts: "Staff accounts",
@@ -4086,6 +4091,9 @@ function authLabel(
       permissionsCount: "صلاحيات",
       loadFailed: "تعذر تحميل إدارة الحسابات.",
       createFailed: "تعذر إنشاء الحساب.",
+      usernameInvalid:
+        "اسم المستخدم يجب أن يحتوي على حروف إنجليزية وأرقام والرموز . _ - فقط",
+      passwordTooShort: "كلمة المرور يجب أن تحتوي على 10 أحرف على الأقل",
       resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
       staffAccounts: "حسابات الموظفين",
@@ -4118,6 +4126,8 @@ function permissionLabel(
     "attendance.view": "عرض الحضور",
     "attendance.correct": "تصحيح الحضور",
     "leave.approve": "اعتماد الإجازات",
+    "leave.create": "إنشاء طلبات الإجازات",
+    "permissions.create": "إنشاء طلبات الأذونات",
     "permissions.approve": "اعتماد الأذونات",
     "payroll.view": "عرض الرواتب",
     "reports.view": "عرض التقارير",
@@ -4142,7 +4152,9 @@ function permissionDescription(
     "employees.credentials": "إدارة بيانات اعتماد الموظفين.",
     "attendance.view": "عرض سجلات الحضور والانصراف.",
     "attendance.correct": "تصحيح سجلات الحضور.",
+    "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
+    "permissions.create": "إرسال طلبات الأذونات.",
     "permissions.approve": "اعتماد طلبات الأذونات.",
     "payroll.view": "عرض بيانات وحسابات الرواتب.",
     "reports.view": "عرض التقارير.",
@@ -4154,6 +4166,23 @@ function permissionDescription(
     "organization.manage": "إدارة الأقسام والفروع والهيكل التنظيمي.",
   };
   return descriptions[permission.key] ?? permission.description ?? "";
+}
+
+function accountValidationError(
+  locale: Locale,
+  error: unknown,
+): { field: "username" | "password"; message: string } | null {
+  const message = error instanceof Error ? error.message : "";
+  if (
+    message.includes("must match pattern") ||
+    message.includes("expected string to have >=3 characters")
+  ) {
+    return { field: "username", message: authLabel(locale, "usernameInvalid") };
+  }
+  if (message.includes("expected string to have >=10 characters")) {
+    return { field: "password", message: authLabel(locale, "passwordTooShort") };
+  }
+  return null;
 }
 
 function BrandLogo({
@@ -9959,6 +9988,10 @@ function Accounts() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    username?: string;
+    password?: string;
+  }>({});
   const [form, setForm] = useState({
     username: "",
     displayRole: "HR",
@@ -9990,6 +10023,15 @@ function Accounts() {
   }, []);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    setFieldErrors({});
+    if (!/^[a-zA-Z0-9._-]+$/.test(form.username) || form.username.length < 3) {
+      setFieldErrors({ username: authLabel(locale, "usernameInvalid") });
+      return;
+    }
+    if (form.password && form.password.length < 10) {
+      setFieldErrors({ password: authLabel(locale, "passwordTooShort") });
+      return;
+    }
     setSaving(true);
     try {
       const result = await authRequest<{
@@ -10007,12 +10049,16 @@ function Accounts() {
         password: "",
         permissions: [],
       });
+      setFieldErrors({});
       toast.success(authLabel(locale, "accountCreated"));
     } catch (error) {
+      const validationError = accountValidationError(locale, error);
+      if (validationError) {
+        setFieldErrors({ [validationError.field]: validationError.message });
+        return;
+      }
       toast.error(
-        error instanceof Error
-          ? error.message
-          : authLabel(locale, "createFailed"),
+        authLabel(locale, "createFailed"),
       );
     } finally {
       setSaving(false);
@@ -10098,7 +10144,11 @@ function Accounts() {
             <Field
               label={authLabel(locale, "username")}
               value={form.username}
-              onChange={(value) => setForm({ ...form, username: value })}
+              onChange={(value) => {
+                setFieldErrors((current) => ({ ...current, username: undefined }));
+                setForm({ ...form, username: value });
+              }}
+              error={fieldErrors.username}
               required
             />
             <Field
@@ -10111,7 +10161,11 @@ function Accounts() {
               label={`${authLabel(locale, "password")} (${authLabel(locale, "optional")})`}
               type="password"
               value={form.password}
-              onChange={(value) => setForm({ ...form, password: value })}
+              onChange={(value) => {
+                setFieldErrors((current) => ({ ...current, password: undefined }));
+                setForm({ ...form, password: value });
+              }}
+              error={fieldErrors.password}
             />
             <div>
               <p className="text-sm font-semibold">
@@ -13848,6 +13902,7 @@ function Field({
   showPasswordToggle = false,
   showPasswordLabel = "",
   hidePasswordLabel = "",
+  error,
   placeholderAlign,
   authStyle = false,
 }: {
@@ -13863,6 +13918,7 @@ function Field({
   showPasswordToggle?: boolean;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
+  error?: string;
   placeholderAlign?: "left" | "right";
   authStyle?: boolean;
 }) {
@@ -13899,7 +13955,8 @@ function Field({
             showPasswordToggle ? "pe-11" : ""
           } ${authStyle ? "text-foreground" : ""} ${
             placeholderAlign === "right" ? "placeholder:text-right" : ""
-          }`}
+          } ${error ? "border-destructive focus:border-destructive focus:ring-destructive/15" : ""}`}
+          aria-invalid={Boolean(error)}
         />
         {showPasswordToggle && type === "password" && (
           <button
@@ -13913,6 +13970,11 @@ function Field({
           </button>
         )}
       </div>
+      {error && (
+        <span className="mt-1 block text-xs font-normal text-destructive">
+          {error}
+        </span>
+      )}
     </label>
   );
 }

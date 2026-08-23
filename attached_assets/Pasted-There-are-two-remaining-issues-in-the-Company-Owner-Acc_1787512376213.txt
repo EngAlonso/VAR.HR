@@ -1,0 +1,78 @@
+There are two remaining issues in the Company Owner → Account Management → Create Account flow.
+
+1. Fix the validation error messages
+
+When I try to create a new account, I currently get these raw validation messages:
+
+- "Invalid string: must match pattern /^[a-zA-Z0-9._-]+$/"
+- "Too small: expected string to have >=10 characters"
+
+These messages must NOT be exposed directly to the user.
+
+Requirements
+
+First identify exactly which form field generates each validation error.
+
+Then:
+
+- Keep the existing validation rules intact unless the rule itself is incorrect.
+- Do NOT weaken or remove the security validation just to hide the error.
+- Convert technical Zod/API validation messages into proper user-facing localized messages.
+- Arabic should display clear messages such as:
+  - Username: "اسم المستخدم يجب أن يحتوي على حروف إنجليزية وأرقام والرموز . _ - فقط"
+  - Password: "كلمة المرور يجب أن تحتوي على 10 أحرف على الأقل"
+- English should display equivalent clear English messages.
+- The messages must use the existing i18n system.
+- The language switcher must change these messages between Arabic and English.
+- Do not display regex patterns or raw Zod error text to users.
+
+Also make sure the validation message appears next to the correct field when possible.
+
+2. Some permissions are still not translated into Arabic
+
+Some permission names/descriptions in the Permissions section are still appearing in English when the Company Owner uses Arabic.
+
+Perform a complete audit of the permission list.
+
+For every user-facing permission label/description:
+
+- Arabic → proper Arabic translation.
+- English → existing English text.
+- Use the existing i18n system.
+- Do NOT hardcode Arabic directly into the component.
+- Do NOT change the underlying permission keys/IDs.
+- Do NOT rename database/API permission identifiers.
+- Only translate the display labels/descriptions.
+
+Important distinction:
+
+The technical permission key can remain something like:
+"employees.view"
+"employees.edit"
+"payroll.view"
+
+But the user-facing Arabic label must be translated, for example:
+"عرض الموظفين"
+"تعديل الموظفين"
+"عرض الرواتب"
+
+Check permissions in BOTH places:
+
+1. Create Account → Permissions
+2. Existing Account → Manage Permissions
+
+Both must display the same localized permission catalog.
+
+Verification
+
+After fixing:
+
+1. Create a new account with an invalid username and verify the error is clear and localized.
+2. Create a password shorter than 10 characters and verify the password error is clear and localized.
+3. Switch Arabic → English and verify both validation messages change language.
+4. Open Create Account → Permissions and verify there are no unexplained English permission labels/descriptions.
+5. Open Manage Permissions for an existing account and verify the same permission translations are used there.
+6. Verify the underlying permission keys and functionality remain unchanged.
+7. Run the relevant typecheck/build/format checks.
+
+Do NOT make unrelated changes and do NOT modify the existing authentication, authorization, database, or permission logic unless required to correctly localize the existing validation/error handling.
