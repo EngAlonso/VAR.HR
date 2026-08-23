@@ -157,11 +157,11 @@ paths:
               $ref: "#/components/schemas/StaffAccountInput"
       responses:
         "201":
-          description: Staff account and one-time password
+          description: Staff account created with the owner-provided password
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthAccountCredentials"
+                $ref: "#/components/schemas/UpdateAuthAccountResponse"
   /platform/companies/{companyId}/owners:
     get:
       operationId: listPlatformCompanyOwners
@@ -1530,6 +1530,14 @@ components:
         companyId: { type: ["string", "null"] }
         employeeId: { type: ["string", "null"] }
         active: { type: boolean }
+        password: { type: string, minLength: 6, maxLength: 256 }
+    StaffAccountCreated:
+      type: object
+      required: [account]
+      properties:
+        account:
+          $ref: "#/components/schemas/AuthAccount"
+         password: { type: string, minLength: 6, maxLength: 256 }
         permissions:
           type: array
           items: { type: string }

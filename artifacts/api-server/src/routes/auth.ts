@@ -82,6 +82,7 @@ const accountUpdateSchema = z.object({
   backupEmails: z.array(optionalEmail).optional(),
   permissions: z.array(z.string()).optional(),
   active: z.boolean().optional(),
+  password: z.string().max(256).optional(),
 });
 const permanentPasswordSchema = z.object({
   password: z.string().min(10).max(256),
@@ -612,7 +613,6 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
     });
     return;
   }
-  const temporaryPassword = parsed.data.password ?? randomStaffPassword();
   const [account] = await db
     .insert(userAccountsTable)
     .values({
@@ -636,7 +636,6 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
   });
   res.status(201).json({
     account: accountResponse({ ...account, permissions }),
-    temporaryPassword,
   });
 });
 
@@ -681,11 +680,46 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     });
     return;
   }
+  if (parsed.data.password !== undefined && !isOwnerManagingStaff) {
+    res.status(403).json({
+      error: "Only a Company Owner can change a staff account password.",
+      code: "ACCOUNT_ACCESS_DENIED",
+    });
+    return;
+  }
+  if (isOwnerManagingStaff && parsed.data.primaryPhone !== undefined) {
+    const phone = requiredPhone.safeParse(parsed.data.primaryPhone);
+    if (!phone.success) {
+      res.status(400).json({
+        error: errorMessage(phone.error),
+        code: "INVALID_ACCOUNT",
+      });
+      return;
+    }
+  }
+  const nextUsername =
+    isOwnerManagingStaff && parsed.data.primaryPhone !== undefined
+      ? parsed.data.primaryPhone
+      : parsed.data.username;
   if (parsed.data.username !== undefined && parsed.data.username !== account.username) {
     const [existingUsername] = await db
       .select({ id: userAccountsTable.id })
       .from(userAccountsTable)
       .where(eq(userAccountsTable.username, parsed.data.username))
+      .limit(1);
+    if (existingUsername && existingUsername.id !== account.id) {
+      res.status(409).json({
+        error: "That username is already in use.",
+        code: "USERNAME_TAKEN",
+      });
+      return;
+    }
+  }
+  if (nextUsername !== undefined && nextUsername !== account.username) {
+    const [existingUsername] = await db
+      .select({ id: userAccountsTable.id })
+      .from(userAccountsTable)
+      .where(eq(userAccountsTable.username, nextUsername))
       .limit(1);
     if (existingUsername && existingUsername.id !== account.id) {
       res.status(409).json({
@@ -752,7 +786,7 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
   const [updated] = await db
     .update(userAccountsTable)
     .set({
-      ...(parsed.data.username !== undefined ? { username: parsed.data.username } : {}),
+      ...(nextUsername !== undefined ? { username: nextUsername } : {}),
       ...(parsed.data.displayRole !== undefined
         ? { displayRole: parsed.data.displayRole }
         : {}),
@@ -763,6 +797,9 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
       ...(parsed.data.backupEmails !== undefined ? { backupEmails: parsed.data.backupEmails } : {}),
       ...(parsed.data.active !== undefined
         ? { active: parsed.data.active }
+        : {}),
+      ...(parsed.data.password
+        ? { passwordHash: hashPassword(parsed.data.password) }
         : {}),
       updatedAt: new Date(),
     })
@@ -775,6 +812,7 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     action:
       parsed.data.active === undefined &&
       parsed.data.permissions === undefined &&
+      parsed.data.password === undefined &&
       (parsed.data.username !== undefined ||
         parsed.data.fullName !== undefined ||
         parsed.data.primaryPhone !== undefined ||
@@ -782,7 +820,9 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
         parsed.data.email !== undefined ||
         parsed.data.backupEmails !== undefined)
         ? "account_details_changed"
-        : parsed.data.active === undefined
+         : parsed.data.password !== undefined
+         ? "password_changed"
+         : parsed.data.active === undefined
         ? "permissions_changed"
         : "account_status_changed",
     entityType: "account",

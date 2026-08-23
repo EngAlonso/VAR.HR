@@ -4004,6 +4004,14 @@ function authLabel(
     | "resetPassword"
     | "editPermissions"
     | "savePermissions"
+     | "viewAccount"
+     | "editAccount"
+     | "newPassword"
+     | "saveAccount"
+     | "accountUpdated"
+     | "accountUpdateFailed"
+     | "loginUsername"
+     | "accountStatus"
     | "permissionsUpdated"
     | "permissionsUpdateFailed"
     | "managementDetail"
@@ -4063,6 +4071,14 @@ function authLabel(
       resetPassword: "Reset password",
       editPermissions: "Manage permissions",
       savePermissions: "Save permissions",
+      viewAccount: "View account",
+      editAccount: "Edit account",
+      newPassword: "New password",
+      saveAccount: "Save changes",
+      accountUpdated: "Account updated",
+      accountUpdateFailed: "Could not update account.",
+      loginUsername: "Login username",
+      accountStatus: "Account status",
       permissionsUpdated: "Permissions updated",
       permissionsUpdateFailed: "Could not update permissions.",
       managementDetail:
@@ -4122,6 +4138,14 @@ function authLabel(
       resetPassword: "إعادة تعيين كلمة المرور",
       editPermissions: "إدارة الصلاحيات",
       savePermissions: "حفظ الصلاحيات",
+      viewAccount: "عرض الحساب",
+      editAccount: "تعديل الحساب",
+      newPassword: "كلمة المرور الجديدة",
+      saveAccount: "حفظ التعديلات",
+      accountUpdated: "تم تحديث الحساب",
+      accountUpdateFailed: "تعذر تحديث الحساب.",
+      loginUsername: "اسم المستخدم لتسجيل الدخول",
+      accountStatus: "حالة الحساب",
       permissionsUpdated: "تم تحديث الصلاحيات",
       permissionsUpdateFailed: "تعذر تحديث الصلاحيات.",
       managementDetail:
