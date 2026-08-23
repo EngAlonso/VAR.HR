@@ -53,8 +53,7 @@ const staffInputSchema = z.object({
     .string()
     .trim()
     .min(3)
-    .max(80)
-    .regex(/^[a-zA-Z0-9._-]+$/),
+    .max(80),
   displayRole: z.string().trim().min(1).max(80),
   password: z.string().min(10).max(256).optional(),
   permissions: z.array(z.string()).default([]),
@@ -70,7 +69,7 @@ const requiredPermanentPassword = z.string().max(256).superRefine((value, ctx) =
   }
 });
 const accountUpdateSchema = z.object({
-  username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/).optional(),
+  username: z.string().trim().min(3).max(80).optional(),
   displayRole: z.string().trim().min(1).max(80).optional(),
   fullName: z.string().trim().max(160).optional(),
   primaryPhone: optionalPhone.optional(),

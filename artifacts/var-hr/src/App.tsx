@@ -4039,7 +4039,7 @@ function authLabel(
       loadFailed: "Could not load account management.",
       createFailed: "Could not create account.",
       usernameInvalid:
-        "Username may contain English letters, numbers, and only these symbols: . _ -",
+        "Please enter a valid name using at least 3 characters.",
       passwordTooShort: "Password must contain at least 10 characters.",
       resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
@@ -4092,7 +4092,7 @@ function authLabel(
       loadFailed: "تعذر تحميل إدارة الحسابات.",
       createFailed: "تعذر إنشاء الحساب.",
       usernameInvalid:
-        "اسم المستخدم يجب أن يحتوي على حروف إنجليزية وأرقام والرموز . _ - فقط",
+        "يرجى إدخال اسم صحيح مكوّن من 3 أحرف على الأقل",
       passwordTooShort: "كلمة المرور يجب أن تحتوي على 10 أحرف على الأقل",
       resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
@@ -4174,7 +4174,6 @@ function accountValidationError(
 ): { field: "username" | "password"; message: string } | null {
   const message = error instanceof Error ? error.message : "";
   if (
-    message.includes("must match pattern") ||
     message.includes("expected string to have >=3 characters")
   ) {
     return { field: "username", message: authLabel(locale, "usernameInvalid") };
@@ -10024,7 +10023,7 @@ function Accounts() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setFieldErrors({});
-    if (!/^[a-zA-Z0-9._-]+$/.test(form.username) || form.username.length < 3) {
+    if (form.username.trim().length < 3) {
       setFieldErrors({ username: authLabel(locale, "usernameInvalid") });
       return;
     }
