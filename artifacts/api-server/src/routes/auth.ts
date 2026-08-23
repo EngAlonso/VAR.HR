@@ -63,15 +63,36 @@ const staffInputSchema = z.object({
   permissions: z.array(z.string()).default([]),
   active: z.boolean().default(true),
 });
-const optionalPhone = z.string().trim().refine((value) => value === "" || /^\+?[0-9 ()-]{7,20}$/i.test(value), "Invalid phone number.");
-const optionalEmail = z.string().trim().refine((value) => value === "" || z.string().email().safeParse(value).success, "Invalid email address.");
-const requiredPermanentPassword = z.string().max(256).superRefine((value, ctx) => {
-  if (value.length === 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password is required." });
-  } else if (value.length < 6) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent password must be at least 6 characters." });
-  }
-});
+const optionalPhone = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || /^\+?[0-9 ()-]{7,20}$/i.test(value),
+    "Invalid phone number.",
+  );
+const optionalEmail = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || z.string().email().safeParse(value).success,
+    "Invalid email address.",
+  );
+const requiredPermanentPassword = z
+  .string()
+  .max(256)
+  .superRefine((value, ctx) => {
+    if (value.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Permanent password is required.",
+      });
+    } else if (value.length < 6) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Permanent password must be at least 6 characters.",
+      });
+    }
+  });
 const accountUpdateSchema = z.object({
   username: z.string().trim().min(3).max(80).optional(),
   displayRole: z.string().trim().min(1).max(80).optional(),
@@ -87,37 +108,54 @@ const accountUpdateSchema = z.object({
 const permanentPasswordSchema = z.object({
   password: z.string().min(10).max(256),
 });
-const companyInputSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  address: z.string().trim().max(500).default(""),
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(80)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-    .optional(),
-  timezone: z.string().trim().min(1).max(80).default("Africa/Cairo"),
-  currency: z.string().trim().length(3).default("EGP"),
-  employeeLimit: z.number().int().min(0).max(1_000_000).default(0),
-  ownerCount: z.number().int().min(0).max(20).default(0),
-  owners: z.array(z.object({
-    fullName: z.string().trim().max(160).default(""),
-    username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
-    password: requiredPermanentPassword,
-    primaryPhone: optionalPhone.default(""),
-    backupPhones: z.array(optionalPhone).default([]),
-    email: optionalEmail.default(""),
-    backupEmails: z.array(optionalEmail).default([]),
-  })).max(20).default([]),
-  monthlyPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
-  annualPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
-  active: z.boolean().default(true),
-}).superRefine((value, ctx) => {
-  if (value.owners.length !== value.ownerCount) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["owners"], message: "The owner count must exactly match the owner accounts provided." });
-  }
-});
+const companyInputSchema = z
+  .object({
+    name: z.string().trim().min(2).max(160),
+    address: z.string().trim().max(500).default(""),
+    slug: z
+      .string()
+      .trim()
+      .min(2)
+      .max(80)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
+    timezone: z.string().trim().min(1).max(80).default("Africa/Cairo"),
+    currency: z.string().trim().length(3).default("EGP"),
+    employeeLimit: z.number().int().min(0).max(1_000_000).default(0),
+    ownerCount: z.number().int().min(0).max(20).default(0),
+    owners: z
+      .array(
+        z.object({
+          fullName: z.string().trim().max(160).default(""),
+          username: z
+            .string()
+            .trim()
+            .min(3)
+            .max(80)
+            .regex(/^[a-zA-Z0-9._-]+$/),
+          password: requiredPermanentPassword,
+          primaryPhone: optionalPhone.default(""),
+          backupPhones: z.array(optionalPhone).default([]),
+          email: optionalEmail.default(""),
+          backupEmails: z.array(optionalEmail).default([]),
+        }),
+      )
+      .max(20)
+      .default([]),
+    monthlyPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
+    annualPrice: z.number().finite().min(0).max(1_000_000_000).default(0),
+    active: z.boolean().default(true),
+  })
+  .superRefine((value, ctx) => {
+    if (value.owners.length !== value.ownerCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["owners"],
+        message:
+          "The owner count must exactly match the owner accounts provided.",
+      });
+    }
+  });
 const companyUpdateSchema = z.object({
   name: z.string().trim().min(2).max(160).optional(),
   address: z.string().trim().max(500).optional(),
@@ -129,36 +167,49 @@ const companyUpdateSchema = z.object({
   annualPrice: z.number().finite().min(0).max(1_000_000_000).optional(),
   status: z.enum(["active", "suspended"]).optional(),
 });
-const companyOwnersUpdateSchema = z.object({
-  ownerCount: z.number().int().min(0).max(20),
-  owners: z.array(z.object({
-    id: z.string().uuid().optional(),
-    fullName: z.string().trim().max(160).default(""),
-    username: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
-    password: z.string().min(10).max(256).optional(),
-    primaryPhone: optionalPhone.default(""),
-    backupPhones: z.array(optionalPhone).default([]),
-    email: optionalEmail.default(""),
-    backupEmails: z.array(optionalEmail).default([]),
-  })).max(20),
-}).superRefine((value, ctx) => {
-  if (value.owners.length < value.ownerCount) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["owners"],
-      message: "The owner accounts provided must cover the requested owner count.",
-    });
-  }
-  for (const owner of value.owners) {
-    if (!owner.id && !owner.password) {
+const companyOwnersUpdateSchema = z
+  .object({
+    ownerCount: z.number().int().min(0).max(20),
+    owners: z
+      .array(
+        z.object({
+          id: z.string().uuid().optional(),
+          fullName: z.string().trim().max(160).default(""),
+          username: z
+            .string()
+            .trim()
+            .min(3)
+            .max(80)
+            .regex(/^[a-zA-Z0-9._-]+$/),
+          password: z.string().min(10).max(256).optional(),
+          primaryPhone: optionalPhone.default(""),
+          backupPhones: z.array(optionalPhone).default([]),
+          email: optionalEmail.default(""),
+          backupEmails: z.array(optionalEmail).default([]),
+        }),
+      )
+      .max(20),
+  })
+  .superRefine((value, ctx) => {
+    if (value.owners.length < value.ownerCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["owners"],
-        message: "A permanent password is required for each new owner account.",
+        message:
+          "The owner accounts provided must cover the requested owner count.",
       });
     }
-  }
-});
+    for (const owner of value.owners) {
+      if (!owner.id && !owner.password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["owners"],
+          message:
+            "A permanent password is required for each new owner account.",
+        });
+      }
+    }
+  });
 
 function errorMessage(error: unknown): string {
   return error instanceof z.ZodError
@@ -286,76 +337,82 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/auth/provision/platform-owner/status", async (_req, res): Promise<void> => {
-  res.set("Cache-Control", "no-store");
-  const [existing] = await db
-    .select({ id: userAccountsTable.id })
-    .from(userAccountsTable)
-    .where(eq(userAccountsTable.accountType, "platform_owner"))
-    .limit(1);
-  res.json({ setupAvailable: !existing });
-});
-
-router.post("/auth/provision/platform-owner", async (req, res): Promise<void> => {
-  const provisioningEnabled =
-    process.env.NODE_ENV !== "production" &&
-    (process.env.NODE_ENV === "development" ||
-      process.env.VAR_HR_ENABLE_INITIAL_PROVISIONING === "true");
-  if (!provisioningEnabled) {
-    res.status(404).json({ error: "Not found.", code: "NOT_FOUND" });
-    return;
-  }
-
-  const parsed = initialPlatformOwnerSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: errorMessage(parsed.error),
-      code: "INVALID_PLATFORM_OWNER",
-    });
-    return;
-  }
-
-  const account = await db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('var_hr_initial_platform_owner_provisioning'))`,
-    );
-    const [existing] = await tx
+router.get(
+  "/auth/provision/platform-owner/status",
+  async (_req, res): Promise<void> => {
+    res.set("Cache-Control", "no-store");
+    const [existing] = await db
       .select({ id: userAccountsTable.id })
       .from(userAccountsTable)
       .where(eq(userAccountsTable.accountType, "platform_owner"))
       .limit(1);
-    if (existing) return null;
+    res.json({ setupAvailable: !existing });
+  },
+);
 
-    const [created] = await tx
-      .insert(userAccountsTable)
-      .values({
-        fullName: parsed.data.fullName,
-        username: parsed.data.username,
-        passwordHash: hashPassword(parsed.data.password),
-        accountType: "platform_owner",
-        displayRole: "Platform Owner",
-        active: true,
-      })
-      .returning();
-    return created;
-  });
+router.post(
+  "/auth/provision/platform-owner",
+  async (req, res): Promise<void> => {
+    const provisioningEnabled =
+      process.env.NODE_ENV !== "production" &&
+      (process.env.NODE_ENV === "development" ||
+        process.env.VAR_HR_ENABLE_INITIAL_PROVISIONING === "true");
+    if (!provisioningEnabled) {
+      res.status(404).json({ error: "Not found.", code: "NOT_FOUND" });
+      return;
+    }
 
-  if (!account) {
-    res.status(409).json({
-      error: "A Platform Owner account already exists.",
-      code: "PLATFORM_OWNER_EXISTS",
+    const parsed = initialPlatformOwnerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: errorMessage(parsed.error),
+        code: "INVALID_PLATFORM_OWNER",
+      });
+      return;
+    }
+
+    const account = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext('var_hr_initial_platform_owner_provisioning'))`,
+      );
+      const [existing] = await tx
+        .select({ id: userAccountsTable.id })
+        .from(userAccountsTable)
+        .where(eq(userAccountsTable.accountType, "platform_owner"))
+        .limit(1);
+      if (existing) return null;
+
+      const [created] = await tx
+        .insert(userAccountsTable)
+        .values({
+          fullName: parsed.data.fullName,
+          username: parsed.data.username,
+          passwordHash: hashPassword(parsed.data.password),
+          accountType: "platform_owner",
+          displayRole: "Platform Owner",
+          active: true,
+        })
+        .returning();
+      return created;
     });
-    return;
-  }
 
-  await writeAuthAudit({
-    accountId: account.id,
-    action: "platform_owner_provisioned",
-    entityType: "account",
-    entityId: account.id,
-  });
-  res.status(201).json({ account: accountResponse(account) });
-});
+    if (!account) {
+      res.status(409).json({
+        error: "A Platform Owner account already exists.",
+        code: "PLATFORM_OWNER_EXISTS",
+      });
+      return;
+    }
+
+    await writeAuthAudit({
+      accountId: account.id,
+      action: "platform_owner_provisioned",
+      entityType: "account",
+      entityId: account.id,
+    });
+    res.status(201).json({ account: accountResponse(account) });
+  },
+);
 
 router.get("/auth/me", async (req, res): Promise<void> => {
   const account = await loadAuthenticatedAccount(req);
@@ -514,7 +571,10 @@ router.get(
       : req.params.companyId;
     const parsedCompanyId = z.string().uuid().safeParse(companyId);
     if (!parsedCompanyId.success) {
-      res.status(400).json({ error: "A valid company ID is required.", code: "INVALID_COMPANY" });
+      res.status(400).json({
+        error: "A valid company ID is required.",
+        code: "INVALID_COMPANY",
+      });
       return;
     }
     const [company] = await db
@@ -523,7 +583,9 @@ router.get(
       .where(eq(companiesTable.id, parsedCompanyId.data))
       .limit(1);
     if (!company) {
-      res.status(404).json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
+      res
+        .status(404)
+        .json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
       return;
     }
     const [subscription] = await db
@@ -533,21 +595,31 @@ router.get(
       .where(eq(subscriptionsTable.companyId, company.id))
       .limit(1);
     const backup = await buildBackupPayload("company", company.id);
-    const accounts = (backup.payload.data.var_hr_user_accounts ?? []).map((account) => ({
-      id: String(account.id ?? ""),
-      username: String(account.username ?? ""),
-      accountType: String(account.account_type ?? ""),
-      displayRole: String(account.display_role ?? ""),
-      companyId: account.company_id == null ? null : String(account.company_id),
-      employeeId: account.employee_id == null ? null : String(account.employee_id),
-      active: Boolean(account.active),
-      fullName: String(account.full_name ?? ""),
-      primaryPhone: String(account.primary_phone ?? ""),
-      backupPhones: Array.isArray(account.backup_phones) ? account.backup_phones : [],
-      email: String(account.email ?? ""),
-      backupEmails: Array.isArray(account.backup_emails) ? account.backup_emails : [],
-    }));
-    const owners = accounts.filter((account) => account.accountType === "company_owner");
+    const accounts = (backup.payload.data.var_hr_user_accounts ?? []).map(
+      (account) => ({
+        id: String(account.id ?? ""),
+        username: String(account.username ?? ""),
+        accountType: String(account.account_type ?? ""),
+        displayRole: String(account.display_role ?? ""),
+        companyId:
+          account.company_id == null ? null : String(account.company_id),
+        employeeId:
+          account.employee_id == null ? null : String(account.employee_id),
+        active: Boolean(account.active),
+        fullName: String(account.full_name ?? ""),
+        primaryPhone: String(account.primary_phone ?? ""),
+        backupPhones: Array.isArray(account.backup_phones)
+          ? account.backup_phones
+          : [],
+        email: String(account.email ?? ""),
+        backupEmails: Array.isArray(account.backup_emails)
+          ? account.backup_emails
+          : [],
+      }),
+    );
+    const owners = accounts.filter(
+      (account) => account.accountType === "company_owner",
+    );
     const staff = accounts.filter(
       (account) =>
         account.accountType === "staff" || account.accountType === "manager",
@@ -556,7 +628,15 @@ router.get(
     const devices = backup.payload.data.var_hr_devices ?? [];
     const operationalData = Object.fromEntries(
       Object.entries(backup.payload.data)
-        .filter(([table]) => !["var_hr_companies", "var_hr_user_accounts", "var_hr_permissions", "var_hr_plans"].includes(table))
+        .filter(
+          ([table]) =>
+            ![
+              "var_hr_companies",
+              "var_hr_user_accounts",
+              "var_hr_permissions",
+              "var_hr_plans",
+            ].includes(table),
+        )
         .map(([table, rows]) => [table, rows]),
     );
     res.json({
@@ -566,7 +646,9 @@ router.get(
             status: subscription.subscription.status,
             monthlyPrice: subscription.subscription.monthlyPrice,
             annualPrice: subscription.subscription.annualPrice,
-            employeeLimit: subscription.subscription.employeeLimit ?? subscription.plan.employeeLimit,
+            employeeLimit:
+              subscription.subscription.employeeLimit ??
+              subscription.plan.employeeLimit,
             planName: subscription.plan.name,
           }
         : null,
@@ -576,7 +658,10 @@ router.get(
       devices,
       operationalData,
       tableCounts: Object.fromEntries(
-        Object.entries(backup.payload.data).map(([table, rows]) => [table, rows.length]),
+        Object.entries(backup.payload.data).map(([table, rows]) => [
+          table,
+          rows.length,
+        ]),
       ),
       integrity: backup.payload.manifest.integrity,
     });
@@ -619,7 +704,7 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
       username,
       fullName: parsed.data.fullName,
       primaryPhone: parsed.data.primaryPhone,
-      passwordHash: hashPassword(temporaryPassword),
+      passwordHash: hashPassword(parsed.data.password),
       accountType: "staff",
       displayRole: parsed.data.displayRole,
       companyId: context.companyId,
@@ -701,7 +786,10 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     isOwnerManagingStaff && parsed.data.primaryPhone !== undefined
       ? parsed.data.primaryPhone
       : parsed.data.username;
-  if (parsed.data.username !== undefined && parsed.data.username !== account.username) {
+  if (
+    parsed.data.username !== undefined &&
+    parsed.data.username !== account.username
+  ) {
     const [existingUsername] = await db
       .select({ id: userAccountsTable.id })
       .from(userAccountsTable)
@@ -747,12 +835,18 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     const nextEmails = [
       parsed.data.email ?? account.email,
       ...(parsed.data.backupEmails ?? account.backupEmails),
-    ].filter(Boolean).map((email) => email.toLowerCase());
+    ]
+      .filter(Boolean)
+      .map((email) => email.toLowerCase());
     const nextPhones = [
       parsed.data.primaryPhone ?? account.primaryPhone,
       ...(parsed.data.backupPhones ?? account.backupPhones),
-    ].filter(Boolean).map((phone) => phone.replace(/\D/g, ""));
-    const conflicting = allAccounts.filter((candidate) => candidate.id !== account.id);
+    ]
+      .filter(Boolean)
+      .map((phone) => phone.replace(/\D/g, ""));
+    const conflicting = allAccounts.filter(
+      (candidate) => candidate.id !== account.id,
+    );
     const existingEmails = new Set(
       conflicting
         .flatMap((candidate) => [candidate.email, ...candidate.backupEmails])
@@ -761,18 +855,27 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     );
     const existingPhones = new Set(
       conflicting
-        .flatMap((candidate) => [candidate.primaryPhone, ...candidate.backupPhones])
+        .flatMap((candidate) => [
+          candidate.primaryPhone,
+          ...candidate.backupPhones,
+        ])
         .filter(Boolean)
         .map((phone) => phone.replace(/\D/g, "")),
     );
-    if (new Set(nextEmails).size !== nextEmails.length || nextEmails.some((email) => existingEmails.has(email))) {
+    if (
+      new Set(nextEmails).size !== nextEmails.length ||
+      nextEmails.some((email) => existingEmails.has(email))
+    ) {
       res.status(409).json({
         error: "That owner email is already in use.",
         code: "DUPLICATE_OWNER_CONTACT",
       });
       return;
     }
-    if (new Set(nextPhones).size !== nextPhones.length || nextPhones.some((phone) => existingPhones.has(phone))) {
+    if (
+      new Set(nextPhones).size !== nextPhones.length ||
+      nextPhones.some((phone) => existingPhones.has(phone))
+    ) {
       res.status(409).json({
         error: "That owner phone number is already in use.",
         code: "DUPLICATE_OWNER_CONTACT",
@@ -790,11 +893,19 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
       ...(parsed.data.displayRole !== undefined
         ? { displayRole: parsed.data.displayRole }
         : {}),
-      ...(parsed.data.fullName !== undefined ? { fullName: parsed.data.fullName } : {}),
-      ...(parsed.data.primaryPhone !== undefined ? { primaryPhone: parsed.data.primaryPhone } : {}),
-      ...(parsed.data.backupPhones !== undefined ? { backupPhones: parsed.data.backupPhones } : {}),
+      ...(parsed.data.fullName !== undefined
+        ? { fullName: parsed.data.fullName }
+        : {}),
+      ...(parsed.data.primaryPhone !== undefined
+        ? { primaryPhone: parsed.data.primaryPhone }
+        : {}),
+      ...(parsed.data.backupPhones !== undefined
+        ? { backupPhones: parsed.data.backupPhones }
+        : {}),
       ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}),
-      ...(parsed.data.backupEmails !== undefined ? { backupEmails: parsed.data.backupEmails } : {}),
+      ...(parsed.data.backupEmails !== undefined
+        ? { backupEmails: parsed.data.backupEmails }
+        : {}),
       ...(parsed.data.active !== undefined
         ? { active: parsed.data.active }
         : {}),
@@ -820,11 +931,11 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
         parsed.data.email !== undefined ||
         parsed.data.backupEmails !== undefined)
         ? "account_details_changed"
-         : parsed.data.password !== undefined
-         ? "password_changed"
-         : parsed.data.active === undefined
-        ? "permissions_changed"
-        : "account_status_changed",
+        : parsed.data.password !== undefined
+          ? "password_changed"
+          : parsed.data.active === undefined
+            ? "permissions_changed"
+            : "account_status_changed",
     entityType: "account",
     entityId: account.id,
   });
@@ -926,7 +1037,10 @@ router.post(
     }
     await db
       .update(userAccountsTable)
-      .set({ passwordHash: hashPassword(parsed.data.password), updatedAt: new Date() })
+      .set({
+        passwordHash: hashPassword(parsed.data.password),
+        updatedAt: new Date(),
+      })
       .where(eq(userAccountsTable.id, account.id));
     await db
       .delete(authSessionsTable)
@@ -958,11 +1072,26 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 70);
-  const usernames = parsed.data.owners.map((owner) => owner.username.toLowerCase());
-  const emails = parsed.data.owners.flatMap((owner) => [owner.email, ...owner.backupEmails].map((email) => email.toLowerCase()));
-  const phones = parsed.data.owners.flatMap((owner) => [owner.primaryPhone, ...owner.backupPhones].map((phone) => phone.replace(/\D/g, "")));
-  if (new Set(usernames).size !== usernames.length || new Set(emails).size !== emails.length || new Set(phones).size !== phones.length) {
-    res.status(409).json({ error: "Owner usernames, emails, and phone numbers must be unique.", code: "DUPLICATE_OWNER_CONTACT" });
+  const usernames = parsed.data.owners.map((owner) =>
+    owner.username.toLowerCase(),
+  );
+  const emails = parsed.data.owners.flatMap((owner) =>
+    [owner.email, ...owner.backupEmails].map((email) => email.toLowerCase()),
+  );
+  const phones = parsed.data.owners.flatMap((owner) =>
+    [owner.primaryPhone, ...owner.backupPhones].map((phone) =>
+      phone.replace(/\D/g, ""),
+    ),
+  );
+  if (
+    new Set(usernames).size !== usernames.length ||
+    new Set(emails).size !== emails.length ||
+    new Set(phones).size !== phones.length
+  ) {
+    res.status(409).json({
+      error: "Owner usernames, emails, and phone numbers must be unique.",
+      code: "DUPLICATE_OWNER_CONTACT",
+    });
     return;
   }
   const [existingSlug] = await db
@@ -979,18 +1108,34 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       backupEmails: userAccountsTable.backupEmails,
     })
     .from(userAccountsTable);
-  const existingUsernames = new Set(existingAccounts.map((account) => account.username.toLowerCase()));
-  const existingEmails = new Set(existingAccounts.flatMap((account) => [account.email, ...account.backupEmails]).filter(Boolean).map((email) => email.toLowerCase()));
-  const existingPhones = new Set(existingAccounts.flatMap((account) => [account.primaryPhone, ...account.backupPhones]).filter(Boolean).map((phone) => phone.replace(/\D/g, "")));
-  const duplicateUsername = usernames.some((username) => existingUsernames.has(username));
+  const existingUsernames = new Set(
+    existingAccounts.map((account) => account.username.toLowerCase()),
+  );
+  const existingEmails = new Set(
+    existingAccounts
+      .flatMap((account) => [account.email, ...account.backupEmails])
+      .filter(Boolean)
+      .map((email) => email.toLowerCase()),
+  );
+  const existingPhones = new Set(
+    existingAccounts
+      .flatMap((account) => [account.primaryPhone, ...account.backupPhones])
+      .filter(Boolean)
+      .map((phone) => phone.replace(/\D/g, "")),
+  );
+  const duplicateUsername = usernames.some((username) =>
+    existingUsernames.has(username),
+  );
   const duplicateEmail = emails.some((email) => existingEmails.has(email));
   const duplicatePhone = phones.some((phone) => existingPhones.has(phone));
   if (existingSlug || duplicateUsername || duplicateEmail || duplicatePhone) {
     res.status(409).json({
       error: existingSlug
         ? "That company slug is already in use."
-        : duplicateUsername ? "That owner username is already in use."
-          : duplicateEmail ? "That owner email is already in use."
+        : duplicateUsername
+          ? "That owner username is already in use."
+          : duplicateEmail
+            ? "That owner email is already in use."
             : "That owner phone number is already in use.",
       code: "DUPLICATE_COMPANY",
     });
@@ -1031,22 +1176,26 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       monthlyPrice: parsed.data.monthlyPrice,
       annualPrice: parsed.data.annualPrice,
     });
-    const owners = parsed.data.owners.length ? await tx
-      .insert(userAccountsTable)
-      .values(parsed.data.owners.map((owner) => ({
-        username: owner.username,
-        fullName: owner.fullName,
-        primaryPhone: owner.primaryPhone,
-        backupPhones: owner.backupPhones,
-        email: owner.email,
-        backupEmails: owner.backupEmails,
-        passwordHash: hashPassword(owner.password),
-        accountType: "company_owner",
-        displayRole: "Company Owner",
-        companyId: company.id,
-        active: parsed.data.active,
-      })))
-      .returning() : [];
+    const owners = parsed.data.owners.length
+      ? await tx
+          .insert(userAccountsTable)
+          .values(
+            parsed.data.owners.map((owner) => ({
+              username: owner.username,
+              fullName: owner.fullName,
+              primaryPhone: owner.primaryPhone,
+              backupPhones: owner.backupPhones,
+              email: owner.email,
+              backupEmails: owner.backupEmails,
+              passwordHash: hashPassword(owner.password),
+              accountType: "company_owner",
+              displayRole: "Company Owner",
+              companyId: company.id,
+              active: parsed.data.active,
+            })),
+          )
+          .returning()
+      : [];
     return { company, owners, department };
   });
   await writeAuthAudit({
@@ -1056,14 +1205,18 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
     entityType: "company",
     entityId: result.company.id,
   });
-  await Promise.all(result.owners.map((owner) => writeAuthAudit({
-    accountId: context.accountId,
-    companyId: result.company.id,
-    action: "company_owner_account_created",
-    entityType: "account",
-    entityId: owner.id,
-    metadata: { username: owner.username },
-  })));
+  await Promise.all(
+    result.owners.map((owner) =>
+      writeAuthAudit({
+        accountId: context.accountId,
+        companyId: result.company.id,
+        action: "company_owner_account_created",
+        entityType: "account",
+        entityId: owner.id,
+        metadata: { username: owner.username },
+      }),
+    ),
+  );
   res.status(201).json({
     company: {
       id: result.company.id,
@@ -1121,7 +1274,9 @@ router.patch(
       : parsed.data.active;
     const companyChanges = {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-      ...(parsed.data.address !== undefined ? { address: parsed.data.address } : {}),
+      ...(parsed.data.address !== undefined
+        ? { address: parsed.data.address }
+        : {}),
       ...(parsed.data.timezone !== undefined
         ? { timezone: parsed.data.timezone }
         : {}),
@@ -1161,14 +1316,12 @@ router.patch(
     await writeAuthAudit({
       accountId: context.accountId,
       companyId: company.id,
-      action:
-        priceChanged
-          ? "subscription_pricing_changed"
-          :
-        parsed.data.name !== undefined ||
-        parsed.data.address !== undefined ||
-        parsed.data.timezone !== undefined ||
-        parsed.data.currency !== undefined
+      action: priceChanged
+        ? "subscription_pricing_changed"
+        : parsed.data.name !== undefined ||
+            parsed.data.address !== undefined ||
+            parsed.data.timezone !== undefined ||
+            parsed.data.currency !== undefined
           ? "company_updated"
           : active === undefined
             ? "subscription_limit_changed"
@@ -1180,7 +1333,9 @@ router.patch(
           ? { employeeLimit: parsed.data.employeeLimit }
           : {}),
         ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-        ...(parsed.data.address !== undefined ? { address: parsed.data.address } : {}),
+        ...(parsed.data.address !== undefined
+          ? { address: parsed.data.address }
+          : {}),
         ...(parsed.data.timezone !== undefined
           ? { timezone: parsed.data.timezone }
           : {}),
@@ -1210,7 +1365,7 @@ router.patch(
       company: {
         id: updated.id,
         name: updated.name,
-         address: updated.address,
+        address: updated.address,
         slug: updated.slug,
         timezone: updated.timezone,
         currency: updated.currency,
@@ -1298,7 +1453,9 @@ router.patch(
         backupEmails: userAccountsTable.backupEmails,
       })
       .from(userAccountsTable);
-    const submittedUsernames = parsed.data.owners.map((owner) => owner.username.toLowerCase());
+    const submittedUsernames = parsed.data.owners.map((owner) =>
+      owner.username.toLowerCase(),
+    );
     const submittedEmails = parsed.data.owners
       .flatMap((owner) => [owner.email, ...owner.backupEmails])
       .filter(Boolean)

@@ -3986,32 +3986,32 @@ function authLabel(
     | "permissionsCount"
     | "loadFailed"
     | "createFailed"
-     | "usernameInvalid"
-     | "passwordTooShort"
+    | "usernameInvalid"
+    | "passwordTooShort"
     | "resetFailed"
     | "createStaff"
     | "staffAccounts"
-     | "employeeName"
-     | "employeeNameInvalid"
-     | "phoneNumber"
-     | "phoneInvalid"
+    | "employeeName"
+    | "employeeNameInvalid"
+    | "phoneNumber"
+    | "phoneInvalid"
     | "role"
     | "permissions"
-     | "selectAll"
-     | "deselectAll"
+    | "selectAll"
+    | "deselectAll"
     | "active"
     | "save"
     | "resetPassword"
     | "editPermissions"
     | "savePermissions"
-     | "viewAccount"
-     | "editAccount"
-     | "newPassword"
-     | "saveAccount"
-     | "accountUpdated"
-     | "accountUpdateFailed"
-     | "loginUsername"
-     | "accountStatus"
+    | "viewAccount"
+    | "editAccount"
+    | "newPassword"
+    | "saveAccount"
+    | "accountUpdated"
+    | "accountUpdateFailed"
+    | "loginUsername"
+    | "accountStatus"
     | "permissionsUpdated"
     | "permissionsUpdateFailed"
     | "managementDetail"
@@ -4052,8 +4052,7 @@ function authLabel(
       permissionsCount: "permissions",
       loadFailed: "Could not load account management.",
       createFailed: "Could not create account.",
-      usernameInvalid:
-        "Please enter a valid name using at least 3 characters.",
+      usernameInvalid: "Please enter a valid name using at least 3 characters.",
       passwordTooShort: "Password must contain at least 6 characters.",
       resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
@@ -4119,8 +4118,7 @@ function authLabel(
       permissionsCount: "صلاحيات",
       loadFailed: "تعذر تحميل إدارة الحسابات.",
       createFailed: "تعذر إنشاء الحساب.",
-      usernameInvalid:
-        "يرجى إدخال اسم صحيح مكوّن من 3 أحرف على الأقل",
+      usernameInvalid: "يرجى إدخال اسم صحيح مكوّن من 3 أحرف على الأقل",
       passwordTooShort: "كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل",
       resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
@@ -4228,7 +4226,10 @@ function accountValidationError(
     };
   }
   if (message.includes("password") && message.includes("6")) {
-    return { field: "password", message: authLabel(locale, "passwordTooShort") };
+    return {
+      field: "password",
+      message: authLabel(locale, "passwordTooShort"),
+    };
   }
   return null;
 }
@@ -10048,9 +10049,17 @@ function Accounts() {
     password: "",
     permissions: [] as string[],
   });
-  const [oneTimePassword, setOneTimePassword] = useState("");
-  const [selectedAccountId, setSelectedAccountId] = useState("");
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [editingAccount, setEditingAccount] = useState<AuthAccount | null>(
+    null,
+  );
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    primaryPhone: "",
+    displayRole: "",
+    password: "",
+    active: true,
+    permissions: [] as string[],
+  });
   const load = async () => {
     setLoading(true);
     try {
@@ -10078,9 +10087,7 @@ function Accounts() {
       setFieldErrors({ fullName: authLabel(locale, "employeeNameInvalid") });
       return;
     }
-    if (
-      !/^\+?[0-9 ()-]{7,20}$/.test(form.primaryPhone.trim())
-    ) {
+    if (!/^\+?[0-9 ()-]{7,20}$/.test(form.primaryPhone.trim())) {
       setFieldErrors({ primaryPhone: authLabel(locale, "phoneInvalid") });
       return;
     }
@@ -10092,13 +10099,11 @@ function Accounts() {
     try {
       const result = await authRequest<{
         account: AuthAccount;
-        temporaryPassword: string;
       }>("/api/auth/accounts/staff", {
         method: "POST",
         body: JSON.stringify({ ...form, password: form.password || undefined }),
       });
       setAccounts((current) => [...current, result.account]);
-      setOneTimePassword(result.temporaryPassword);
       setForm({
         fullName: "",
         primaryPhone: "",
@@ -10114,42 +10119,52 @@ function Accounts() {
         setFieldErrors({ [validationError.field]: validationError.message });
         return;
       }
-      toast.error(
-        authLabel(locale, "createFailed"),
-      );
+      toast.error(authLabel(locale, "createFailed"));
     } finally {
       setSaving(false);
     }
   };
-  const reset = async (accountId: string) => {
-    try {
-      const result = await authRequest<{ temporaryPassword: string }>(
-        `/api/auth/accounts/${accountId}/reset-password`,
-        { method: "POST", body: "{}" },
-      );
-      setOneTimePassword(result.temporaryPassword);
-      toast.success(authLabel(locale, "temporaryPassword"));
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : authLabel(locale, "resetFailed"),
-      );
-    }
-  };
   const selectAccount = (account: AuthAccount) => {
-    setSelectedAccountId(account.id);
-    setSelectedPermissions(account.permissions);
+    setEditingAccount(account);
+    setEditForm({
+      fullName: account.fullName,
+      primaryPhone: account.primaryPhone || account.username,
+      displayRole: account.displayRole,
+      password: "",
+      active: account.active,
+      permissions: [...account.permissions],
+    });
   };
-  const savePermissions = async () => {
-    if (!selectedAccountId) return;
+  const saveAccount = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!editingAccount) return;
+    setFieldErrors({});
+    if (editForm.fullName.trim().length < 1) {
+      setFieldErrors({ fullName: authLabel(locale, "employeeNameInvalid") });
+      return;
+    }
+    if (!/^\+?[0-9 ()-]{7,20}$/.test(editForm.primaryPhone.trim())) {
+      setFieldErrors({ primaryPhone: authLabel(locale, "phoneInvalid") });
+      return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      setFieldErrors({ password: authLabel(locale, "passwordTooShort") });
+      return;
+    }
     setSaving(true);
     try {
       const result = await authRequest<{ account: AuthAccount }>(
-        `/api/auth/accounts/${selectedAccountId}`,
+        `/api/auth/accounts/${editingAccount.id}`,
         {
           method: "PATCH",
-          body: JSON.stringify({ permissions: selectedPermissions }),
+          body: JSON.stringify({
+            fullName: editForm.fullName,
+            primaryPhone: editForm.primaryPhone,
+            displayRole: editForm.displayRole,
+            active: editForm.active,
+            permissions: editForm.permissions,
+            ...(editForm.password ? { password: editForm.password } : {}),
+          }),
         },
       );
       setAccounts((current) =>
@@ -10157,30 +10172,28 @@ function Accounts() {
           account.id === result.account.id ? result.account : account,
         ),
       );
-      setSelectedPermissions(result.account.permissions);
-      toast.success(authLabel(locale, "permissionsUpdated"));
+      setEditingAccount(null);
+      setFieldErrors({});
+      toast.success(authLabel(locale, "accountUpdated"));
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : authLabel(locale, "permissionsUpdateFailed"),
+          : authLabel(locale, "accountUpdateFailed"),
       );
     } finally {
       setSaving(false);
     }
   };
-  const selectedAccount = accounts.find(
-    (account) => account.id === selectedAccountId,
-  );
   const allPermissionsSelected =
     permissions.length > 0 &&
     permissions.every((permission) =>
       form.permissions.includes(permission.key),
     );
-  const allSelectedAccountPermissions =
+  const allEditPermissionsSelected =
     permissions.length > 0 &&
     permissions.every((permission) =>
-      selectedPermissions.includes(permission.key),
+      editForm.permissions.includes(permission.key),
     );
   if (workspace.data?.role !== "company_owner")
     return <WorkspaceState kind="unauthorized" />;
@@ -10212,7 +10225,10 @@ function Accounts() {
               label={authLabel(locale, "employeeName")}
               value={form.fullName}
               onChange={(value) => {
-                 setFieldErrors((current) => ({ ...current, fullName: undefined }));
+                setFieldErrors((current) => ({
+                  ...current,
+                  fullName: undefined,
+                }));
                 setForm({ ...form, fullName: value });
               }}
               error={fieldErrors.fullName}
@@ -10223,7 +10239,10 @@ function Accounts() {
               type="tel"
               value={form.primaryPhone}
               onChange={(value) => {
-                setFieldErrors((current) => ({ ...current, primaryPhone: undefined }));
+                setFieldErrors((current) => ({
+                  ...current,
+                  primaryPhone: undefined,
+                }));
                 setForm({ ...form, primaryPhone: value });
               }}
               error={fieldErrors.primaryPhone}
@@ -10240,7 +10259,10 @@ function Accounts() {
               type="password"
               value={form.password}
               onChange={(value) => {
-                setFieldErrors((current) => ({ ...current, password: undefined }));
+                setFieldErrors((current) => ({
+                  ...current,
+                  password: undefined,
+                }));
                 setForm({ ...form, password: value });
               }}
               error={fieldErrors.password}
@@ -10328,109 +10350,6 @@ function Accounts() {
                   )}
             </p>
           </div>
-          {oneTimePassword && (
-            <div className="m-5 rounded-xl border border-accent/30 bg-accent/10 p-4">
-              <div className="flex items-center gap-2 font-semibold text-primary-dark">
-                <KeyRound size={16} />
-                {authLabel(locale, "temporaryPassword")}
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <code className="rounded bg-background px-3 py-2 font-mono text-lg tracking-widest">
-                  {oneTimePassword}
-                </code>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(oneTimePassword);
-                    toast.success(authLabel(locale, "copied"));
-                  }}
-                >
-                  {authLabel(locale, "copyPassword")}
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-primary-dark">
-                {authLabel(locale, "shownOnce")}
-              </p>
-            </div>
-          )}
-          {selectedAccount && (
-            <div className="m-5 rounded-xl border border-primary/20 bg-primary/[.04] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold">
-                    {authLabel(locale, "editPermissions")}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedAccount.fullName || selectedAccount.username} ·{" "}
-                    {selectedAccount.primaryPhone || selectedAccount.username} ·{" "}
-                    {selectedAccount.displayRole}
-                  </p>
-                </div>
-                <Button
-                  disabled={saving}
-                  onClick={() => void savePermissions()}
-                >
-                  {authLabel(locale, "savePermissions")}
-                </Button>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold">
-                  {authLabel(locale, "permissions")}
-                </p>
-                <Button
-                  type="button"
-                  variant="quiet"
-                  className="px-2 py-1 text-xs"
-                  disabled={permissions.length === 0}
-                  onClick={() =>
-                    setSelectedPermissions(
-                      allSelectedAccountPermissions
-                        ? []
-                        : permissions.map((permission) => permission.key),
-                    )
-                  }
-                >
-                  {authLabel(
-                    locale,
-                    allSelectedAccountPermissions
-                      ? "deselectAll"
-                      : "selectAll",
-                  )}
-                </Button>
-              </div>
-              <div className="mt-2 max-h-64 space-y-2 overflow-auto rounded-lg border border-border bg-background p-3">
-                {permissions.map((permission) => (
-                  <label
-                    className="flex items-start gap-2 text-sm"
-                    key={`edit-${permission.key}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPermissions.includes(permission.key)}
-                      onChange={(event) =>
-                        setSelectedPermissions((current) =>
-                          event.target.checked
-                            ? [...current, permission.key]
-                            : current.filter((key) => key !== permission.key),
-                        )
-                      }
-                    />
-                    <span>
-                      {permissionLabel(locale, permission)}
-                      {permissionDescription(locale, permission) && (
-                        <span className="block text-xs text-muted-foreground">
-                          {permissionDescription(locale, permission)}
-                        </span>
-                      )}
-                      <span className="block text-xs text-muted-foreground">
-                        {permission.key}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-16" />
@@ -10458,20 +10377,22 @@ function Accounts() {
                       {authLabel(locale, "permissionsCount")}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => selectAccount(account)}
-                  >
-                    <ShieldCheck size={15} />
-                    {authLabel(locale, "editPermissions")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void reset(account.id)}
-                  >
-                    <KeyRound size={15} />
-                    {authLabel(locale, "resetPassword")}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => selectAccount(account)}
+                    >
+                      <Eye size={15} />
+                      {authLabel(locale, "viewAccount")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => selectAccount(account)}
+                    >
+                      <ShieldCheck size={15} />
+                      {authLabel(locale, "editAccount")}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -10487,6 +10408,144 @@ function Accounts() {
           )}
         </Card>
       </div>
+      {editingAccount && (
+        <Modal
+          title={authLabel(locale, "editAccount")}
+          onClose={() => {
+            setEditingAccount(null);
+            setFieldErrors({});
+          }}
+          className="max-w-2xl"
+        >
+          <form onSubmit={saveAccount} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={authLabel(locale, "employeeName")}
+                value={editForm.fullName}
+                onChange={(value) =>
+                  setEditForm({ ...editForm, fullName: value })
+                }
+                error={fieldErrors.fullName}
+                required
+              />
+              <Field
+                label={authLabel(locale, "phoneNumber")}
+                type="tel"
+                value={editForm.primaryPhone}
+                onChange={(value) =>
+                  setEditForm({ ...editForm, primaryPhone: value })
+                }
+                error={fieldErrors.primaryPhone}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {authLabel(locale, "loginUsername")}:{" "}
+              {editForm.primaryPhone || editingAccount.username}
+            </p>
+            <Field
+              label={authLabel(locale, "role")}
+              value={editForm.displayRole}
+              onChange={(value) =>
+                setEditForm({ ...editForm, displayRole: value })
+              }
+              required
+            />
+            <Field
+              label={authLabel(locale, "newPassword")}
+              type="password"
+              value={editForm.password}
+              onChange={(value) =>
+                setEditForm({ ...editForm, password: value })
+              }
+              error={fieldErrors.password}
+              placeholder={authLabel(locale, "optional")}
+            />
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={editForm.active}
+                onChange={(event) =>
+                  setEditForm({ ...editForm, active: event.target.checked })
+                }
+              />
+              {authLabel(locale, "accountStatus")}:{" "}
+              {editForm.active
+                ? authLabel(locale, "active")
+                : authLabel(locale, "inactive")}
+            </label>
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">
+                  {authLabel(locale, "permissions")}
+                </p>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  className="px-2 py-1 text-xs"
+                  disabled={permissions.length === 0}
+                  onClick={() =>
+                    setEditForm({
+                      ...editForm,
+                      permissions: allEditPermissionsSelected
+                        ? []
+                        : permissions.map((permission) => permission.key),
+                    })
+                  }
+                >
+                  {authLabel(
+                    locale,
+                    allEditPermissionsSelected ? "deselectAll" : "selectAll",
+                  )}
+                </Button>
+              </div>
+              <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
+                {permissions.map((permission) => (
+                  <label
+                    className="flex items-start gap-2 text-sm"
+                    key={`edit-${permission.key}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.includes(permission.key)}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          permissions: event.target.checked
+                            ? [...editForm.permissions, permission.key]
+                            : editForm.permissions.filter(
+                                (key) => key !== permission.key,
+                              ),
+                        })
+                      }
+                    />
+                    <span>
+                      {permissionLabel(locale, permission)}
+                      {permissionDescription(locale, permission) && (
+                        <span className="block text-xs text-muted-foreground">
+                          {permissionDescription(locale, permission)}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setEditingAccount(null)}
+              >
+                {tSafe(locale, "refresh") === "Refresh" ? "Cancel" : "إلغاء"}
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "…" : authLabel(locale, "saveAccount")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }
