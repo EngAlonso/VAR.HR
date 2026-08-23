@@ -512,7 +512,6 @@ const copy = {
     late: "Late",
     absent: "Absent",
     mondayOperationalOverview: "Monday · operational overview",
-    goodMorningAmina: "Good morning, Amina.",
     decisionSurfaceReviewExceptions:
       "Decision surface for {date}. Review the exceptions first.",
     liveWorkspace: "Live workspace",
@@ -869,7 +868,6 @@ const copy = {
     evidenceAnalysis: "الأدلة والتحليل",
     exceptionsSurfaced: "يتم عرض الاستثناءات بوضوح.",
     from: "من",
-    goodMorningAmina: "صباح الخير، أمينة",
     gpsPolicy: "سياسة GPS",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
@@ -2330,7 +2328,8 @@ const commonCopy = {
     closeNavigation: "Close navigation",
     retry: "Retry",
     mondayOperationalOverview: "Monday · operational overview",
-    goodMorningAmina: "Good morning, Amina.",
+    goodMorning: "Good morning",
+    goodMorningNoName: "Good morning",
     decisionSurfaceReviewExceptions:
       "Decision surface for {date}. Review the exceptions first.",
     liveWorkspace: "Live workspace",
@@ -2381,7 +2380,8 @@ const commonCopy = {
     closeNavigation: "إغلاق التنقل",
     retry: "إعادة المحاولة",
     mondayOperationalOverview: "نظرة تشغيلية ليوم الاثنين",
-    goodMorningAmina: "صباح الخير، أمينة.",
+    goodMorning: "صباح الخير",
+    goodMorningNoName: "صباح الخير",
     decisionSurfaceReviewExceptions:
       "سطح قرار بتاريخ {date}. راجع الاستثناءات أولاً.",
     liveWorkspace: "مساحة عمل مباشرة",
@@ -2432,7 +2432,8 @@ const commonCopy = {
     closeNavigation: "Fermer la navigation",
     retry: "Réessayer",
     mondayOperationalOverview: "vue opérationnelle du lundi",
-    goodMorningAmina: "Bonjour, Amina.",
+    goodMorning: "Bonjour",
+    goodMorningNoName: "Bonjour",
     decisionSurfaceReviewExceptions:
       "Surface de décision du {date}. Examinez d’abord les exceptions.",
     liveWorkspace: "Espace actif",
@@ -2484,7 +2485,8 @@ const commonCopy = {
     closeNavigation: "Navigation schließen",
     retry: "Erneut versuchen",
     mondayOperationalOverview: "operative Übersicht am Montag",
-    goodMorningAmina: "Guten Morgen, Amina.",
+    goodMorning: "Guten Morgen",
+    goodMorningNoName: "Guten Morgen",
     decisionSurfaceReviewExceptions:
       "Entscheidungsansicht für {date}. Prüfen Sie zuerst die Ausnahmen.",
     liveWorkspace: "Aktiver Arbeitsbereich",
@@ -4997,13 +4999,20 @@ function tr(key: AppCopyKey, vars: Record<string, string | number> = {}) {
   );
 }
 function Overview() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const auth = useAuth();
   const q = useGetDashboardSummary();
   const d = q.data;
   const departments = useListDepartments();
   const branches = useListBranches();
   const workspace = useGetWorkspace();
   const currency = workspace.data?.company?.currency ?? "EGP";
+  const fullName = auth.account.fullName.trim();
+  const greeting = fullName
+    ? locale === "ar"
+      ? `${t("goodMorning")}، ${fullName}`
+      : `${t("goodMorning")}, ${fullName}.`
+    : t("goodMorningNoName");
   const localizedAlerts = d?.alerts?.map((alert: any) =>
     alert.id === "device-adapter"
       ? {
@@ -5031,7 +5040,7 @@ function Overview() {
     <div className="animate-in">
       <SectionTitle
         eyebrow={t("mondayOperationalOverview")}
-        title={t("goodMorningAmina")}
+        title={greeting}
         detail={tr("decisionSurfaceReviewExceptions", { date: date(d.date) })}
         action={
           <div className="flex items-center gap-2">
