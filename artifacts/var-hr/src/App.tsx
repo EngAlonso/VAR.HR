@@ -4042,7 +4042,7 @@ function authLabel(
       createFailed: "Could not create account.",
       usernameInvalid:
         "Please enter a valid name using at least 3 characters.",
-      passwordTooShort: "Password must contain at least 10 characters.",
+      passwordTooShort: "Password must contain at least 6 characters.",
       resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
       staffAccounts: "Staff accounts",
@@ -4097,7 +4097,7 @@ function authLabel(
       createFailed: "تعذر إنشاء الحساب.",
       usernameInvalid:
         "يرجى إدخال اسم صحيح مكوّن من 3 أحرف على الأقل",
-      passwordTooShort: "كلمة المرور يجب أن تحتوي على 10 أحرف على الأقل",
+      passwordTooShort: "كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل",
       resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
       staffAccounts: "حسابات الموظفين",
@@ -10033,7 +10033,7 @@ function Accounts() {
       setFieldErrors({ username: authLabel(locale, "usernameInvalid") });
       return;
     }
-    if (form.password && form.password.length < 10) {
+    if (form.password && form.password.length < 6) {
       setFieldErrors({ password: authLabel(locale, "passwordTooShort") });
       return;
     }

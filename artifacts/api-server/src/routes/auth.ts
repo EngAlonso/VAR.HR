@@ -55,7 +55,7 @@ const staffInputSchema = z.object({
     .min(3)
     .max(80),
   displayRole: z.string().trim().min(1).max(80),
-  password: z.string().min(10).max(256).optional(),
+  password: z.string().min(6).max(256).optional(),
   permissions: z.array(z.string()).default([]),
   active: z.boolean().default(true),
 });
