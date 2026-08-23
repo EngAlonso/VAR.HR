@@ -3993,6 +3993,8 @@ function authLabel(
     | "staffAccounts"
     | "role"
     | "permissions"
+     | "selectAll"
+     | "deselectAll"
     | "active"
     | "save"
     | "resetPassword"
@@ -4046,6 +4048,8 @@ function authLabel(
       staffAccounts: "Staff accounts",
       role: "Display role",
       permissions: "Permissions",
+      selectAll: "Select all",
+      deselectAll: "Deselect all",
       active: "Active",
       save: "Save",
       resetPassword: "Reset password",
@@ -4099,6 +4103,8 @@ function authLabel(
       staffAccounts: "حسابات الموظفين",
       role: "المسمى الوظيفي",
       permissions: "الصلاحيات",
+      selectAll: "تحديد الكل",
+      deselectAll: "إلغاء تحديد الكل",
       active: "نشط",
       save: "حفظ",
       resetPassword: "إعادة تعيين كلمة المرور",
@@ -10114,6 +10120,16 @@ function Accounts() {
   const selectedAccount = accounts.find(
     (account) => account.id === selectedAccountId,
   );
+  const allPermissionsSelected =
+    permissions.length > 0 &&
+    permissions.every((permission) =>
+      form.permissions.includes(permission.key),
+    );
+  const allSelectedAccountPermissions =
+    permissions.length > 0 &&
+    permissions.every((permission) =>
+      selectedPermissions.includes(permission.key),
+    );
   if (workspace.data?.role !== "company_owner")
     return <WorkspaceState kind="unauthorized" />;
   return (
@@ -10167,9 +10183,30 @@ function Accounts() {
               error={fieldErrors.password}
             />
             <div>
-              <p className="text-sm font-semibold">
-                {authLabel(locale, "permissions")}
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">
+                  {authLabel(locale, "permissions")}
+                </p>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  className="px-2 py-1 text-xs"
+                  disabled={permissions.length === 0}
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      permissions: allPermissionsSelected
+                        ? []
+                        : permissions.map((permission) => permission.key),
+                    })
+                  }
+                >
+                  {authLabel(
+                    locale,
+                    allPermissionsSelected ? "deselectAll" : "selectAll",
+                  )}
+                </Button>
+              </div>
               <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
                 {permissions.map((permission) => (
                   <label
@@ -10270,7 +10307,32 @@ function Accounts() {
                   {authLabel(locale, "savePermissions")}
                 </Button>
               </div>
-              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-lg border border-border bg-background p-3">
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">
+                  {authLabel(locale, "permissions")}
+                </p>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  className="px-2 py-1 text-xs"
+                  disabled={permissions.length === 0}
+                  onClick={() =>
+                    setSelectedPermissions(
+                      allSelectedAccountPermissions
+                        ? []
+                        : permissions.map((permission) => permission.key),
+                    )
+                  }
+                >
+                  {authLabel(
+                    locale,
+                    allSelectedAccountPermissions
+                      ? "deselectAll"
+                      : "selectAll",
+                  )}
+                </Button>
+              </div>
+              <div className="mt-2 max-h-64 space-y-2 overflow-auto rounded-lg border border-border bg-background p-3">
                 {permissions.map((permission) => (
                   <label
                     className="flex items-start gap-2 text-sm"
