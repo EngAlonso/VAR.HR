@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request } from "express";
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   accountPermissionsTable,
@@ -40,6 +40,10 @@ const router: IRouter = Router();
 const credentialsSchema = z.object({
   username: z.string().trim().min(1).max(120),
   password: z.string().min(1).max(256),
+});
+const initialPlatformOwnerSchema = z.object({
+  username: z.string().trim().min(1).max(120),
+  password: z.string().min(6).max(256),
 });
 const staffInputSchema = z.object({
   username: z
@@ -273,6 +277,66 @@ router.post("/auth/login", async (req, res): Promise<void> => {
           ? "/"
           : "/",
   });
+});
+
+router.post("/auth/provision/platform-owner", async (req, res): Promise<void> => {
+  const provisioningEnabled =
+    process.env.NODE_ENV !== "production" &&
+    (process.env.NODE_ENV === "development" ||
+      process.env.VAR_HR_ENABLE_INITIAL_PROVISIONING === "true");
+  if (!provisioningEnabled) {
+    res.status(404).json({ error: "Not found.", code: "NOT_FOUND" });
+    return;
+  }
+
+  const parsed = initialPlatformOwnerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: errorMessage(parsed.error),
+      code: "INVALID_PLATFORM_OWNER",
+    });
+    return;
+  }
+
+  const account = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('var_hr_initial_platform_owner_provisioning'))`,
+    );
+    const [existing] = await tx
+      .select({ id: userAccountsTable.id })
+      .from(userAccountsTable)
+      .where(eq(userAccountsTable.accountType, "platform_owner"))
+      .limit(1);
+    if (existing) return null;
+
+    const [created] = await tx
+      .insert(userAccountsTable)
+      .values({
+        username: parsed.data.username,
+        passwordHash: hashPassword(parsed.data.password),
+        accountType: "platform_owner",
+        displayRole: "Platform Owner",
+        active: true,
+      })
+      .returning();
+    return created;
+  });
+
+  if (!account) {
+    res.status(409).json({
+      error: "A Platform Owner account already exists.",
+      code: "PLATFORM_OWNER_EXISTS",
+    });
+    return;
+  }
+
+  await writeAuthAudit({
+    accountId: account.id,
+    action: "platform_owner_provisioned",
+    entityType: "account",
+    entityId: account.id,
+  });
+  res.status(201).json({ account: accountResponse(account) });
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {

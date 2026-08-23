@@ -18,6 +18,13 @@ export interface LoginInput {
   password: string;
 }
 
+export interface InitialPlatformOwnerInput {
+  /** @minLength 1 */
+  username: string;
+  /** @minLength 6 */
+  password: string;
+}
+
 export interface AuthPermission {
   key: string;
   label: string;
@@ -54,6 +61,10 @@ export interface AuthSessionResponse {
 
 export interface AuthMeResponse {
   user: AuthAccount;
+}
+
+export interface InitialPlatformOwnerResponse {
+  account: AuthAccount;
 }
 
 export interface StaffAccountInput {

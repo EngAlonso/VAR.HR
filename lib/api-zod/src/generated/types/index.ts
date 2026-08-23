@@ -99,6 +99,8 @@ export * from './getReportType';
 export * from './healthStatus';
 export * from './holiday';
 export * from './holidayInput';
+export * from './initialPlatformOwnerInput';
+export * from './initialPlatformOwnerResponse';
 export * from './leaveBalance';
 export * from './leaveRequest';
 export * from './leaveRequestInput';

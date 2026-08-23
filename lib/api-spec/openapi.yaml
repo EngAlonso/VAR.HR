@@ -56,6 +56,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthSessionResponse"
+  /auth/provision/platform-owner:
+    post:
+      operationId: provisionInitialPlatformOwner
+      tags: [auth]
+      summary: Provision the initial Platform Owner account
+      description: Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitialPlatformOwnerInput"
+      responses:
+        "201":
+          description: Provisioned Platform Owner account without password data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitialPlatformOwnerResponse"
+        "400":
+          description: Invalid provisioning input
+        "404":
+          description: Provisioning is not enabled
+        "409":
+          description: A Platform Owner already exists
   /auth/me:
     get:
       operationId: getAuthMe
@@ -1453,6 +1478,12 @@ components:
       properties:
         username: { type: string, minLength: 1 }
         password: { type: string, minLength: 1 }
+    InitialPlatformOwnerInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 6 }
     AuthPermission:
       type: object
       required: [key, label, description]
@@ -1497,6 +1528,11 @@ components:
       required: [user]
       properties:
         user: { $ref: "#/components/schemas/AuthAccount" }
+    InitialPlatformOwnerResponse:
+      type: object
+      required: [account]
+      properties:
+        account: { $ref: "#/components/schemas/AuthAccount" }
     StaffAccountInput:
       type: object
       required: [username, displayRole, permissions]

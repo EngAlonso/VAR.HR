@@ -44,6 +44,34 @@ export const LoginResponse = zod.object({
 
 
 /**
+ * Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+ * @summary Provision the initial Platform Owner account
+ */
+
+export const provisionInitialPlatformOwnerBodyPasswordMin = 6;
+
+
+
+export const ProvisionInitialPlatformOwnerBody = zod.object({
+  "username": zod.string().min(1),
+  "password": zod.string().min(provisionInitialPlatformOwnerBodyPasswordMin)
+})
+
+export const ProvisionInitialPlatformOwnerResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "accountType": zod.enum(['platform_owner', 'company_owner', 'staff', 'employee']),
+  "displayRole": zod.string(),
+  "companyId": zod.string().nullable(),
+  "employeeId": zod.string().nullable(),
+  "active": zod.boolean(),
+  "permissions": zod.array(zod.string())
+})
+})
+
+
+/**
  * @summary Get the current signed-in account
  */
 export const GetAuthMeResponse = zod.object({

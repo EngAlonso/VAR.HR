@@ -66,6 +66,8 @@ import type {
   HealthStatus,
   Holiday,
   HolidayInput,
+  InitialPlatformOwnerInput,
+  InitialPlatformOwnerResponse,
   LeaveBalance,
   LeaveRequest,
   LeaveRequestInput,
@@ -273,6 +275,78 @@ export const useLogin = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getProvisionInitialPlatformOwnerUrl = () => {
+
+
+
+
+  return `/api/auth/provision/platform-owner`
+}
+
+/**
+ * Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+ * @summary Provision the initial Platform Owner account
+ */
+export const provisionInitialPlatformOwner = async (initialPlatformOwnerInput: InitialPlatformOwnerInput, options?: Parameters<typeof customFetch>[1]): Promise<InitialPlatformOwnerResponse> => {
+
+  return customFetch<InitialPlatformOwnerResponse>(getProvisionInitialPlatformOwnerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(initialPlatformOwnerInput)
+  }
+);}
+
+
+
+
+
+export const getProvisionInitialPlatformOwnerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof provisionInitialPlatformOwner>>, TError,{data: BodyType<InitialPlatformOwnerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof provisionInitialPlatformOwner>>, TError,{data: BodyType<InitialPlatformOwnerInput>}, TContext> => {
+
+const mutationKey = ['provisionInitialPlatformOwner'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof provisionInitialPlatformOwner>>, {data: BodyType<InitialPlatformOwnerInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  provisionInitialPlatformOwner(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProvisionInitialPlatformOwnerMutationResult = NonNullable<Awaited<ReturnType<typeof provisionInitialPlatformOwner>>>
+    export type ProvisionInitialPlatformOwnerMutationBody = BodyType<InitialPlatformOwnerInput>
+    export type ProvisionInitialPlatformOwnerMutationError = ErrorType<void>
+
+    /**
+ * @summary Provision the initial Platform Owner account
+ */
+export const useProvisionInitialPlatformOwner = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof provisionInitialPlatformOwner>>, TError,{data: BodyType<InitialPlatformOwnerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof provisionInitialPlatformOwner>>,
+        TError,
+        {data: BodyType<InitialPlatformOwnerInput>},
+        TContext
+      > => {
+      return useMutation(getProvisionInitialPlatformOwnerMutationOptions(options));
     }
 
 export const getGetAuthMeUrl = () => {
