@@ -258,7 +258,10 @@ type PlatformSummary = {
     totalPlatformUsers: number;
     activeSubscriptions: number;
   };
-  subscriptionStatus: Record<"trial" | "active" | "past_due" | "cancelled", number>;
+  subscriptionStatus: Record<
+    "trial" | "active" | "past_due" | "cancelled",
+    number
+  >;
   companies: PlatformCompanyDetail[];
   activity: PlatformActivity[];
   alerts: Array<{
@@ -451,6 +454,8 @@ const copy = {
     language: "Language",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
+    back: "Back",
+    goBack: "Go back",
     languageEnglish: "English",
     languageArabic: "Arabic",
     languageFrench: "French",
@@ -757,6 +762,8 @@ const copy = {
     language: "اللغة",
     openNavigation: "فتح التنقل",
     closeNavigation: "إغلاق التنقل",
+    back: "رجوع",
+    goBack: "العودة",
     languageEnglish: "الإنجليزية",
     languageArabic: "العربية",
     languageFrench: "الفرنسية",
@@ -836,7 +843,6 @@ const copy = {
     checkInNow: "تسجيل الحضور الآن",
     checkOut: "تسجيل الانصراف",
     checkOutNow: "تسجيل الانصراف الآن",
-    chooseReportingWindow: "اختر نطاق التقرير",
     company: "الشركة",
     connectedOperations: "العمليات المتصلة",
     couldNotCreateEmployee: "تعذر إنشاء الموظف",
@@ -867,7 +873,8 @@ const copy = {
     gpsPolicy: "سياسة GPS",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
-    hrProfileDetail: "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
+    hrProfileDetail:
+      "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
     hrRecord: "سجل الموارد البشرية",
     hrRecordCreateHint: "أكمل الحقول أدناه لإنشاء سجل الموارد البشرية للموظف.",
     hrRecordLoadFailed: "تعذر تحميل سجل الموارد البشرية.",
@@ -1538,9 +1545,6 @@ const pageCopy = {
     evidenceAnalysis: "الأدلة والتحليل",
     attendanceReportsTitle: "تقارير الحضور",
     reportsDetail: "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
-    refreshPreview: "تحديث المعاينة",
-    previewReport: "معاينة التقرير",
-    chooseReportingWindow: "اختر نطاق التقرير",
     setDatesAbove: "حدد التواريخ أعلاه لمعاينة بيانات الحضور.",
     overtimeHours: "ساعات إضافية",
     employeeDetail: "تفاصيل الموظف",
@@ -1627,9 +1631,6 @@ const pageCopy = {
     syncRequested: "تم طلب المزامنة",
     syncUnavailable: "طلب المزامنة غير متاح",
     addBiometricDevice: "إضافة جهاز بصمة",
-    deviceName: "اسم الجهاز",
-    manufacturer: "الشركة المصنعة",
-    model: "الطراز",
     selectBranch: "اختر الفرع",
     planCapacity: "الخطة والسعة",
     subscriptionTitle: "الاشتراك",
@@ -1674,6 +1675,83 @@ const pageCopy = {
     lastActivity: "آخر نشاط",
     cancel: "إلغاء",
     closeDialog: "إغلاق النافذة",
+    workforceRegistry: "سجل القوى العاملة",
+    searchReviewMaintainPeople:
+      "ابحث عن الأشخاص الذين يدعمون العمليات وراجعهم وأدر بياناتهم.",
+    searchByNameNumberEmail: "البحث بالاسم أو الرقم أو البريد الإلكتروني",
+    adjustSearchOrAddFirstEmployee:
+      "عدّل البحث أو أضف أول موظف إلى مساحة العمل.",
+    firstName: "الاسم الأول",
+    lastName: "اسم العائلة",
+    monthlySalary: "الراتب الشهري",
+    select: "اختر",
+    departmentName: "اسم القسم",
+    createDepartment: "إنشاء قسم",
+    branchName: "اسم الفرع",
+    createBranch: "إنشاء فرع",
+    branchCity: "مدينة الفرع",
+    employeeAddedToWorkspace: "تمت إضافة الموظف إلى مساحة العمل",
+    apiWillIdentifySignedInEmployee: "ستحدد واجهة API الموظف الذي سجّل الدخول.",
+    webEventLocationPolicy: "حدث ويب · تقيّم واجهة API سياسة الموقع",
+    noAttendanceRecordsYet: "لا توجد سجلات حضور بعد",
+    whenDayStartsEventsAppearHere: "ستظهر الأحداث هنا عند بدء اليوم.",
+    noHistoryFound: "لا يوجد سجل",
+    attendanceHistoryWillPopulate: "سيظهر سجل الحضور بعد تسجيل الأحداث.",
+    newLeaveAndPermissionRequestsWillAppearHere:
+      "ستظهر طلبات الإجازة والاستئذان الجديدة هنا.",
+    pendingDecisionsAcrossBothRequestTypes: "قرارات معلقة من نوعي الطلبات",
+    theDecisionQueueIsClear: "قائمة القرارات فارغة",
+    notApprovedAtThisTime: "لم تتم الموافقة في الوقت الحالي",
+    reviewedInOperationsQueue: "تمت مراجعته في قائمة العمليات",
+    changesApplyEffectiveDate:
+      "تسري التغييرات من تاريخ النفاذ ولا تمثل تفسيراً قانونياً أو نظامياً.",
+    gracePeriodMinutes: "فترة السماح (بالدقائق)",
+    overtimeAfterMinutes: "العمل الإضافي بعد (بالدقائق)",
+    locationRadiusMeters: "نطاق الموقع (بالمتر)",
+    explainabilityByDefault: "قابلية التفسير افتراضياً",
+    attendanceExceptionsRecorded:
+      "تسجل استثناءات الحضور مصدرها وحالة الموقع وشرحاً واضحاً للمراجعة.",
+    attendanceReports: "تقارير الحضور",
+    previewSelectedPeriod:
+      "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
+    refreshPreview: "تحديث المعاينة",
+    previewReport: "معاينة التقرير",
+    chooseReportingWindow: "اختر نطاق التقرير",
+    setDatesAbovePreview: "حدد التواريخ أعلاه لمعاينة أدلة الحضور.",
+    generalPayrollOperations: "عمليات الرواتب العامة",
+    explainableCalculationHistory:
+      "سجل حسابات قابل للتفسير باستخدام مدخلات القوى العاملة المُعدة. هذه ليست استشارة ضريبية نظامية.",
+    selectAPeriodToInspectOrRecalculate: "اختر فترة لفحصها أو إعادة حسابها.",
+    periodsSuppliedByApi: "توفر واجهة API الفترات التشغيلية.",
+    calculated: "تم الحساب",
+    calculationCouldNotBeCompleted: "تعذر إكمال الحساب",
+    payrollCalculationReady: "حساب الرواتب جاهز",
+    selectPeriodToCreatePreview: "اختر حساب لإنشاء معاينة حساب قابلة للتفسير.",
+    couldNotAddDevice: "تعذر إضافة الجهاز",
+    deviceConfigurationAdded: "تمت إضافة إعداد الجهاز",
+    noBiometricDevicesConfigured: "لا توجد أجهزة بصمة مُعدة",
+    addDeviceToMakeAdapterStateVisible: "أضف جهازاً لعرض حالة موصله.",
+    deviceName: "اسم الجهاز",
+    manufacturer: "الشركة المصنعة",
+    model: "الطراز",
+    branchSelect: "الفرع",
+    configurationVisibleAdapterHonest:
+      "يظهر الإعداد هنا، وتُعرض حالة الموصل بوضوح.",
+    syncRequestUnavailable: "طلب المزامنة غير متاح",
+    usageAndEntitlements: "الاستخدام والاستحقاقات لمساحة العمل النشطة.",
+    planChangesManaged:
+      "تُدار تغييرات الخطة عبر فريق حسابك. لا تتم محاكاة أي إجراء فوترة هنا.",
+    separateAdministrationSurface: "سطح إدارة منفصل",
+    crossTenantVisibility:
+      "رؤية عبر مساحات العمل لعمليات المنصة. إجراءات الشركات للقراءة فقط هنا.",
+    noCompaniesInPlatformScope: "لا توجد شركات في نطاق المنصة",
+    platformApiReturnedNoTenants:
+      "لم تُعد واجهة المنصة أي مستأجرين لمساحة العمل هذه.",
+    branchesDepartmentsDevicesConnected:
+      "{branches} فروع · {departments} أقسام · {connected}/{total} أجهزة متصلة",
+    presencePercent: "{percent}% حضور",
+    lateAbsent: "{late} متأخر · {absent} غائب",
+    accountManagement: "إدارة الحسابات",
   },
   fr: {
     employeesEyebrow: "Registre des effectifs",
@@ -3886,29 +3964,29 @@ function authLabel(
     | "signingIn"
     | "invalid"
     | "language"
-     | "switchToEnglish"
-     | "switchToArabic"
-     | "secureAccess"
-     | "brandHeading"
+    | "switchToEnglish"
+    | "switchToArabic"
+    | "secureAccess"
+    | "brandHeading"
     | "brandDetail"
-     | "brandName"
-     | "sessionProtected"
-     | "showPassword"
-     | "hidePassword"
+    | "brandName"
+    | "sessionProtected"
+    | "showPassword"
+    | "hidePassword"
     | "logout"
     | "accountCreated"
     | "temporaryPassword"
     | "copyPassword"
     | "copied"
-     | "loading"
-     | "accountsCount"
-     | "shownOnce"
-     | "optional"
-     | "inactive"
-     | "permissionsCount"
-     | "loadFailed"
-     | "createFailed"
-     | "resetFailed"
+    | "loading"
+    | "accountsCount"
+    | "shownOnce"
+    | "optional"
+    | "inactive"
+    | "permissionsCount"
+    | "loadFailed"
+    | "createFailed"
+    | "resetFailed"
     | "createStaff"
     | "staffAccounts"
     | "role"
@@ -4032,10 +4110,10 @@ function permissionLabel(
     "payroll.view": "عرض الرواتب",
     "reports.view": "عرض التقارير",
     "reports.export": "تصدير التقارير",
-    "devices": "الأجهزة",
+    devices: "الأجهزة",
     "sync-history": "سجل المزامنة",
-    "schedules": "الجداول",
-    "holidays": "العطلات",
+    schedules: "الجداول",
+    holidays: "العطلات",
     "organization.manage": "إدارة الهيكل التنظيمي",
   };
   return labels[permission.key] ?? permission.label;
@@ -4218,7 +4296,9 @@ function Login({
               href="/setup"
               className="mt-5 block text-center text-xs font-semibold text-primary hover:underline"
             >
-              {locale === "ar" ? "إعداد حساب المؤسس الأول" : "Initial Founder Setup"}
+              {locale === "ar"
+                ? "إعداد حساب المؤسس الأول"
+                : "Initial Founder Setup"}
             </Link>
           )}
           <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground">
@@ -4257,7 +4337,8 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
     : {
         eyebrow: "Secure first-time setup",
         title: "Create the initial Founder",
-        detail: "Create the first Platform Owner account to start using VAR HR.",
+        detail:
+          "Create the first Platform Owner account to start using VAR HR.",
         fullName: "Founder full name",
         username: "Username",
         password: "Password",
@@ -4312,16 +4393,57 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
             </p>
           </div>
           <form onSubmit={submit} className="mt-7 space-y-[18px]">
-            <Field label={copy.fullName} value={fullName} onChange={setFullName} required autoComplete="name" />
-            <Field label={copy.username} value={username} onChange={setUsername} required autoComplete="username" />
-            <Field label={copy.password} value={password} onChange={setPassword} required type="password" min={6} autoComplete="new-password" showPasswordToggle showPasswordLabel={authLabel(locale, "showPassword")} hidePasswordLabel={authLabel(locale, "hidePassword")} />
-            <Field label={copy.confirmPassword} value={confirmPassword} onChange={setConfirmPassword} required type="password" min={6} autoComplete="new-password" showPasswordToggle showPasswordLabel={authLabel(locale, "showPassword")} hidePasswordLabel={authLabel(locale, "hidePassword")} />
+            <Field
+              label={copy.fullName}
+              value={fullName}
+              onChange={setFullName}
+              required
+              autoComplete="name"
+            />
+            <Field
+              label={copy.username}
+              value={username}
+              onChange={setUsername}
+              required
+              autoComplete="username"
+            />
+            <Field
+              label={copy.password}
+              value={password}
+              onChange={setPassword}
+              required
+              type="password"
+              min={6}
+              autoComplete="new-password"
+              showPasswordToggle
+              showPasswordLabel={authLabel(locale, "showPassword")}
+              hidePasswordLabel={authLabel(locale, "hidePassword")}
+            />
+            <Field
+              label={copy.confirmPassword}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              required
+              type="password"
+              min={6}
+              autoComplete="new-password"
+              showPasswordToggle
+              showPasswordLabel={authLabel(locale, "showPassword")}
+              hidePasswordLabel={authLabel(locale, "hidePassword")}
+            />
             {error && (
-              <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {error}
               </div>
             )}
-            <Button type="submit" className="h-12 w-full justify-center rounded-xl text-[15px]" disabled={pending}>
+            <Button
+              type="submit"
+              className="h-12 w-full justify-center rounded-xl text-[15px]"
+              disabled={pending}
+            >
               {pending ? copy.creating : copy.create}
               <ArrowUpRight className="rtl:-scale-x-100" size={16} />
             </Button>
@@ -4369,9 +4491,7 @@ function AuthGate() {
   useEffect(() => {
     if (!account) return;
     if (location === "/login") {
-      setLocation(
-        account.accountType === "platform_owner" ? "/platform" : "/",
-      );
+      setLocation(account.accountType === "platform_owner" ? "/platform" : "/");
     } else if (account.accountType === "platform_owner" && location === "/") {
       setLocation("/platform");
     }
@@ -4527,7 +4647,9 @@ function Shell({ children }: { children: ReactNode }) {
     (!item.capability || capabilities.includes(item.capability));
   const isPlatformOwner = workspace.role === "platform_owner";
   const visibleNav = (isPlatformOwner ? platformNav : nav).filter(canSee);
-  const visibleSecondaryNav = isPlatformOwner ? [] : secondaryNav.filter(canSee);
+  const visibleSecondaryNav = isPlatformOwner
+    ? []
+    : secondaryNav.filter(canSee);
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
@@ -4546,9 +4668,7 @@ function Shell({ children }: { children: ReactNode }) {
         id="workspace-navigation"
         className={cn(
           "fixed inset-y-0 z-50 flex w-[min(248px,calc(100vw-1rem))] flex-col bg-secondary px-4 py-5 text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:translate-x-0",
-          open
-            ? "translate-x-0"
-            : "translate-x-[var(--nav-closed-transform)]",
+          open ? "translate-x-0" : "translate-x-[var(--nav-closed-transform)]",
         )}
         style={{
           insetInlineStart: 0,
@@ -4570,7 +4690,7 @@ function Shell({ children }: { children: ReactNode }) {
               ) : (
                 <>
                   <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                  {workspace.company?.name ?? ""}
+                    {workspace.company?.name ?? ""}
                   </p>
                   <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
                     {auth.account.fullName}
@@ -4698,7 +4818,7 @@ function Shell({ children }: { children: ReactNode }) {
                   ? locale === "ar"
                     ? "إدارة المنصة"
                     : "Platform administration"
-                  : workspace.company?.name ?? ""}
+                  : (workspace.company?.name ?? "")}
               </span>
               <ChevronDown
                 size={14}
@@ -4707,7 +4827,7 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
-              <div className="hidden text-xs font-medium text-muted-foreground lg:block">
+            <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
             <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
@@ -9501,7 +9621,8 @@ function BackupRestore() {
         safety: "نسخة أمان",
         download: "تنزيل",
         upload: "رفع نسخة احتياطية",
-        uploadHint: "اختر ملف JSON تم تنزيله مسبقاً للتحقق منه وتجهيزه للاستعادة.",
+        uploadHint:
+          "اختر ملف JSON تم تنزيله مسبقاً للتحقق منه وتجهيزه للاستعادة.",
         invalidFile: "الملف المحدد ليس JSON صالحاً.",
         uploaded: "تم التحقق من النسخة وأصبحت جاهزة للاستعادة.",
         restore: "استعادة",
@@ -9531,7 +9652,8 @@ function BackupRestore() {
         safety: "Safety backup",
         download: "Download",
         upload: "Upload Backup",
-        uploadHint: "Choose a previously downloaded JSON backup to validate and stage for restore.",
+        uploadHint:
+          "Choose a previously downloaded JSON backup to validate and stage for restore.",
         invalidFile: "The selected file is not valid JSON.",
         uploaded: "Backup validated and ready to restore.",
         restore: "Restore",
@@ -9572,7 +9694,9 @@ function BackupRestore() {
     try {
       await authRequest("/api/backups", {
         method: "POST",
-        body: JSON.stringify({ scope: isPlatformOwner ? "platform" : "company" }),
+        body: JSON.stringify({
+          scope: isPlatformOwner ? "platform" : "company",
+        }),
       });
       toast.success(labels.created);
       await load();
@@ -9718,9 +9842,15 @@ function BackupRestore() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">
-                        {backup.scope === "platform" ? labels.platform : labels.company}
+                        {backup.scope === "platform"
+                          ? labels.platform
+                          : labels.company}
                       </span>
-                      <Status value={backup.status === "safety" ? "completed" : "active"} />
+                      <Status
+                        value={
+                          backup.status === "safety" ? "completed" : "active"
+                        }
+                      />
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(backup.createdAt).toLocaleString(
@@ -9732,15 +9862,20 @@ function BackupRestore() {
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
-                    <Info label={labels.size} value={`${Math.ceil(backup.sizeBytes / 1024)} KB`} />
+                    <Info
+                      label={labels.size}
+                      value={`${Math.ceil(backup.sizeBytes / 1024)} KB`}
+                    />
                     <Info
                       label={labels.records}
-                      value={Object.values(backup.metadata.tableCounts ?? {}).reduce(
-                        (sum, count) => sum + count,
-                        0,
-                      )}
+                      value={Object.values(
+                        backup.metadata.tableCounts ?? {},
+                      ).reduce((sum, count) => sum + count, 0)}
                     />
-                    <Info label="Schema" value={backup.metadata.schemaVersion ?? "v1"} />
+                    <Info
+                      label="Schema"
+                      value={backup.metadata.schemaVersion ?? "v1"}
+                    />
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -9836,7 +9971,9 @@ function Accounts() {
       toast.success(authLabel(locale, "accountCreated"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : authLabel(locale, "createFailed"),
+        error instanceof Error
+          ? error.message
+          : authLabel(locale, "createFailed"),
       );
     } finally {
       setSaving(false);
@@ -9852,7 +9989,9 @@ function Accounts() {
       toast.success(authLabel(locale, "temporaryPassword"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : authLabel(locale, "resetFailed"),
+        error instanceof Error
+          ? error.message
+          : authLabel(locale, "resetFailed"),
       );
     }
   };
@@ -10020,7 +10159,11 @@ function Accounts() {
           ) : (
             <Empty
               title={authLabel(locale, "staffAccounts")}
-              detail={locale === "ar" ? "لا توجد حسابات موظفين بعد." : "No staff accounts yet."}
+              detail={
+                locale === "ar"
+                  ? "لا توجد حسابات موظفين بعد."
+                  : "No staff accounts yet."
+              }
             />
           )}
         </Card>
@@ -10830,7 +10973,8 @@ function Platform() {
     currency: "",
   });
   const [ownerAccounts, setOwnerAccounts] = useState<AuthAccount[]>([]);
-  const [companyDetails, setCompanyDetails] = useState<PlatformCompanyDetails | null>(null);
+  const [companyDetails, setCompanyDetails] =
+    useState<PlatformCompanyDetails | null>(null);
   const [companyBackups, setCompanyBackups] = useState<BackupSummary[]>([]);
   const [ownerPassword, setOwnerPassword] = useState("");
   const [audit, setAudit] = useState<PlatformActivity[]>([]);
@@ -10848,7 +10992,11 @@ function Platform() {
       setSummary(nextSummary);
       setAudit(nextAudit);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not load platform data.");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not load platform data.",
+      );
     } finally {
       setLoading(false);
     }
@@ -10875,7 +11023,9 @@ function Platform() {
         body: JSON.stringify(next),
       });
       await load();
-      const refreshed = summary?.companies.find((company) => company.id === selectedCompany.id);
+      const refreshed = summary?.companies.find(
+        (company) => company.id === selectedCompany.id,
+      );
       if (refreshed) {
         setSelectedCompany({
           ...refreshed,
@@ -10885,7 +11035,9 @@ function Platform() {
       }
       toast.success(locale === "ar" ? "تم تحديث الشركة" : "Company updated");
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Could not update company.");
+      toast.error(
+        cause instanceof Error ? cause.message : "Could not update company.",
+      );
     } finally {
       setSaving(false);
     }
@@ -10897,32 +11049,55 @@ function Platform() {
         { method: "PATCH", body: JSON.stringify({ active }) },
       );
       setOwnerAccounts((current) =>
-        current.map((item) => (item.id === result.account.id ? result.account : item)),
+        current.map((item) =>
+          item.id === result.account.id ? result.account : item,
+        ),
       );
       await load();
-      toast.success(locale === "ar" ? "تم تحديث حالة المالك" : "Owner status updated");
+      toast.success(
+        locale === "ar" ? "تم تحديث حالة المالك" : "Owner status updated",
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Could not update owner");
+      toast.error(
+        cause instanceof Error ? cause.message : "Could not update owner",
+      );
     }
   };
-  const updateOwnerDetails = async (account: AuthAccount, changes: Partial<AuthAccount>) => {
+  const updateOwnerDetails = async (
+    account: AuthAccount,
+    changes: Partial<AuthAccount>,
+  ) => {
     setSaving(true);
     try {
       const result = await authRequest<{ account: AuthAccount }>(
         `/api/auth/accounts/${account.id}`,
         { method: "PATCH", body: JSON.stringify(changes) },
       );
-      setOwnerAccounts((current) => current.map((item) => item.id === result.account.id ? result.account : item));
-      toast.success(locale === "ar" ? "تم تحديث بيانات المالك" : "Owner details updated");
+      setOwnerAccounts((current) =>
+        current.map((item) =>
+          item.id === result.account.id ? result.account : item,
+        ),
+      );
+      toast.success(
+        locale === "ar" ? "تم تحديث بيانات المالك" : "Owner details updated",
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Could not update owner details");
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : "Could not update owner details",
+      );
     } finally {
       setSaving(false);
     }
   };
   const setOwnerPermanentPassword = async (account: AuthAccount) => {
     if (ownerPassword.length < 10) {
-      toast.error(locale === "ar" ? "استخدم كلمة مرور من 10 أحرف على الأقل" : "Use at least 10 characters");
+      toast.error(
+        locale === "ar"
+          ? "استخدم كلمة مرور من 10 أحرف على الأقل"
+          : "Use at least 10 characters",
+      );
       return;
     }
     setSaving(true);
@@ -10932,15 +11107,29 @@ function Platform() {
         body: JSON.stringify({ password: ownerPassword }),
       });
       setOwnerPassword("");
-      toast.success(locale === "ar" ? "تم تعيين كلمة المرور الدائمة" : "Permanent password set");
+      toast.success(
+        locale === "ar"
+          ? "تم تعيين كلمة المرور الدائمة"
+          : "Permanent password set",
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Could not set password");
+      toast.error(
+        cause instanceof Error ? cause.message : "Could not set password",
+      );
     } finally {
       setSaving(false);
     }
   };
   const restoreCompanyBackup = async (backup: BackupSummary) => {
-    if (!window.confirm(text("Restore this company backup? A safety backup will be created first.", "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً."))) return;
+    if (
+      !window.confirm(
+        text(
+          "Restore this company backup? A safety backup will be created first.",
+          "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً.",
+        ),
+      )
+    )
+      return;
     setSaving(true);
     try {
       await authRequest(`/api/backups/${backup.id}/restore`, {
@@ -10948,9 +11137,13 @@ function Platform() {
         body: JSON.stringify({ confirmation: "RESTORE" }),
       });
       await load();
-      toast.success(locale === "ar" ? "تمت استعادة بيانات الشركة" : "Company data restored");
+      toast.success(
+        locale === "ar" ? "تمت استعادة بيانات الشركة" : "Company data restored",
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Could not restore backup");
+      toast.error(
+        cause instanceof Error ? cause.message : "Could not restore backup",
+      );
     } finally {
       setSaving(false);
     }
@@ -10961,12 +11154,21 @@ function Platform() {
     try {
       const backup = await authRequest<BackupSummary>("/api/backups", {
         method: "POST",
-        body: JSON.stringify({ scope: "company", companyId: selectedCompany.id }),
+        body: JSON.stringify({
+          scope: "company",
+          companyId: selectedCompany.id,
+        }),
       });
       setCompanyBackups((current) => [backup, ...current]);
-      toast.success(text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"));
+      toast.success(
+        text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"),
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة."));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة."),
+      );
     } finally {
       setSaving(false);
     }
@@ -10983,7 +11185,9 @@ function Platform() {
     suspended: text("Suspended", "موقوفة"),
   };
   const activityLabel = (action: string) =>
-    action.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+    action
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
   const subscriptionPrice = (company: PlatformCompanyDetail) => {
     const prices = [
       company.monthlyPrice > 0
@@ -11000,12 +11204,36 @@ function Platform() {
     label: string;
     value: number;
   }> = [
-    { icon: Building2, label: text("Total companies", "إجمالي الشركات"), value: metrics.totalCompanies },
-    { icon: Check, label: text("Active companies", "الشركات النشطة"), value: metrics.activeCompanies },
-    { icon: Bell, label: text("Suspended companies", "الشركات الموقوفة"), value: metrics.suspendedCompanies },
-    { icon: Users, label: text("Total employees", "إجمالي الموظفين"), value: metrics.totalEmployees },
-    { icon: UserRound, label: text("Platform users", "مستخدمو المنصة"), value: metrics.totalPlatformUsers },
-    { icon: Zap, label: text("Active subscriptions", "الاشتراكات النشطة"), value: metrics.activeSubscriptions },
+    {
+      icon: Building2,
+      label: text("Total companies", "إجمالي الشركات"),
+      value: metrics.totalCompanies,
+    },
+    {
+      icon: Check,
+      label: text("Active companies", "الشركات النشطة"),
+      value: metrics.activeCompanies,
+    },
+    {
+      icon: Bell,
+      label: text("Suspended companies", "الشركات الموقوفة"),
+      value: metrics.suspendedCompanies,
+    },
+    {
+      icon: Users,
+      label: text("Total employees", "إجمالي الموظفين"),
+      value: metrics.totalEmployees,
+    },
+    {
+      icon: UserRound,
+      label: text("Platform users", "مستخدمو المنصة"),
+      value: metrics.totalPlatformUsers,
+    },
+    {
+      icon: Zap,
+      label: text("Active subscriptions", "الاشتراكات النشطة"),
+      value: metrics.activeSubscriptions,
+    },
   ];
   return (
     <div className="animate-in">
@@ -11023,7 +11251,11 @@ function Platform() {
               <Plus size={15} />
               {text("Add Company", "إضافة شركة")}
             </Button>
-            <Button variant="outline" onClick={() => void load()} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => void load()}
+              disabled={loading}
+            >
               <RefreshCw size={15} />
               {text("Refresh", "تحديث")}
             </Button>
@@ -11034,10 +11266,16 @@ function Platform() {
         {metricCards.map(({ icon: Icon, label, value }) => (
           <Card className="p-4 sm:p-5" key={label}>
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-semibold uppercase tracking-[.12em]">{label}</span>
-              <span className="rounded-lg bg-primary/10 p-2 text-primary"><Icon size={16} /></span>
+              <span className="text-xs font-semibold uppercase tracking-[.12em]">
+                {label}
+              </span>
+              <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                <Icon size={16} />
+              </span>
             </div>
-            <div className="mt-5 font-display text-3xl font-semibold">{value}</div>
+            <div className="mt-5 font-display text-3xl font-semibold">
+              {value}
+            </div>
           </Card>
         ))}
       </div>
@@ -11045,8 +11283,15 @@ function Platform() {
         <Card>
           <div className="flex items-center justify-between border-b border-border p-5">
             <div>
-              <h2 className="font-display text-lg font-semibold">{text("Platform alerts", "تنبيهات المنصة")}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{text("Important issues across the platform.", "أهم المشكلات عبر المنصة.")}</p>
+              <h2 className="font-display text-lg font-semibold">
+                {text("Platform alerts", "تنبيهات المنصة")}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {text(
+                  "Important issues across the platform.",
+                  "أهم المشكلات عبر المنصة.",
+                )}
+              </p>
             </div>
             <Bell size={18} className="text-accent" />
           </div>
@@ -11054,51 +11299,203 @@ function Platform() {
             <div className="divide-y divide-border">
               {summary!.alerts.map((alert) => (
                 <div className="flex gap-3 p-5" key={alert.id}>
-                  <AlertCircle className={cn("mt-0.5 shrink-0", alert.severity === "critical" ? "text-destructive" : "text-accent")} size={17} />
-                  <div><div className="font-semibold">{alert.title}</div><p className="mt-1 text-sm text-muted-foreground">{alert.detail}</p></div>
+                  <AlertCircle
+                    className={cn(
+                      "mt-0.5 shrink-0",
+                      alert.severity === "critical"
+                        ? "text-destructive"
+                        : "text-accent",
+                    )}
+                    size={17}
+                  />
+                  <div>
+                    <div className="font-semibold">{alert.title}</div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {alert.detail}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : <Empty title={text("No platform alerts", "لا توجد تنبيهات")} detail={text("The platform currently has no recorded alerts.", "لا توجد تنبيهات مسجلة حالياً.")} />}
+          ) : (
+            <Empty
+              title={text("No platform alerts", "لا توجد تنبيهات")}
+              detail={text(
+                "The platform currently has no recorded alerts.",
+                "لا توجد تنبيهات مسجلة حالياً.",
+              )}
+            />
+          )}
         </Card>
         <Card className="p-5">
-          <div className="flex items-center gap-2"><Zap size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Subscription posture", "حالة الاشتراكات")}</h2></div>
-          <div className="mt-5 space-y-3">
-            {Object.entries(summary!.subscriptionStatus).map(([status, count]) => <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-3 text-sm" key={status}><span>{statusLabels[status] ?? status}</span><span className="font-mono font-semibold">{count}</span></div>)}
+          <div className="flex items-center gap-2">
+            <Zap size={17} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {text("Subscription posture", "حالة الاشتراكات")}
+            </h2>
           </div>
-          <p className="mt-5 text-xs leading-5 text-muted-foreground">{text("Expiration tracking is not shown because the current subscription data has no expiration date.", "لا يتم عرض انتهاء الاشتراك لأن بيانات الاشتراك الحالية لا تحتوي على تاريخ انتهاء.")}</p>
+          <div className="mt-5 space-y-3">
+            {Object.entries(summary!.subscriptionStatus).map(
+              ([status, count]) => (
+                <div
+                  className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-3 text-sm"
+                  key={status}
+                >
+                  <span>{statusLabels[status] ?? status}</span>
+                  <span className="font-mono font-semibold">{count}</span>
+                </div>
+              ),
+            )}
+          </div>
+          <p className="mt-5 text-xs leading-5 text-muted-foreground">
+            {text(
+              "Expiration tracking is not shown because the current subscription data has no expiration date.",
+              "لا يتم عرض انتهاء الاشتراك لأن بيانات الاشتراك الحالية لا تحتوي على تاريخ انتهاء.",
+            )}
+          </p>
         </Card>
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <Card>
           <div className="flex items-center justify-between border-b border-border p-5">
-            <div><h2 className="font-display text-lg font-semibold">{text("Companies", "الشركات")}</h2><p className="mt-1 text-sm text-muted-foreground">{text("Manage company status, owners, limits, and subscription posture.", "إدارة حالة الشركات والمالكين والحدود والاشتراكات.")}</p></div>
-            <Badge tone="neutral">{summary!.companies.length} {text("registered", "مسجلة")}</Badge>
+            <div>
+              <h2 className="font-display text-lg font-semibold">
+                {text("Companies", "الشركات")}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {text(
+                  "Manage company status, owners, limits, and subscription posture.",
+                  "إدارة حالة الشركات والمالكين والحدود والاشتراكات.",
+                )}
+              </p>
+            </div>
+            <Badge tone="neutral">
+              {summary!.companies.length} {text("registered", "مسجلة")}
+            </Badge>
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-2">
             {summary!.companies.map((company) => (
-               <button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40" key={company.id} onClick={() => openCompany(company)}>
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{company.name}</div><div className="mt-1 text-xs text-muted-foreground">{company.slug}</div></div><Status value={company.status} /></div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-xs"><Info label={text("Company Owners", "مالكو الشركة")} value={company.ownerCount} /><Info label={text("Subscription price", "سعر الاشتراك")} value={subscriptionPrice(company)} /><Info label={text("Employees", "الموظفون")} value={`${company.activeEmployees}/${company.employeeLimit}`} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(company.createdAt)} /></div>
-                <div className="mt-3 text-xs text-primary">{text("Open details", "فتح التفاصيل")} <ArrowUpRight className="inline" size={13} /></div>
+              <button
+                className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
+                key={company.id}
+                onClick={() => openCompany(company)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{company.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {company.slug}
+                    </div>
+                  </div>
+                  <Status value={company.status} />
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <Info
+                    label={text("Company Owners", "مالكو الشركة")}
+                    value={company.ownerCount}
+                  />
+                  <Info
+                    label={text("Subscription price", "سعر الاشتراك")}
+                    value={subscriptionPrice(company)}
+                  />
+                  <Info
+                    label={text("Employees", "الموظفون")}
+                    value={`${company.activeEmployees}/${company.employeeLimit}`}
+                  />
+                  <Info
+                    label={text("Registered", "تاريخ التسجيل")}
+                    value={date(company.createdAt)}
+                  />
+                </div>
+                <div className="mt-3 text-xs text-primary">
+                  {text("Open details", "فتح التفاصيل")}{" "}
+                  <ArrowUpRight className="inline" size={13} />
+                </div>
               </button>
             ))}
           </div>
         </Card>
         <div className="space-y-6">
           <Card>
-            <div className="flex items-center gap-2 border-b border-border p-5"><Activity size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Recent platform activity", "نشاط المنصة الأخير")}</h2></div>
-            <div className="divide-y divide-border">
-              {summary!.activity.length ? summary!.activity.slice(0, 6).map((event) => <div className="p-4" key={event.id}><div className="font-semibold text-sm">{activityLabel(event.action)}</div><div className="mt-1 text-xs text-muted-foreground">{event.entityType} · {date(event.createdAt)} {time(event.createdAt)}</div></div>) : <Empty title={text("No recent activity", "لا يوجد نشاط حديث")} detail={text("Platform events will appear here.", "ستظهر أحداث المنصة هنا.")} />}
+            <div className="flex items-center gap-2 border-b border-border p-5">
+              <Activity size={17} className="text-primary" />
+              <h2 className="font-display text-lg font-semibold">
+                {text("Recent platform activity", "نشاط المنصة الأخير")}
+              </h2>
             </div>
-            <div className="border-t border-border p-4"><Link href="/platform" className="text-sm font-bold text-primary">{text("View platform activity", "عرض نشاط المنصة")}</Link></div>
+            <div className="divide-y divide-border">
+              {summary!.activity.length ? (
+                summary!.activity.slice(0, 6).map((event) => (
+                  <div className="p-4" key={event.id}>
+                    <div className="font-semibold text-sm">
+                      {activityLabel(event.action)}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {event.entityType} · {date(event.createdAt)}{" "}
+                      {time(event.createdAt)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <Empty
+                  title={text("No recent activity", "لا يوجد نشاط حديث")}
+                  detail={text(
+                    "Platform events will appear here.",
+                    "ستظهر أحداث المنصة هنا.",
+                  )}
+                />
+              )}
+            </div>
+            <div className="border-t border-border p-4">
+              <Link href="/platform" className="text-sm font-bold text-primary">
+                {text("View platform activity", "عرض نشاط المنصة")}
+              </Link>
+            </div>
           </Card>
           <Card className="p-5">
-            <div className="flex items-center gap-2"><Settings size={17} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Platform settings", "إعدادات المنصة")}</h2></div>
+            <div className="flex items-center gap-2">
+              <Settings size={17} className="text-primary" />
+              <h2 className="font-display text-lg font-semibold">
+                {text("Platform settings", "إعدادات المنصة")}
+              </h2>
+            </div>
             <div className="mt-4 space-y-3 text-sm">
-              <label className="block"><span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Administration language", "لغة الإدارة")}</span><select className="h-10 w-full rounded-lg border border-input bg-background px-3" value={locale} onChange={(event) => setLocale(event.target.value as Locale)}><option value="en">English</option><option value="ar">العربية</option><option value="fr">Français</option><option value="de">Deutsch</option></select></label>
-              <div className="rounded-lg bg-muted/60 p-3"><div className="font-medium">{text("Backup scope", "نطاق النسخ الاحتياطي")}</div><div className="mt-1 text-xs text-muted-foreground">{text("Complete platform backups are available in Backup & restore.", "النسخ الكاملة للمنصة متاحة في النسخ الاحتياطي والاستعادة.")}</div></div>
-              <Link href="/backups" className="inline-flex text-sm font-bold text-primary">{text("Open Backup & restore", "فتح النسخ الاحتياطي والاستعادة")} <ArrowUpRight size={14} /></Link>
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {text("Administration language", "لغة الإدارة")}
+                </span>
+                <select
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3"
+                  value={locale}
+                  onChange={(event) => setLocale(event.target.value as Locale)}
+                >
+                  <option value="en">English</option>
+                  <option value="ar">العربية</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </label>
+              <div className="rounded-lg bg-muted/60 p-3">
+                <div className="font-medium">
+                  {text("Backup scope", "نطاق النسخ الاحتياطي")}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {text(
+                    "Complete platform backups are available in Backup & restore.",
+                    "النسخ الكاملة للمنصة متاحة في النسخ الاحتياطي والاستعادة.",
+                  )}
+                </div>
+              </div>
+              <Link
+                href="/backups"
+                className="inline-flex text-sm font-bold text-primary"
+              >
+                {text(
+                  "Open Backup & restore",
+                  "فتح النسخ الاحتياطي والاستعادة",
+                )}{" "}
+                <ArrowUpRight size={14} />
+              </Link>
             </div>
           </Card>
         </div>
@@ -11111,121 +11508,646 @@ function Platform() {
               {text("Support & admin tools", "أدوات الدعم والإدارة")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {text("Manage Company Owners, company settings, backups, and platform audit history.", "إدارة مالكي الشركات وإعداداتها ونسخها الاحتياطية وسجل المنصة.")}
+              {text(
+                "Manage Company Owners, company settings, backups, and platform audit history.",
+                "إدارة مالكي الشركات وإعداداتها ونسخها الاحتياطية وسجل المنصة.",
+              )}
             </p>
           </div>
         </div>
         <div className="grid gap-4 p-5 sm:grid-cols-3">
-          <Info label={text("Company Owner accounts", "حسابات مالكي الشركات")} value={summary!.companies.filter((company) => company.owner).length} />
-          <Info label={text("Audit events available", "أحداث التدقيق المتاحة")} value={audit.length} />
-          <Link href="/backups" className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">
-            {text("Open backup administration", "فتح إدارة النسخ الاحتياطية")} <ArrowUpRight size={14} />
+          <Info
+            label={text("Company Owner accounts", "حسابات مالكي الشركات")}
+            value={summary!.companies.filter((company) => company.owner).length}
+          />
+          <Info
+            label={text("Audit events available", "أحداث التدقيق المتاحة")}
+            value={audit.length}
+          />
+          <Link
+            href="/backups"
+            className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary"
+          >
+            {text("Open backup administration", "فتح إدارة النسخ الاحتياطية")}{" "}
+            <ArrowUpRight size={14} />
           </Link>
         </div>
       </Card>
       {selectedCompany && (
-        <Modal title={selectedCompany.name} onClose={() => setSelectedCompany(null)}>
+        <Modal
+          title={selectedCompany.name}
+          onClose={() => setSelectedCompany(null)}
+        >
           <div className="space-y-5">
-            <div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">{selectedCompany.slug}</div><div className="mt-1 font-semibold">{selectedCompany.planName}</div></div><Status value={selectedCompany.status} /></div>
-            <div className="grid gap-3 sm:grid-cols-2"><Info label={text("Company Owner", "مالك الشركة")} value={selectedCompany.owner?.username ?? text("Not assigned", "غير معين")} /><Info label={text("Owner status", "حالة المالك")} value={selectedCompany.owner ? (selectedCompany.owner.active ? text("Active", "نشط") : text("Inactive", "غير نشط")) : "—"} /><Info label={text("Employees", "الموظفون")} value={`${selectedCompany.activeEmployees} active / ${selectedCompany.employeeCount} total`} /><Info label={text("Users", "المستخدمون")} value={`${selectedCompany.activeUsers} active / ${selectedCompany.userCount} total`} /><Info label={text("Subscription", "الاشتراك")} value={statusLabels[selectedCompany.subscriptionStatus] ?? selectedCompany.subscriptionStatus} /><Info label={text("Registered", "تاريخ التسجيل")} value={date(selectedCompany.createdAt)} /></div>
-             {companyDetails ? (
-               <>
-                 <div className="border-t border-border pt-5">
-                   <h3 className="font-semibold">{text("Company information entered by Platform Owner", "بيانات الشركة التي أدخلها مالك المنصة")}</h3>
-                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                     <Info label={text("Company name", "اسم الشركة")} value={companyDetails.company.name} />
-                     <Info label={text("Address", "العنوان")} value={companyDetails.company.address} />
-                     <Info label={text("Currency", "العملة")} value={companyDetails.company.currency} />
-                     <Info label={text("Employee limit", "حد الموظفين")} value={companyDetails.subscription?.employeeLimit ?? selectedCompany.employeeLimit} />
-                     <Info label={text("Monthly subscription price", "سعر الاشتراك الشهري")} value={companyDetails.subscription?.monthlyPrice ? `${companyDetails.subscription.monthlyPrice} ${companyDetails.company.currency}` : text("Not set", "غير محدد")} />
-                     <Info label={text("Annual subscription price", "سعر الاشتراك السنوي")} value={companyDetails.subscription?.annualPrice ? `${companyDetails.subscription.annualPrice} ${companyDetails.company.currency}` : text("Not set", "غير محدد")} />
-                     <Info label={text("Registration date", "تاريخ التسجيل")} value={date(companyDetails.company.createdAt)} />
-                     <Info label={text("Company Owners", "مالكو الشركة")} value={companyDetails.owners.length} />
-                   </div>
-                 </div>
-                 <div className="border-t border-border pt-5">
-                   <h3 className="font-semibold">{text("Company Owner accounts", "حسابات مالكي الشركة")}</h3>
-                   <div className="mt-3 space-y-3">
-                     {companyDetails.owners.length ? companyDetails.owners.map((account) => (
-                       <div className="rounded-lg border border-border p-3" key={account.id}>
-                         <div className="font-semibold">{account.fullName || account.username}</div>
-                         <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                           <Info label={text("Username", "اسم المستخدم")} value={account.username} />
-                           <Info label={text("Phone", "الهاتف")} value={account.primaryPhone} />
-                           <Info label={text("Backup phones", "الهواتف الاحتياطية")} value={account.backupPhones.join(", ")} />
-                           <Info label={text("Email", "البريد الإلكتروني")} value={account.email} />
-                           <Info label={text("Backup emails", "البريد الاحتياطي")} value={account.backupEmails.join(", ")} />
-                         </div>
-                       </div>
-                     )) : <p className="text-sm text-muted-foreground">{text("No Company Owner accounts found.", "لم يتم العثور على حسابات مالكي الشركة.")}</p>}
-                   </div>
-                 </div>
-                 <div className="border-t border-border pt-5">
-                   <h3 className="font-semibold">{text("Live company data", "بيانات الشركة الحالية")}</h3>
-                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                     <Info label={text("Employees", "الموظفون")} value={companyDetails.employees.length} />
-                     <Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={companyDetails.staff.length} />
-                     <Info label={text("Connected devices", "الأجهزة المتصلة")} value={companyDetails.devices.length} />
-                     <Info label={text("Subscription", "الاشتراك")} value={companyDetails.subscription ? `${companyDetails.subscription.planName} · ${companyDetails.subscription.status}` : text("Not configured", "غير مهيأ")} />
-                   </div>
-                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                     <div className="rounded-lg border border-border p-3">
-                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Employees", "الموظفون")}</div>
-                       <div className="mt-2 space-y-1 text-sm">{companyDetails.employees.length ? companyDetails.employees.map((employee) => <div key={String(employee.id)}>{String(employee.first_name ?? "")} {String(employee.last_name ?? "")}</div>) : <span className="text-muted-foreground">—</span>}</div>
-                     </div>
-                     <div className="rounded-lg border border-border p-3">
-                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")}</div>
-                       <div className="mt-2 space-y-1 text-sm">{companyDetails.staff.length ? companyDetails.staff.map((account) => <div key={account.id}>{account.fullName || account.username} <span className="text-muted-foreground">· {account.username}</span></div>) : <span className="text-muted-foreground">—</span>}</div>
-                     </div>
-                     <div className="rounded-lg border border-border p-3">
-                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Devices", "الأجهزة")}</div>
-                       <div className="mt-2 space-y-1 text-sm">{companyDetails.devices.length ? companyDetails.devices.map((device) => <div key={String(device.id)}>{String(device.name ?? "Unnamed")} <span className="text-muted-foreground">· {String(device.status ?? "unknown")}</span></div>) : <span className="text-muted-foreground">—</span>}</div>
-                     </div>
-                     <div className="rounded-lg border border-border p-3">
-                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text("Operational data records", "سجلات البيانات التشغيلية")}</div>
-                       <div className="mt-2 grid grid-cols-2 gap-1 text-sm">{Object.entries(companyDetails.tableCounts).filter(([table]) => table !== "var_hr_companies" && table !== "var_hr_user_accounts").map(([table, count]) => <div key={table}><span className="text-muted-foreground">{table.replace("var_hr_", "")}</span>: {count}</div>)}</div>
-                     </div>
-                   </div>
-                   <details className="mt-3 rounded-lg border border-border p-3">
-                     <summary className="cursor-pointer text-sm font-semibold">{text("View all company-owned operational records", "عرض جميع سجلات الشركة التشغيلية")}</summary>
-                     <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{JSON.stringify(companyDetails.operationalData, null, 2)}</pre>
-                   </details>
-                 </div>
-               </>
-             ) : (
-               <div className="rounded-lg bg-muted/60 p-4 text-sm text-muted-foreground">{text("Loading complete company details…", "جارٍ تحميل تفاصيل الشركة الكاملة…")}</div>
-             )}
-            <div className="border-t border-border pt-5">
-              <h3 className="font-semibold">{text("Company information", "معلومات الشركة")}</h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="text-sm font-semibold">{text("Company name", "اسم الشركة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.name} onChange={(event) => setCompanyForm({ ...companyForm, name: event.target.value })} /></label>
-                <label className="text-sm font-semibold">{text("Timezone", "المنطقة الزمنية")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" value={companyForm.timezone} onChange={(event) => setCompanyForm({ ...companyForm, timezone: event.target.value })} /></label>
-                <label className="text-sm font-semibold">{text("Company address", "عنوان الشركة")}<textarea className="mt-2 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal" value={companyForm.address ?? ""} onChange={(event) => setCompanyForm({ ...companyForm, address: event.target.value })} /></label>
-                <label className="text-sm font-semibold">{text("Currency", "العملة")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" maxLength={3} value={companyForm.currency} onChange={(event) => setCompanyForm({ ...companyForm, currency: event.target.value.toUpperCase() })} /></label>
-                <label className="text-sm font-semibold">{text("Employee limit", "حد الموظفين")}<input className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal" type="number" min="0" value={employeeLimit} onChange={(event) => setEmployeeLimit(event.target.value)} /></label>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {selectedCompany.slug}
+                </div>
+                <div className="mt-1 font-semibold">
+                  {selectedCompany.planName}
+                </div>
               </div>
-              <div className="mt-3 flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateCompany({ name: companyForm.name, address: companyForm.address, timezone: companyForm.timezone, currency: companyForm.currency, employeeLimit: Number(employeeLimit) })}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button><Button variant={selectedCompany.active ? "quiet" : "primary"} disabled={saving} onClick={() => void updateCompany({ status: selectedCompany.active ? "suspended" : "active" })}>{selectedCompany.active ? text("Suspend company", "إيقاف الشركة") : text("Activate company", "تفعيل الشركة")}</Button></div>
+              <Status value={selectedCompany.status} />
             </div>
-            <div className="border-t border-border pt-5">
-              <h3 className="font-semibold">{text("Company Owner access", "وصول مالك الشركة")}</h3>
-              <div className="mt-3 space-y-3">
-                {ownerAccounts.length ? ownerAccounts.map((account) => <div className="rounded-lg border border-border p-3" key={account.id}>
-                  <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.username}</div><div className="text-xs text-muted-foreground">{account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <Field label={text("Full name", "الاسم الكامل")} value={account.fullName} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, fullName: value } : item))} />
-                    <Field label={text("Primary phone", "الهاتف الأساسي")} value={account.primaryPhone} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, primaryPhone: value } : item))} />
-                    <Field label={text("Email", "البريد الإلكتروني")} type="email" value={account.email} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, email: value } : item))} />
-                    <Field label={text("Backup phones (comma separated)", "هواتف احتياطية")} value={account.backupPhones.join(", ")} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, backupPhones: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item))} />
-                    <Field label={text("Backup emails (comma separated)", "بريد احتياطي")} type="email" value={account.backupEmails.join(", ")} onChange={(value) => setOwnerAccounts((current) => current.map((item) => item.id === account.id ? { ...item, backupEmails: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Info
+                label={text("Company Owner", "مالك الشركة")}
+                value={
+                  selectedCompany.owner?.username ??
+                  text("Not assigned", "غير معين")
+                }
+              />
+              <Info
+                label={text("Owner status", "حالة المالك")}
+                value={
+                  selectedCompany.owner
+                    ? selectedCompany.owner.active
+                      ? text("Active", "نشط")
+                      : text("Inactive", "غير نشط")
+                    : "—"
+                }
+              />
+              <Info
+                label={text("Employees", "الموظفون")}
+                value={`${selectedCompany.activeEmployees} active / ${selectedCompany.employeeCount} total`}
+              />
+              <Info
+                label={text("Users", "المستخدمون")}
+                value={`${selectedCompany.activeUsers} active / ${selectedCompany.userCount} total`}
+              />
+              <Info
+                label={text("Subscription", "الاشتراك")}
+                value={
+                  statusLabels[selectedCompany.subscriptionStatus] ??
+                  selectedCompany.subscriptionStatus
+                }
+              />
+              <Info
+                label={text("Registered", "تاريخ التسجيل")}
+                value={date(selectedCompany.createdAt)}
+              />
+            </div>
+            {companyDetails ? (
+              <>
+                <div className="border-t border-border pt-5">
+                  <h3 className="font-semibold">
+                    {text(
+                      "Company information entered by Platform Owner",
+                      "بيانات الشركة التي أدخلها مالك المنصة",
+                    )}
+                  </h3>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Info
+                      label={text("Company name", "اسم الشركة")}
+                      value={companyDetails.company.name}
+                    />
+                    <Info
+                      label={text("Address", "العنوان")}
+                      value={companyDetails.company.address}
+                    />
+                    <Info
+                      label={text("Currency", "العملة")}
+                      value={companyDetails.company.currency}
+                    />
+                    <Info
+                      label={text("Employee limit", "حد الموظفين")}
+                      value={
+                        companyDetails.subscription?.employeeLimit ??
+                        selectedCompany.employeeLimit
+                      }
+                    />
+                    <Info
+                      label={text(
+                        "Monthly subscription price",
+                        "سعر الاشتراك الشهري",
+                      )}
+                      value={
+                        companyDetails.subscription?.monthlyPrice
+                          ? `${companyDetails.subscription.monthlyPrice} ${companyDetails.company.currency}`
+                          : text("Not set", "غير محدد")
+                      }
+                    />
+                    <Info
+                      label={text(
+                        "Annual subscription price",
+                        "سعر الاشتراك السنوي",
+                      )}
+                      value={
+                        companyDetails.subscription?.annualPrice
+                          ? `${companyDetails.subscription.annualPrice} ${companyDetails.company.currency}`
+                          : text("Not set", "غير محدد")
+                      }
+                    />
+                    <Info
+                      label={text("Registration date", "تاريخ التسجيل")}
+                      value={date(companyDetails.company.createdAt)}
+                    />
+                    <Info
+                      label={text("Company Owners", "مالكو الشركة")}
+                      value={companyDetails.owners.length}
+                    />
                   </div>
-                  <Button className="mt-3 w-full" variant="outline" disabled={saving} onClick={() => void updateOwnerDetails(account, { fullName: account.fullName, primaryPhone: account.primaryPhone, backupPhones: account.backupPhones, email: account.email, backupEmails: account.backupEmails })}>{text("Save owner details", "حفظ بيانات المالك")}</Button>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row"><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
-                </div>) : <p className="text-sm text-muted-foreground">{text("No Company Owner account found.", "لم يتم العثور على مالك للشركة.")}</p>}
+                </div>
+                <div className="border-t border-border pt-5">
+                  <h3 className="font-semibold">
+                    {text("Company Owner accounts", "حسابات مالكي الشركة")}
+                  </h3>
+                  <div className="mt-3 space-y-3">
+                    {companyDetails.owners.length ? (
+                      companyDetails.owners.map((account) => (
+                        <div
+                          className="rounded-lg border border-border p-3"
+                          key={account.id}
+                        >
+                          <div className="font-semibold">
+                            {account.fullName || account.username}
+                          </div>
+                          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                            <Info
+                              label={text("Username", "اسم المستخدم")}
+                              value={account.username}
+                            />
+                            <Info
+                              label={text("Phone", "الهاتف")}
+                              value={account.primaryPhone}
+                            />
+                            <Info
+                              label={text(
+                                "Backup phones",
+                                "الهواتف الاحتياطية",
+                              )}
+                              value={account.backupPhones.join(", ")}
+                            />
+                            <Info
+                              label={text("Email", "البريد الإلكتروني")}
+                              value={account.email}
+                            />
+                            <Info
+                              label={text("Backup emails", "البريد الاحتياطي")}
+                              value={account.backupEmails.join(", ")}
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {text(
+                          "No Company Owner accounts found.",
+                          "لم يتم العثور على حسابات مالكي الشركة.",
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-border pt-5">
+                  <h3 className="font-semibold">
+                    {text("Live company data", "بيانات الشركة الحالية")}
+                  </h3>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Info
+                      label={text("Employees", "الموظفون")}
+                      value={companyDetails.employees.length}
+                    />
+                    <Info
+                      label={text(
+                        "HR/Admin/Manager accounts",
+                        "حسابات HR/Admin/Manager",
+                      )}
+                      value={companyDetails.staff.length}
+                    />
+                    <Info
+                      label={text("Connected devices", "الأجهزة المتصلة")}
+                      value={companyDetails.devices.length}
+                    />
+                    <Info
+                      label={text("Subscription", "الاشتراك")}
+                      value={
+                        companyDetails.subscription
+                          ? `${companyDetails.subscription.planName} · ${companyDetails.subscription.status}`
+                          : text("Not configured", "غير مهيأ")
+                      }
+                    />
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {text("Employees", "الموظفون")}
+                      </div>
+                      <div className="mt-2 space-y-1 text-sm">
+                        {companyDetails.employees.length ? (
+                          companyDetails.employees.map((employee) => (
+                            <div key={String(employee.id)}>
+                              {String(employee.first_name ?? "")}{" "}
+                              {String(employee.last_name ?? "")}
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {text(
+                          "HR/Admin/Manager accounts",
+                          "حسابات HR/Admin/Manager",
+                        )}
+                      </div>
+                      <div className="mt-2 space-y-1 text-sm">
+                        {companyDetails.staff.length ? (
+                          companyDetails.staff.map((account) => (
+                            <div key={account.id}>
+                              {account.fullName || account.username}{" "}
+                              <span className="text-muted-foreground">
+                                · {account.username}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {text("Devices", "الأجهزة")}
+                      </div>
+                      <div className="mt-2 space-y-1 text-sm">
+                        {companyDetails.devices.length ? (
+                          companyDetails.devices.map((device) => (
+                            <div key={String(device.id)}>
+                              {String(device.name ?? "Unnamed")}{" "}
+                              <span className="text-muted-foreground">
+                                · {String(device.status ?? "unknown")}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {text(
+                          "Operational data records",
+                          "سجلات البيانات التشغيلية",
+                        )}
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-1 text-sm">
+                        {Object.entries(companyDetails.tableCounts)
+                          .filter(
+                            ([table]) =>
+                              table !== "var_hr_companies" &&
+                              table !== "var_hr_user_accounts",
+                          )
+                          .map(([table, count]) => (
+                            <div key={table}>
+                              <span className="text-muted-foreground">
+                                {table.replace("var_hr_", "")}
+                              </span>
+                              : {count}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                  <details className="mt-3 rounded-lg border border-border p-3">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      {text(
+                        "View all company-owned operational records",
+                        "عرض جميع سجلات الشركة التشغيلية",
+                      )}
+                    </summary>
+                    <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                      {JSON.stringify(companyDetails.operationalData, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-lg bg-muted/60 p-4 text-sm text-muted-foreground">
+                {text(
+                  "Loading complete company details…",
+                  "جارٍ تحميل تفاصيل الشركة الكاملة…",
+                )}
+              </div>
+            )}
+            <div className="border-t border-border pt-5">
+              <h3 className="font-semibold">
+                {text("Company information", "معلومات الشركة")}
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold">
+                  {text("Company name", "اسم الشركة")}
+                  <input
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                    value={companyForm.name}
+                    onChange={(event) =>
+                      setCompanyForm({
+                        ...companyForm,
+                        name: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-semibold">
+                  {text("Timezone", "المنطقة الزمنية")}
+                  <input
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                    value={companyForm.timezone}
+                    onChange={(event) =>
+                      setCompanyForm({
+                        ...companyForm,
+                        timezone: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-semibold">
+                  {text("Company address", "عنوان الشركة")}
+                  <textarea
+                    className="mt-2 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal"
+                    value={companyForm.address ?? ""}
+                    onChange={(event) =>
+                      setCompanyForm({
+                        ...companyForm,
+                        address: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-semibold">
+                  {text("Currency", "العملة")}
+                  <input
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                    maxLength={3}
+                    value={companyForm.currency}
+                    onChange={(event) =>
+                      setCompanyForm({
+                        ...companyForm,
+                        currency: event.target.value.toUpperCase(),
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-semibold">
+                  {text("Employee limit", "حد الموظفين")}
+                  <input
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                    type="number"
+                    min="0"
+                    value={employeeLimit}
+                    onChange={(event) => setEmployeeLimit(event.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() =>
+                    void updateCompany({
+                      name: companyForm.name,
+                      address: companyForm.address,
+                      timezone: companyForm.timezone,
+                      currency: companyForm.currency,
+                      employeeLimit: Number(employeeLimit),
+                    })
+                  }
+                >
+                  {text("Save company settings", "حفظ إعدادات الشركة")}
+                </Button>
+                <Button
+                  variant={selectedCompany.active ? "quiet" : "primary"}
+                  disabled={saving}
+                  onClick={() =>
+                    void updateCompany({
+                      status: selectedCompany.active ? "suspended" : "active",
+                    })
+                  }
+                >
+                  {selectedCompany.active
+                    ? text("Suspend company", "إيقاف الشركة")
+                    : text("Activate company", "تفعيل الشركة")}
+                </Button>
               </div>
             </div>
-             <div className="border-t border-border pt-5">
-               <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h3><Button variant="outline" disabled={saving || !companyDetails} onClick={() => void createCompanyBackup()}>{text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}</Button></div>
-              <div className="mt-3 space-y-2">{companyBackups.length ? companyBackups.map((backup) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><span>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span><Button variant="outline" disabled={saving} onClick={() => void restoreCompanyBackup(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
+            <div className="border-t border-border pt-5">
+              <h3 className="font-semibold">
+                {text("Company Owner access", "وصول مالك الشركة")}
+              </h3>
+              <div className="mt-3 space-y-3">
+                {ownerAccounts.length ? (
+                  ownerAccounts.map((account) => (
+                    <div
+                      className="rounded-lg border border-border p-3"
+                      key={account.id}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="font-semibold">
+                            {account.username}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {account.active
+                              ? text("Active", "نشط")
+                              : text("Inactive", "غير نشط")}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          disabled={saving}
+                          onClick={() =>
+                            void updateOwner(account, !account.active)
+                          }
+                        >
+                          {account.active
+                            ? text("Deactivate", "تعطيل")
+                            : text("Activate", "تفعيل")}
+                        </Button>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <Field
+                          label={text("Full name", "الاسم الكامل")}
+                          value={account.fullName}
+                          onChange={(value) =>
+                            setOwnerAccounts((current) =>
+                              current.map((item) =>
+                                item.id === account.id
+                                  ? { ...item, fullName: value }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                        <Field
+                          label={text("Primary phone", "الهاتف الأساسي")}
+                          value={account.primaryPhone}
+                          onChange={(value) =>
+                            setOwnerAccounts((current) =>
+                              current.map((item) =>
+                                item.id === account.id
+                                  ? { ...item, primaryPhone: value }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                        <Field
+                          label={text("Email", "البريد الإلكتروني")}
+                          type="email"
+                          value={account.email}
+                          onChange={(value) =>
+                            setOwnerAccounts((current) =>
+                              current.map((item) =>
+                                item.id === account.id
+                                  ? { ...item, email: value }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                        <Field
+                          label={text(
+                            "Backup phones (comma separated)",
+                            "هواتف احتياطية",
+                          )}
+                          value={account.backupPhones.join(", ")}
+                          onChange={(value) =>
+                            setOwnerAccounts((current) =>
+                              current.map((item) =>
+                                item.id === account.id
+                                  ? {
+                                      ...item,
+                                      backupPhones: value
+                                        .split(",")
+                                        .map((entry) => entry.trim())
+                                        .filter(Boolean),
+                                    }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                        <Field
+                          label={text(
+                            "Backup emails (comma separated)",
+                            "بريد احتياطي",
+                          )}
+                          type="email"
+                          value={account.backupEmails.join(", ")}
+                          onChange={(value) =>
+                            setOwnerAccounts((current) =>
+                              current.map((item) =>
+                                item.id === account.id
+                                  ? {
+                                      ...item,
+                                      backupEmails: value
+                                        .split(",")
+                                        .map((entry) => entry.trim())
+                                        .filter(Boolean),
+                                    }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                      <Button
+                        className="mt-3 w-full"
+                        variant="outline"
+                        disabled={saving}
+                        onClick={() =>
+                          void updateOwnerDetails(account, {
+                            fullName: account.fullName,
+                            primaryPhone: account.primaryPhone,
+                            backupPhones: account.backupPhones,
+                            email: account.email,
+                            backupEmails: account.backupEmails,
+                          })
+                        }
+                      >
+                        {text("Save owner details", "حفظ بيانات المالك")}
+                      </Button>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
+                          type="password"
+                          placeholder={text(
+                            "New permanent password",
+                            "كلمة مرور دائمة جديدة",
+                          )}
+                          value={ownerPassword}
+                          onChange={(event) =>
+                            setOwnerPassword(event.target.value)
+                          }
+                        />
+                        <Button
+                          disabled={saving || ownerPassword.length < 10}
+                          onClick={() =>
+                            void setOwnerPermanentPassword(account)
+                          }
+                        >
+                          {text("Set password", "تعيين كلمة المرور")}
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {text(
+                      "No Company Owner account found.",
+                      "لم يتم العثور على مالك للشركة.",
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="border-t border-border pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold">
+                  {text("Company backups", "نسخ الشركة الاحتياطية")}
+                </h3>
+                <Button
+                  variant="outline"
+                  disabled={saving || !companyDetails}
+                  onClick={() => void createCompanyBackup()}
+                >
+                  {text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}
+                </Button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {companyBackups.length ? (
+                  companyBackups.map((backup) => (
+                    <div
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm"
+                      key={backup.id}
+                    >
+                      <span>
+                        {new Date(backup.createdAt).toLocaleString(
+                          locale === "ar" ? "ar-EG" : "en-GB",
+                        )}
+                      </span>
+                      <Button
+                        variant="outline"
+                        disabled={saving}
+                        onClick={() => void restoreCompanyBackup(backup)}
+                      >
+                        {text("Restore", "استعادة")}
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {text(
+                      "No company backups available.",
+                      "لا توجد نسخ للشركة.",
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </Modal>
@@ -11235,7 +12157,7 @@ function Platform() {
 }
 
 function BackButton({ fallback = "/platform" }: { fallback?: string }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [, setLocation] = useLocation();
   const isArabic = locale === "ar";
   return (
@@ -11245,10 +12167,10 @@ function BackButton({ fallback = "/platform" }: { fallback?: string }) {
         if (window.history.length > 1) window.history.back();
         else setLocation(fallback);
       }}
-      aria-label={isArabic ? "العودة" : "Go back"}
+      aria-label={t("goBack")}
     >
       {isArabic ? <ArrowRight size={15} /> : <ArrowLeft size={15} />}
-      {isArabic ? "رجوع" : "Back"}
+      {t("back")}
     </Button>
   );
 }
@@ -11297,9 +12219,7 @@ function PlatformCompanyDetailsPage() {
         address: nextDetails.company.address,
         timezone: nextDetails.company.timezone,
         currency: nextDetails.company.currency,
-        employeeLimit: String(
-          nextDetails.subscription?.employeeLimit ?? 0,
-        ),
+        employeeLimit: String(nextDetails.subscription?.employeeLimit ?? 0),
         monthlyPrice: nextDetails.subscription?.monthlyPrice
           ? String(nextDetails.subscription.monthlyPrice)
           : "",
@@ -11309,7 +12229,14 @@ function PlatformCompanyDetailsPage() {
       });
       setOwnerCount(nextDetails.owners.length);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : text("Could not load company details.", "تعذر تحميل تفاصيل الشركة."));
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : text(
+              "Could not load company details.",
+              "تعذر تحميل تفاصيل الشركة.",
+            ),
+      );
     } finally {
       setLoading(false);
     }
@@ -11329,26 +12256,35 @@ function PlatformCompanyDetailsPage() {
   const updateCompany = async () => {
     setSaving(true);
     try {
-      await authRequest(`/api/platform/companies/${encodeURIComponent(params.companyId)}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: companyForm.name,
-          address: companyForm.address,
-          timezone: companyForm.timezone,
-          currency: companyForm.currency,
-          employeeLimit: Number(companyForm.employeeLimit),
-          monthlyPrice: companyForm.monthlyPrice === ""
-            ? 0
-            : Number(companyForm.monthlyPrice),
-          annualPrice: companyForm.annualPrice === ""
-            ? 0
-            : Number(companyForm.annualPrice),
-        }),
-      });
+      await authRequest(
+        `/api/platform/companies/${encodeURIComponent(params.companyId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            name: companyForm.name,
+            address: companyForm.address,
+            timezone: companyForm.timezone,
+            currency: companyForm.currency,
+            employeeLimit: Number(companyForm.employeeLimit),
+            monthlyPrice:
+              companyForm.monthlyPrice === ""
+                ? 0
+                : Number(companyForm.monthlyPrice),
+            annualPrice:
+              companyForm.annualPrice === ""
+                ? 0
+                : Number(companyForm.annualPrice),
+          }),
+        },
+      );
       await load();
       toast.success(text("Company updated", "تم تحديث الشركة"));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not update company.", "تعذر تحديث الشركة."));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not update company.", "تعذر تحديث الشركة."),
+      );
     } finally {
       setSaving(false);
     }
@@ -11363,7 +12299,11 @@ function PlatformCompanyDetailsPage() {
       await load();
       toast.success(text("Owner status updated", "تم تحديث حالة المالك"));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not update owner.", "تعذر تحديث المالك"));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not update owner.", "تعذر تحديث المالك"),
+      );
     } finally {
       setSaving(false);
     }
@@ -11385,7 +12325,11 @@ function PlatformCompanyDetailsPage() {
       await load();
       toast.success(text("Owner details updated", "تم تحديث بيانات المالك"));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not update owner details.", "تعذر تحديث بيانات المالك"));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not update owner details.", "تعذر تحديث بيانات المالك"),
+      );
     } finally {
       setSaving(false);
     }
@@ -11475,7 +12419,10 @@ function PlatformCompanyDetailsPage() {
       toast.error(
         cause instanceof Error
           ? cause.message
-          : text("Could not update Company Owners.", "تعذر تحديث مالكي الشركة."),
+          : text(
+              "Could not update Company Owners.",
+              "تعذر تحديث مالكي الشركة.",
+            ),
       );
     } finally {
       setSaving(false);
@@ -11490,9 +12437,15 @@ function PlatformCompanyDetailsPage() {
         body: JSON.stringify({ password: ownerPassword }),
       });
       setOwnerPassword("");
-      toast.success(text("Permanent password set", "تم تعيين كلمة المرور الدائمة"));
+      toast.success(
+        text("Permanent password set", "تم تعيين كلمة المرور الدائمة"),
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not set password.", "تعذر تعيين كلمة المرور"));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not set password.", "تعذر تعيين كلمة المرور"),
+      );
     } finally {
       setSaving(false);
     }
@@ -11505,15 +12458,29 @@ function PlatformCompanyDetailsPage() {
         body: JSON.stringify({ scope: "company", companyId: params.companyId }),
       });
       setBackups((current) => [backup, ...current]);
-      toast.success(text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"));
+      toast.success(
+        text("Company backup created", "تم إنشاء نسخة احتياطية للشركة"),
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة"));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not create company backup.", "تعذر إنشاء نسخة الشركة"),
+      );
     } finally {
       setSaving(false);
     }
   };
   const restoreBackupForCompany = async (backup: BackupSummary) => {
-    if (!window.confirm(text("Restore this company backup? A safety backup will be created first.", "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً."))) return;
+    if (
+      !window.confirm(
+        text(
+          "Restore this company backup? A safety backup will be created first.",
+          "استعادة نسخة الشركة؟ سيتم إنشاء نسخة أمان أولاً.",
+        ),
+      )
+    )
+      return;
     setSaving(true);
     try {
       await authRequest(`/api/backups/${backup.id}/restore`, {
@@ -11523,17 +12490,57 @@ function PlatformCompanyDetailsPage() {
       await load();
       toast.success(text("Company data restored", "تمت استعادة بيانات الشركة"));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not restore backup.", "تعذر استعادة النسخة"));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not restore backup.", "تعذر استعادة النسخة"),
+      );
     } finally {
       setSaving(false);
     }
   };
-  const status = details.company.active ? text("Active", "نشطة") : text("Suspended", "موقوفة");
+  const status = details.company.active
+    ? text("Active", "نشطة")
+    : text("Suspended", "موقوفة");
   const operationalGroups = [
-    ["Payroll", ["var_hr_payroll_periods", "var_hr_payroll_calculations", "var_hr_payroll_adjustments"]],
-    ["Attendance", ["var_hr_attendance", "var_hr_attendance_locations", "var_hr_biometric_events", "var_hr_biometric_sync_history"]],
-    ["People & structure", ["var_hr_departments", "var_hr_branches", "var_hr_employees", "var_hr_employee_hr_records", "var_hr_employee_identities"]],
-    ["Rules & schedules", ["var_hr_attendance_rules", "var_hr_work_schedules", "var_hr_holidays", "var_hr_leave_balances", "var_hr_leave_requests", "var_hr_permission_requests"]],
+    [
+      "Payroll",
+      [
+        "var_hr_payroll_periods",
+        "var_hr_payroll_calculations",
+        "var_hr_payroll_adjustments",
+      ],
+    ],
+    [
+      "Attendance",
+      [
+        "var_hr_attendance",
+        "var_hr_attendance_locations",
+        "var_hr_biometric_events",
+        "var_hr_biometric_sync_history",
+      ],
+    ],
+    [
+      "People & structure",
+      [
+        "var_hr_departments",
+        "var_hr_branches",
+        "var_hr_employees",
+        "var_hr_employee_hr_records",
+        "var_hr_employee_identities",
+      ],
+    ],
+    [
+      "Rules & schedules",
+      [
+        "var_hr_attendance_rules",
+        "var_hr_work_schedules",
+        "var_hr_holidays",
+        "var_hr_leave_balances",
+        "var_hr_leave_requests",
+        "var_hr_permission_requests",
+      ],
+    ],
   ] as const;
   const operationalTableLabels: Record<string, string> = {
     var_hr_payroll_periods: "فترات الرواتب",
@@ -11559,83 +12566,450 @@ function PlatformCompanyDetailsPage() {
     <div className="company-details-page min-w-0 max-w-full animate-in space-y-6 overflow-x-clip break-words">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BackButton />
-        <Badge tone={details.company.active ? "accent" : "neutral"}>{status}</Badge>
+        <Badge tone={details.company.active ? "accent" : "neutral"}>
+          {status}
+        </Badge>
       </div>
       <SectionTitle
         eyebrow={text("Platform administration", "إدارة المنصة")}
         title={details.company.name}
-        detail={text("Company details and support controls", "تفاصيل الشركة وأدوات الدعم")}
-        action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} />{text("Refresh", "تحديث")}</Button>}
+        detail={text(
+          "Company details and support controls",
+          "تفاصيل الشركة وأدوات الدعم",
+        )}
+        action={
+          <Button
+            variant="outline"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            <RefreshCw size={15} />
+            {text("Refresh", "تحديث")}
+          </Button>
+        }
       />
 
       <Card className="border-primary/20 bg-primary/[.04] p-5">
-        <div className="flex items-center gap-2"><Building2 size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Platform Owner-entered company information", "بيانات الشركة التي أدخلها مالك المنصة")}</h2></div>
+        <div className="flex items-center gap-2">
+          <Building2 size={18} className="text-primary" />
+          <h2 className="font-display text-lg font-semibold">
+            {text(
+              "Platform Owner-entered company information",
+              "بيانات الشركة التي أدخلها مالك المنصة",
+            )}
+          </h2>
+        </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Info label={text("Company name", "اسم الشركة")} value={details.company.name} />
-          <Info label={text("Address", "العنوان")} value={details.company.address || "—"} />
+          <Info
+            label={text("Company name", "اسم الشركة")}
+            value={details.company.name}
+          />
+          <Info
+            label={text("Address", "العنوان")}
+            value={details.company.address || "—"}
+          />
           <Info label={text("Slug", "المعرّف")} value={details.company.slug} />
-          <Info label={text("Timezone", "المنطقة الزمنية")} value={details.company.timezone} />
-          <Info label={text("Currency", "العملة")} value={details.company.currency} />
-          <Info label={text("Registration date", "تاريخ التسجيل")} value={date(details.company.createdAt)} />
-          <Info label={text("Subscription", "الاشتراك")} value={details.subscription ? `${details.subscription.planName} · ${details.subscription.status}` : text("Not configured", "غير مهيأ")} />
-          <Info label={text("Employee limit", "حد الموظفين")} value={details.subscription?.employeeLimit ?? "—"} />
-          <Info label={text("Monthly price", "السعر الشهري")} value={details.subscription?.monthlyPrice ? `${details.subscription.monthlyPrice} ${details.company.currency}` : "—"} />
-          <Info label={text("Annual price", "السعر السنوي")} value={details.subscription?.annualPrice ? `${details.subscription.annualPrice} ${details.company.currency}` : "—"} />
+          <Info
+            label={text("Timezone", "المنطقة الزمنية")}
+            value={details.company.timezone}
+          />
+          <Info
+            label={text("Currency", "العملة")}
+            value={details.company.currency}
+          />
+          <Info
+            label={text("Registration date", "تاريخ التسجيل")}
+            value={date(details.company.createdAt)}
+          />
+          <Info
+            label={text("Subscription", "الاشتراك")}
+            value={
+              details.subscription
+                ? `${details.subscription.planName} · ${details.subscription.status}`
+                : text("Not configured", "غير مهيأ")
+            }
+          />
+          <Info
+            label={text("Employee limit", "حد الموظفين")}
+            value={details.subscription?.employeeLimit ?? "—"}
+          />
+          <Info
+            label={text("Monthly price", "السعر الشهري")}
+            value={
+              details.subscription?.monthlyPrice
+                ? `${details.subscription.monthlyPrice} ${details.company.currency}`
+                : "—"
+            }
+          />
+          <Info
+            label={text("Annual price", "السعر السنوي")}
+            value={
+              details.subscription?.annualPrice
+                ? `${details.subscription.annualPrice} ${details.company.currency}`
+                : "—"
+            }
+          />
         </div>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-         <Card className="p-5">
-           <div className="flex flex-wrap items-start justify-between gap-3">
-             <div className="flex items-center gap-2">
-               <UserRound size={18} className="text-primary" />
-               <div>
-                 <h2 className="font-display text-lg font-semibold">{text("Company Owners", "مالكو الشركة")}</h2>
-                 <p className="mt-1 text-xs text-muted-foreground">{text("Edit owner details or adjust the number of owner accounts.", "عدّل بيانات المالكين أو غيّر عدد حسابات مالكي الشركة.")}</p>
-               </div>
-             </div>
-             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
-               <Field label={text("Number of Company Owners", "عدد مالكي الشركة")} type="number" min="0" value={String(ownerCount)} onChange={updateOwnerCount} />
-               <Button variant="outline" disabled={saving} onClick={() => void saveOwnerAccounts()}>{text("Save owner changes", "حفظ تغييرات المالكين")}</Button>
-             </div>
-           </div>
-           {ownerCount < details.owners.length && (
-             <div className="mt-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs leading-relaxed text-primary-dark">
-               {text("Reducing the count will deactivate the extra owner accounts and retain them for audit and recovery. No accounts will be deleted.", "سيؤدي تقليل العدد إلى تعطيل حسابات المالكين الزائدة والاحتفاظ بها للتدقيق والاسترداد. لن يتم حذف أي حساب.")}
-             </div>
-           )}
-          <div className="mt-4 space-y-4">
-            {details.owners.length ? details.owners.map((account) => (
-              <div className="rounded-xl border border-border p-4" key={account.id}>
-                <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold">{account.fullName || account.username}</div><div className="text-xs text-muted-foreground">{account.username} · {account.active ? text("Active", "نشط") : text("Inactive", "غير نشط")}</div></div><Button variant="outline" disabled={saving} onClick={() => void updateOwner(account, !account.active)}>{account.active ? text("Deactivate", "تعطيل") : text("Activate", "تفعيل")}</Button></div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <Field label={text("Owner full name", "الاسم الكامل للمالك")} value={account.fullName} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, fullName: value } : item) } : current)} />
-                  <Field label={text("Username", "اسم المستخدم")} value={account.username} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, username: value } : item) } : current)} />
-                  <Field label={text("Primary phone", "الهاتف الأساسي")} value={account.primaryPhone} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, primaryPhone: value } : item) } : current)} />
-                  <Field label={text("Backup phone numbers", "أرقام الهواتف الاحتياطية")} value={account.backupPhones.join(", ")} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, backupPhones: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item) } : current)} />
-                  <Field label={text("Email", "البريد الإلكتروني")} type="email" value={account.email} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, email: value } : item) } : current)} />
-                  <Field label={text("Backup emails", "البريد الإلكتروني الاحتياطي")} type="email" value={account.backupEmails.join(", ")} onChange={(value) => setDetails((current) => current ? { ...current, owners: current.owners.map((item) => item.id === account.id ? { ...item, backupEmails: value.split(",").map((entry) => entry.trim()).filter(Boolean) } : item) } : current)} />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2"><Button variant="outline" disabled={saving} onClick={() => void updateOwnerDetails(account)}>{text("Save owner details", "حفظ بيانات المالك")}</Button><input className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" type="password" placeholder={text("New permanent password", "كلمة مرور دائمة جديدة")} value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} /><Button disabled={saving || ownerPassword.length < 10} onClick={() => void setOwnerPermanentPassword(account)}>{text("Set password", "تعيين كلمة المرور")}</Button></div>
+        <Card className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <UserRound size={18} className="text-primary" />
+              <div>
+                <h2 className="font-display text-lg font-semibold">
+                  {text("Company Owners", "مالكو الشركة")}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {text(
+                    "Edit owner details or adjust the number of owner accounts.",
+                    "عدّل بيانات المالكين أو غيّر عدد حسابات مالكي الشركة.",
+                  )}
+                </p>
               </div>
-            )) : <Empty title={text("No Company Owner accounts found.", "لم يتم العثور على حسابات مالكي الشركة.")} detail="" />}
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+              <Field
+                label={text("Number of Company Owners", "عدد مالكي الشركة")}
+                type="number"
+                min="0"
+                value={String(ownerCount)}
+                onChange={updateOwnerCount}
+              />
+              <Button
+                variant="outline"
+                disabled={saving}
+                onClick={() => void saveOwnerAccounts()}
+              >
+                {text("Save owner changes", "حفظ تغييرات المالكين")}
+              </Button>
+            </div>
+          </div>
+          {ownerCount < details.owners.length && (
+            <div className="mt-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs leading-relaxed text-primary-dark">
+              {text(
+                "Reducing the count will deactivate the extra owner accounts and retain them for audit and recovery. No accounts will be deleted.",
+                "سيؤدي تقليل العدد إلى تعطيل حسابات المالكين الزائدة والاحتفاظ بها للتدقيق والاسترداد. لن يتم حذف أي حساب.",
+              )}
+            </div>
+          )}
+          <div className="mt-4 space-y-4">
+            {details.owners.length ? (
+              details.owners.map((account) => (
+                <div
+                  className="rounded-xl border border-border p-4"
+                  key={account.id}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold">
+                        {account.fullName || account.username}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {account.username} ·{" "}
+                        {account.active
+                          ? text("Active", "نشط")
+                          : text("Inactive", "غير نشط")}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={saving}
+                      onClick={() => void updateOwner(account, !account.active)}
+                    >
+                      {account.active
+                        ? text("Deactivate", "تعطيل")
+                        : text("Activate", "تفعيل")}
+                    </Button>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Field
+                      label={text("Owner full name", "الاسم الكامل للمالك")}
+                      value={account.fullName}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? { ...item, fullName: value }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Username", "اسم المستخدم")}
+                      value={account.username}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? { ...item, username: value }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Primary phone", "الهاتف الأساسي")}
+                      value={account.primaryPhone}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? { ...item, primaryPhone: value }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text(
+                        "Backup phone numbers",
+                        "أرقام الهواتف الاحتياطية",
+                      )}
+                      value={account.backupPhones.join(", ")}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? {
+                                        ...item,
+                                        backupPhones: value
+                                          .split(",")
+                                          .map((entry) => entry.trim())
+                                          .filter(Boolean),
+                                      }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Email", "البريد الإلكتروني")}
+                      type="email"
+                      value={account.email}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? { ...item, email: value }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text(
+                        "Backup emails",
+                        "البريد الإلكتروني الاحتياطي",
+                      )}
+                      type="email"
+                      value={account.backupEmails.join(", ")}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? {
+                                        ...item,
+                                        backupEmails: value
+                                          .split(",")
+                                          .map((entry) => entry.trim())
+                                          .filter(Boolean),
+                                      }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={saving}
+                      onClick={() => void updateOwnerDetails(account)}
+                    >
+                      {text("Save owner details", "حفظ بيانات المالك")}
+                    </Button>
+                    <input
+                      className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
+                      type="password"
+                      placeholder={text(
+                        "New permanent password",
+                        "كلمة مرور دائمة جديدة",
+                      )}
+                      value={ownerPassword}
+                      onChange={(event) => setOwnerPassword(event.target.value)}
+                    />
+                    <Button
+                      disabled={saving || ownerPassword.length < 10}
+                      onClick={() => void setOwnerPermanentPassword(account)}
+                    >
+                      {text("Set password", "تعيين كلمة المرور")}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Empty
+                title={text(
+                  "No Company Owner accounts found.",
+                  "لم يتم العثور على حسابات مالكي الشركة.",
+                )}
+                detail=""
+              />
+            )}
           </div>
         </Card>
         {newOwners.length > 0 && (
           <Card className="p-5 lg:col-span-2">
-            <div className="mb-3 flex items-center gap-2"><UserPlus size={16} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Additional owner accounts", "حسابات المالكين الإضافية")}</h2></div>
+            <div className="mb-3 flex items-center gap-2">
+              <UserPlus size={16} className="text-primary" />
+              <h2 className="font-display text-lg font-semibold">
+                {text("Additional owner accounts", "حسابات المالكين الإضافية")}
+              </h2>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {newOwners.map((owner, index) => (
-                <div className="rounded-xl border border-primary/30 bg-primary/[.03] p-4" key={`new-owner-${index}`}>
-                  <div className="mb-3 font-semibold">{text("New owner account", "حساب مالك جديد")} {index + 1}</div>
+                <div
+                  className="rounded-xl border border-primary/30 bg-primary/[.03] p-4"
+                  key={`new-owner-${index}`}
+                >
+                  <div className="mb-3 font-semibold">
+                    {text("New owner account", "حساب مالك جديد")} {index + 1}
+                  </div>
                   <div className="space-y-3">
-                    <Field label={text("Owner full name", "الاسم الكامل للمالك")} value={owner.fullName} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, fullName: value } : item))} />
-                    <Field label={text("Username", "اسم المستخدم")} required value={owner.username} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, username: value } : item))} />
-                    <Field label={text("Permanent password", "كلمة المرور الدائمة")} type="password" required value={owner.password} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, password: value } : item))} />
-                    <Field label={text("Primary phone", "الهاتف الأساسي")} value={owner.primaryPhone} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, primaryPhone: value } : item))} />
-                    <Field label={text("Backup phone numbers", "أرقام الهواتف الاحتياطية")} value={owner.backupPhones} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, backupPhones: value } : item))} />
-                    <Field label={text("Email", "البريد الإلكتروني")} type="email" value={owner.email} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: value } : item))} />
-                    <Field label={text("Backup emails", "البريد الإلكتروني الاحتياطي")} value={owner.backupEmails} onChange={(value) => setNewOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, backupEmails: value } : item))} />
+                    <Field
+                      label={text("Owner full name", "الاسم الكامل للمالك")}
+                      value={owner.fullName}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, fullName: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Username", "اسم المستخدم")}
+                      required
+                      value={owner.username}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, username: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Permanent password", "كلمة المرور الدائمة")}
+                      type="password"
+                      required
+                      value={owner.password}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, password: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Primary phone", "الهاتف الأساسي")}
+                      value={owner.primaryPhone}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, primaryPhone: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text(
+                        "Backup phone numbers",
+                        "أرقام الهواتف الاحتياطية",
+                      )}
+                      value={owner.backupPhones}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, backupPhones: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Email", "البريد الإلكتروني")}
+                      type="email"
+                      value={owner.email}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, email: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text(
+                        "Backup emails",
+                        "البريد الإلكتروني الاحتياطي",
+                      )}
+                      value={owner.backupEmails}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, backupEmails: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
                   </div>
                 </div>
               ))}
@@ -11643,42 +13017,270 @@ function PlatformCompanyDetailsPage() {
           </Card>
         )}
         <Card className="p-5">
-          <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Live operational overview", "نظرة على البيانات التشغيلية الحالية")}</h2></div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label={text("Employees", "الموظفون")} value={details.employees.length} /><Info label={text("HR/Admin/Manager accounts", "حسابات HR/Admin/Manager")} value={details.staff.length} /><Info label={text("Biometric devices", "أجهزة البصمة")} value={details.devices.length} /><Info label={text("Integrity checksum", "بصمة التكامل")} value={details.integrity.checksum.slice(0, 16) + "…"} /></div>
-           <div className="mt-4 space-y-3">{operationalGroups.map(([label, tables]) => <div className="rounded-lg bg-muted/60 p-3" key={label}><div className="text-sm font-semibold">{text(label, label === "Payroll" ? "الرواتب" : label === "Attendance" ? "الحضور والانصراف" : label === "People & structure" ? "الموظفون" : "القواعد")}</div><div className="mt-2 grid min-w-0 grid-cols-2 gap-1 text-xs text-muted-foreground">{tables.map((table) => <span className="min-w-0 break-words" key={table}>{operationalTableLabels[table]}: {details.tableCounts[table] ?? 0}</span>)}</div></div>)}</div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {text(
+                "Live operational overview",
+                "نظرة على البيانات التشغيلية الحالية",
+              )}
+            </h2>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Info
+              label={text("Employees", "الموظفون")}
+              value={details.employees.length}
+            />
+            <Info
+              label={text(
+                "HR/Admin/Manager accounts",
+                "حسابات HR/Admin/Manager",
+              )}
+              value={details.staff.length}
+            />
+            <Info
+              label={text("Biometric devices", "أجهزة البصمة")}
+              value={details.devices.length}
+            />
+            <Info
+              label={text("Integrity checksum", "بصمة التكامل")}
+              value={details.integrity.checksum.slice(0, 16) + "…"}
+            />
+          </div>
+          <div className="mt-4 space-y-3">
+            {operationalGroups.map(([label, tables]) => (
+              <div className="rounded-lg bg-muted/60 p-3" key={label}>
+                <div className="text-sm font-semibold">
+                  {text(
+                    label,
+                    label === "Payroll"
+                      ? "الرواتب"
+                      : label === "Attendance"
+                        ? "الحضور والانصراف"
+                        : label === "People & structure"
+                          ? "الموظفون"
+                          : "القواعد",
+                  )}
+                </div>
+                <div className="mt-2 grid min-w-0 grid-cols-2 gap-1 text-xs text-muted-foreground">
+                  {tables.map((table) => (
+                    <span className="min-w-0 break-words" key={table}>
+                      {operationalTableLabels[table]}:{" "}
+                      {details.tableCounts[table] ?? 0}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
       <Card className="p-5">
-        <div className="flex items-center gap-2"><Users size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("People and biometric devices", "الأفراد وأجهزة البصمة")}</h2></div>
-          <div className="mt-4 grid min-w-0 gap-6 lg:grid-cols-3">
-          <div><h3 className="text-sm font-semibold">{text("Staff accounts", "حسابات الموظفين الإداريين")}</h3><div className="mt-2 space-y-1 text-sm">{details.staff.length ? details.staff.map((account) => <div key={account.id}>{account.fullName || account.username} <span className="text-muted-foreground">· {account.displayRole}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
-          <div><h3 className="text-sm font-semibold">{text("Employees", "الموظفون")}</h3><div className="mt-2 space-y-1 text-sm">{details.employees.length ? details.employees.map((employee) => <div key={String(employee.id)}>{String(employee.first_name ?? "")} {String(employee.last_name ?? "")}</div>) : <span className="text-muted-foreground">—</span>}</div></div>
-          <div><h3 className="text-sm font-semibold">{text("Biometric devices", "أجهزة البصمة")}</h3><div className="mt-2 space-y-1 text-sm">{details.devices.length ? details.devices.map((device) => <div key={String(device.id)}>{String(device.name ?? "Unnamed")} <span className="text-muted-foreground">· {String(device.status ?? "unknown")}</span></div>) : <span className="text-muted-foreground">—</span>}</div></div>
+        <div className="flex items-center gap-2">
+          <Users size={18} className="text-primary" />
+          <h2 className="font-display text-lg font-semibold">
+            {text("People and biometric devices", "الأفراد وأجهزة البصمة")}
+          </h2>
+        </div>
+        <div className="mt-4 grid min-w-0 gap-6 lg:grid-cols-3">
+          <div>
+            <h3 className="text-sm font-semibold">
+              {text("Staff accounts", "حسابات الموظفين الإداريين")}
+            </h3>
+            <div className="mt-2 space-y-1 text-sm">
+              {details.staff.length ? (
+                details.staff.map((account) => (
+                  <div key={account.id}>
+                    {account.fullName || account.username}{" "}
+                    <span className="text-muted-foreground">
+                      · {account.displayRole}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">
+              {text("Employees", "الموظفون")}
+            </h3>
+            <div className="mt-2 space-y-1 text-sm">
+              {details.employees.length ? (
+                details.employees.map((employee) => (
+                  <div key={String(employee.id)}>
+                    {String(employee.first_name ?? "")}{" "}
+                    {String(employee.last_name ?? "")}
+                  </div>
+                ))
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">
+              {text("Biometric devices", "أجهزة البصمة")}
+            </h3>
+            <div className="mt-2 space-y-1 text-sm">
+              {details.devices.length ? (
+                details.devices.map((device) => (
+                  <div key={String(device.id)}>
+                    {String(device.name ?? "Unnamed")}{" "}
+                    <span className="text-muted-foreground">
+                      · {String(device.status ?? "unknown")}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+          </div>
         </div>
       </Card>
 
       <Card className="p-5">
-        <div className="flex items-center gap-2"><Settings size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company settings", "إعدادات الشركة")}</h2></div>
+        <div className="flex items-center gap-2">
+          <Settings size={18} className="text-primary" />
+          <h2 className="font-display text-lg font-semibold">
+            {text("Company settings", "إعدادات الشركة")}
+          </h2>
+        </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Field label={text("Company name", "اسم الشركة")} value={companyForm.name} onChange={(value) => setCompanyForm({ ...companyForm, name: value })} />
-          <Field label={text("Address", "العنوان")} value={companyForm.address} onChange={(value) => setCompanyForm({ ...companyForm, address: value })} />
-          <Field label={text("Timezone", "المنطقة الزمنية")} value={companyForm.timezone} onChange={(value) => setCompanyForm({ ...companyForm, timezone: value })} />
-          <Field label={text("Currency", "العملة")} value={companyForm.currency} onChange={(value) => setCompanyForm({ ...companyForm, currency: value.toUpperCase() })} />
-          <Field label={text("Employee limit", "حد الموظفين")} value={companyForm.employeeLimit} onChange={(value) => setCompanyForm({ ...companyForm, employeeLimit: value })} type="number" />
-          <Field label={text("Monthly subscription price", "سعر الاشتراك الشهري")} value={companyForm.monthlyPrice} onChange={(value) => setCompanyForm({ ...companyForm, monthlyPrice: value })} type="number" min="0" />
-          <Field label={text("Annual subscription price", "سعر الاشتراك السنوي")} value={companyForm.annualPrice} onChange={(value) => setCompanyForm({ ...companyForm, annualPrice: value })} type="number" min="0" />
+          <Field
+            label={text("Company name", "اسم الشركة")}
+            value={companyForm.name}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, name: value })
+            }
+          />
+          <Field
+            label={text("Address", "العنوان")}
+            value={companyForm.address}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, address: value })
+            }
+          />
+          <Field
+            label={text("Timezone", "المنطقة الزمنية")}
+            value={companyForm.timezone}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, timezone: value })
+            }
+          />
+          <Field
+            label={text("Currency", "العملة")}
+            value={companyForm.currency}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, currency: value.toUpperCase() })
+            }
+          />
+          <Field
+            label={text("Employee limit", "حد الموظفين")}
+            value={companyForm.employeeLimit}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, employeeLimit: value })
+            }
+            type="number"
+          />
+          <Field
+            label={text("Monthly subscription price", "سعر الاشتراك الشهري")}
+            value={companyForm.monthlyPrice}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, monthlyPrice: value })
+            }
+            type="number"
+            min="0"
+          />
+          <Field
+            label={text("Annual subscription price", "سعر الاشتراك السنوي")}
+            value={companyForm.annualPrice}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, annualPrice: value })
+            }
+            type="number"
+            min="0"
+          />
         </div>
-        <div className="mt-4 flex justify-end"><Button disabled={saving} onClick={() => void updateCompany()}>{text("Save company settings", "حفظ إعدادات الشركة")}</Button></div>
+        <div className="mt-4 flex justify-end">
+          <Button disabled={saving} onClick={() => void updateCompany()}>
+            {text("Save company settings", "حفظ إعدادات الشركة")}
+          </Button>
+        </div>
       </Card>
 
       <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Database size={18} className="text-primary" /><h2 className="font-display text-lg font-semibold">{text("Company backups", "نسخ الشركة الاحتياطية")}</h2></div><Button disabled={saving} onClick={() => void createBackup()}><Database size={15} />{text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}</Button></div>
-          <div className="mt-4 space-y-2">{backups.length ? backups.map((backup) => <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={backup.id}><div className="min-w-0 flex-1"><div>{new Date(backup.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</div><div className="break-all text-xs text-muted-foreground">{backup.checksum}</div></div><Button variant="outline" disabled={saving} onClick={() => void restoreBackupForCompany(backup)}>{text("Restore", "استعادة")}</Button></div>) : <p className="text-sm text-muted-foreground">{text("No company backups available.", "لا توجد نسخ للشركة.")}</p>}</div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Database size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {text("Company backups", "نسخ الشركة الاحتياطية")}
+            </h2>
+          </div>
+          <Button disabled={saving} onClick={() => void createBackup()}>
+            <Database size={15} />
+            {text("Create Company Backup", "إنشاء نسخة احتياطية للشركة")}
+          </Button>
+        </div>
+        <div className="mt-4 space-y-2">
+          {backups.length ? (
+            backups.map((backup) => (
+              <div
+                className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm"
+                key={backup.id}
+              >
+                <div className="min-w-0 flex-1">
+                  <div>
+                    {new Date(backup.createdAt).toLocaleString(
+                      locale === "ar" ? "ar-EG" : "en-GB",
+                    )}
+                  </div>
+                  <div className="break-all text-xs text-muted-foreground">
+                    {backup.checksum}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => void restoreBackupForCompany(backup)}
+                >
+                  {text("Restore", "استعادة")}
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {text("No company backups available.", "لا توجد نسخ للشركة.")}
+            </p>
+          )}
+        </div>
       </Card>
 
-      <Card className="p-5"><details><summary className="cursor-pointer font-semibold">{text("View all company-owned operational records", "عرض جميع سجلات الشركة التشغيلية")}</summary><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/60 p-4 text-xs text-muted-foreground">{JSON.stringify(details.operationalData, null, 2)}</pre></details></Card>
-      <div className="flex justify-start"><Button variant="outline" onClick={() => setLocation("/platform")}><Network size={15} />{text("Back to Platform control center", "العودة إلى مركز تحكم المنصة")}</Button></div>
+      <Card className="p-5">
+        <details>
+          <summary className="cursor-pointer font-semibold">
+            {text(
+              "View all company-owned operational records",
+              "عرض جميع سجلات الشركة التشغيلية",
+            )}
+          </summary>
+          <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/60 p-4 text-xs text-muted-foreground">
+            {JSON.stringify(details.operationalData, null, 2)}
+          </pre>
+        </details>
+      </Card>
+      <div className="flex justify-start">
+        <Button variant="outline" onClick={() => setLocation("/platform")}>
+          <Network size={15} />
+          {text(
+            "Back to Platform control center",
+            "العودة إلى مركز تحكم المنصة",
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -11688,48 +13290,95 @@ function AddCompanyPage() {
   const [, setLocation] = useLocation();
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const emptyOwner = (): NewCompanyOwner => ({
-    fullName: "", username: "", password: "", primaryPhone: "",
-    backupPhones: "", email: "", backupEmails: "",
+    fullName: "",
+    username: "",
+    password: "",
+    primaryPhone: "",
+    backupPhones: "",
+    email: "",
+    backupEmails: "",
   });
   const [company, setCompany] = useState({
-    name: "", address: "", currency: "", employeeLimit: "",
-    monthlyPrice: "", annualPrice: "", ownerCount: "0",
+    name: "",
+    address: "",
+    currency: "",
+    employeeLimit: "",
+    monthlyPrice: "",
+    annualPrice: "",
+    ownerCount: "0",
   });
   const [owners, setOwners] = useState<NewCompanyOwner[]>([]);
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ name: string; usernames: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    name: string;
+    usernames: string[];
+  } | null>(null);
 
   const updateOwnerCount = (value: string) => {
     const count = Math.max(0, Math.min(20, Number(value) || 0));
     setCompany((current) => ({ ...current, ownerCount: String(count) }));
-    setOwners((current) => Array.from({ length: count }, (_, index) => current[index] ?? emptyOwner()));
+    setOwners((current) =>
+      Array.from(
+        { length: count },
+        (_, index) => current[index] ?? emptyOwner(),
+      ),
+    );
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
-      const response = await authRequest<{ company: { name: string }; owners: AuthAccount[] }>("/api/platform/companies", {
+      const response = await authRequest<{
+        company: { name: string };
+        owners: AuthAccount[];
+      }>("/api/platform/companies", {
         method: "POST",
         body: JSON.stringify({
           name: company.name,
           address: company.address,
-          ...(company.currency ? { currency: company.currency.toUpperCase() } : {}),
-          ...(company.employeeLimit ? { employeeLimit: Number(company.employeeLimit) } : {}),
+          ...(company.currency
+            ? { currency: company.currency.toUpperCase() }
+            : {}),
+          ...(company.employeeLimit
+            ? { employeeLimit: Number(company.employeeLimit) }
+            : {}),
           ownerCount: Number(company.ownerCount),
-          ...(company.monthlyPrice ? { monthlyPrice: Number(company.monthlyPrice) } : {}),
-          ...(company.annualPrice ? { annualPrice: Number(company.annualPrice) } : {}),
+          ...(company.monthlyPrice
+            ? { monthlyPrice: Number(company.monthlyPrice) }
+            : {}),
+          ...(company.annualPrice
+            ? { annualPrice: Number(company.annualPrice) }
+            : {}),
           owners: owners.map((owner) => ({
             ...owner,
-            backupPhones: owner.backupPhones.split(",").map((item) => item.trim()).filter(Boolean),
-            backupEmails: owner.backupEmails.split(",").map((item) => item.trim()).filter(Boolean),
+            backupPhones: owner.backupPhones
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+            backupEmails: owner.backupEmails
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
           })),
           active: true,
         }),
       });
-      setResult({ name: response.company.name, usernames: response.owners.map((owner) => owner.username) });
-      toast.success(text("Company and owner accounts created", "تم إنشاء الشركة وحسابات المالكين"));
+      setResult({
+        name: response.company.name,
+        usernames: response.owners.map((owner) => owner.username),
+      });
+      toast.success(
+        text(
+          "Company and owner accounts created",
+          "تم إنشاء الشركة وحسابات المالكين",
+        ),
+      );
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : text("Could not create company.", "تعذر إنشاء الشركة."));
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : text("Could not create company.", "تعذر إنشاء الشركة."),
+      );
     } finally {
       setSaving(false);
     }
@@ -11749,7 +13398,11 @@ function AddCompanyPage() {
             variant="outline"
             onClick={() => setLocation("/platform")}
           >
-            {locale === "ar" ? <ArrowRight size={15} /> : <ArrowLeft size={15} />}
+            {locale === "ar" ? (
+              <ArrowRight size={15} />
+            ) : (
+              <ArrowLeft size={15} />
+            )}
             {text("Back to companies", "العودة إلى الشركات")}
           </Button>
         }
@@ -11757,17 +13410,35 @@ function AddCompanyPage() {
       {result ? (
         <div className="mx-auto max-w-2xl space-y-4">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-            <div className="font-semibold">{text("Company created successfully", "تم إنشاء الشركة بنجاح")}</div>
-            <div className="mt-1 text-sm text-muted-foreground">{result.name}</div>
+            <div className="font-semibold">
+              {text("Company created successfully", "تم إنشاء الشركة بنجاح")}
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {result.name}
+            </div>
           </div>
           <div className="rounded-xl bg-muted/60 p-4">
-            <div className="text-sm font-semibold">{text("Created owner usernames", "أسماء مستخدمي المالكين المنشأة")}</div>
-            <div className="mt-2 space-y-1 font-mono text-sm">{result.usernames.map((username) => <div key={username}>{username}</div>)}</div>
+            <div className="text-sm font-semibold">
+              {text(
+                "Created owner usernames",
+                "أسماء مستخدمي المالكين المنشأة",
+              )}
+            </div>
+            <div className="mt-2 space-y-1 font-mono text-sm">
+              {result.usernames.map((username) => (
+                <div key={username}>{username}</div>
+              ))}
+            </div>
           </div>
-          <Button className="w-full" onClick={() => setLocation("/platform")}>{text("Done", "تم")}</Button>
+          <Button className="w-full" onClick={() => setLocation("/platform")}>
+            {text("Done", "تم")}
+          </Button>
         </div>
       ) : (
-        <form className="mx-auto max-w-2xl space-y-4 sm:space-y-5" onSubmit={(event) => void submit(event)}>
+        <form
+          className="mx-auto max-w-2xl space-y-4 sm:space-y-5"
+          onSubmit={(event) => void submit(event)}
+        >
           <section className="rounded-2xl border border-border bg-muted/25 p-4 sm:p-5">
             <div className="mb-4 flex items-start gap-3">
               <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary shadow-sm">
@@ -11778,16 +13449,52 @@ function AddCompanyPage() {
                   {text("Company information", "معلومات الشركة")}
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {text("Set the identity and operating defaults for this workspace.", "أدخل هوية مساحة العمل وإعداداتها التشغيلية الأساسية.")}
+                  {text(
+                    "Set the identity and operating defaults for this workspace.",
+                    "أدخل هوية مساحة العمل وإعداداتها التشغيلية الأساسية.",
+                  )}
                 </p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={text("Company name", "اسم الشركة")} required value={company.name} onChange={(value) => setCompany({ ...company, name: value })} />
-              <Field label={text("Currency", "العملة")} value={company.currency} onChange={(value) => setCompany({ ...company, currency: value })} />
-              <label className="text-sm font-semibold sm:col-span-2">{text("Company address", "عنوان الشركة")}<textarea className="mt-2 min-h-20 w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm font-normal" value={company.address} onChange={(event) => setCompany({ ...company, address: event.target.value })} /></label>
-              <Field label={text("Employee limit", "حد الموظفين")} type="number" value={company.employeeLimit} onChange={(value) => setCompany({ ...company, employeeLimit: value })} />
-              <Field label={text("Number of company owners", "عدد مالكي الشركة")} type="number" min="0" value={company.ownerCount} onChange={updateOwnerCount} />
+              <Field
+                label={text("Company name", "اسم الشركة")}
+                required
+                value={company.name}
+                onChange={(value) => setCompany({ ...company, name: value })}
+              />
+              <Field
+                label={text("Currency", "العملة")}
+                value={company.currency}
+                onChange={(value) =>
+                  setCompany({ ...company, currency: value })
+                }
+              />
+              <label className="text-sm font-semibold sm:col-span-2">
+                {text("Company address", "عنوان الشركة")}
+                <textarea
+                  className="mt-2 min-h-20 w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm font-normal"
+                  value={company.address}
+                  onChange={(event) =>
+                    setCompany({ ...company, address: event.target.value })
+                  }
+                />
+              </label>
+              <Field
+                label={text("Employee limit", "حد الموظفين")}
+                type="number"
+                value={company.employeeLimit}
+                onChange={(value) =>
+                  setCompany({ ...company, employeeLimit: value })
+                }
+              />
+              <Field
+                label={text("Number of company owners", "عدد مالكي الشركة")}
+                type="number"
+                min="0"
+                value={company.ownerCount}
+                onChange={updateOwnerCount}
+              />
             </div>
           </section>
           <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 sm:p-5">
@@ -11800,13 +13507,30 @@ function AddCompanyPage() {
                   {text("Subscription pricing", "أسعار الاشتراك")}
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {text("Define the pricing reference for this company subscription.", "حدد مرجع التسعير لاشتراك هذه الشركة.")}
+                  {text(
+                    "Define the pricing reference for this company subscription.",
+                    "حدد مرجع التسعير لاشتراك هذه الشركة.",
+                  )}
                 </p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={text("Monthly price", "السعر الشهري")} type="number" value={company.monthlyPrice} onChange={(value) => setCompany({ ...company, monthlyPrice: value })} />
-              <Field label={text("Annual price", "السعر السنوي")} type="number" value={company.annualPrice} onChange={(value) => setCompany({ ...company, annualPrice: value })} />
+              <Field
+                label={text("Monthly price", "السعر الشهري")}
+                type="number"
+                value={company.monthlyPrice}
+                onChange={(value) =>
+                  setCompany({ ...company, monthlyPrice: value })
+                }
+              />
+              <Field
+                label={text("Annual price", "السعر السنوي")}
+                type="number"
+                value={company.annualPrice}
+                onChange={(value) =>
+                  setCompany({ ...company, annualPrice: value })
+                }
+              />
             </div>
           </section>
           <section className="rounded-2xl border border-secondary/15 bg-secondary/[0.03] p-4 sm:p-5">
@@ -11820,7 +13544,10 @@ function AddCompanyPage() {
                     {text("Company owner accounts", "حسابات مالكي الشركة")}
                   </h3>
                   <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                    {text("Create secure sign-in accounts for the people who will manage this company.", "أنشئ حسابات دخول آمنة للأشخاص الذين سيديرون هذه الشركة.")}
+                    {text(
+                      "Create secure sign-in accounts for the people who will manage this company.",
+                      "أنشئ حسابات دخول آمنة للأشخاص الذين سيديرون هذه الشركة.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -11830,25 +13557,78 @@ function AddCompanyPage() {
             </div>
             <div className="space-y-3">
               {owners.map((owner, index) => (
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5" key={index}>
+                <div
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5"
+                  key={index}
+                >
                   <div className="mb-4 flex items-center gap-2 border-b border-border/70 pb-3">
-                    <div className="grid size-7 place-items-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">{index + 1}</div>
+                    <div className="grid size-7 place-items-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+                      {index + 1}
+                    </div>
                     <div>
-                      <div className="text-sm font-semibold">{text("Owner account", "حساب المالك")} {index + 1}</div>
-                      <div className="text-xs text-muted-foreground">{text("Account details and recovery contacts", "بيانات الحساب ووسائل الاسترداد")}</div>
+                      <div className="text-sm font-semibold">
+                        {text("Owner account", "حساب المالك")} {index + 1}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {text(
+                          "Account details and recovery contacts",
+                          "بيانات الحساب ووسائل الاسترداد",
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {([
-                      ["fullName", text("Full name", "الاسم الكامل")],
-                      ["username", text("Username", "اسم المستخدم")],
-                      ["password", text("Permanent password", "كلمة المرور الدائمة")],
-                      ["primaryPhone", text("Primary phone", "الهاتف الأساسي")],
-                      ["backupPhones", text("Backup phones (comma separated)", "هواتف احتياطية (مفصولة بفواصل)")],
-                      ["email", text("Email address", "البريد الإلكتروني")],
-                      ["backupEmails", text("Backup emails (comma separated)", "بريد احتياطي (مفصول بفواصل)")]
-                    ] as const).map(([key, label]) => (
-                      <Field key={key} label={label} type={key === "password" ? "password" : key === "email" || key === "backupEmails" ? "email" : "text"} required={["username", "password"].includes(key)} value={owner[key]} onChange={(value) => setOwners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item))} />
+                    {(
+                      [
+                        ["fullName", text("Full name", "الاسم الكامل")],
+                        ["username", text("Username", "اسم المستخدم")],
+                        [
+                          "password",
+                          text("Permanent password", "كلمة المرور الدائمة"),
+                        ],
+                        [
+                          "primaryPhone",
+                          text("Primary phone", "الهاتف الأساسي"),
+                        ],
+                        [
+                          "backupPhones",
+                          text(
+                            "Backup phones (comma separated)",
+                            "هواتف احتياطية (مفصولة بفواصل)",
+                          ),
+                        ],
+                        ["email", text("Email address", "البريد الإلكتروني")],
+                        [
+                          "backupEmails",
+                          text(
+                            "Backup emails (comma separated)",
+                            "بريد احتياطي (مفصول بفواصل)",
+                          ),
+                        ],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <Field
+                        key={key}
+                        label={label}
+                        type={
+                          key === "password"
+                            ? "password"
+                            : key === "email" || key === "backupEmails"
+                              ? "email"
+                              : "text"
+                        }
+                        required={["username", "password"].includes(key)}
+                        value={owner[key]}
+                        onChange={(value) =>
+                          setOwners((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, [key]: value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
                     ))}
                   </div>
                 </div>
@@ -11856,8 +13636,23 @@ function AddCompanyPage() {
             </div>
           </section>
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={() => setLocation("/platform")}>{text("Cancel", "إلغاء")}</Button>
-            <Button type="submit" className="w-full sm:w-auto" disabled={saving}>{saving ? text("Creating…", "جارٍ الإنشاء…") : text("Create company", "إنشاء الشركة")}</Button>
+            <Button
+              type="button"
+              variant="quiet"
+              className="w-full sm:w-auto"
+              onClick={() => setLocation("/platform")}
+            >
+              {text("Cancel", "إلغاء")}
+            </Button>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={saving}
+            >
+              {saving
+                ? text("Creating…", "جارٍ الإنشاء…")
+                : text("Create company", "إنشاء الشركة")}
+            </Button>
           </div>
         </form>
       )}
@@ -11974,9 +13769,7 @@ function Field({
             type="button"
             className="absolute end-3 top-1/2 -translate-y-[calc(50%-1px)] rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            aria-label={
-              passwordVisible ? hidePasswordLabel : showPasswordLabel
-            }
+            aria-label={passwordVisible ? hidePasswordLabel : showPasswordLabel}
             title={passwordVisible ? hidePasswordLabel : showPasswordLabel}
           >
             {passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -12069,7 +13862,10 @@ function Router() {
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
-        <Route path="/platform/companies/:companyId" component={PlatformCompanyDetailsPage} />
+        <Route
+          path="/platform/companies/:companyId"
+          component={PlatformCompanyDetailsPage}
+        />
         <Route path="/platform" component={Platform} />
         <Route component={NotFoundRoute} />
       </Switch>
