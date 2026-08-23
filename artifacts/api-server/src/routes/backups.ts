@@ -6,6 +6,7 @@ import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName }
 import { writeAuthAudit } from "../lib/auth";
 import {
   WorkspaceAccessError,
+  getWorkspaceContext,
   getTenantContext,
 } from "../lib/tenant-context";
 
@@ -37,7 +38,7 @@ function serialize(record: typeof backupRecordsTable.$inferSelect) {
 }
 
 router.get("/backups", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const rows =
     context.role === "platform_owner"
@@ -79,7 +80,7 @@ async function dbSelectCompany(companyId: string) {
 }
 
 router.post("/backups", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const requestedScope = req.body?.scope;
   const scope = isPlatformScope(requestedScope)
@@ -130,7 +131,7 @@ router.post("/backups", async (req, res): Promise<void> => {
 });
 
 router.post("/backups/upload", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const scope = context.role === "platform_owner" ? "platform" : "company";
   const value = req.body?.backup;
@@ -164,7 +165,10 @@ router.post("/backups/upload", async (req, res): Promise<void> => {
   res.status(201).json(serialize(record));
 });
 
-async function ownedRecord(id: string, context: Awaited<ReturnType<typeof getTenantContext>>) {
+async function ownedRecord(
+  id: string,
+  context: Awaited<ReturnType<typeof getWorkspaceContext>>,
+) {
   const [record] = await db
     .select()
     .from(backupRecordsTable)
@@ -182,7 +186,7 @@ async function ownedRecord(id: string, context: Awaited<ReturnType<typeof getTen
 }
 
 router.get("/backups/:id/download", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const record = await ownedRecord(req.params.id, context);
   if (!record) throw new WorkspaceAccessError("Backup is not available for this workspace.");
@@ -192,7 +196,7 @@ router.get("/backups/:id/download", async (req, res): Promise<void> => {
 });
 
 router.delete("/backups/:id", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   const record = await ownedRecord(req.params.id, context);
   if (!record) throw new WorkspaceAccessError("Backup is not available for this workspace.");
@@ -209,7 +213,7 @@ router.delete("/backups/:id", async (req, res): Promise<void> => {
 });
 
 router.post("/backups/:id/restore", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
   if (req.body?.confirmation !== "RESTORE") {
     res.status(400).json({ error: "Explicit RESTORE confirmation is required." });

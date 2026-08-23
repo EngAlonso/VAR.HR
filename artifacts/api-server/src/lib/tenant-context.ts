@@ -19,6 +19,18 @@ export interface TenantContext {
   permissions: string[];
 }
 
+export interface PlatformWorkspaceContext {
+  companyId: null;
+  company: null;
+  role: "platform_owner";
+  employeeId: null;
+  departmentId: null;
+  branchId: null;
+  accountId: string;
+  accountType: "platform_owner";
+  permissions: string[];
+}
+
 export class WorkspaceAuthError extends Error {
   readonly statusCode = 401;
   readonly code = "WORKSPACE_AUTH_REQUIRED";
@@ -39,6 +51,53 @@ export class WorkspaceAccessError extends Error {
     super(message);
     this.name = "WorkspaceAccessError";
   }
+}
+
+export async function getWorkspaceContext(
+  req: Request,
+): Promise<TenantContext | PlatformWorkspaceContext> {
+  const account = await loadAuthenticatedAccount(req);
+  if (!account) {
+    throw new WorkspaceAuthError(
+      translateApiMessage(requestedLocale(req), "workspaceAuthRequired"),
+    );
+  }
+  if (
+    account.accountType === "platform_owner" &&
+    account.companyId === null &&
+    !req.header("x-var-tenant")
+  ) {
+    return {
+      companyId: null,
+      company: null,
+      role: "platform_owner",
+      employeeId: null,
+      departmentId: null,
+      branchId: null,
+      accountId: account.id,
+      accountType: "platform_owner",
+      permissions: account.permissions,
+    };
+  }
+  return getTenantContext(req);
+}
+
+export async function requirePlatformOwner(req: Request): Promise<{
+  accountId: string;
+  role: "platform_owner";
+}> {
+  const account = await loadAuthenticatedAccount(req);
+  if (!account) {
+    throw new WorkspaceAuthError(
+      translateApiMessage(requestedLocale(req), "workspaceAuthRequired"),
+    );
+  }
+  if (account.accountType !== "platform_owner") {
+    throw new WorkspaceAccessError(
+      translateApiMessage(requestedLocale(req), "workspaceAccessDenied"),
+    );
+  }
+  return { accountId: account.id, role: "platform_owner" };
 }
 
 const LOCALES = ["en", "ar", "fr", "de"] as const;

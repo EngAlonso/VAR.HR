@@ -314,13 +314,13 @@ export const SetAuthAccountPasswordResponse = zod.object({
  * @summary Get the active workspace context
  */
 export const GetWorkspaceResponse = zod.object({
-  "company": zod.object({
+  "company": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
   "timezone": zod.string(),
   "currency": zod.string()
-}),
+}),zod.null()]),
   "role": zod.enum(['platform_owner', 'company_owner', 'manager', 'employee']),
   "employeeId": zod.string().nullable(),
   "locale": zod.enum(['en', 'ar', 'fr', 'de']),

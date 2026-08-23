@@ -1687,7 +1687,9 @@ components:
       required: [company, role, employeeId, locale, direction]
       properties:
         company:
-          $ref: "#/components/schemas/Company"
+          anyOf:
+            - $ref: "#/components/schemas/Company"
+            - type: "null"
         role:
           type: string
           enum: [platform_owner, company_owner, manager, employee]

@@ -31,7 +31,9 @@ import {
 import {
   WorkspaceAccessError,
   WorkspaceAuthError,
+  getWorkspaceContext,
   getTenantContext,
+  requirePlatformOwner,
   type TenantContext,
 } from "../lib/tenant-context";
 import { buildBackupPayload } from "../lib/backups";
@@ -395,7 +397,7 @@ router.get("/auth/permissions", async (req, res): Promise<void> => {
 });
 
 router.get("/auth/accounts", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   const companyId =
     context.role === "platform_owner" && req.query.companyId
       ? String(req.query.companyId)
@@ -404,6 +406,13 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
     res.status(403).json({
       error: "Only company owners can manage staff accounts.",
       code: "ACCOUNT_ACCESS_DENIED",
+    });
+    return;
+  }
+  if (!companyId) {
+    res.status(400).json({
+      error: "A company ID is required for Platform Owner account management.",
+      code: "INVALID_COMPANY",
     });
     return;
   }
@@ -444,7 +453,7 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
 router.get(
   "/platform/companies/:companyId/owners",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
+    const context = await requirePlatformOwner(req);
     if (context.role !== "platform_owner") {
       res.status(403).json({
         error: "Only the Platform Owner can manage Company Owner accounts.",
@@ -480,7 +489,7 @@ router.get(
 router.get(
   "/platform/companies/:companyId/details",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
+    const context = await requirePlatformOwner(req);
     if (context.role !== "platform_owner") {
       res.status(403).json({
         error: "Only the Platform Owner can view company details.",
@@ -622,7 +631,7 @@ function randomStaffPassword(): string {
 }
 
 router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   const accountId = Array.isArray(req.params.accountId)
     ? req.params.accountId[0]
     : req.params.accountId;
@@ -773,7 +782,7 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
 router.post(
   "/auth/accounts/:accountId/reset-password",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
+    const context = await getWorkspaceContext(req);
     const accountId = Array.isArray(req.params.accountId)
       ? req.params.accountId[0]
       : req.params.accountId;
@@ -832,7 +841,7 @@ router.post(
 router.post(
   "/auth/accounts/:accountId/set-password",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
+    const context = await getWorkspaceContext(req);
     const accountId = Array.isArray(req.params.accountId)
       ? req.params.accountId[0]
       : req.params.accountId;
@@ -883,14 +892,7 @@ router.post(
 );
 
 router.post("/platform/companies", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (context.role !== "platform_owner") {
-    res.status(403).json({
-      error: "Only the Platform Owner can create companies.",
-      code: "PLATFORM_ACCESS_DENIED",
-    });
-    return;
-  }
+  const context = await requirePlatformOwner(req);
   const parsed = companyInputSchema.safeParse(req.body);
   if (!parsed.success) {
     res
@@ -1029,14 +1031,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
 router.patch(
   "/platform/companies/:companyId",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
-    if (context.role !== "platform_owner") {
-      res.status(403).json({
-        error: "Only the Platform Owner can manage companies.",
-        code: "PLATFORM_ACCESS_DENIED",
-      });
-      return;
-    }
+    const context = await requirePlatformOwner(req);
     const companyId = Array.isArray(req.params.companyId)
       ? req.params.companyId[0]
       : req.params.companyId;
@@ -1179,14 +1174,7 @@ router.patch(
 router.patch(
   "/platform/companies/:companyId/owners",
   async (req, res): Promise<void> => {
-    const context = await getTenantContext(req);
-    if (context.role !== "platform_owner") {
-      res.status(403).json({
-        error: "Only the Platform Owner can manage Company Owner accounts.",
-        code: "PLATFORM_ACCESS_DENIED",
-      });
-      return;
-    }
+    const context = await requirePlatformOwner(req);
     const companyId = Array.isArray(req.params.companyId)
       ? req.params.companyId[0]
       : req.params.companyId;
@@ -1412,7 +1400,7 @@ router.patch(
 );
 
 router.get("/auth/audit", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   if (context.role !== "platform_owner" && context.role !== "company_owner") {
     res
       .status(403)

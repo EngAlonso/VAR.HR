@@ -4395,7 +4395,7 @@ function Shell({ children }: { children: ReactNode }) {
               ) : (
                 <>
                   <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                    {workspace.company.name}
+                  {workspace.company?.name ?? ""}
                   </p>
                   <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
                     {auth.account.fullName}
@@ -4523,7 +4523,7 @@ function Shell({ children }: { children: ReactNode }) {
                   ? locale === "ar"
                     ? "إدارة المنصة"
                     : "Platform administration"
-                  : workspace.company.name}
+                  : workspace.company?.name ?? ""}
               </span>
               <ChevronDown
                 size={14}
@@ -4593,7 +4593,7 @@ function Overview() {
   const departments = useListDepartments();
   const branches = useListBranches();
   const workspace = useGetWorkspace();
-  const currency = workspace.data?.company.currency ?? "EGP";
+  const currency = workspace.data?.company?.currency ?? "EGP";
   const localizedAlerts = d?.alerts?.map((alert: any) =>
     alert.id === "device-adapter"
       ? {
@@ -5335,7 +5335,7 @@ function Employees() {
   const [status, setStatus] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const currency = workspaceQuery.data?.company.currency ?? "EGP";
+  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const params = useMemo(
     () => ({ search: search || undefined, status: status as any }),
     [search, status],
@@ -7278,7 +7278,7 @@ function Reports() {
     [kind, filters],
   );
   const q = useGetReport(params);
-  const currency = workspace.data?.company.currency ?? "EGP";
+  const currency = workspace.data?.company?.currency ?? "EGP";
   const columns = reportColumns(kind, t);
   const data = q.data;
   const setFilter = (key: keyof typeof filters, value: string) =>

@@ -264,7 +264,7 @@ export interface Company {
 }
 
 export interface WorkspaceContext {
-  company: Company;
+  company: Company | null;
   role: WorkspaceContextRole;
   /** @nullable */
   employeeId: string | null;

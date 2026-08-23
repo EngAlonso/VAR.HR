@@ -170,8 +170,10 @@ import {
   canManageCompany,
   canViewPayroll,
   employeeScopeCondition,
+  getWorkspaceContext,
   getTenantContext,
   hasCapability,
+  requirePlatformOwner,
   workspaceCapabilities,
   requestedLocale,
   type TenantContext,
@@ -1481,16 +1483,18 @@ async function validateReportReferences(
 }
 
 router.get("/workspace", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
+  const context = await getWorkspaceContext(req);
   const locale = requestedLocale(req);
   const response = {
-    company: {
-      id: context.company.id,
-      name: context.company.name,
-      slug: context.company.slug,
-      timezone: context.company.timezone,
-      currency: context.company.currency,
-    },
+    company: context.company
+      ? {
+          id: context.company.id,
+          name: context.company.name,
+          slug: context.company.slug,
+          timezone: context.company.timezone,
+          currency: context.company.currency,
+        }
+      : null,
     role: context.role,
     employeeId: context.employeeId,
     locale,
@@ -6283,11 +6287,7 @@ router.get("/subscription", async (req, res): Promise<void> => {
 });
 
 router.get("/platform/companies", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (context.role !== "platform_owner") {
-    res.status(403).json({ error: message(req, "platformAdmin") });
-    return;
-  }
+  await requirePlatformOwner(req);
   const companies = await db
     .select()
     .from(companiesTable)
@@ -6331,11 +6331,7 @@ router.get("/platform/companies", async (req, res): Promise<void> => {
 });
 
 router.get("/platform/summary", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (context.role !== "platform_owner") {
-    res.status(403).json({ error: message(req, "platformAdmin") });
-    return;
-  }
+  await requirePlatformOwner(req);
 
   const [companies, employees, accounts, subscriptions, activity] =
     await Promise.all([
