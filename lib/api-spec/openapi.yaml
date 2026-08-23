@@ -1551,11 +1551,12 @@ components:
         account: { $ref: "#/components/schemas/AuthAccount" }
     StaffAccountInput:
       type: object
-      required: [username, displayRole, permissions]
+      required: [fullName, primaryPhone, displayRole, password, permissions]
       properties:
-        username: { type: string, minLength: 3 }
+        fullName: { type: string, minLength: 1 }
+        primaryPhone: { type: string, minLength: 7 }
         displayRole: { type: string, minLength: 1 }
-        password: { type: ["string", "null"], minLength: 10 }
+        password: { type: string, minLength: 6 }
         permissions:
           type: array
           items: { type: string }

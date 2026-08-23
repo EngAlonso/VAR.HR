@@ -70,15 +70,14 @@ export interface InitialPlatformOwnerResponse {
 }
 
 export interface StaffAccountInput {
-  /** @minLength 3 */
-  username: string;
+  /** @minLength 1 */
+  fullName: string;
+  /** @minLength 7 */
+  primaryPhone: string;
   /** @minLength 1 */
   displayRole: string;
-  /**
-     * @minLength 10
-     * @nullable
-     */
-  password?: string | null;
+  /** @minLength 6 */
+  password: string;
   permissions: string[];
   active?: boolean;
 }

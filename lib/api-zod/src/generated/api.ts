@@ -134,17 +134,19 @@ export const ListAuthAccountsResponse = zod.array(ListAuthAccountsResponseItem)
 /**
  * @summary Create a company staff account
  */
-export const createStaffAccountBodyUsernameMin = 3;
+
+export const createStaffAccountBodyPrimaryPhoneMin = 7;
 
 
-export const createStaffAccountBodyPasswordMin = 10;
+export const createStaffAccountBodyPasswordMin = 6;
 
 export const createStaffAccountBodyActiveDefault = true;
 
 export const CreateStaffAccountBody = zod.object({
-  "username": zod.string().min(createStaffAccountBodyUsernameMin),
+  "fullName": zod.string().min(1),
+  "primaryPhone": zod.string().min(createStaffAccountBodyPrimaryPhoneMin),
   "displayRole": zod.string().min(1),
-  "password": zod.string().min(createStaffAccountBodyPasswordMin).nullish(),
+  "password": zod.string().min(createStaffAccountBodyPasswordMin),
   "permissions": zod.array(zod.string()),
   "active": zod.boolean().default(createStaffAccountBodyActiveDefault)
 })

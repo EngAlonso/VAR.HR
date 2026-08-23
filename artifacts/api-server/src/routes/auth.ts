@@ -48,14 +48,18 @@ const initialPlatformOwnerSchema = z.object({
   username: z.string().trim().min(1).max(120),
   password: z.string().min(6).max(256),
 });
+const requiredPhone = z
+  .string()
+  .trim()
+  .min(7)
+  .max(20)
+  .regex(/^\+?[0-9 ()-]+$/)
+  .refine((value) => /\d/.test(value), "Invalid phone number.");
 const staffInputSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3)
-    .max(80),
+  fullName: z.string().trim().min(1).max(160),
+  primaryPhone: requiredPhone,
   displayRole: z.string().trim().min(1).max(80),
-  password: z.string().min(6).max(256).optional(),
+  password: z.string().min(6).max(256),
   permissions: z.array(z.string()).default([]),
   active: z.boolean().default(true),
 });
@@ -419,7 +423,14 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
   const accounts = await db
     .select()
     .from(userAccountsTable)
-    .where(eq(userAccountsTable.companyId, companyId))
+    .where(
+      context.role === "company_owner"
+        ? and(
+            eq(userAccountsTable.companyId, companyId),
+            eq(userAccountsTable.accountType, "staff"),
+          )
+        : eq(userAccountsTable.companyId, companyId),
+    )
     .orderBy(asc(userAccountsTable.username));
   if (accounts.length === 0) {
     res.json([]);
@@ -587,11 +598,12 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
       .json({ error: errorMessage(parsed.error), code: "INVALID_ACCOUNT" });
     return;
   }
+  const username = parsed.data.primaryPhone;
   const permissions = await allowedPermissionKeys(parsed.data.permissions);
   const [existing] = await db
     .select({ id: userAccountsTable.id })
     .from(userAccountsTable)
-    .where(eq(userAccountsTable.username, parsed.data.username))
+    .where(eq(userAccountsTable.username, username))
     .limit(1);
   if (existing) {
     res.status(409).json({
@@ -604,7 +616,9 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
   const [account] = await db
     .insert(userAccountsTable)
     .values({
-      username: parsed.data.username,
+      username,
+      fullName: parsed.data.fullName,
+      primaryPhone: parsed.data.primaryPhone,
       passwordHash: hashPassword(temporaryPassword),
       accountType: "staff",
       displayRole: parsed.data.displayRole,
@@ -802,10 +816,7 @@ router.post(
         account.accountType === "company_owner") ||
       (context.role === "company_owner" &&
         account.companyId === context.companyId &&
-        (account.accountType === "staff" ||
-          account.accountType === "employee") &&
-        (account.accountType === "staff" ||
-          context.permissions.includes("employees.credentials")));
+        account.accountType === "staff");
     if (!canReset) {
       res.status(403).json({
         error: "You do not have permission to reset this password.",

@@ -3991,6 +3991,10 @@ function authLabel(
     | "resetFailed"
     | "createStaff"
     | "staffAccounts"
+     | "employeeName"
+     | "employeeNameInvalid"
+     | "phoneNumber"
+     | "phoneInvalid"
     | "role"
     | "permissions"
      | "selectAll"
@@ -4046,7 +4050,11 @@ function authLabel(
       resetFailed: "Could not reset password.",
       createStaff: "Create staff account",
       staffAccounts: "Staff accounts",
-      role: "Display role",
+      employeeName: "Employee Name",
+      employeeNameInvalid: "Please enter an employee name.",
+      phoneNumber: "Phone number",
+      phoneInvalid: "Please enter a valid phone number.",
+      role: "Job title",
       permissions: "Permissions",
       selectAll: "Select all",
       deselectAll: "Deselect all",
@@ -4101,6 +4109,10 @@ function authLabel(
       resetFailed: "تعذر إعادة تعيين كلمة المرور.",
       createStaff: "إنشاء حساب موظف",
       staffAccounts: "حسابات الموظفين",
+      employeeName: "اسم الموظف",
+      employeeNameInvalid: "يرجى إدخال اسم الموظف.",
+      phoneNumber: "رقم الهاتف",
+      phoneInvalid: "يرجى إدخال رقم هاتف صحيح.",
       role: "المسمى الوظيفي",
       permissions: "الصلاحيات",
       selectAll: "تحديد الكل",
@@ -4177,14 +4189,21 @@ function permissionDescription(
 function accountValidationError(
   locale: Locale,
   error: unknown,
-): { field: "username" | "password"; message: string } | null {
+): { field: "fullName" | "primaryPhone" | "password"; message: string } | null {
   const message = error instanceof Error ? error.message : "";
-  if (
-    message.includes("expected string to have >=3 characters")
-  ) {
-    return { field: "username", message: authLabel(locale, "usernameInvalid") };
+  if (message.includes("fullName")) {
+    return {
+      field: "fullName",
+      message: authLabel(locale, "employeeNameInvalid"),
+    };
   }
-  if (message.includes("expected string to have >=10 characters")) {
+  if (message.includes("primaryPhone") || message.includes("phone number")) {
+    return {
+      field: "primaryPhone",
+      message: authLabel(locale, "phoneInvalid"),
+    };
+  }
+  if (message.includes("password") && message.includes("6")) {
     return { field: "password", message: authLabel(locale, "passwordTooShort") };
   }
   return null;
@@ -9994,11 +10013,13 @@ function Accounts() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
-    username?: string;
+    fullName?: string;
+    primaryPhone?: string;
     password?: string;
   }>({});
   const [form, setForm] = useState({
-    username: "",
+    fullName: "",
+    primaryPhone: "",
     displayRole: "HR",
     password: "",
     permissions: [] as string[],
@@ -10029,8 +10050,14 @@ function Accounts() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setFieldErrors({});
-    if (form.username.trim().length < 3) {
-      setFieldErrors({ username: authLabel(locale, "usernameInvalid") });
+    if (form.fullName.trim().length < 1) {
+      setFieldErrors({ fullName: authLabel(locale, "employeeNameInvalid") });
+      return;
+    }
+    if (
+      !/^\+?[0-9 ()-]{7,20}$/.test(form.primaryPhone.trim())
+    ) {
+      setFieldErrors({ primaryPhone: authLabel(locale, "phoneInvalid") });
       return;
     }
     if (form.password && form.password.length < 6) {
@@ -10049,7 +10076,8 @@ function Accounts() {
       setAccounts((current) => [...current, result.account]);
       setOneTimePassword(result.temporaryPassword);
       setForm({
-        username: "",
+        fullName: "",
+        primaryPhone: "",
         displayRole: "HR",
         password: "",
         permissions: [],
@@ -10157,13 +10185,24 @@ function Accounts() {
           </div>
           <form onSubmit={submit} className="space-y-4 p-5">
             <Field
-              label={authLabel(locale, "username")}
-              value={form.username}
+              label={authLabel(locale, "employeeName")}
+              value={form.fullName}
               onChange={(value) => {
-                setFieldErrors((current) => ({ ...current, username: undefined }));
-                setForm({ ...form, username: value });
+                 setFieldErrors((current) => ({ ...current, fullName: undefined }));
+                setForm({ ...form, fullName: value });
               }}
-              error={fieldErrors.username}
+              error={fieldErrors.fullName}
+              required
+            />
+            <Field
+              label={authLabel(locale, "phoneNumber")}
+              type="tel"
+              value={form.primaryPhone}
+              onChange={(value) => {
+                setFieldErrors((current) => ({ ...current, primaryPhone: undefined }));
+                setForm({ ...form, primaryPhone: value });
+              }}
+              error={fieldErrors.primaryPhone}
               required
             />
             <Field
@@ -10173,7 +10212,7 @@ function Accounts() {
               required
             />
             <Field
-              label={`${authLabel(locale, "password")} (${authLabel(locale, "optional")})`}
+              label={authLabel(locale, "password")}
               type="password"
               value={form.password}
               onChange={(value) => {
@@ -10181,6 +10220,7 @@ function Accounts() {
                 setForm({ ...form, password: value });
               }}
               error={fieldErrors.password}
+              required
             />
             <div>
               <div className="flex items-center justify-between gap-3">
@@ -10297,7 +10337,9 @@ function Accounts() {
                     {authLabel(locale, "editPermissions")}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedAccount.username} · {selectedAccount.displayRole}
+                    {selectedAccount.fullName || selectedAccount.username} ·{" "}
+                    {selectedAccount.primaryPhone || selectedAccount.username} ·{" "}
+                    {selectedAccount.displayRole}
                   </p>
                 </div>
                 <Button
@@ -10379,7 +10421,7 @@ function Accounts() {
                 >
                   <div>
                     <div className="flex items-center gap-2 font-semibold">
-                      {account.username}
+                      {account.fullName || account.username}
                       <Badge tone={account.active ? "good" : "neutral"}>
                         {account.active
                           ? authLabel(locale, "active")
@@ -10387,6 +10429,7 @@ function Accounts() {
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
+                      {account.primaryPhone || account.username} ·{" "}
                       {account.displayRole} · {account.permissions.length}{" "}
                       {authLabel(locale, "permissionsCount")}
                     </p>
