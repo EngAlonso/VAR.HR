@@ -10528,7 +10528,6 @@ function Platform() {
   const [ownerPassword, setOwnerPassword] = useState("");
   const [audit, setAudit] = useState<PlatformActivity[]>([]);
   const [saving, setSaving] = useState(false);
-  const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   if (auth.account.accountType !== "platform_owner")
     return <WorkspaceState kind="unauthorized" />;
   const load = async () => {
@@ -10713,7 +10712,7 @@ function Platform() {
         action={
           <div className="flex items-center gap-2">
             <Badge tone="accent">{text("Platform scope", "نطاق المنصة")}</Badge>
-            <Button onClick={() => setAddCompanyOpen(true)}>
+            <Button onClick={() => setLocation("/platform/companies/new")}>
               <Plus size={15} />
               {text("Add Company", "إضافة شركة")}
             </Button>
@@ -10817,14 +10816,6 @@ function Platform() {
           </Link>
         </div>
       </Card>
-      {addCompanyOpen && (
-        <AddCompanyModal
-          onClose={() => setAddCompanyOpen(false)}
-          onCreated={async () => {
-            await load();
-          }}
-        />
-      )}
       {selectedCompany && (
         <Modal title={selectedCompany.name} onClose={() => setSelectedCompany(null)}>
           <div className="space-y-5">
@@ -11209,14 +11200,9 @@ function PlatformCompanyDetailsPage() {
   );
 }
 
-function AddCompanyModal({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: () => Promise<void>;
-}) {
+function AddCompanyPage() {
   const { locale } = useI18n();
+  const [, setLocation] = useLocation();
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const emptyOwner = (): NewCompanyOwner => ({
     fullName: "", username: "", password: "", primaryPhone: "",
@@ -11258,7 +11244,6 @@ function AddCompanyModal({
         }),
       });
       setResult({ name: response.company.name, usernames: response.owners.map((owner) => owner.username) });
-      await onCreated();
       toast.success(text("Company and owner accounts created", "تم إنشاء الشركة وحسابات المالكين"));
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : text("Could not create company.", "تعذر إنشاء الشركة."));
@@ -11267,13 +11252,27 @@ function AddCompanyModal({
     }
   };
   return (
-    <Modal
-      title={text("Add Company", "إضافة شركة")}
-      onClose={onClose}
-      className="max-w-2xl"
-    >
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={text("Platform administration", "إدارة المنصة")}
+        title={text("Add Company", "إضافة شركة")}
+        detail={text(
+          "Create a company workspace and its owner accounts.",
+          "أنشئ مساحة عمل للشركة وحسابات مالكيها.",
+        )}
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLocation("/platform")}
+          >
+            {locale === "ar" ? <ArrowRight size={15} /> : <ArrowLeft size={15} />}
+            {text("Back to companies", "العودة إلى الشركات")}
+          </Button>
+        }
+      />
       {result ? (
-        <div className="space-y-4">
+        <div className="mx-auto max-w-2xl space-y-4">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
             <div className="font-semibold">{text("Company created successfully", "تم إنشاء الشركة بنجاح")}</div>
             <div className="mt-1 text-sm text-muted-foreground">{result.name}</div>
@@ -11282,10 +11281,10 @@ function AddCompanyModal({
             <div className="text-sm font-semibold">{text("Created owner usernames", "أسماء مستخدمي المالكين المنشأة")}</div>
             <div className="mt-2 space-y-1 font-mono text-sm">{result.usernames.map((username) => <div key={username}>{username}</div>)}</div>
           </div>
-          <Button className="w-full" onClick={onClose}>{text("Done", "تم")}</Button>
+          <Button className="w-full" onClick={() => setLocation("/platform")}>{text("Done", "تم")}</Button>
         </div>
       ) : (
-        <form className="space-y-4 sm:space-y-5" onSubmit={(event) => void submit(event)}>
+        <form className="mx-auto max-w-2xl space-y-4 sm:space-y-5" onSubmit={(event) => void submit(event)}>
           <section className="rounded-2xl border border-border bg-muted/25 p-4 sm:p-5">
             <div className="mb-4 flex items-start gap-3">
               <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary shadow-sm">
@@ -11374,12 +11373,12 @@ function AddCompanyModal({
             </div>
           </section>
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={onClose}>{text("Cancel", "إلغاء")}</Button>
+            <Button type="button" variant="quiet" className="w-full sm:w-auto" onClick={() => setLocation("/platform")}>{text("Cancel", "إلغاء")}</Button>
             <Button type="submit" className="w-full sm:w-auto" disabled={saving}>{saving ? text("Creating…", "جارٍ الإنشاء…") : text("Create company", "إنشاء الشركة")}</Button>
           </div>
         </form>
       )}
-    </Modal>
+    </div>
   );
 }
 
@@ -11582,6 +11581,7 @@ function Router() {
         <Route path="/backups" component={BackupRestore} />
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
+        <Route path="/platform/companies/new" component={AddCompanyPage} />
         <Route path="/platform/companies/:companyId" component={PlatformCompanyDetailsPage} />
         <Route path="/platform" component={Platform} />
         <Route component={NotFoundRoute} />
