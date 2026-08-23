@@ -383,6 +383,7 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 
 router.get("/auth/permissions", async (req, res): Promise<void> => {
   await authenticated(req);
+  await ensurePermissionCatalog();
   const permissions = await db
     .select()
     .from(permissionsTable)
