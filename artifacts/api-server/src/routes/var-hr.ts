@@ -59,6 +59,10 @@ import {
   GetAttendanceReportResponse,
   GetAttendanceRulesResponse,
   GetAttendanceTodayResponse,
+  PreviewAttendanceCalculationParams,
+  PreviewAttendanceCalculationResponse,
+  RecalculateAttendanceParams,
+  RecalculateAttendanceResponse,
   GetMyPayrollQueryParams,
   GetMyPayrollResponse,
   GetPayrollCalculationParams,
@@ -1028,9 +1032,13 @@ function attendanceMetrics(input: {
           ),
         )
       : 0;
+  const breakMinutes = Math.min(
+    Math.max(0, input.schedule.breakDurationMinutes),
+    workedMinutes,
+  );
   const unpaidBreakMinutes = input.schedule.breakPaid
     ? 0
-    : Math.min(input.schedule.breakDurationMinutes, workedMinutes);
+    : breakMinutes;
   const netWorkedMinutes = Math.max(0, workedMinutes - unpaidBreakMinutes);
   const normalScheduledMinutes = Math.max(
     0,
@@ -1079,7 +1087,8 @@ function attendanceMetrics(input: {
           0,
           Math.round(input.schedule.requiredHours * 60) - netWorkedMinutes,
         );
-  const overtimeMinutes = input.schedule.overtimeEligible
+  const overtimeMinutes =
+    input.schedule.overtimeEligible && workingDay && !input.holiday
     ? Math.max(
         0,
         netWorkedMinutes -
@@ -1090,7 +1099,8 @@ function attendanceMetrics(input: {
   return {
     workedMinutes,
     netWorkedMinutes,
-    breakMinutes: unpaidBreakMinutes,
+    breakMinutes,
+    unpaidBreakMinutes,
     normalWorkedMinutes: Math.min(netWorkedMinutes, normalScheduledMinutes),
     overtimeMinutes,
     workedHours: Number((workedMinutes / 60).toFixed(2)),
@@ -1139,7 +1149,7 @@ async function attendanceCalculationFor(
     `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
     `Late: raw ${metrics.rawLateMinutes} − grace ${metrics.lateGraceMinutes} = effective ${metrics.lateMinutes} minutes.`,
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
-    `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.breakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes.`,
+    `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
   ];
   const values = {
@@ -2289,6 +2299,74 @@ router.get("/attendance/history", async (req, res): Promise<void> => {
   );
 });
 
+async function attendanceForCalculation(
+  context: TenantContext,
+  attendanceId: string,
+) {
+  const rows = await getAttendanceRows(context);
+  return rows.find((row) => row.attendance.id === attendanceId);
+}
+
+router.get(
+  "/attendance/:attendanceId/calculation",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.view", true)) {
+      denyCapability(res, req, "attendance.view");
+      return;
+    }
+    const params = PreviewAttendanceCalculationParams.safeParse(req.params);
+    if (!params.success || !isUuid(params.data.attendanceId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const row = await attendanceForCalculation(
+      context,
+      params.data.attendanceId,
+    );
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    const calculation = await attendanceCalculationFor(
+      context,
+      row.attendance,
+      false,
+    );
+    res.json(PreviewAttendanceCalculationResponse.parse(calculation));
+  },
+);
+
+router.post(
+  "/attendance/:attendanceId/calculation",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.correct")) {
+      denyCapability(res, req, "attendance.correct");
+      return;
+    }
+    const params = RecalculateAttendanceParams.safeParse(req.params);
+    if (!params.success || !isUuid(params.data.attendanceId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const row = await attendanceForCalculation(
+      context,
+      params.data.attendanceId,
+    );
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    const calculation = await attendanceCalculationFor(
+      context,
+      row.attendance,
+      true,
+    );
+    res.json(RecalculateAttendanceResponse.parse(calculation));
+  },
+);
+
 async function recordCurrentAttendance(
   req: Request,
   res: Response,
@@ -2470,6 +2548,7 @@ async function recordCurrentAttendance(
           : locationValidation.explanation,
       })
       .returning();
+    await attendanceCalculationFor(context, created, true);
     await recordAudit(
       context.companyId,
       "checked_in",
@@ -2552,6 +2631,7 @@ async function recordCurrentAttendance(
     })
     .where(eq(attendanceTable.id, existing.id))
     .returning();
+  await attendanceCalculationFor(context, updated, true);
   await recordAudit(
     context.companyId,
     "checked_out",
@@ -2696,6 +2776,7 @@ router.patch(
       res.status(404).json({ error: message(req, "attendanceNotFound") });
       return;
     }
+    await attendanceCalculationFor(context, updated, true);
     await recordAudit(
       context.companyId,
       "corrected",
