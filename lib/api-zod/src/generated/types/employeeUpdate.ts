@@ -5,6 +5,7 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { EmployeeUpdateAutomaticOvertime } from './employeeUpdateAutomaticOvertime';
 import type { EmployeeUpdateStatus } from './employeeUpdateStatus';
 
 export interface EmployeeUpdate {
@@ -18,4 +19,5 @@ export interface EmployeeUpdate {
   /** @minimum 0 */
   salary?: number;
   status?: EmployeeUpdateStatus;
+  automaticOvertime?: EmployeeUpdateAutomaticOvertime;
 }

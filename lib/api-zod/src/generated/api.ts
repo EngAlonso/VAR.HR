@@ -520,6 +520,7 @@ export const ListEmployeesResponseItem = zod.object({
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
+  "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
   "avatarInitials": zod.string().optional()
@@ -569,6 +570,7 @@ export const CreateEmployeeResponse = zod.object({
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
+  "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
   "avatarInitials": zod.string().optional()
@@ -603,6 +605,7 @@ export const GetEmployeeResponse = zod.object({
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
+  "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
   "avatarInitials": zod.string().optional()
@@ -629,7 +632,8 @@ export const UpdateEmployeeBody = zod.object({
   "departmentId": zod.string().optional(),
   "branchId": zod.string().optional(),
   "salary": zod.number().min(updateEmployeeBodySalaryMin).optional(),
-  "status": zod.enum(['active', 'inactive']).optional()
+  "status": zod.enum(['active', 'inactive']).optional(),
+  "automaticOvertime": zod.enum(['default', 'enabled', 'disabled']).optional()
 })
 
 export const UpdateEmployeeResponse = zod.object({
@@ -653,6 +657,7 @@ export const UpdateEmployeeResponse = zod.object({
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
+  "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
   "avatarInitials": zod.string().optional()

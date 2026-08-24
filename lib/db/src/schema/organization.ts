@@ -53,6 +53,7 @@ export const employeesTable = pgTable("var_hr_employees", {
   branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
   status: text("status").notNull().default("active"),
   role: text("role").notNull().default("employee"),
+  automaticOvertime: text("automatic_overtime"),
   joinedOn: date("joined_on", { mode: "string" }).notNull(),
   salary: numeric("salary", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

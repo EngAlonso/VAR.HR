@@ -407,6 +407,18 @@ export const EmployeeRole = {
   manager: 'manager',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeAutomaticOvertime = typeof EmployeeAutomaticOvertime[keyof typeof EmployeeAutomaticOvertime] | null;
+
+
+export const EmployeeAutomaticOvertime = {
+  default: 'default',
+  enabled: 'enabled',
+  disabled: 'disabled',
+} as const;
+
 export interface Employee {
   id: string;
   employeeNumber: string;
@@ -419,6 +431,8 @@ export interface Employee {
   branch: Branch;
   status: EmployeeStatus;
   role: EmployeeRole;
+  /** @nullable */
+  automaticOvertime?: EmployeeAutomaticOvertime;
   joinedOn: string;
   salary: number;
   avatarInitials?: string;
@@ -455,6 +469,15 @@ export const EmployeeUpdateStatus = {
   inactive: 'inactive',
 } as const;
 
+export type EmployeeUpdateAutomaticOvertime = typeof EmployeeUpdateAutomaticOvertime[keyof typeof EmployeeUpdateAutomaticOvertime];
+
+
+export const EmployeeUpdateAutomaticOvertime = {
+  default: 'default',
+  enabled: 'enabled',
+  disabled: 'disabled',
+} as const;
+
 export interface EmployeeUpdate {
   /** @minLength 1 */
   firstName?: string;
@@ -466,6 +489,7 @@ export interface EmployeeUpdate {
   /** @minimum 0 */
   salary?: number;
   status?: EmployeeUpdateStatus;
+  automaticOvertime?: EmployeeUpdateAutomaticOvertime;
 }
 
 export type AttendanceEventInputSource = typeof AttendanceEventInputSource[keyof typeof AttendanceEventInputSource];

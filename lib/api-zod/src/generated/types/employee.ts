@@ -7,6 +7,7 @@
  */
 import type { Branch } from './branch';
 import type { Department } from './department';
+import type { EmployeeAutomaticOvertime } from './employeeAutomaticOvertime';
 import type { EmployeeRole } from './employeeRole';
 import type { EmployeeStatus } from './employeeStatus';
 
@@ -22,6 +23,8 @@ export interface Employee {
   branch: Branch;
   status: EmployeeStatus;
   role: EmployeeRole;
+  /** @nullable */
+  automaticOvertime?: EmployeeAutomaticOvertime;
   joinedOn: string;
   salary: number;
   avatarInitials?: string;

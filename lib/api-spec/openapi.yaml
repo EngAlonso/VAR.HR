@@ -2128,6 +2128,9 @@ components:
         role:
           type: string
           enum: [employee, manager]
+        automaticOvertime:
+          type: [string, "null"]
+          enum: [default, enabled, disabled, null]
         joinedOn: { type: string, format: date }
         salary: { type: number }
         avatarInitials: { type: string }
@@ -2159,6 +2162,9 @@ components:
         status:
           type: string
           enum: [active, inactive]
+        automaticOvertime:
+          type: string
+          enum: [default, enabled, disabled]
     AttendanceEventInput:
       type: object
       properties:

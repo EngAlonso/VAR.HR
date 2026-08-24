@@ -5632,9 +5632,6 @@ function EmployeeHrPanel({
   const managers = useListEmployees({ status: "active" });
   const update = useUpdateEmployeeHrRecord();
   const [form, setForm] = useState<HrRecordForm>(emptyHrRecordForm);
-  const [automaticOvertime, setAutomaticOvertime] = useState<
-    "default" | "enabled" | "disabled"
-  >("default");
 
   useEffect(() => {
     if (!hr.data) return;
@@ -5791,22 +5788,6 @@ function EmployeeHrPanel({
               setForm({ ...form, emergencyContactPhone: value })
             }
           />
-          <label className="block text-sm font-semibold">
-            {t("automaticOvertime")}
-            <select
-              value={automaticOvertime}
-              onChange={(event) =>
-                setAutomaticOvertime(
-                  event.target.value as "default" | "enabled" | "disabled",
-                )
-              }
-              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-            >
-              <option value="default">{t("useCompanyDefault")}</option>
-              <option value="enabled">{t("enabled")}</option>
-              <option value="disabled">{t("disabledSetting")}</option>
-            </select>
-          </label>
           <label className="block text-sm font-semibold">
             {t("notes")}
             <textarea
@@ -6013,7 +5994,7 @@ function Profile() {
 }
 
 function Employees() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
   const canManageEmployees =
@@ -6433,6 +6414,55 @@ function Employees() {
                   value={money(employee.data.salary, currency)}
                 />
               </div>
+              {canManageEmployees && (
+                <label className="mt-6 block max-w-sm text-sm font-semibold">
+                  {t("automaticOvertime")}
+                  <select
+                    value={employee.data.automaticOvertime ?? "default"}
+                    onChange={(event) =>
+                      update.mutate(
+                        {
+                          employeeId: employee.data.id,
+                          data: {
+                            automaticOvertime: event.target.value as
+                              | "default"
+                              | "enabled"
+                              | "disabled",
+                          } as any,
+                        },
+                        {
+                          onSuccess: () => {
+                            toast.success(t("employeeStatusUpdated"));
+                            qc.invalidateQueries({
+                              queryKey: getListEmployeesQueryKey(),
+                            });
+                            qc.invalidateQueries({
+                              queryKey: getGetEmployeeQueryKey(employee.data.id),
+                            });
+                          },
+                          onError: (error) =>
+                            toast.error(
+                              apiErrorMessage(error, t("couldNotSaveRecord")),
+                            ),
+                        },
+                      )
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="default">
+                      {locale === "ar"
+                        ? "استخدام إعداد الشركة"
+                        : "Use company default"}
+                    </option>
+                    <option value="enabled">
+                      {locale === "ar" ? "مفعّل" : "Enabled"}
+                    </option>
+                    <option value="disabled">
+                      {locale === "ar" ? "معطّل" : "Disabled"}
+                    </option>
+                  </select>
+                </label>
+              )}
               {canManageEmployees && (
                 <Button
                   className="mt-6"
@@ -8216,15 +8246,6 @@ function Rules() {
     );
   }
   const rules = q.data as any;
-  const weekdays: Array<{ value: string; key: AppCopyKey }> = [
-    { value: "Mon", key: "monday" },
-    { value: "Tue", key: "tuesday" },
-    { value: "Wed", key: "wednesday" },
-    { value: "Thu", key: "thursday" },
-    { value: "Fri", key: "friday" },
-    { value: "Sat", key: "saturday" },
-    { value: "Sun", key: "sunday" },
-  ];
   const localized = {
     current: locale === "ar" ? "الإصدار الحالي" : "Current version",
     historical: locale === "ar" ? "الإصدارات السابقة" : "Historical versions",
@@ -8248,39 +8269,19 @@ function Rules() {
         }
       />
       <form onSubmit={save} className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-        <Card className="p-6">
-          <h2 className="font-display text-lg font-semibold">
-            {t("workingHours")}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("rulesEffectiveNote")}
-          </p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <Field
-              label={t("workStarts")}
-              type="time"
-              value={form.workStart}
-              onChange={(v) => setForm({ ...form, workStart: v })}
-            />
-            <Field
-              label={t("workEnds")}
-              type="time"
-              value={form.workEnd}
-              onChange={(v) => setForm({ ...form, workEnd: v })}
-            />
-            <Field
-              label={t("gracePeriod")}
-              type="number"
-              value={form.graceMinutes}
-              onChange={(v) => setForm({ ...form, graceMinutes: v })}
-            />
-            <Field
-              label={t("overtimeAfter")}
-              type="number"
-              value={form.overtimeAfterMinutes}
-              onChange={(v) => setForm({ ...form, overtimeAfterMinutes: v })}
-            />
-            <label className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold sm:col-span-2">
+        <div className="space-y-6">
+          <Card className="p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {locale === "ar"
+                ? "جزاءات الحضور والإذن"
+                : "Attendance penalties & permissions"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {locale === "ar"
+                ? "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد."
+                : "Set late, early-departure, and absence multipliers, including approved permission coverage."}
+            </p>
+            <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
               <input
                 type="checkbox"
                 checked={Boolean(form.overtimeEligible)}
@@ -8296,45 +8297,6 @@ function Rules() {
                 </span>
               </span>
             </label>
-          </div>
-          <div className="mt-7 flex flex-wrap gap-2">
-            {weekdays.map(({ value, key }) => (
-              <button
-                type="button"
-                key={value}
-                onClick={() => {
-                  const days = form.workingDays || [];
-                  setForm({
-                    ...form,
-                    workingDays: days.includes(value)
-                      ? days.filter((x: string) => x !== value)
-                      : [...days, value],
-                  });
-                }}
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-xs font-bold",
-                  (form.workingDays || []).includes(value)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground",
-                )}
-              >
-                {t(key)}
-              </button>
-            ))}
-          </div>
-        </Card>
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="font-display text-lg font-semibold">
-              {locale === "ar"
-                ? "جزاءات الحضور والإذن"
-                : "Attendance penalties & permissions"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "ar"
-                ? "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد."
-                : "Set late, early-departure, and absence multipliers, including approved permission coverage."}
-            </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
                 [
@@ -8513,12 +8475,6 @@ function Rules() {
             />
           </label>
           <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 p-4 text-sm">
-            <span>
-              {t("workStarts")}: {form.workStart}
-            </span>
-            <span>
-              {t("workEnds")}: {form.workEnd}
-            </span>
             <span>
               {t("gracePeriod")}: {form.graceMinutes}
             </span>

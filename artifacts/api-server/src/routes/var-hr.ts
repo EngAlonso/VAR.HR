@@ -1209,6 +1209,23 @@ async function attendanceCalculationFor(
     attendance.date,
     rules,
   );
+  const [employee] = await db
+    .select({ automaticOvertime: employeesTable.automaticOvertime })
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.id, attendance.employeeId),
+        eq(employeesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  const overtimeEligible =
+    employee?.automaticOvertime === "enabled"
+      ? true
+      : employee?.automaticOvertime === "disabled"
+        ? false
+        : rules.overtimeEligible;
+  const calculationSchedule = { ...schedule, overtimeEligible };
   const holiday = isHolidayDate(
     attendance.date,
     rules,
@@ -1272,7 +1289,7 @@ async function attendanceCalculationFor(
     checkIn: attendance.checkIn,
     checkOut: attendance.checkOut,
     attendanceDate: attendance.date,
-    schedule,
+    schedule: calculationSchedule,
     rules,
     timeZone: context.company.timezone,
     holiday,
@@ -1365,18 +1382,23 @@ async function attendanceCalculationFor(
       : 0;
   const totalPenaltyMinutes =
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
+  const automaticOvertimeMinutes = calculationSchedule.overtimeEligible
+    ? Math.max(
+        0,
+        finalWorkedMinutes -
+          Math.max(
+            0,
+            scheduledMinutes -
+              (calculationSchedule.breakPaid
+                ? 0
+                : calculationSchedule.breakDurationMinutes),
+          ) -
+          rules.overtimeAfterMinutes,
+      )
+    : 0;
   const finalOvertimeMinutes = Math.max(
     0,
-    Math.max(
-      0,
-      finalWorkedMinutes -
-        Math.max(
-          0,
-          scheduledMinutes -
-            (schedule.breakPaid ? 0 : schedule.breakDurationMinutes),
-        ) -
-        rules.overtimeAfterMinutes,
-    ) + manualOvertimeMinutes,
+    automaticOvertimeMinutes + manualOvertimeMinutes,
   );
   const finalPenaltyMinutes = Math.max(
     0,
@@ -1384,7 +1406,8 @@ async function attendanceCalculationFor(
   );
   const explanation = [
     `Rule version ${rules.version} effective from ${rules.effectiveFrom}.`,
-    `Schedule source: ${schedule.source}; ${schedule.startTime}–${schedule.endTime}${schedule.overnight ? " (overnight)" : ""}.`,
+    `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
+    `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
     `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
     `Late: raw ${metrics.rawLateMinutes} − grace ${metrics.lateGraceMinutes} = effective ${metrics.lateMinutes} minutes.`,
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
@@ -1790,6 +1813,10 @@ function employeeResponse(
     },
     status: row.employee.status as "active" | "inactive",
     role: row.employee.role as "employee" | "manager",
+    automaticOvertime: (row.employee.automaticOvertime ?? "default") as
+      | "default"
+      | "enabled"
+      | "disabled",
     joinedOn: calendarDate(row.employee.joinedOn)!,
     salary: row.employee.salary,
     avatarInitials: initials(row.employee.firstName, row.employee.lastName),
