@@ -4923,56 +4923,58 @@ function Shell({ children }: { children: ReactNode }) {
         >
           <X size={18} />
         </Button>
-        <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-sidebar-foreground/45">
-          {t("workspace")}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+          <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-sidebar-foreground/45">
+            {t("workspace")}
+          </div>
+          <nav className="space-y-1">
+            {visibleNav.map(({ href, key, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setOpen(false)}
+                data-testid={`link-nav-${key}`}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  location === href
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon size={17} strokeWidth={1.8} />
+                <span>{t(key)}</span>
+                {href === "/requests" && pendingRequests > 0 && (
+                  <span className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary">
+                    {pendingRequests}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
+          <div className="my-5 border-t border-sidebar-border" />
+          <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-sidebar-foreground/45">
+            {t("account")}
+          </div>
+          <nav className="space-y-1">
+            {visibleSecondaryNav.map(({ href, key, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setOpen(false)}
+                data-testid={`link-nav-${key}`}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  location === href
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon size={17} strokeWidth={1.8} />
+                <span>{t(key)}</span>
+              </Link>
+            ))}
+          </nav>
         </div>
-        <nav className="space-y-1">
-          {visibleNav.map(({ href, key, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              data-testid={`link-nav-${key}`}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                location === href
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground",
-              )}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-              <span>{t(key)}</span>
-              {href === "/requests" && pendingRequests > 0 && (
-                <span className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary">
-                  {pendingRequests}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-        <div className="my-5 border-t border-sidebar-border" />
-        <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-sidebar-foreground/45">
-          {t("account")}
-        </div>
-        <nav className="space-y-1">
-          {visibleSecondaryNav.map(({ href, key, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              data-testid={`link-nav-${key}`}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                location === href
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground",
-              )}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-              <span>{t(key)}</span>
-            </Link>
-          ))}
-        </nav>
         <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-3">
           <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/55">
             {t("authNotConnected")}
