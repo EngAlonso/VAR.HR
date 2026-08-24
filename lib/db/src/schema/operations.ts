@@ -2,12 +2,14 @@ import { createInsertSchema } from "drizzle-zod";
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
@@ -36,6 +38,36 @@ export const attendanceTable = pgTable("var_hr_attendance", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const attendanceCalculationsTable = pgTable("var_hr_attendance_calculations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  attendanceId: uuid("attendance_id").notNull().references(() => attendanceTable.id),
+  employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
+  attendanceDate: date("attendance_date", { mode: "string" }).notNull(),
+  ruleVersion: integer("rule_version").notNull(),
+  ruleEffectiveFrom: date("rule_effective_from", { mode: "string" }).notNull(),
+  scheduleSource: text("schedule_source").notNull(),
+  rawLateMinutes: integer("raw_late_minutes").notNull().default(0),
+  lateGraceMinutes: integer("late_grace_minutes").notNull().default(0),
+  effectiveLateMinutes: integer("effective_late_minutes").notNull().default(0),
+  rawEarlyDepartureMinutes: integer("raw_early_departure_minutes").notNull().default(0),
+  earlyDepartureGraceMinutes: integer("early_departure_grace_minutes").notNull().default(0),
+  effectiveEarlyDepartureMinutes: integer("effective_early_departure_minutes").notNull().default(0),
+  workedMinutes: integer("worked_minutes").notNull().default(0),
+  breakMinutes: integer("break_minutes").notNull().default(0),
+  paidBreak: boolean("paid_break").notNull().default(true),
+  normalWorkedMinutes: integer("normal_worked_minutes").notNull().default(0),
+  overtimeMinutes: integer("overtime_minutes").notNull().default(0),
+  workingDay: boolean("working_day").notNull().default(false),
+  holiday: boolean("holiday").notNull().default(false),
+  explanation: jsonb("explanation").notNull(),
+  calculatedAt: timestamp("calculated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  attendanceUnique: uniqueIndex("var_hr_attendance_calculations_attendance_uidx").on(table.attendanceId),
+  companyDateIndex: index("var_hr_attendance_calculations_company_date_idx").on(table.companyId, table.attendanceDate),
+}));
 
 export const leaveRequestsTable = pgTable("var_hr_leave_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -143,6 +175,7 @@ export const insertAttendanceSchema = createInsertSchema(attendanceTable).omit({
   updatedAt: true,
 });
 export type Attendance = typeof attendanceTable.$inferSelect;
+export type AttendanceCalculation = typeof attendanceCalculationsTable.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;

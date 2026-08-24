@@ -147,6 +147,7 @@ import {
   attendanceRulesTable,
   attendanceLocationsTable,
   attendanceTable,
+  attendanceCalculationsTable,
   auditLogsTable,
   authAuditEventsTable,
   biometricEventsTable,
@@ -330,9 +331,9 @@ function scheduleDurationMinutes(startTime: string, endTime: string): number {
 }
 
 function isOvernightSchedule(
-  schedule: Pick<EffectiveSchedule, "startTime" | "endTime">,
+  schedule: Pick<EffectiveSchedule, "startTime" | "endTime" | "overnight">,
 ): boolean {
-  return clockMinutes(schedule.endTime) <= clockMinutes(schedule.startTime);
+  return schedule.overnight || clockMinutes(schedule.endTime) <= clockMinutes(schedule.startTime);
 }
 
 function haversineMeters(
@@ -811,6 +812,11 @@ type EffectiveSchedule = {
   graceMinutes: number;
   overtimeAfterMinutes: number;
   overtimeEligible: boolean;
+  overnight: boolean;
+  breakDurationMinutes: number;
+  breakPaid: boolean;
+  earlyCheckoutGraceMinutes: number;
+  source: "employee_assignment" | "company_default" | "legacy_rules";
 };
 
 type ScheduleAssignmentRow = {
@@ -830,6 +836,11 @@ function defaultScheduleFromRules(
     graceMinutes: rules.graceMinutes,
     overtimeAfterMinutes: rules.overtimeAfterMinutes,
     overtimeEligible: rules.overtimeEligible,
+    overnight: rules.workEnd <= rules.workStart,
+    breakDurationMinutes: 0,
+    breakPaid: true,
+    earlyCheckoutGraceMinutes: rules.earlyCheckoutGraceMinutes,
+    source: "legacy_rules",
   };
 }
 
@@ -861,6 +872,11 @@ function effectiveScheduleFromRows(
     graceMinutes: assignment.schedule.graceMinutes,
     overtimeAfterMinutes: assignment.schedule.overtimeAfterMinutes,
     overtimeEligible: assignment.schedule.overtimeEligible,
+    overnight: assignment.schedule.overnight,
+    breakDurationMinutes: assignment.schedule.breakDurationMinutes,
+    breakPaid: assignment.schedule.breakPaid,
+    earlyCheckoutGraceMinutes: assignment.schedule.earlyCheckoutGraceMinutes,
+    source: "employee_assignment",
   };
 }
 
@@ -909,6 +925,11 @@ async function effectiveScheduleFor(
       graceMinutes: assignment.schedule.graceMinutes,
       overtimeAfterMinutes: assignment.schedule.overtimeAfterMinutes,
       overtimeEligible: assignment.schedule.overtimeEligible,
+      overnight: assignment.schedule.overnight,
+      breakDurationMinutes: assignment.schedule.breakDurationMinutes,
+      breakPaid: assignment.schedule.breakPaid,
+      earlyCheckoutGraceMinutes: assignment.schedule.earlyCheckoutGraceMinutes,
+      source: "employee_assignment",
     };
   }
   const [company] = await db
@@ -938,6 +959,11 @@ async function effectiveScheduleFor(
         graceMinutes: schedule.graceMinutes,
         overtimeAfterMinutes: schedule.overtimeAfterMinutes,
         overtimeEligible: schedule.overtimeEligible,
+        overnight: schedule.overnight,
+        breakDurationMinutes: schedule.breakDurationMinutes,
+        breakPaid: schedule.breakPaid,
+        earlyCheckoutGraceMinutes: schedule.earlyCheckoutGraceMinutes,
+        source: "company_default",
       }
     : defaultScheduleFromRules(rules);
 }
@@ -1002,6 +1028,15 @@ function attendanceMetrics(input: {
           ),
         )
       : 0;
+  const unpaidBreakMinutes = input.schedule.breakPaid
+    ? 0
+    : Math.min(input.schedule.breakDurationMinutes, workedMinutes);
+  const netWorkedMinutes = Math.max(0, workedMinutes - unpaidBreakMinutes);
+  const normalScheduledMinutes = Math.max(
+    0,
+    scheduledMinutes -
+      (input.schedule.breakPaid ? 0 : input.schedule.breakDurationMinutes),
+  );
   const checkInElapsed = input.checkIn
     ? localElapsedMinutes(
         input.checkIn,
@@ -1018,41 +1053,135 @@ function attendanceMetrics(input: {
         input.timeZone,
       )
     : 0;
-  const lateMinutes =
+  const rawLateMinutes =
     input.holiday || !workingDay
       ? 0
-      : Math.max(0, checkInElapsed - input.schedule.graceMinutes);
-  const earlyCheckoutMinutes =
+      : Math.max(0, checkInElapsed);
+  const lateMinutes = Math.max(
+    0,
+    rawLateMinutes - input.schedule.graceMinutes,
+  );
+  const rawEarlyDepartureMinutes =
     input.holiday || !workingDay || !input.checkOut
       ? 0
       : Math.max(
           0,
-          scheduledMinutes -
-            checkOutElapsed -
-            input.rules.earlyCheckoutGraceMinutes,
+          scheduledMinutes - checkOutElapsed,
         );
+  const earlyCheckoutMinutes = Math.max(
+    0,
+    rawEarlyDepartureMinutes - input.schedule.earlyCheckoutGraceMinutes,
+  );
   const missingMinutes =
     input.holiday || !workingDay || !input.checkOut
       ? 0
       : Math.max(
           0,
-          Math.round(input.schedule.requiredHours * 60) - workedMinutes,
+          Math.round(input.schedule.requiredHours * 60) - netWorkedMinutes,
         );
   const overtimeMinutes = input.schedule.overtimeEligible
     ? Math.max(
         0,
-        workedMinutes - scheduledMinutes - input.schedule.overtimeAfterMinutes,
+        netWorkedMinutes -
+          normalScheduledMinutes -
+          input.schedule.overtimeAfterMinutes,
       )
     : 0;
   return {
     workedMinutes,
+    netWorkedMinutes,
+    breakMinutes: unpaidBreakMinutes,
+    normalWorkedMinutes: Math.min(netWorkedMinutes, normalScheduledMinutes),
+    overtimeMinutes,
     workedHours: Number((workedMinutes / 60).toFixed(2)),
     overtimeHours: Number((overtimeMinutes / 60).toFixed(2)),
     lateMinutes,
     earlyCheckoutMinutes,
+    rawEarlyDepartureMinutes,
     missingMinutes,
-    rawLateMinutes:
-      input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed),
+    rawLateMinutes,
+    lateGraceMinutes: input.schedule.graceMinutes,
+    earlyDepartureGraceMinutes: input.schedule.earlyCheckoutGraceMinutes,
+    workingDay,
+    holiday: input.holiday,
+  };
+}
+
+async function attendanceCalculationFor(
+  context: TenantContext,
+  attendance: typeof attendanceTable.$inferSelect,
+  persist: boolean,
+) {
+  const rules = await attendanceRulesFor(context.companyId, attendance.date);
+  const schedule = await effectiveScheduleFor(
+    context.companyId,
+    attendance.employeeId,
+    attendance.date,
+    rules,
+  );
+  const holiday = isHolidayDate(
+    attendance.date,
+    rules,
+    await holidaysForCompany(context.companyId),
+  );
+  const metrics = attendanceMetrics({
+    checkIn: attendance.checkIn,
+    checkOut: attendance.checkOut,
+    attendanceDate: attendance.date,
+    schedule,
+    rules,
+    timeZone: context.company.timezone,
+    holiday,
+  });
+  const explanation = [
+    `Rule version ${rules.version} effective from ${rules.effectiveFrom}.`,
+    `Schedule source: ${schedule.source}; ${schedule.startTime}–${schedule.endTime}${schedule.overnight ? " (overnight)" : ""}.`,
+    `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
+    `Late: raw ${metrics.rawLateMinutes} − grace ${metrics.lateGraceMinutes} = effective ${metrics.lateMinutes} minutes.`,
+    `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
+    `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.breakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes.`,
+    `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+  ];
+  const values = {
+    companyId: context.companyId,
+    attendanceId: attendance.id,
+    employeeId: attendance.employeeId,
+    attendanceDate: attendance.date,
+    ruleVersion: rules.version,
+    ruleEffectiveFrom: rules.effectiveFrom,
+    scheduleSource: schedule.source,
+    rawLateMinutes: metrics.rawLateMinutes,
+    lateGraceMinutes: metrics.lateGraceMinutes,
+    effectiveLateMinutes: metrics.lateMinutes,
+    rawEarlyDepartureMinutes: metrics.rawEarlyDepartureMinutes,
+    earlyDepartureGraceMinutes: metrics.earlyDepartureGraceMinutes,
+    effectiveEarlyDepartureMinutes: metrics.earlyCheckoutMinutes,
+    workedMinutes: metrics.workedMinutes,
+    breakMinutes: metrics.breakMinutes,
+    paidBreak: schedule.breakPaid,
+    normalWorkedMinutes: metrics.normalWorkedMinutes,
+    overtimeMinutes: metrics.overtimeMinutes,
+    workingDay: metrics.workingDay,
+    holiday: metrics.holiday,
+    explanation,
+    calculatedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (persist) {
+    const [stored] = await db
+      .insert(attendanceCalculationsTable)
+      .values(values)
+      .onConflictDoUpdate({
+        target: attendanceCalculationsTable.attendanceId,
+        set: values,
+      })
+      .returning();
+    return stored;
+  }
+  return {
+    id: attendance.id,
+    ...values,
+    calculatedAt: values.calculatedAt,
   };
 }
 

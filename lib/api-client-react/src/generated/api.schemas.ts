@@ -576,6 +576,50 @@ export interface AttendanceToday {
   summary: AttendanceSummary;
 }
 
+export type AttendanceCalculationScheduleSource = typeof AttendanceCalculationScheduleSource[keyof typeof AttendanceCalculationScheduleSource];
+
+
+export const AttendanceCalculationScheduleSource = {
+  employee_assignment: 'employee_assignment',
+  company_default: 'company_default',
+  legacy_rules: 'legacy_rules',
+} as const;
+
+export interface AttendanceCalculation {
+  id: string;
+  attendanceId: string;
+  employeeId: string;
+  attendanceDate: string;
+  ruleVersion: number;
+  ruleEffectiveFrom: string;
+  scheduleSource: AttendanceCalculationScheduleSource;
+  /** @minimum 0 */
+  rawLateMinutes: number;
+  /** @minimum 0 */
+  lateGraceMinutes: number;
+  /** @minimum 0 */
+  effectiveLateMinutes: number;
+  /** @minimum 0 */
+  rawEarlyDepartureMinutes: number;
+  /** @minimum 0 */
+  earlyDepartureGraceMinutes: number;
+  /** @minimum 0 */
+  effectiveEarlyDepartureMinutes: number;
+  /** @minimum 0 */
+  workedMinutes: number;
+  /** @minimum 0 */
+  breakMinutes: number;
+  paidBreak: boolean;
+  /** @minimum 0 */
+  normalWorkedMinutes: number;
+  /** @minimum 0 */
+  overtimeMinutes: number;
+  workingDay: boolean;
+  holiday: boolean;
+  explanation: string[];
+  calculatedAt: string;
+}
+
 export interface LeaveBalance {
   id: string;
   employee: EmployeeReference;

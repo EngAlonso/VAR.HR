@@ -727,6 +727,116 @@ export const ListAttendanceHistoryResponse = zod.array(ListAttendanceHistoryResp
 
 
 /**
+ * @summary Preview the deterministic attendance calculation
+ */
+export const PreviewAttendanceCalculationParams = zod.object({
+  "attendanceId": zod.coerce.string()
+})
+
+export const previewAttendanceCalculationResponseRawLateMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseLateGraceMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseEffectiveLateMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseRawEarlyDepartureMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseEarlyDepartureGraceMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseEffectiveEarlyDepartureMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseWorkedMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseBreakMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseNormalWorkedMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseOvertimeMinutesMin = 0;
+
+
+
+export const PreviewAttendanceCalculationResponse = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "attendanceDate": zod.iso.date(),
+  "ruleVersion": zod.int(),
+  "ruleEffectiveFrom": zod.iso.date(),
+  "scheduleSource": zod.enum(['employee_assignment', 'company_default', 'legacy_rules']),
+  "rawLateMinutes": zod.int().min(previewAttendanceCalculationResponseRawLateMinutesMin),
+  "lateGraceMinutes": zod.int().min(previewAttendanceCalculationResponseLateGraceMinutesMin),
+  "effectiveLateMinutes": zod.int().min(previewAttendanceCalculationResponseEffectiveLateMinutesMin),
+  "rawEarlyDepartureMinutes": zod.int().min(previewAttendanceCalculationResponseRawEarlyDepartureMinutesMin),
+  "earlyDepartureGraceMinutes": zod.int().min(previewAttendanceCalculationResponseEarlyDepartureGraceMinutesMin),
+  "effectiveEarlyDepartureMinutes": zod.int().min(previewAttendanceCalculationResponseEffectiveEarlyDepartureMinutesMin),
+  "workedMinutes": zod.int().min(previewAttendanceCalculationResponseWorkedMinutesMin),
+  "breakMinutes": zod.int().min(previewAttendanceCalculationResponseBreakMinutesMin),
+  "paidBreak": zod.boolean(),
+  "normalWorkedMinutes": zod.int().min(previewAttendanceCalculationResponseNormalWorkedMinutesMin),
+  "overtimeMinutes": zod.int().min(previewAttendanceCalculationResponseOvertimeMinutesMin),
+  "workingDay": zod.boolean(),
+  "holiday": zod.boolean(),
+  "explanation": zod.array(zod.string()),
+  "calculatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Recalculate and store derived attendance results
+ */
+export const RecalculateAttendanceParams = zod.object({
+  "attendanceId": zod.coerce.string()
+})
+
+export const recalculateAttendanceResponseRawLateMinutesMin = 0;
+
+export const recalculateAttendanceResponseLateGraceMinutesMin = 0;
+
+export const recalculateAttendanceResponseEffectiveLateMinutesMin = 0;
+
+export const recalculateAttendanceResponseRawEarlyDepartureMinutesMin = 0;
+
+export const recalculateAttendanceResponseEarlyDepartureGraceMinutesMin = 0;
+
+export const recalculateAttendanceResponseEffectiveEarlyDepartureMinutesMin = 0;
+
+export const recalculateAttendanceResponseWorkedMinutesMin = 0;
+
+export const recalculateAttendanceResponseBreakMinutesMin = 0;
+
+export const recalculateAttendanceResponseNormalWorkedMinutesMin = 0;
+
+export const recalculateAttendanceResponseOvertimeMinutesMin = 0;
+
+
+
+export const RecalculateAttendanceResponse = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "attendanceDate": zod.iso.date(),
+  "ruleVersion": zod.int(),
+  "ruleEffectiveFrom": zod.iso.date(),
+  "scheduleSource": zod.enum(['employee_assignment', 'company_default', 'legacy_rules']),
+  "rawLateMinutes": zod.int().min(recalculateAttendanceResponseRawLateMinutesMin),
+  "lateGraceMinutes": zod.int().min(recalculateAttendanceResponseLateGraceMinutesMin),
+  "effectiveLateMinutes": zod.int().min(recalculateAttendanceResponseEffectiveLateMinutesMin),
+  "rawEarlyDepartureMinutes": zod.int().min(recalculateAttendanceResponseRawEarlyDepartureMinutesMin),
+  "earlyDepartureGraceMinutes": zod.int().min(recalculateAttendanceResponseEarlyDepartureGraceMinutesMin),
+  "effectiveEarlyDepartureMinutes": zod.int().min(recalculateAttendanceResponseEffectiveEarlyDepartureMinutesMin),
+  "workedMinutes": zod.int().min(recalculateAttendanceResponseWorkedMinutesMin),
+  "breakMinutes": zod.int().min(recalculateAttendanceResponseBreakMinutesMin),
+  "paidBreak": zod.boolean(),
+  "normalWorkedMinutes": zod.int().min(recalculateAttendanceResponseNormalWorkedMinutesMin),
+  "overtimeMinutes": zod.int().min(recalculateAttendanceResponseOvertimeMinutesMin),
+  "workingDay": zod.boolean(),
+  "holiday": zod.boolean(),
+  "explanation": zod.array(zod.string()),
+  "calculatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
  * @summary Record a current user's check-in
  */
 export const checkInBodySourceDefault = `web`;

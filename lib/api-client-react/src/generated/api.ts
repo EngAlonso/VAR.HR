@@ -21,6 +21,7 @@ import type {
 
 import type {
   ApiError,
+  AttendanceCalculation,
   AttendanceCorrectionInput,
   AttendanceEventInput,
   AttendanceLocation,
@@ -2083,6 +2084,154 @@ export function useListAttendanceHistory<TData = Awaited<ReturnType<typeof listA
 
 
 
+
+export const getPreviewAttendanceCalculationUrl = (attendanceId: string,) => {
+
+
+
+
+  return `/api/attendance/${attendanceId}/calculation`
+}
+
+/**
+ * @summary Preview the deterministic attendance calculation
+ */
+export const previewAttendanceCalculation = async (attendanceId: string, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceCalculation> => {
+
+  return customFetch<AttendanceCalculation>(getPreviewAttendanceCalculationUrl(attendanceId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getPreviewAttendanceCalculationQueryKey = (attendanceId: string,) => {
+    return [
+    `/api/attendance/${attendanceId}/calculation`
+    ] as const;
+    }
+
+
+export const getPreviewAttendanceCalculationQueryOptions = <TData = Awaited<ReturnType<typeof previewAttendanceCalculation>>, TError = ErrorType<unknown>>(attendanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewAttendanceCalculation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewAttendanceCalculationQueryKey(attendanceId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewAttendanceCalculation>>> = ({ signal }) => previewAttendanceCalculation(attendanceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: attendanceId !== null && attendanceId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewAttendanceCalculation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type PreviewAttendanceCalculationQueryResult = NonNullable<Awaited<ReturnType<typeof previewAttendanceCalculation>>>
+export type PreviewAttendanceCalculationQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Preview the deterministic attendance calculation
+ */
+
+export function usePreviewAttendanceCalculation<TData = Awaited<ReturnType<typeof previewAttendanceCalculation>>, TError = ErrorType<unknown>>(
+ attendanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewAttendanceCalculation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getPreviewAttendanceCalculationQueryOptions(attendanceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRecalculateAttendanceUrl = (attendanceId: string,) => {
+
+
+
+
+  return `/api/attendance/${attendanceId}/calculation`
+}
+
+/**
+ * @summary Recalculate and store derived attendance results
+ */
+export const recalculateAttendance = async (attendanceId: string, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceCalculation> => {
+
+  return customFetch<AttendanceCalculation>(getRecalculateAttendanceUrl(attendanceId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRecalculateAttendanceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recalculateAttendance>>, TError,{attendanceId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recalculateAttendance>>, TError,{attendanceId: string}, TContext> => {
+
+const mutationKey = ['recalculateAttendance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recalculateAttendance>>, {attendanceId: string}> = (props) => {
+          const {attendanceId} = props ?? {};
+
+          return  recalculateAttendance(attendanceId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecalculateAttendanceMutationResult = NonNullable<Awaited<ReturnType<typeof recalculateAttendance>>>
+
+    export type RecalculateAttendanceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Recalculate and store derived attendance results
+ */
+export const useRecalculateAttendance = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recalculateAttendance>>, TError,{attendanceId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recalculateAttendance>>,
+        TError,
+        {attendanceId: string},
+        TContext
+      > => {
+      return useMutation(getRecalculateAttendanceMutationOptions(options));
+    }
 
 export const getCheckInUrl = () => {
 

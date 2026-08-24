@@ -473,6 +473,33 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/{attendanceId}/calculation:
+    get:
+      operationId: previewAttendanceCalculation
+      tags: [attendance]
+      summary: Preview the deterministic attendance calculation
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      responses:
+        "200":
+          description: Attendance calculation preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCalculation"
+    post:
+      operationId: recalculateAttendance
+      tags: [attendance]
+      summary: Recalculate and store derived attendance results
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      responses:
+        "200":
+          description: Stored attendance calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCalculation"
   /attendance/check-in:
     post:
       operationId: checkIn
@@ -2032,6 +2059,58 @@ components:
           type: string
           enum: [web, mobile, biometric, manual]
         explanation: { type: string }
+    AttendanceCalculation:
+      type: object
+      required:
+        [
+          id,
+          attendanceId,
+          employeeId,
+          attendanceDate,
+          ruleVersion,
+          ruleEffectiveFrom,
+          scheduleSource,
+          rawLateMinutes,
+          lateGraceMinutes,
+          effectiveLateMinutes,
+          rawEarlyDepartureMinutes,
+          earlyDepartureGraceMinutes,
+          effectiveEarlyDepartureMinutes,
+          workedMinutes,
+          breakMinutes,
+          paidBreak,
+          normalWorkedMinutes,
+          overtimeMinutes,
+          workingDay,
+          holiday,
+          explanation,
+          calculatedAt,
+        ]
+      properties:
+        id: { type: string }
+        attendanceId: { type: string }
+        employeeId: { type: string }
+        attendanceDate: { type: string, format: date }
+        ruleVersion: { type: integer }
+        ruleEffectiveFrom: { type: string, format: date }
+        scheduleSource: { type: string, enum: [employee_assignment, company_default, legacy_rules] }
+        rawLateMinutes: { type: integer, minimum: 0 }
+        lateGraceMinutes: { type: integer, minimum: 0 }
+        effectiveLateMinutes: { type: integer, minimum: 0 }
+        rawEarlyDepartureMinutes: { type: integer, minimum: 0 }
+        earlyDepartureGraceMinutes: { type: integer, minimum: 0 }
+        effectiveEarlyDepartureMinutes: { type: integer, minimum: 0 }
+        workedMinutes: { type: integer, minimum: 0 }
+        breakMinutes: { type: integer, minimum: 0 }
+        paidBreak: { type: boolean }
+        normalWorkedMinutes: { type: integer, minimum: 0 }
+        overtimeMinutes: { type: integer, minimum: 0 }
+        workingDay: { type: boolean }
+        holiday: { type: boolean }
+        explanation:
+          type: array
+          items: { type: string }
+        calculatedAt: { type: string, format: date-time }
     EmployeeReference:
       type: object
       required: [id, name, initials, department]
