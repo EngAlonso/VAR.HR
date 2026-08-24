@@ -207,9 +207,15 @@ export const leaveBalanceTransactionsTable = pgTable("var_hr_leave_balance_trans
   sourceRequestId: uuid("source_request_id").references(() => leaveRequestsTable.id),
   actorId: text("actor_id").notNull(),
   reason: text("reason").notNull(),
+  /**
+   * Stable event key used by accrual/carry-forward jobs and request
+   * transitions. Nullable keeps this additive for existing ledger rows.
+   */
+  transactionKey: text("transaction_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   sourceTypeUnique: uniqueIndex("var_hr_leave_balance_transactions_source_type_uidx").on(table.sourceRequestId, table.transactionType),
+  transactionKeyUnique: uniqueIndex("var_hr_leave_balance_transactions_key_uidx").on(table.transactionKey),
   employeeTypeIndex: index("var_hr_leave_balance_transactions_employee_type_idx").on(table.companyId, table.employeeId, table.leaveType, table.createdAt),
 }));
 

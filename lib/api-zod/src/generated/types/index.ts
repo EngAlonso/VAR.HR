@@ -185,6 +185,7 @@ export * from './reportPeriodIdParameter';
 export * from './reportReportType';
 export * from './reportRow';
 export * from './reportTotals';
+export * from './requestCancellationInput';
 export * from './requestDecisionInput';
 export * from './requestDecisionInputDecision';
 export * from './requestSummary';

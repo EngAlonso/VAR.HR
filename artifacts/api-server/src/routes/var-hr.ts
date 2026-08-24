@@ -105,6 +105,8 @@ import {
   AdjustLeaveBalanceParams,
   AdjustLeaveBalanceBody,
   AdjustLeaveBalanceResponse,
+  CancelLeaveRequestBody,
+  CancelLeaveRequestParams,
   ListPayrollPeriodsResponse,
   ListPayrollAdjustmentsQueryParams,
   ListPayrollAdjustmentsResponse,
@@ -2393,6 +2395,20 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   const [row] = (await employeeRows(context)).filter(
     (item) => item.employee.id === employee.id,
   );
+  const activeLeavePolicies = await db.select({ leaveType: leavePoliciesTable.leaveType })
+    .from(leavePoliciesTable)
+    .where(and(
+      eq(leavePoliciesTable.companyId, context.companyId),
+      eq(leavePoliciesTable.status, "active"),
+      lte(leavePoliciesTable.effectiveFrom, TODAY),
+    ));
+  for (const policy of activeLeavePolicies) {
+    await db.insert(leaveBalancesTable).values({
+      companyId: context.companyId,
+      employeeId: employee.id,
+      type: policy.leaveType,
+    }).onConflictDoNothing();
+  }
   await recordAudit(
     context.companyId,
     "updated",
@@ -3013,14 +3029,180 @@ function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
   };
 }
 
+function accrualPeriodKeys(
+  policy: typeof leavePoliciesTable.$inferSelect,
+  employee: { id: string; joinedOn: string },
+  through = TODAY,
+) {
+  const start = policy.effectiveFrom > employee.joinedOn
+    ? policy.effectiveFrom
+    : employee.joinedOn;
+  const startYear = Number(start.slice(0, 4));
+  const endYear = Number(through.slice(0, 4));
+  const keys: string[] = [];
+  for (let year = startYear; year <= endYear; year += 1) {
+    if (policy.accrualFrequency === "annual") {
+      const date = `${year}-01-01`;
+      if (date >= start && date <= through) keys.push(`${year}`);
+    } else if (policy.accrualFrequency === "monthly") {
+      for (let month = 1; month <= 12; month += 1) {
+        const date = `${year}-${String(month).padStart(2, "0")}-01`;
+        if (date >= start && date <= through) keys.push(`${year}-${String(month).padStart(2, "0")}`);
+      }
+    } else if (policy.accrualFrequency === "quarterly") {
+      for (let quarter = 1; quarter <= 4; quarter += 1) {
+        const month = (quarter - 1) * 3 + 1;
+        const date = `${year}-${String(month).padStart(2, "0")}-01`;
+        if (date >= start && date <= through) keys.push(`${year}-Q${quarter}`);
+      }
+    } else {
+      const anniversary = `${year}-${employee.joinedOn.slice(5)}`;
+      if (anniversary >= start && anniversary <= through) keys.push(`${year}`);
+    }
+  }
+  return keys;
+}
+
+function addMonths(value: string, months: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.toISOString().slice(0, 10);
+}
+
+async function ensureLeaveAccruals(companyId: string, through = TODAY) {
+  const [employees, policies] = await Promise.all([
+    db.select({ id: employeesTable.id, joinedOn: employeesTable.joinedOn })
+      .from(employeesTable).where(eq(employeesTable.companyId, companyId)),
+    db.select().from(leavePoliciesTable)
+      .where(and(eq(leavePoliciesTable.companyId, companyId), eq(leavePoliciesTable.status, "active"))),
+  ]);
+  for (const policy of policies) {
+    const periodsPerYear = policy.accrualFrequency === "monthly" ? 12
+      : policy.accrualFrequency === "quarterly" ? 4 : 1;
+    const amount = policy.annualEntitlement / periodsPerYear;
+    for (const employee of employees) {
+      await db.insert(leaveBalancesTable).values({
+        companyId,
+        employeeId: employee.id,
+        type: policy.leaveType,
+      }).onConflictDoNothing();
+      const [balance] = await db.select().from(leaveBalancesTable).where(and(
+        eq(leaveBalancesTable.companyId, companyId),
+        eq(leaveBalancesTable.employeeId, employee.id),
+        eq(leaveBalancesTable.type, policy.leaveType),
+      )).limit(1);
+      if (!balance) continue;
+      for (const period of accrualPeriodKeys(policy, employee, through)) {
+        const transactionKey = `accrual:${policy.id}:${employee.id}:${period}`;
+        const [existing] = await db.select({ id: leaveBalanceTransactionsTable.id })
+          .from(leaveBalanceTransactionsTable)
+          .where(eq(leaveBalanceTransactionsTable.transactionKey, transactionKey)).limit(1);
+        if (existing) continue;
+        const before = balance.allocated - balance.used;
+        const after = before + amount;
+        const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
+          companyId,
+          employeeId: employee.id,
+          leaveType: policy.leaveType,
+          amount,
+          transactionType: "accrual",
+          beforeBalance: before,
+          afterBalance: after,
+          actorId: "system",
+          reason: `Automatic ${policy.accrualFrequency} accrual`,
+          transactionKey,
+        }).onConflictDoNothing().returning();
+        if (transaction) {
+          await db.update(leaveBalancesTable).set({
+            allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
+          }).where(eq(leaveBalancesTable.id, balance.id));
+          balance.allocated += amount;
+        }
+      }
+      // Carry-forward is recorded once at the start of each calendar year.
+      if (policy.carryForwardAllowed && policy.carryForwardDays > 0) {
+        const year = Number(through.slice(0, 4));
+        const yearStart = `${year}-01-01`;
+        if (policy.effectiveFrom <= yearStart && through >= yearStart) {
+          const transactionKey = `carry_forward:${policy.id}:${employee.id}:${year}`;
+          const [existing] = await db.select({ id: leaveBalanceTransactionsTable.id })
+            .from(leaveBalanceTransactionsTable)
+            .where(eq(leaveBalanceTransactionsTable.transactionKey, transactionKey)).limit(1);
+          if (!existing) {
+            const amountToCarry = Math.min(
+              policy.carryForwardDays,
+              Math.max(0, balance.allocated - balance.used - balance.pending),
+            );
+            if (amountToCarry > 0) {
+              const before = balance.allocated - balance.used;
+              const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
+                companyId, employeeId: employee.id, leaveType: policy.leaveType,
+                amount: amountToCarry, transactionType: "carry_forward",
+                beforeBalance: before, afterBalance: before + amountToCarry,
+                actorId: "system", reason: "Automatic carry-forward",
+                transactionKey,
+              }).onConflictDoNothing().returning();
+              if (transaction) {
+                await db.update(leaveBalancesTable).set({
+                  allocated: sql`${leaveBalancesTable.allocated} + ${amountToCarry}`,
+                }).where(eq(leaveBalancesTable.id, balance.id));
+                balance.allocated += amountToCarry;
+              }
+            }
+          }
+        }
+      }
+      if (policy.carryForwardExpiryMonths && policy.carryForwardExpiryMonths > 0) {
+        const year = Number(through.slice(0, 4));
+        const priorYear = year - 1;
+        const expiryDate = addMonths(`${priorYear}-01-01`, policy.carryForwardExpiryMonths);
+        if (through >= expiryDate) {
+          const carryKey = `carry_forward:${policy.id}:${employee.id}:${priorYear}`;
+          const [carry] = await db.select({ amount: leaveBalanceTransactionsTable.amount })
+            .from(leaveBalanceTransactionsTable)
+            .where(eq(leaveBalanceTransactionsTable.transactionKey, carryKey)).limit(1);
+          const expiryKey = `expiry:${policy.id}:${employee.id}:${priorYear}`;
+          const [expired] = await db.select({ id: leaveBalanceTransactionsTable.id })
+            .from(leaveBalanceTransactionsTable)
+            .where(eq(leaveBalanceTransactionsTable.transactionKey, expiryKey)).limit(1);
+          if (carry && carry.amount > 0 && !expired) {
+            const before = balance.allocated - balance.used;
+            const amount = -Math.min(carry.amount, Math.max(0, before));
+            if (amount < 0) {
+              const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
+                companyId, employeeId: employee.id, leaveType: policy.leaveType,
+                amount, transactionType: "expiry",
+                beforeBalance: before, afterBalance: before + amount,
+                actorId: "system", reason: `Carry-forward expired on ${expiryDate}`,
+                transactionKey: expiryKey,
+              }).onConflictDoNothing().returning();
+              if (transaction) {
+                await db.update(leaveBalancesTable).set({
+                  allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
+                }).where(eq(leaveBalancesTable.id, balance.id));
+                balance.allocated += amount;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 router.get("/leave/policies", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (!canUseCapability(context, "leave.approve")) {
     denyCapability(res, req, "leave.approve");
     return;
   }
+  await ensureLeaveAccruals(context.companyId);
   const policies = await db.select().from(leavePoliciesTable)
-    .where(and(eq(leavePoliciesTable.companyId, context.companyId), eq(leavePoliciesTable.status, "active")))
+    .where(and(
+      eq(leavePoliciesTable.companyId, context.companyId),
+      eq(leavePoliciesTable.status, "active"),
+      lte(leavePoliciesTable.effectiveFrom, TODAY),
+    ))
     .orderBy(asc(leavePoliciesTable.leaveType), desc(leavePoliciesTable.version));
   const current = policies.filter((policy) => !policies.some((other) =>
     other.leaveType === policy.leaveType && other.version > policy.version,
@@ -3073,7 +3255,7 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
       companyId: context.companyId,
       employeeId: employee.id,
       type: policy.leaveType,
-      allocated: policy.annualEntitlement,
+      allocated: 0,
     }).onConflictDoNothing();
   }
   await recordAudit(context.companyId, "created", "leave_policy", policy.id, policy);
@@ -3086,6 +3268,7 @@ router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
     denyCapability(res, req, "leave.approve");
     return;
   }
+  await ensureLeaveAccruals(context.companyId);
   const rows = await db.select({ transaction: leaveBalanceTransactionsTable, employee: employeesTable, department: departmentsTable })
     .from(leaveBalanceTransactionsTable)
     .innerJoin(employeesTable, eq(leaveBalanceTransactionsTable.employeeId, employeesTable.id))
@@ -3136,7 +3319,10 @@ router.post("/leave/balances/:balanceId/adjust", async (req, res): Promise<void>
   }
   const [updated] = await db.update(leaveBalancesTable).set({
     allocated: sql`${leaveBalancesTable.allocated} + ${parsed.data.amount}`,
-  }).where(eq(leaveBalancesTable.id, balance.id)).returning();
+  }).where(and(
+    eq(leaveBalancesTable.id, balance.id),
+    eq(leaveBalancesTable.companyId, context.companyId),
+  )).returning();
   await db.insert(leaveBalanceTransactionsTable).values({
     companyId: context.companyId,
     employeeId: balance.employeeId,
@@ -3169,6 +3355,7 @@ router.get("/leave/balances", async (req, res): Promise<void> => {
     denyCapability(res, req, "leave.approve");
     return;
   }
+  await ensureLeaveAccruals(context.companyId);
   const balances = await db
     .select({
       balance: leaveBalancesTable,
@@ -3199,10 +3386,7 @@ router.get("/leave/balances", async (req, res): Promise<void> => {
         allocated: balance.allocated,
         used: balance.used,
         pending: balance.pending,
-        remaining: Math.max(
-          0,
-          balance.allocated - balance.used - balance.pending,
-        ),
+        remaining: balance.allocated - balance.used - balance.pending,
       })),
     ),
   );
@@ -3214,6 +3398,7 @@ router.get("/leave/requests", async (req, res): Promise<void> => {
     denyCapability(res, req, "leave.approve");
     return;
   }
+  await ensureLeaveAccruals(context.companyId);
   const rows = await leaveRows(context);
   res.json(
     ListLeaveRequestsResponse.parse(
@@ -3245,6 +3430,7 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;
   }
+  await ensureLeaveAccruals(context.companyId);
   const parsed = CreateLeaveRequestBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: message(req, "invalidRequest") });
@@ -3277,7 +3463,12 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
     });
     return;
   }
-  if (balance.allocated - balance.used - balance.pending < days) {
+  const requestPolicy = await effectiveLeavePolicy(
+    context.companyId,
+    parsed.data.type,
+    calendarDate(parsed.data.from) ?? TODAY,
+  );
+  if (!requestPolicy?.allowNegative && balance.allocated - balance.used - balance.pending < days) {
     res.status(409).json({
       error: message(req, "leaveExceedsBalance", { type: parsed.data.type }),
     });
@@ -3323,7 +3514,10 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
   await db
     .update(leaveBalancesTable)
     .set({ pending: sql`${leaveBalancesTable.pending} + ${days}` })
-    .where(eq(leaveBalancesTable.id, balance.id));
+    .where(and(
+      eq(leaveBalancesTable.id, balance.id),
+      eq(leaveBalancesTable.companyId, context.companyId),
+    ));
   await recordAudit(
     context.companyId,
     "created",
@@ -3425,16 +3619,23 @@ router.post(
       res.status(409).json({ error: message(req, "leaveBalanceMissing", { type: request.type }) });
       return;
     }
+    const policy = await effectiveLeavePolicy(
+      context.companyId,
+      request.type,
+      request.from,
+    );
     const balanceUpdate =
       parsed.data.decision === "approved"
-        ? {
-            pending: sql`${leaveBalancesTable.pending} - ${request.days}`,
-            used: sql`${leaveBalancesTable.used} + ${request.days}`,
-          }
+        ? policy?.deductionMode === "manual"
+          ? { pending: sql`${leaveBalancesTable.pending} - ${request.days}` }
+          : {
+              pending: sql`${leaveBalancesTable.pending} - ${request.days}`,
+              used: sql`${leaveBalancesTable.used} + ${request.days}`,
+            }
         : { pending: sql`${leaveBalancesTable.pending} - ${request.days}` };
     const beforeBalance = balance.allocated - balance.used;
     const afterBalance =
-      parsed.data.decision === "approved"
+      parsed.data.decision === "approved" && policy?.deductionMode !== "manual"
         ? beforeBalance - request.days
         : beforeBalance;
     await db
@@ -3451,13 +3652,14 @@ router.post(
       companyId: context.companyId,
       employeeId: request.employeeId,
       leaveType: request.type,
-      amount: parsed.data.decision === "approved" ? -request.days : 0,
-      transactionType: parsed.data.decision === "approved" ? "deduction" : "restoration",
+      amount: parsed.data.decision === "approved" && policy?.deductionMode !== "manual" ? -request.days : 0,
+      transactionType: parsed.data.decision === "approved" && policy?.deductionMode !== "manual" ? "deduction" : "restoration",
       beforeBalance,
       afterBalance,
       sourceRequestId: request.id,
       actorId: context.accountId,
       reason: parsed.data.reason?.trim() || `Leave request ${parsed.data.decision}`,
+      transactionKey: `request:${request.id}:${parsed.data.decision}`,
     }).onConflictDoNothing();
     await recordAudit(
       context.companyId,
@@ -3485,6 +3687,100 @@ router.post(
     );
   },
 );
+
+router.post("/leave/requests/:requestId/cancel", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  const params = CancelLeaveRequestParams.safeParse(req.params);
+  const parsed = CancelLeaveRequestBody.safeParse(req.body ?? {});
+  if (!params.success || !parsed.success || !parsed.data.reason.trim()) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const scopedRequest = (await leaveRows(context)).find(
+    (row) => row.request.id === params.data.requestId,
+  );
+  if (!scopedRequest) {
+    res.status(404).json({ error: message(req, "leaveNotFound") });
+    return;
+  }
+  const isApprover = canApprove(context);
+  if (!isApprover && scopedRequest.request.employeeId !== context.employeeId) {
+    res.status(403).json({ error: message(req, "noPermissionDecideLeave") });
+    return;
+  }
+  if (!["pending", "approved"].includes(scopedRequest.request.status)) {
+    res.status(409).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const request = scopedRequest.request;
+  const policy = await effectiveLeavePolicy(context.companyId, request.type, request.from);
+  const [balance] = await db.select().from(leaveBalancesTable).where(and(
+    eq(leaveBalancesTable.companyId, context.companyId),
+    eq(leaveBalancesTable.employeeId, request.employeeId),
+    eq(leaveBalancesTable.type, request.type),
+  )).limit(1);
+  if (!balance) {
+    res.status(409).json({ error: message(req, "leaveBalanceMissing", { type: request.type }) });
+    return;
+  }
+  const wasApproved = request.status === "approved";
+  const shouldRestoreUsed = wasApproved && policy?.deductionMode !== "manual";
+  const [updatedRequest] = await db.update(leaveRequestsTable).set({
+    status: "cancelled",
+    decidedBy: context.accountId,
+    decisionReason: parsed.data.reason.trim(),
+    decidedAt: new Date(),
+  }).where(and(
+    eq(leaveRequestsTable.id, request.id),
+    eq(leaveRequestsTable.companyId, context.companyId),
+    or(eq(leaveRequestsTable.status, "pending"), eq(leaveRequestsTable.status, "approved")),
+  )).returning();
+  if (!updatedRequest) {
+    res.status(409).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  await db.update(leaveBalancesTable).set({
+    ...(request.status === "pending"
+      ? { pending: sql`${leaveBalancesTable.pending} - ${request.days}` }
+      : {}),
+    ...(shouldRestoreUsed
+      ? { used: sql`${leaveBalancesTable.used} - ${request.days}` }
+      : {}),
+  }).where(and(
+    eq(leaveBalancesTable.id, balance.id),
+    eq(leaveBalancesTable.companyId, context.companyId),
+  ));
+  const beforeBalance = balance.allocated - balance.used;
+  await db.insert(leaveBalanceTransactionsTable).values({
+    companyId: context.companyId,
+    employeeId: request.employeeId,
+    leaveType: request.type,
+    amount: shouldRestoreUsed ? request.days : 0,
+    transactionType: "restoration",
+    beforeBalance,
+    afterBalance: shouldRestoreUsed ? beforeBalance + request.days : beforeBalance,
+    sourceRequestId: request.id,
+    actorId: context.accountId,
+    reason: parsed.data.reason.trim(),
+    transactionKey: `request:${request.id}:cancelled`,
+  }).onConflictDoNothing();
+  await recordAudit(context.companyId, "cancelled", "leave_request", request.id, updatedRequest, request);
+  const rows = await leaveRows(context);
+  const row = rows.find((item) => item.request.id === request.id)!;
+  res.json(DecideLeaveRequestResponse.parse({
+    id: updatedRequest.id,
+    employee: requestEmployeeReference(row.employee, row.department.name),
+    type: updatedRequest.type,
+    from: updatedRequest.from,
+    to: updatedRequest.to,
+    days: updatedRequest.days,
+    reason: updatedRequest.reason,
+    status: "cancelled",
+    submittedAt: updatedRequest.submittedAt.toISOString(),
+    decidedBy: updatedRequest.decidedBy,
+    decisionReason: updatedRequest.decisionReason,
+  }));
+});
 
 router.get("/permissions/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);

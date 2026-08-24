@@ -689,6 +689,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LeaveRequest"
+  /leave/requests/{requestId}/cancel:
+    post:
+      operationId: cancelLeaveRequest
+      tags: [requests]
+      summary: Cancel a pending or approved leave request
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestCancellationInput"
+      responses:
+        "200":
+          description: Cancelled leave request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveRequest"
   /permissions/requests:
     get:
       operationId: listPermissionRequests
@@ -2351,6 +2371,11 @@ components:
           type: string
           enum: [approved, rejected]
         reason: { type: string }
+    RequestCancellationInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
     AttendanceRules:
       type: object
       required:

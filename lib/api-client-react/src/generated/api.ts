@@ -99,6 +99,7 @@ import type {
   PlatformCompanyUpdate,
   PlatformSummary,
   Report,
+  RequestCancellationInput,
   RequestDecisionInput,
   ScheduleAssignmentHistory,
   SetAuthAccountPassword200,
@@ -3043,6 +3044,78 @@ export const useDecideLeaveRequest = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDecideLeaveRequestMutationOptions(options));
+    }
+
+export const getCancelLeaveRequestUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/leave/requests/${requestId}/cancel`
+}
+
+/**
+ * @summary Cancel a pending or approved leave request
+ */
+export const cancelLeaveRequest = async (requestId: string,
+    requestCancellationInput: RequestCancellationInput, options?: Parameters<typeof customFetch>[1]): Promise<LeaveRequest> => {
+
+  return customFetch<LeaveRequest>(getCancelLeaveRequestUrl(requestId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(requestCancellationInput)
+  }
+);}
+
+
+
+
+
+export const getCancelLeaveRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLeaveRequest>>, TError,{requestId: string;data: BodyType<RequestCancellationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelLeaveRequest>>, TError,{requestId: string;data: BodyType<RequestCancellationInput>}, TContext> => {
+
+const mutationKey = ['cancelLeaveRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelLeaveRequest>>, {requestId: string;data: BodyType<RequestCancellationInput>}> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  cancelLeaveRequest(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelLeaveRequestMutationResult = NonNullable<Awaited<ReturnType<typeof cancelLeaveRequest>>>
+    export type CancelLeaveRequestMutationBody = BodyType<RequestCancellationInput>
+    export type CancelLeaveRequestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cancel a pending or approved leave request
+ */
+export const useCancelLeaveRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLeaveRequest>>, TError,{requestId: string;data: BodyType<RequestCancellationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelLeaveRequest>>,
+        TError,
+        {requestId: string;data: BodyType<RequestCancellationInput>},
+        TContext
+      > => {
+      return useMutation(getCancelLeaveRequestMutationOptions(options));
     }
 
 export const getListPermissionRequestsUrl = () => {

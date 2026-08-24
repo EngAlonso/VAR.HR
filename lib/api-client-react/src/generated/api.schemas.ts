@@ -859,6 +859,11 @@ export interface RequestDecisionInput {
   reason?: string;
 }
 
+export interface RequestCancellationInput {
+  /** @minLength 1 */
+  reason: string;
+}
+
 export type AttendanceRulesOvertimeMethod = typeof AttendanceRulesOvertimeMethod[keyof typeof AttendanceRulesOvertimeMethod];
 
 

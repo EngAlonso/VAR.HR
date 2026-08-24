@@ -1236,6 +1236,40 @@ export const DecideLeaveRequestResponse = zod.object({
 
 
 /**
+ * @summary Cancel a pending or approved leave request
+ */
+export const CancelLeaveRequestParams = zod.object({
+  "requestId": zod.coerce.string()
+})
+
+
+
+
+export const CancelLeaveRequestBody = zod.object({
+  "reason": zod.string().min(1)
+})
+
+export const CancelLeaveRequestResponse = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "type": zod.string(),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "days": zod.number(),
+  "reason": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "decidedBy": zod.string().nullish(),
+  "decisionReason": zod.string().nullish()
+})
+
+
+/**
  * @summary List permission requests
  */
 export const ListPermissionRequestsResponseItem = zod.object({

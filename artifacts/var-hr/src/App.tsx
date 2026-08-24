@@ -102,6 +102,7 @@ import {
   useListLeaveRequests,
   useCreateLeaveRequest,
   useDecideLeaveRequest,
+  useCancelLeaveRequest,
   useListPermissionRequests,
   useCreatePermissionRequest,
   useDecidePermissionRequest,
@@ -6946,6 +6947,24 @@ function Requests() {
   const createLeave = useCreateLeaveRequest();
   const createPermission = useCreatePermissionRequest();
   const decideLeave = useDecideLeaveRequest();
+  const cancelLeave = useCancelLeaveRequest();
+  const policies = useListLeavePolicies();
+  const ledger = useListLeaveBalanceTransactions();
+  const createPolicy = useCreateLeavePolicy();
+  const adjustBalance = useAdjustLeaveBalance();
+  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">("policies");
+  const [policyForm, setPolicyForm] = useState<any>({
+    leaveType: "Annual leave",
+    annualEntitlement: 21,
+    accrualFrequency: "monthly",
+    deductionMode: "automatic",
+    carryForwardAllowed: false,
+    carryForwardDays: 0,
+    carryForwardExpiryMonths: "",
+    allowNegative: false,
+    effectiveFrom: new Date().toISOString().slice(0, 10),
+  });
+  const [adjustment, setAdjustment] = useState<{ id: string; amount: string; reason: string } | null>(null);
   const decidePermission = useDecidePermissionRequest();
   const [form, setForm] = useState<any>({
     type: "Annual leave",
@@ -7049,6 +7068,51 @@ function Requests() {
       },
     );
   }
+  function submitPolicy(event: FormEvent) {
+    event.preventDefault();
+    createPolicy.mutate({
+      data: {
+        ...policyForm,
+        annualEntitlement: Number(policyForm.annualEntitlement),
+        carryForwardDays: Number(policyForm.carryForwardDays),
+        carryForwardExpiryMonths: policyForm.carryForwardExpiryMonths === "" ? null : Number(policyForm.carryForwardExpiryMonths),
+      },
+    } as any, {
+      onSuccess: () => {
+        toast.success("Leave policy version created");
+        qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+      },
+      onError: () => toast.error("Could not create leave policy"),
+    });
+  }
+  function submitAdjustment(event: FormEvent) {
+    event.preventDefault();
+    if (!adjustment || !adjustment.reason.trim() || Number(adjustment.amount) === 0) return;
+    adjustBalance.mutate({
+      balanceId: adjustment.id,
+      data: { amount: Number(adjustment.amount), reason: adjustment.reason.trim() },
+    }, {
+      onSuccess: () => {
+        toast.success("Balance adjusted");
+        setAdjustment(null);
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() });
+      },
+      onError: () => toast.error("Could not adjust balance"),
+    });
+  }
+  function cancelRequest(id: string) {
+    cancelLeave.mutate({ requestId: id, data: { reason: "Cancelled by requester" } }, {
+      onSuccess: () => {
+        toast.success("Leave request cancelled");
+        qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() });
+      },
+      onError: () => toast.error("Could not cancel leave request"),
+    });
+  }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
   return (
@@ -7066,6 +7130,68 @@ function Requests() {
           ) : undefined
         }
       />
+      {canApproveLeave && (
+        <Card className="mb-6 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">Leave controls</p>
+              <h2 className="mt-1 font-display text-xl font-semibold">Policies & balance ledger</h2>
+            </div>
+            <div className="flex gap-1 rounded-lg bg-muted p-1">
+              <Button className="px-3 py-1.5 text-xs" variant={leaveAdminTab === "policies" ? "primary" : "quiet"} onClick={() => setLeaveAdminTab("policies")}>Policies</Button>
+              <Button className="px-3 py-1.5 text-xs" variant={leaveAdminTab === "ledger" ? "primary" : "quiet"} onClick={() => setLeaveAdminTab("ledger")}>Ledger</Button>
+            </div>
+          </div>
+          {leaveAdminTab === "policies" ? (
+            <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
+              <div className="space-y-3">
+                {(policies.data || []).map((p: any) => (
+                  <div key={p.id} className="rounded-xl border border-border p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold">{requestTypeLabel(p.leaveType, t)} · v{p.version}</span>
+                      <Status value={p.status} />
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {p.annualEntitlement} days/year · {p.accrualFrequency} · {p.deductionMode} deduction · effective {p.effectiveFrom}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Carry-forward: {p.carryForwardAllowed ? `${p.carryForwardDays} days` : "off"} · Negative balance: {p.allowNegative ? "allowed" : "blocked"}
+                    </p>
+                  </div>
+                ))}
+                {!policies.isLoading && !policies.data?.length && <Empty title="No leave policies" detail="Create the first effective-dated policy." />}
+              </div>
+              <form onSubmit={submitPolicy} className="space-y-3 rounded-xl bg-muted/40 p-4">
+                <h3 className="font-semibold">Create policy version</h3>
+                <Field label="Leave type" value={policyForm.leaveType} onChange={(value) => setPolicyForm({ ...policyForm, leaveType: value })} required />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Annual entitlement" type="number" min={0} value={policyForm.annualEntitlement} onChange={(value) => setPolicyForm({ ...policyForm, annualEntitlement: value })} required />
+                  <Field label="Effective from" type="date" value={policyForm.effectiveFrom} onChange={(value) => setPolicyForm({ ...policyForm, effectiveFrom: value })} required />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm font-semibold">Accrual frequency<select className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal" value={policyForm.accrualFrequency} onChange={(e) => setPolicyForm({ ...policyForm, accrualFrequency: e.target.value })}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option><option value="hire_date">Hire date</option></select></label>
+                  <label className="text-sm font-semibold">Deduction mode<select className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal" value={policyForm.deductionMode} onChange={(e) => setPolicyForm({ ...policyForm, deductionMode: e.target.value })}><option value="automatic">Automatic</option><option value="manual">Manual</option></select></label>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Carry-forward days" type="number" min={0} value={policyForm.carryForwardDays} onChange={(value) => setPolicyForm({ ...policyForm, carryForwardDays: value })} />
+                  <Field label="Carry-forward expiry (months)" type="number" min={0} value={policyForm.carryForwardExpiryMonths} onChange={(value) => setPolicyForm({ ...policyForm, carryForwardExpiryMonths: value })} />
+                </div>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={policyForm.carryForwardAllowed} onChange={(e) => setPolicyForm({ ...policyForm, carryForwardAllowed: e.target.checked })} /> Allow carry-forward</label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={policyForm.allowNegative} onChange={(e) => setPolicyForm({ ...policyForm, allowNegative: e.target.checked })} /> Allow negative balance</label>
+                <Button type="submit" disabled={createPolicy.isPending}>{createPolicy.isPending ? "Saving…" : "Create policy version"}</Button>
+              </form>
+            </div>
+          ) : (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="p-3">Employee</th><th className="p-3">Type</th><th className="p-3">Event</th><th className="p-3">Amount</th><th className="p-3">Balance</th><th className="p-3">Reason</th></tr></thead>
+                <tbody>{(ledger.data || []).map((item: any) => <tr key={item.id} className="border-b border-border/60"><td className="p-3 font-medium">{item.employee.name}</td><td className="p-3">{requestTypeLabel(item.leaveType, t)}</td><td className="p-3">{item.transactionType}</td><td className="p-3 font-mono">{item.amount > 0 ? "+" : ""}{item.amount}</td><td className="p-3 font-mono">{item.afterBalance}</td><td className="max-w-[240px] p-3 text-muted-foreground">{item.reason}</td></tr>)}</tbody>
+              </table>
+              {!ledger.isLoading && !ledger.data?.length && <Empty title="Ledger is empty" detail="Accruals and request transitions will appear here." />}
+            </div>
+          )}
+        </Card>
+      )}
       <div className="grid gap-6 lg:grid-cols-[.72fr_1.28fr]">
         <div className="space-y-4">
           <Card className="p-5">
@@ -7092,6 +7218,15 @@ function Requests() {
                         {b.remaining} {t("daysRemaining")}
                       </span>
                     </div>
+                    {canApproveLeave && (
+                      <Button
+                        variant="quiet"
+                        className="mt-2 px-2 py-1 text-xs"
+                        onClick={() => setAdjustment({ id: b.id, amount: "", reason: "" })}
+                      >
+                        Adjust balance
+                      </Button>
+                    )}
                     <div className="mt-2 h-1.5 rounded-full bg-muted">
                       <div
                         className="h-full rounded-full bg-primary"
@@ -7190,6 +7325,20 @@ function Requests() {
                           </Button>
                         </div>
                       )}
+                      {kind === "leave" &&
+                        currentEmployeeId === r.employee?.id &&
+                        (r.status === "pending" || r.status === "approved") && (
+                          <div className="mt-3 flex justify-end">
+                            <Button
+                              variant="quiet"
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => cancelRequest(r.id)}
+                              disabled={cancelLeave.isPending}
+                            >
+                              Cancel request
+                            </Button>
+                          </div>
+                        )}
                   </div>
                 </div>
               ))}
@@ -7350,6 +7499,33 @@ function Requests() {
               >
                 {t("confirmDecision")}
               </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {adjustment && (
+        <Modal title="Adjust leave balance" onClose={() => setAdjustment(null)}>
+          <form onSubmit={submitAdjustment} className="space-y-4">
+            <Field
+              label="Adjustment amount"
+              type="number"
+              value={adjustment.amount}
+              onChange={(value) => setAdjustment({ ...adjustment, amount: value })}
+              placeholder="Use a negative number to remove days"
+              required
+            />
+            <label className="block text-sm font-semibold">
+              Reason (required)
+              <textarea
+                required
+                value={adjustment.reason}
+                onChange={(event) => setAdjustment({ ...adjustment, reason: event.target.value })}
+                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setAdjustment(null)}>Cancel</Button>
+              <Button type="submit" disabled={adjustBalance.isPending}>{adjustBalance.isPending ? "Saving…" : "Apply adjustment"}</Button>
             </div>
           </form>
         </Modal>
