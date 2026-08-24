@@ -74,6 +74,10 @@ import type {
   InitialPlatformOwnerInput,
   InitialPlatformOwnerResponse,
   LeaveBalance,
+  LeaveBalanceAdjustmentInput,
+  LeaveBalanceTransaction,
+  LeavePolicy,
+  LeavePolicyInput,
   LeaveRequest,
   LeaveRequestInput,
   ListAttendanceHistoryParams,
@@ -2523,6 +2527,303 @@ export function useListLeaveBalances<TData = Awaited<ReturnType<typeof listLeave
 
 
 
+
+export const getListLeavePoliciesUrl = () => {
+
+
+
+
+  return `/api/leave/policies`
+}
+
+/**
+ * @summary List effective leave policies
+ */
+export const listLeavePolicies = async ( options?: Parameters<typeof customFetch>[1]): Promise<LeavePolicy[]> => {
+
+  return customFetch<LeavePolicy[]>(getListLeavePoliciesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLeavePoliciesQueryKey = () => {
+    return [
+    `/api/leave/policies`
+    ] as const;
+    }
+
+
+export const getListLeavePoliciesQueryOptions = <TData = Awaited<ReturnType<typeof listLeavePolicies>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeavePolicies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLeavePoliciesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLeavePolicies>>> = ({ signal }) => listLeavePolicies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLeavePolicies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLeavePoliciesQueryResult = NonNullable<Awaited<ReturnType<typeof listLeavePolicies>>>
+export type ListLeavePoliciesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List effective leave policies
+ */
+
+export function useListLeavePolicies<TData = Awaited<ReturnType<typeof listLeavePolicies>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeavePolicies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLeavePoliciesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLeavePolicyUrl = () => {
+
+
+
+
+  return `/api/leave/policies`
+}
+
+/**
+ * @summary Create a versioned leave policy
+ */
+export const createLeavePolicy = async (leavePolicyInput: LeavePolicyInput, options?: Parameters<typeof customFetch>[1]): Promise<LeavePolicy> => {
+
+  return customFetch<LeavePolicy>(getCreateLeavePolicyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(leavePolicyInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLeavePolicyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeavePolicy>>, TError,{data: BodyType<LeavePolicyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLeavePolicy>>, TError,{data: BodyType<LeavePolicyInput>}, TContext> => {
+
+const mutationKey = ['createLeavePolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLeavePolicy>>, {data: BodyType<LeavePolicyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLeavePolicy(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLeavePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof createLeavePolicy>>>
+    export type CreateLeavePolicyMutationBody = BodyType<LeavePolicyInput>
+    export type CreateLeavePolicyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a versioned leave policy
+ */
+export const useCreateLeavePolicy = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeavePolicy>>, TError,{data: BodyType<LeavePolicyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLeavePolicy>>,
+        TError,
+        {data: BodyType<LeavePolicyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLeavePolicyMutationOptions(options));
+    }
+
+export const getListLeaveBalanceTransactionsUrl = () => {
+
+
+
+
+  return `/api/leave/balances/ledger`
+}
+
+/**
+ * @summary List immutable leave balance transactions
+ */
+export const listLeaveBalanceTransactions = async ( options?: Parameters<typeof customFetch>[1]): Promise<LeaveBalanceTransaction[]> => {
+
+  return customFetch<LeaveBalanceTransaction[]>(getListLeaveBalanceTransactionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLeaveBalanceTransactionsQueryKey = () => {
+    return [
+    `/api/leave/balances/ledger`
+    ] as const;
+    }
+
+
+export const getListLeaveBalanceTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof listLeaveBalanceTransactions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeaveBalanceTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLeaveBalanceTransactionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLeaveBalanceTransactions>>> = ({ signal }) => listLeaveBalanceTransactions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLeaveBalanceTransactions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLeaveBalanceTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof listLeaveBalanceTransactions>>>
+export type ListLeaveBalanceTransactionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List immutable leave balance transactions
+ */
+
+export function useListLeaveBalanceTransactions<TData = Awaited<ReturnType<typeof listLeaveBalanceTransactions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeaveBalanceTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLeaveBalanceTransactionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdjustLeaveBalanceUrl = (balanceId: string,) => {
+
+
+
+
+  return `/api/leave/balances/${balanceId}/adjust`
+}
+
+/**
+ * @summary Apply a manual leave balance adjustment
+ */
+export const adjustLeaveBalance = async (balanceId: string,
+    leaveBalanceAdjustmentInput: LeaveBalanceAdjustmentInput, options?: Parameters<typeof customFetch>[1]): Promise<LeaveBalance> => {
+
+  return customFetch<LeaveBalance>(getAdjustLeaveBalanceUrl(balanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(leaveBalanceAdjustmentInput)
+  }
+);}
+
+
+
+
+
+export const getAdjustLeaveBalanceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustLeaveBalance>>, TError,{balanceId: string;data: BodyType<LeaveBalanceAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adjustLeaveBalance>>, TError,{balanceId: string;data: BodyType<LeaveBalanceAdjustmentInput>}, TContext> => {
+
+const mutationKey = ['adjustLeaveBalance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adjustLeaveBalance>>, {balanceId: string;data: BodyType<LeaveBalanceAdjustmentInput>}> = (props) => {
+          const {balanceId,data} = props ?? {};
+
+          return  adjustLeaveBalance(balanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdjustLeaveBalanceMutationResult = NonNullable<Awaited<ReturnType<typeof adjustLeaveBalance>>>
+    export type AdjustLeaveBalanceMutationBody = BodyType<LeaveBalanceAdjustmentInput>
+    export type AdjustLeaveBalanceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Apply a manual leave balance adjustment
+ */
+export const useAdjustLeaveBalance = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustLeaveBalance>>, TError,{balanceId: string;data: BodyType<LeaveBalanceAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adjustLeaveBalance>>,
+        TError,
+        {balanceId: string;data: BodyType<LeaveBalanceAdjustmentInput>},
+        TContext
+      > => {
+      return useMutation(getAdjustLeaveBalanceMutationOptions(options));
+    }
 
 export const getListLeaveRequestsUrl = () => {
 

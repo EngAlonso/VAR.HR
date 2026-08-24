@@ -658,6 +658,127 @@ export interface LeaveBalance {
   remaining: number;
 }
 
+export type LeavePolicyAccrualFrequency = typeof LeavePolicyAccrualFrequency[keyof typeof LeavePolicyAccrualFrequency];
+
+
+export const LeavePolicyAccrualFrequency = {
+  monthly: 'monthly',
+  quarterly: 'quarterly',
+  annual: 'annual',
+  hire_date: 'hire_date',
+} as const;
+
+export type LeavePolicyDeductionMode = typeof LeavePolicyDeductionMode[keyof typeof LeavePolicyDeductionMode];
+
+
+export const LeavePolicyDeductionMode = {
+  automatic: 'automatic',
+  manual: 'manual',
+} as const;
+
+export type LeavePolicyStatus = typeof LeavePolicyStatus[keyof typeof LeavePolicyStatus];
+
+
+export const LeavePolicyStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface LeavePolicy {
+  id: string;
+  leaveType: string;
+  version: number;
+  /** @minimum 0 */
+  annualEntitlement: number;
+  accrualFrequency: LeavePolicyAccrualFrequency;
+  deductionMode: LeavePolicyDeductionMode;
+  carryForwardAllowed: boolean;
+  /** @minimum 0 */
+  carryForwardDays: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  carryForwardExpiryMonths?: number | null;
+  allowNegative: boolean;
+  effectiveFrom: string;
+  /** @nullable */
+  effectiveTo?: string | null;
+  status: LeavePolicyStatus;
+  createdBy?: string;
+  createdAt?: string;
+}
+
+export type LeavePolicyInputAccrualFrequency = typeof LeavePolicyInputAccrualFrequency[keyof typeof LeavePolicyInputAccrualFrequency];
+
+
+export const LeavePolicyInputAccrualFrequency = {
+  monthly: 'monthly',
+  quarterly: 'quarterly',
+  annual: 'annual',
+  hire_date: 'hire_date',
+} as const;
+
+export type LeavePolicyInputDeductionMode = typeof LeavePolicyInputDeductionMode[keyof typeof LeavePolicyInputDeductionMode];
+
+
+export const LeavePolicyInputDeductionMode = {
+  automatic: 'automatic',
+  manual: 'manual',
+} as const;
+
+export interface LeavePolicyInput {
+  /** @minLength 1 */
+  leaveType: string;
+  /** @minimum 0 */
+  annualEntitlement: number;
+  accrualFrequency: LeavePolicyInputAccrualFrequency;
+  deductionMode: LeavePolicyInputDeductionMode;
+  carryForwardAllowed: boolean;
+  /** @minimum 0 */
+  carryForwardDays: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  carryForwardExpiryMonths?: number | null;
+  allowNegative: boolean;
+  effectiveFrom: string;
+}
+
+export type LeaveBalanceTransactionTransactionType = typeof LeaveBalanceTransactionTransactionType[keyof typeof LeaveBalanceTransactionTransactionType];
+
+
+export const LeaveBalanceTransactionTransactionType = {
+  accrual: 'accrual',
+  deduction: 'deduction',
+  restoration: 'restoration',
+  carry_forward: 'carry_forward',
+  expiry: 'expiry',
+  manual_adjustment: 'manual_adjustment',
+} as const;
+
+export interface LeaveBalanceTransaction {
+  id: string;
+  employee: EmployeeReference;
+  leaveType: string;
+  amount: number;
+  transactionType: LeaveBalanceTransactionTransactionType;
+  beforeBalance: number;
+  afterBalance: number;
+  /** @nullable */
+  sourceRequestId?: string | null;
+  actorId: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface LeaveBalanceAdjustmentInput {
+  amount: number;
+  /** @minLength 1 */
+  reason: string;
+}
+
 export type LeaveRequestStatus = typeof LeaveRequestStatus[keyof typeof LeaveRequestStatus];
 
 

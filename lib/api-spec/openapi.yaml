@@ -570,6 +570,74 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LeaveBalance"
+  /leave/policies:
+    get:
+      operationId: listLeavePolicies
+      tags: [leave]
+      summary: List effective leave policies
+      responses:
+        "200":
+          description: Leave policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeavePolicy"
+    post:
+      operationId: createLeavePolicy
+      tags: [leave]
+      summary: Create a versioned leave policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeavePolicyInput"
+      responses:
+        "201":
+          description: Created leave policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeavePolicy"
+  /leave/balances/ledger:
+    get:
+      operationId: listLeaveBalanceTransactions
+      tags: [leave]
+      summary: List immutable leave balance transactions
+      responses:
+        "200":
+          description: Leave balance transaction ledger
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaveBalanceTransaction"
+  /leave/balances/{balanceId}/adjust:
+    post:
+      operationId: adjustLeaveBalance
+      tags: [leave]
+      summary: Apply a manual leave balance adjustment
+      parameters:
+        - name: balanceId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaveBalanceAdjustmentInput"
+      responses:
+        "200":
+          description: Adjusted leave balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveBalance"
   /leave/requests:
     get:
       operationId: listLeaveRequests
@@ -2149,6 +2217,68 @@ components:
         used: { type: number }
         pending: { type: number }
         remaining: { type: number }
+    LeavePolicy:
+      type: object
+      required: [id, leaveType, version, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, allowNegative, effectiveFrom, status]
+      properties:
+        id: { type: string }
+        leaveType: { type: string }
+        version: { type: integer }
+        annualEntitlement: { type: number, minimum: 0 }
+        accrualFrequency:
+          type: string
+          enum: [monthly, quarterly, annual, hire_date]
+        deductionMode:
+          type: string
+          enum: [automatic, manual]
+        carryForwardAllowed: { type: boolean }
+        carryForwardDays: { type: number, minimum: 0 }
+        carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
+        allowNegative: { type: boolean }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: [string, "null"], format: date }
+        status: { type: string, enum: [active, archived] }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    LeavePolicyInput:
+      type: object
+      required: [leaveType, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, allowNegative, effectiveFrom]
+      properties:
+        leaveType: { type: string, minLength: 1 }
+        annualEntitlement: { type: number, minimum: 0 }
+        accrualFrequency:
+          type: string
+          enum: [monthly, quarterly, annual, hire_date]
+        deductionMode:
+          type: string
+          enum: [automatic, manual]
+        carryForwardAllowed: { type: boolean }
+        carryForwardDays: { type: number, minimum: 0 }
+        carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
+        allowNegative: { type: boolean }
+        effectiveFrom: { type: string, format: date }
+    LeaveBalanceTransaction:
+      type: object
+      required: [id, employee, leaveType, amount, transactionType, beforeBalance, afterBalance, actorId, reason, createdAt]
+      properties:
+        id: { type: string }
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        leaveType: { type: string }
+        amount: { type: number }
+        transactionType: { type: string, enum: [accrual, deduction, restoration, carry_forward, expiry, manual_adjustment] }
+        beforeBalance: { type: number }
+        afterBalance: { type: number }
+        sourceRequestId: { type: [string, "null"] }
+        actorId: { type: string }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+    LeaveBalanceAdjustmentInput:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount: { type: number }
+        reason: { type: string, minLength: 1 }
     LeaveRequest:
       type: object
       required:

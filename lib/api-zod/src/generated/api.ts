@@ -1010,6 +1010,143 @@ export const ListLeaveBalancesResponse = zod.array(ListLeaveBalancesResponseItem
 
 
 /**
+ * @summary List effective leave policies
+ */
+export const listLeavePoliciesResponseAnnualEntitlementMin = 0;
+
+export const listLeavePoliciesResponseCarryForwardDaysMin = 0;
+
+export const listLeavePoliciesResponseCarryForwardExpiryMonthsMin = 0;
+
+
+
+export const ListLeavePoliciesResponseItem = zod.object({
+  "id": zod.string(),
+  "leaveType": zod.string(),
+  "version": zod.int(),
+  "annualEntitlement": zod.number().min(listLeavePoliciesResponseAnnualEntitlementMin),
+  "accrualFrequency": zod.enum(['monthly', 'quarterly', 'annual', 'hire_date']),
+  "deductionMode": zod.enum(['automatic', 'manual']),
+  "carryForwardAllowed": zod.boolean(),
+  "carryForwardDays": zod.number().min(listLeavePoliciesResponseCarryForwardDaysMin),
+  "carryForwardExpiryMonths": zod.int().min(listLeavePoliciesResponseCarryForwardExpiryMonthsMin).nullish(),
+  "allowNegative": zod.boolean(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullish(),
+  "status": zod.enum(['active', 'archived']),
+  "createdBy": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional()
+})
+export const ListLeavePoliciesResponse = zod.array(ListLeavePoliciesResponseItem)
+
+
+/**
+ * @summary Create a versioned leave policy
+ */
+
+export const createLeavePolicyBodyAnnualEntitlementMin = 0;
+
+export const createLeavePolicyBodyCarryForwardDaysMin = 0;
+
+export const createLeavePolicyBodyCarryForwardExpiryMonthsMin = 0;
+
+
+
+export const CreateLeavePolicyBody = zod.object({
+  "leaveType": zod.string().min(1),
+  "annualEntitlement": zod.number().min(createLeavePolicyBodyAnnualEntitlementMin),
+  "accrualFrequency": zod.enum(['monthly', 'quarterly', 'annual', 'hire_date']),
+  "deductionMode": zod.enum(['automatic', 'manual']),
+  "carryForwardAllowed": zod.boolean(),
+  "carryForwardDays": zod.number().min(createLeavePolicyBodyCarryForwardDaysMin),
+  "carryForwardExpiryMonths": zod.int().min(createLeavePolicyBodyCarryForwardExpiryMonthsMin).nullish(),
+  "allowNegative": zod.boolean(),
+  "effectiveFrom": zod.iso.date()
+})
+
+export const createLeavePolicyResponseAnnualEntitlementMin = 0;
+
+export const createLeavePolicyResponseCarryForwardDaysMin = 0;
+
+export const createLeavePolicyResponseCarryForwardExpiryMonthsMin = 0;
+
+
+
+export const CreateLeavePolicyResponse = zod.object({
+  "id": zod.string(),
+  "leaveType": zod.string(),
+  "version": zod.int(),
+  "annualEntitlement": zod.number().min(createLeavePolicyResponseAnnualEntitlementMin),
+  "accrualFrequency": zod.enum(['monthly', 'quarterly', 'annual', 'hire_date']),
+  "deductionMode": zod.enum(['automatic', 'manual']),
+  "carryForwardAllowed": zod.boolean(),
+  "carryForwardDays": zod.number().min(createLeavePolicyResponseCarryForwardDaysMin),
+  "carryForwardExpiryMonths": zod.int().min(createLeavePolicyResponseCarryForwardExpiryMonthsMin).nullish(),
+  "allowNegative": zod.boolean(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullish(),
+  "status": zod.enum(['active', 'archived']),
+  "createdBy": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional()
+})
+
+
+/**
+ * @summary List immutable leave balance transactions
+ */
+export const ListLeaveBalanceTransactionsResponseItem = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "leaveType": zod.string(),
+  "amount": zod.number(),
+  "transactionType": zod.enum(['accrual', 'deduction', 'restoration', 'carry_forward', 'expiry', 'manual_adjustment']),
+  "beforeBalance": zod.number(),
+  "afterBalance": zod.number(),
+  "sourceRequestId": zod.string().nullish(),
+  "actorId": zod.string(),
+  "reason": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})
+export const ListLeaveBalanceTransactionsResponse = zod.array(ListLeaveBalanceTransactionsResponseItem)
+
+
+/**
+ * @summary Apply a manual leave balance adjustment
+ */
+export const AdjustLeaveBalanceParams = zod.object({
+  "balanceId": zod.coerce.string()
+})
+
+
+
+
+export const AdjustLeaveBalanceBody = zod.object({
+  "amount": zod.number(),
+  "reason": zod.string().min(1)
+})
+
+export const AdjustLeaveBalanceResponse = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "type": zod.string(),
+  "allocated": zod.number(),
+  "used": zod.number(),
+  "pending": zod.number(),
+  "remaining": zod.number()
+})
+
+
+/**
  * @summary List leave requests
  */
 export const ListLeaveRequestsResponseItem = zod.object({

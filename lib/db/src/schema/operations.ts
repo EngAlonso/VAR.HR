@@ -169,7 +169,49 @@ export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
   allocated: numeric("allocated", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
   used: numeric("used", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
   pending: numeric("pending", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
-});
+}, (table) => ({
+  employeeTypeUnique: uniqueIndex("var_hr_leave_balances_employee_type_uidx").on(table.companyId, table.employeeId, table.type),
+}));
+
+export const leavePoliciesTable = pgTable("var_hr_leave_policies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  leaveType: text("leave_type").notNull(),
+  version: integer("version").notNull().default(1),
+  annualEntitlement: numeric("annual_entitlement", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
+  accrualFrequency: text("accrual_frequency").notNull().default("annual"),
+  deductionMode: text("deduction_mode").notNull().default("automatic"),
+  carryForwardAllowed: boolean("carry_forward_allowed").notNull().default(false),
+  carryForwardDays: numeric("carry_forward_days", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
+  carryForwardExpiryMonths: integer("carry_forward_expiry_months"),
+  allowNegative: boolean("allow_negative").notNull().default(false),
+  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+  effectiveTo: date("effective_to", { mode: "string" }),
+  status: text("status").notNull().default("active"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  companyTypeVersion: uniqueIndex("var_hr_leave_policies_company_type_version_uidx").on(table.companyId, table.leaveType, table.version),
+  effectiveIndex: index("var_hr_leave_policies_effective_idx").on(table.companyId, table.leaveType, table.effectiveFrom),
+}));
+
+export const leaveBalanceTransactionsTable = pgTable("var_hr_leave_balance_transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
+  leaveType: text("leave_type").notNull(),
+  amount: numeric("amount", { precision: 8, scale: 2, mode: "number" }).notNull(),
+  transactionType: text("transaction_type").notNull(),
+  beforeBalance: numeric("before_balance", { precision: 8, scale: 2, mode: "number" }).notNull(),
+  afterBalance: numeric("after_balance", { precision: 8, scale: 2, mode: "number" }).notNull(),
+  sourceRequestId: uuid("source_request_id").references(() => leaveRequestsTable.id),
+  actorId: text("actor_id").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  sourceTypeUnique: uniqueIndex("var_hr_leave_balance_transactions_source_type_uidx").on(table.sourceRequestId, table.transactionType),
+  employeeTypeIndex: index("var_hr_leave_balance_transactions_employee_type_idx").on(table.companyId, table.employeeId, table.leaveType, table.createdAt),
+}));
 
 export const auditLogsTable = pgTable("var_hr_audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -197,6 +239,8 @@ export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;
 export type AttendanceRules = typeof attendanceRulesTable.$inferSelect;
 export type AttendanceRuleVersion = typeof attendanceRuleVersionsTable.$inferSelect;
 export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
+export type LeavePolicy = typeof leavePoliciesTable.$inferSelect;
+export type LeaveBalanceTransaction = typeof leaveBalanceTransactionsTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;
 
 export const organizationRelations = {

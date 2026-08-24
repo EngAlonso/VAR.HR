@@ -43,6 +43,8 @@ import {
   CreateHolidayResponse,
   CreateLeaveRequestBody,
   CreateLeaveRequestResponse,
+  CreateLeavePolicyBody,
+  CreateLeavePolicyResponse,
   CreatePermissionRequestBody,
   CreatePermissionRequestResponse,
   CreateWorkScheduleBody,
@@ -98,6 +100,11 @@ import {
   ListEmployeesResponse,
   ListLeaveBalancesResponse,
   ListLeaveRequestsResponse,
+  ListLeavePoliciesResponse,
+  ListLeaveBalanceTransactionsResponse,
+  AdjustLeaveBalanceParams,
+  AdjustLeaveBalanceBody,
+  AdjustLeaveBalanceResponse,
   ListPayrollPeriodsResponse,
   ListPayrollAdjustmentsQueryParams,
   ListPayrollAdjustmentsResponse,
@@ -167,6 +174,8 @@ import {
   employeesTable,
   holidaysTable,
   leaveBalancesTable,
+  leavePoliciesTable,
+  leaveBalanceTransactionsTable,
   leaveRequestsTable,
   payrollCalculationsTable,
   payrollAdjustmentsTable,
@@ -2959,6 +2968,201 @@ router.patch(
   },
 );
 
+async function effectiveLeavePolicy(
+  companyId: string,
+  leaveType: string,
+  date = TODAY,
+) {
+  const [policy] = await db
+    .select()
+    .from(leavePoliciesTable)
+    .where(
+      and(
+        eq(leavePoliciesTable.companyId, companyId),
+        eq(leavePoliciesTable.leaveType, leaveType),
+        lte(leavePoliciesTable.effectiveFrom, date),
+        or(
+          sql`${leavePoliciesTable.effectiveTo} is null`,
+          gte(leavePoliciesTable.effectiveTo, date),
+        ),
+        eq(leavePoliciesTable.status, "active"),
+      ),
+    )
+    .orderBy(desc(leavePoliciesTable.effectiveFrom), desc(leavePoliciesTable.version))
+    .limit(1);
+  return policy;
+}
+
+function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
+  return {
+    id: policy.id,
+    leaveType: policy.leaveType,
+    version: policy.version,
+    annualEntitlement: policy.annualEntitlement,
+    accrualFrequency: policy.accrualFrequency,
+    deductionMode: policy.deductionMode,
+    carryForwardAllowed: policy.carryForwardAllowed,
+    carryForwardDays: policy.carryForwardDays,
+    carryForwardExpiryMonths: policy.carryForwardExpiryMonths,
+    allowNegative: policy.allowNegative,
+    effectiveFrom: policy.effectiveFrom,
+    effectiveTo: policy.effectiveTo,
+    status: policy.status,
+    createdBy: policy.createdBy,
+    createdAt: policy.createdAt.toISOString(),
+  };
+}
+
+router.get("/leave/policies", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve")) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
+  const policies = await db.select().from(leavePoliciesTable)
+    .where(and(eq(leavePoliciesTable.companyId, context.companyId), eq(leavePoliciesTable.status, "active")))
+    .orderBy(asc(leavePoliciesTable.leaveType), desc(leavePoliciesTable.version));
+  const current = policies.filter((policy) => !policies.some((other) =>
+    other.leaveType === policy.leaveType && other.version > policy.version,
+  ));
+  res.json(ListLeavePoliciesResponse.parse(current.map(leavePolicyResponse)));
+});
+
+router.post("/leave/policies", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve")) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
+  const parsed = CreateLeavePolicyBody.safeParse(req.body ?? {});
+  if (!parsed.success || (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const previous = await db.select().from(leavePoliciesTable).where(and(
+    eq(leavePoliciesTable.companyId, context.companyId),
+    eq(leavePoliciesTable.leaveType, parsed.data.leaveType),
+    eq(leavePoliciesTable.status, "active"),
+  ));
+  const version = Math.max(0, ...previous.map((item) => item.version)) + 1;
+  const prior = previous.filter((item) => item.effectiveTo === null && item.effectiveFrom < parsed.data.effectiveFrom)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  if (previous.some((item) => item.effectiveFrom === parsed.data.effectiveFrom)) {
+    res.status(409).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  if (prior) await db.update(leavePoliciesTable).set({ effectiveTo: dateOffset(parsed.data.effectiveFrom, -1) }).where(eq(leavePoliciesTable.id, prior.id));
+  const [policy] = await db.insert(leavePoliciesTable).values({
+    companyId: context.companyId,
+    leaveType: parsed.data.leaveType,
+    version,
+    annualEntitlement: parsed.data.annualEntitlement,
+    accrualFrequency: parsed.data.accrualFrequency,
+    deductionMode: parsed.data.deductionMode,
+    carryForwardAllowed: parsed.data.carryForwardAllowed,
+    carryForwardDays: parsed.data.carryForwardDays,
+    carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
+    allowNegative: parsed.data.allowNegative,
+    effectiveFrom: parsed.data.effectiveFrom,
+    createdBy: context.accountId,
+  }).returning();
+  const employees = await db.select({ id: employeesTable.id }).from(employeesTable)
+    .where(eq(employeesTable.companyId, context.companyId));
+  for (const employee of employees) {
+    await db.insert(leaveBalancesTable).values({
+      companyId: context.companyId,
+      employeeId: employee.id,
+      type: policy.leaveType,
+      allocated: policy.annualEntitlement,
+    }).onConflictDoNothing();
+  }
+  await recordAudit(context.companyId, "created", "leave_policy", policy.id, policy);
+  res.status(201).json(CreateLeavePolicyResponse.parse(leavePolicyResponse(policy)));
+});
+
+router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve", true)) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
+  const rows = await db.select({ transaction: leaveBalanceTransactionsTable, employee: employeesTable, department: departmentsTable })
+    .from(leaveBalanceTransactionsTable)
+    .innerJoin(employeesTable, eq(leaveBalanceTransactionsTable.employeeId, employeesTable.id))
+    .innerJoin(departmentsTable, eq(employeesTable.departmentId, departmentsTable.id))
+    .where(and(eq(leaveBalanceTransactionsTable.companyId, context.companyId), employeeScopeCondition(context)))
+    .orderBy(desc(leaveBalanceTransactionsTable.createdAt));
+  res.json(ListLeaveBalanceTransactionsResponse.parse(rows.map(({ transaction, employee, department }) => ({
+    id: transaction.id,
+    employee: employeeReference(employee, department.name),
+    leaveType: transaction.leaveType,
+    amount: transaction.amount,
+    transactionType: transaction.transactionType,
+    beforeBalance: transaction.beforeBalance,
+    afterBalance: transaction.afterBalance,
+    sourceRequestId: transaction.sourceRequestId,
+    actorId: transaction.actorId,
+    reason: transaction.reason,
+    createdAt: transaction.createdAt.toISOString(),
+  }))));
+});
+
+router.post("/leave/balances/:balanceId/adjust", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.approve")) {
+    denyCapability(res, req, "leave.approve");
+    return;
+  }
+  const params = AdjustLeaveBalanceParams.safeParse(req.params);
+  const parsed = AdjustLeaveBalanceBody.safeParse(req.body ?? {});
+  if (!params.success || !parsed.success || !isUuid(params.data.balanceId) || !parsed.data.reason.trim() || parsed.data.amount === 0) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [balance] = await db.select().from(leaveBalancesTable).where(and(
+    eq(leaveBalancesTable.id, params.data.balanceId),
+    eq(leaveBalancesTable.companyId, context.companyId),
+  )).limit(1);
+  if (!balance) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const policy = await effectiveLeavePolicy(context.companyId, balance.type);
+  const before = balance.allocated - balance.used;
+  const after = before + parsed.data.amount;
+  if (policy && !policy.allowNegative && after - balance.pending < 0) {
+    res.status(409).json({ error: message(req, "leaveExceedsBalance", { type: balance.type }) });
+    return;
+  }
+  const [updated] = await db.update(leaveBalancesTable).set({
+    allocated: sql`${leaveBalancesTable.allocated} + ${parsed.data.amount}`,
+  }).where(eq(leaveBalancesTable.id, balance.id)).returning();
+  await db.insert(leaveBalanceTransactionsTable).values({
+    companyId: context.companyId,
+    employeeId: balance.employeeId,
+    leaveType: balance.type,
+    amount: parsed.data.amount,
+    transactionType: "manual_adjustment",
+    beforeBalance: before,
+    afterBalance: after,
+    actorId: context.accountId,
+    reason: parsed.data.reason.trim(),
+  });
+  await recordAudit(context.companyId, "manual_adjustment", "leave_balance", balance.id, parsed.data, balance);
+  const [employee] = await db.select({ employee: employeesTable, department: departmentsTable }).from(employeesTable)
+    .innerJoin(departmentsTable, eq(employeesTable.departmentId, departmentsTable.id))
+    .where(eq(employeesTable.id, updated.employeeId)).limit(1);
+  res.json(AdjustLeaveBalanceResponse.parse({
+    id: updated.id,
+    employee: employeeReference(employee.employee, employee.department.name),
+    type: updated.type,
+    allocated: updated.allocated,
+    used: updated.used,
+    pending: updated.pending,
+    remaining: updated.allocated - updated.used - updated.pending,
+  }));
+});
+
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (!canUseCapability(context, "leave.approve", true)) {
@@ -3206,6 +3410,21 @@ router.post(
       res.status(404).json({ error: message(req, "leaveNotFound") });
       return;
     }
+    const [balance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, context.companyId),
+          eq(leaveBalancesTable.employeeId, request.employeeId),
+          eq(leaveBalancesTable.type, request.type),
+        ),
+      )
+      .limit(1);
+    if (!balance) {
+      res.status(409).json({ error: message(req, "leaveBalanceMissing", { type: request.type }) });
+      return;
+    }
     const balanceUpdate =
       parsed.data.decision === "approved"
         ? {
@@ -3213,6 +3432,11 @@ router.post(
             used: sql`${leaveBalancesTable.used} + ${request.days}`,
           }
         : { pending: sql`${leaveBalancesTable.pending} - ${request.days}` };
+    const beforeBalance = balance.allocated - balance.used;
+    const afterBalance =
+      parsed.data.decision === "approved"
+        ? beforeBalance - request.days
+        : beforeBalance;
     await db
       .update(leaveBalancesTable)
       .set(balanceUpdate)
@@ -3223,6 +3447,18 @@ router.post(
           eq(leaveBalancesTable.type, request.type),
         ),
       );
+    await db.insert(leaveBalanceTransactionsTable).values({
+      companyId: context.companyId,
+      employeeId: request.employeeId,
+      leaveType: request.type,
+      amount: parsed.data.decision === "approved" ? -request.days : 0,
+      transactionType: parsed.data.decision === "approved" ? "deduction" : "restoration",
+      beforeBalance,
+      afterBalance,
+      sourceRequestId: request.id,
+      actorId: context.accountId,
+      reason: parsed.data.reason?.trim() || `Leave request ${parsed.data.decision}`,
+    }).onConflictDoNothing();
     await recordAudit(
       context.companyId,
       parsed.data.decision,
