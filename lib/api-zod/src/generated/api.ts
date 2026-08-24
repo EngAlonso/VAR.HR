@@ -2686,6 +2686,10 @@ export const CalculatePayrollParams = zod.object({
   "periodId": zod.coerce.string()
 })
 
+export const calculatePayrollResponseItemsItemLeaveDaysMin = 0;
+
+
+
 export const CalculatePayrollResponse = zod.object({
   "period": zod.object({
   "id": zod.string(),
@@ -2718,6 +2722,14 @@ export const CalculatePayrollResponse = zod.object({
   "earlyCheckoutMinutes": zod.int(),
   "missingHours": zod.number(),
   "absentDays": zod.number(),
+  "leaveDays": zod.number().min(calculatePayrollResponseItemsItemLeaveDaysMin),
+  "leaveBalances": zod.array(zod.object({
+  "type": zod.string(),
+  "allocated": zod.number(),
+  "used": zod.number(),
+  "pending": zod.number(),
+  "remaining": zod.number()
+})),
   "lineItems": zod.array(zod.object({
   "label": zod.string(),
   "amount": zod.number(),
@@ -2743,6 +2755,10 @@ export const CalculatePayrollResponse = zod.object({
 export const GetPayrollCalculationParams = zod.object({
   "periodId": zod.coerce.string()
 })
+
+export const getPayrollCalculationResponseItemsItemLeaveDaysMin = 0;
+
+
 
 export const GetPayrollCalculationResponse = zod.object({
   "period": zod.object({
@@ -2776,6 +2792,14 @@ export const GetPayrollCalculationResponse = zod.object({
   "earlyCheckoutMinutes": zod.int(),
   "missingHours": zod.number(),
   "absentDays": zod.number(),
+  "leaveDays": zod.number().min(getPayrollCalculationResponseItemsItemLeaveDaysMin),
+  "leaveBalances": zod.array(zod.object({
+  "type": zod.string(),
+  "allocated": zod.number(),
+  "used": zod.number(),
+  "pending": zod.number(),
+  "remaining": zod.number()
+})),
   "lineItems": zod.array(zod.object({
   "label": zod.string(),
   "amount": zod.number(),
@@ -2900,6 +2924,10 @@ export const GetMyPayrollQueryParams = zod.object({
   "periodId": zod.coerce.string().optional()
 })
 
+export const getMyPayrollResponseItemsItemLeaveDaysMin = 0;
+
+
+
 export const GetMyPayrollResponse = zod.object({
   "period": zod.object({
   "id": zod.string(),
@@ -2932,6 +2960,14 @@ export const GetMyPayrollResponse = zod.object({
   "earlyCheckoutMinutes": zod.int(),
   "missingHours": zod.number(),
   "absentDays": zod.number(),
+  "leaveDays": zod.number().min(getMyPayrollResponseItemsItemLeaveDaysMin),
+  "leaveBalances": zod.array(zod.object({
+  "type": zod.string(),
+  "allocated": zod.number(),
+  "used": zod.number(),
+  "pending": zod.number(),
+  "remaining": zod.number()
+})),
   "lineItems": zod.array(zod.object({
   "label": zod.string(),
   "amount": zod.number(),

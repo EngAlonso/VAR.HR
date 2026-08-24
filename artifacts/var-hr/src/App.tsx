@@ -9373,7 +9373,7 @@ function Payroll() {
                       {t("closeDetails")}
                     </Button>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
                     {[
                       [t("regularHours"), selectedEmployee.regularHours],
                       [t("overtimeHours"), selectedEmployee.overtimeHours],
@@ -9383,6 +9383,7 @@ function Payroll() {
                         selectedEmployee.earlyCheckoutMinutes,
                       ],
                       [t("absentDays"), selectedEmployee.absentDays],
+                      [t("leaveDays"), selectedEmployee.leaveDays],
                     ].map(([label, value]) => (
                       <div
                         key={String(label)}
@@ -9397,6 +9398,26 @@ function Payroll() {
                       </div>
                     ))}
                   </div>
+                  {selectedEmployee.leaveBalances?.length ? (
+                    <div className="mt-5">
+                      <h4 className="text-sm font-semibold">
+                        {t("leaveBalances")}
+                      </h4>
+                      <div className="mt-2 divide-y divide-border rounded-lg border border-border bg-card">
+                        {selectedEmployee.leaveBalances.map((balance: any) => (
+                          <div
+                            key={balance.type}
+                            className="flex items-center justify-between gap-3 p-3 text-sm"
+                          >
+                            <span className="font-medium">{balance.type}</span>
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {balance.remaining} / {balance.allocated}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <h4 className="mt-5 text-sm font-semibold">
                     {t("lineItems")}
                   </h4>

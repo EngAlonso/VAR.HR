@@ -1405,6 +1405,14 @@ export interface PayrollPeriodInput {
   to: string;
 }
 
+export type PayrollEmployeeLeaveBalancesItem = {
+  type: string;
+  allocated: number;
+  used: number;
+  pending: number;
+  remaining: number;
+};
+
 export interface PayrollEmployee {
   employee: EmployeeReference;
   basicSalary: number;
@@ -1419,6 +1427,9 @@ export interface PayrollEmployee {
   earlyCheckoutMinutes: number;
   missingHours: number;
   absentDays: number;
+  /** @minimum 0 */
+  leaveDays: number;
+  leaveBalances: PayrollEmployeeLeaveBalancesItem[];
   lineItems: PayrollLineItem[];
 }
 

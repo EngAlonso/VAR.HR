@@ -6077,6 +6077,19 @@ async function storedPayrollCalculation(
     earlyCheckoutMinutes: row.calculation.earlyCheckoutMinutes,
     missingHours: row.calculation.missingHours,
     absentDays: row.calculation.absentDays,
+    leaveDays: Number(
+      (row.calculation.inputsSnapshot as { leaveDays?: number }).leaveDays ?? 0,
+    ),
+    leaveBalances:
+      (row.calculation.inputsSnapshot as {
+        leaveBalances?: Array<{
+          type: string;
+          allocated: number;
+          used: number;
+          pending: number;
+          remaining: number;
+        }>;
+      }).leaveBalances ?? [],
     lineItems: row.calculation.lineItems as PayrollLineItem[],
   }));
   if (!items.length) return null;
@@ -6119,11 +6132,30 @@ async function calculatePayrollPeriod(
   const existing = await storedPayrollCalculation(context, req, period);
   if (period.status === "finalized" || period.status === "locked")
     return existing;
-  const rules = await attendanceRulesFor(context.companyId, period.from);
   const rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
   const attendance = await getAttendanceRows(context, period.from, period.to);
+  const storedAttendanceCalculations = await db
+    .select()
+    .from(attendanceCalculationsTable)
+    .where(
+      and(
+        eq(attendanceCalculationsTable.companyId, context.companyId),
+        gte(attendanceCalculationsTable.attendanceDate, period.from),
+        lte(attendanceCalculationsTable.attendanceDate, period.to),
+      ),
+    );
+  const calculationsByEmployee = new Map<
+    string,
+    typeof storedAttendanceCalculations
+  >();
+  for (const calculation of storedAttendanceCalculations) {
+    const employeeCalculations =
+      calculationsByEmployee.get(calculation.employeeId) ?? [];
+    employeeCalculations.push(calculation);
+    calculationsByEmployee.set(calculation.employeeId, employeeCalculations);
+  }
   const approvedLeaves = await db
     .select()
     .from(leaveRequestsTable)
@@ -6143,8 +6175,13 @@ async function calculatePayrollPeriod(
       ),
     );
   const dates = dateStrings(period.from, period.to);
+  const periodRules = await attendanceRulesFor(context.companyId, period.from);
   const holidays = await holidaysForCompany(context.companyId);
   const scheduleRows = await scheduleRowsForCompany(context.companyId);
+  const leaveBalances = await db
+    .select()
+    .from(leaveBalancesTable)
+    .where(eq(leaveBalancesTable.companyId, context.companyId));
   const adjustments = await db
     .select()
     .from(payrollAdjustmentsTable)
@@ -6171,30 +6208,19 @@ async function calculatePayrollPeriod(
     const employeeAttendance = attendance.filter(
       (item) => item.employee.id === row.employee.id,
     );
-    const attendanceByDate = new Map(
-      employeeAttendance.map((item) => [item.attendance.date, item.attendance]),
+    const employeeCalculations =
+      calculationsByEmployee.get(row.employee.id) ?? [];
+    const attendanceDates = new Set(
+      employeeAttendance.map((item) => item.attendance.date),
     );
-    const scheduledDates = dates.filter((dateValue) => {
-      const schedule = effectiveScheduleFromRows(
-        row.employee.id,
-        dateValue,
-        rules,
-        scheduleRows,
-      );
-      return (
-        isWorkingScheduleDay(schedule, dateValue) &&
-        !isHolidayDate(dateValue, rules, holidays)
-      );
-    });
-    const scheduledDayCount = Math.max(1, scheduledDates.length);
+    const employeeLeaveRows = approvedLeaves.filter(
+      (leave) =>
+        leave.employeeId === row.employee.id &&
+        leave.from <= period.to &&
+        leave.to >= period.from,
+    );
     const leaveDates = new Set(
-      approvedLeaves
-        .filter(
-          (leave) =>
-            leave.employeeId === row.employee.id &&
-            leave.from <= period.to &&
-            leave.to >= period.from,
-        )
+      employeeLeaveRows
         .flatMap((leave) =>
           dateStrings(
             leave.from < period.from ? period.from : leave.from,
@@ -6212,68 +6238,122 @@ async function calculatePayrollPeriod(
         )
         .map((permission) => permission.date),
     );
+    const employeeLeaveBalances = leaveBalances
+      .filter((balance) => balance.employeeId === row.employee.id)
+      .map((balance) => ({
+        type: balance.type,
+        allocated: balance.allocated,
+        used: balance.used,
+        pending: balance.pending,
+        remaining: moneyValue(balance.allocated - balance.used),
+      }));
+    const leaveDays = employeeLeaveRows.reduce(
+      (total, leave) => total + leave.days,
+      0,
+    );
+    const scheduledDates = dates.filter((dateValue) => {
+      const schedule = effectiveScheduleFromRows(
+        row.employee.id,
+        dateValue,
+        periodRules,
+        scheduleRows,
+      );
+      return (
+        isWorkingScheduleDay(schedule, dateValue) &&
+        !isHolidayDate(dateValue, periodRules, holidays)
+      );
+    });
+    const scheduledDayCount = Math.max(1, scheduledDates.length);
     const absentDays = scheduledDates.filter(
       (dateValue) =>
-        !attendanceByDate.has(dateValue) &&
+        !attendanceDates.has(dateValue) &&
         !leaveDates.has(dateValue) &&
         !permissionDates.has(dateValue),
     ).length;
-    const overtimeHours = employeeAttendance.reduce(
-      (total, item) => total + item.attendance.overtimeHours,
+    const regularHours = moneyValue(
+      employeeCalculations.reduce(
+        (total, calculation) =>
+          total +
+          Math.max(
+            0,
+            calculation.finalWorkedMinutes - calculation.finalOvertimeMinutes,
+          ) /
+            60,
+        0,
+      ),
+    );
+    const overtimeHours = moneyValue(
+      employeeCalculations.reduce(
+        (total, calculation) =>
+          total + calculation.finalOvertimeMinutes / 60,
+        0,
+      ),
+    );
+    const lateMinutes = employeeCalculations.reduce(
+      (total, calculation) => total + calculation.effectiveLateMinutes,
       0,
     );
-    const regularHours = employeeAttendance.reduce(
-      (total, item) =>
-        total +
-        Math.max(
-          0,
-          item.attendance.workedHours - item.attendance.overtimeHours,
-        ),
-      0,
-    );
-    const lateMinutes = employeeAttendance.reduce(
-      (total, item) => total + item.attendance.lateMinutes,
-      0,
-    );
-    const earlyCheckoutMinutes = employeeAttendance.reduce(
-      (total, item) => total + item.attendance.earlyCheckoutMinutes,
+    const earlyCheckoutMinutes = employeeCalculations.reduce(
+      (total, calculation) => total + calculation.effectiveEarlyDepartureMinutes,
       0,
     );
     const missingHours = employeeAttendance.reduce(
       (total, item) => total + item.attendance.missingMinutes / 60,
       0,
     );
+    const rules = employeeCalculations[0]
+      ? await attendanceRulesFor(
+          context.companyId,
+          employeeCalculations[0].ruleEffectiveFrom,
+        )
+      : await attendanceRulesFor(context.companyId, period.from);
     const hourlyRate =
       row.employee.salary / Math.max(1, rules.hourlyRateDivisor);
-    const overtime = rules.overtimeEligible
-      ? moneyValue(
-          overtimeHours *
-            hourlyRate *
-            (rules.overtimeMethod === "multiplier"
-              ? rules.overtimeMultiplier
-              : 1),
-        )
-      : 0;
+    const overtime = moneyValue(
+      overtimeHours *
+        hourlyRate *
+        (rules.overtimeMethod === "multiplier" ? rules.overtimeMultiplier : 1),
+    );
+    const latePenaltyMinutes = employeeCalculations.reduce(
+      (total, calculation) => total + calculation.latePenaltyMinutes,
+      0,
+    );
+    const earlyPenaltyMinutes = employeeCalculations.reduce(
+      (total, calculation) => total + calculation.earlyDeparturePenaltyMinutes,
+      0,
+    );
     const lateDeduction =
       (rules.lateDeductionMethod as string) === "none"
         ? 0
         : (rules.lateDeductionMethod as string) === "fixed_per_minute"
-          ? moneyValue(lateMinutes * rules.lateDeductionFactor)
+          ? moneyValue(latePenaltyMinutes * rules.lateDeductionFactor)
           : moneyValue(
-              (lateMinutes / 60) * hourlyRate * rules.lateDeductionFactor,
+              (latePenaltyMinutes / 60) *
+                hourlyRate *
+                rules.lateDeductionFactor,
             );
     const earlyDeduction = moneyValue(
-      (earlyCheckoutMinutes / 60) *
+      (earlyPenaltyMinutes / 60) *
         hourlyRate *
         rules.earlyCheckoutDeductionFactor,
+    );
+    const calculatedAbsenceDays = Math.max(
+      employeeCalculations.filter(
+        (calculation) =>
+          calculation.attendanceState === "unexcused_absence" ||
+          calculation.attendanceState === "missing_attendance",
+      ).length,
+      absentDays,
     );
     const dailyRate = row.employee.salary / scheduledDayCount;
     const absenceDeduction =
       (rules.absenceDeductionMethod as string) === "none"
         ? 0
         : (rules.absenceDeductionMethod as string) === "fixed_per_day"
-          ? moneyValue(absentDays * rules.absenceDeductionFactor)
-          : moneyValue(absentDays * dailyRate * rules.absenceDeductionFactor);
+          ? moneyValue(calculatedAbsenceDays * rules.absenceDeductionFactor)
+          : moneyValue(
+              calculatedAbsenceDays * dailyRate * rules.absenceDeductionFactor,
+            );
     const employeeAdjustments = adjustments.filter(
       (adjustment) => adjustment.employeeId === row.employee.id,
     );
@@ -6339,7 +6419,7 @@ async function calculatePayrollPeriod(
               explanation: translateApiMessage(
                 requestedLocale(req),
                 "attendanceDeductionExplanation",
-                { minutes: lateMinutes },
+                { minutes: latePenaltyMinutes },
               ),
             },
           ]
@@ -6351,7 +6431,7 @@ async function calculatePayrollPeriod(
               amount: -earlyDeduction,
               type: "early_checkout_deduction" as const,
               explanation: message(req, "earlyCheckoutDeductionExplanation", {
-                minutes: earlyCheckoutMinutes,
+                  minutes: earlyPenaltyMinutes,
               }),
             },
           ]
@@ -6363,7 +6443,7 @@ async function calculatePayrollPeriod(
               amount: -absenceDeduction,
               type: "absence_deduction" as const,
               explanation: message(req, "absenceDeductionExplanation", {
-                days: absentDays,
+                  days: calculatedAbsenceDays,
               }),
             },
           ]
@@ -6410,8 +6490,12 @@ async function calculatePayrollPeriod(
           lateMinutes,
           earlyCheckoutMinutes,
           missingHours,
-          absentDays,
+          absentDays: calculatedAbsenceDays,
         },
+        attendanceCalculations: employeeCalculations,
+        approvedLeaveRequests: employeeLeaveRows,
+        leaveDays,
+        leaveBalances: employeeLeaveBalances,
         adjustments: employeeAdjustments,
         calculatedValues: {
           overtime,

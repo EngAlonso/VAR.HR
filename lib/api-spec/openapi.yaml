@@ -2905,6 +2905,8 @@ components:
           earlyCheckoutMinutes,
           missingHours,
           absentDays,
+            leaveDays,
+            leaveBalances,
           lineItems,
         ]
       properties:
@@ -2922,6 +2924,18 @@ components:
         earlyCheckoutMinutes: { type: integer }
         missingHours: { type: number }
         absentDays: { type: number }
+        leaveDays: { type: number, minimum: 0 }
+        leaveBalances:
+          type: array
+          items:
+            type: object
+            required: [type, allocated, used, pending, remaining]
+            properties:
+              type: { type: string }
+              allocated: { type: number }
+              used: { type: number }
+              pending: { type: number }
+              remaining: { type: number }
         lineItems:
           type: array
           items:

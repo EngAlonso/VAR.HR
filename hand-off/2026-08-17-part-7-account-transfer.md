@@ -35,6 +35,39 @@ the newly uploaded instruction:
 attached_assets/Pasted-Execute-the-Part-7-account-transfer-handoff-now-Do-NOT-_1786997502339.txt
 ```
 
+## Phase 7 payroll integration update
+
+The payroll portion of the Phase 7 continuation is complete for the existing
+attendance/payroll architecture. Payroll now reads the company-scoped stored
+attendance calculation rows for the period rather than recomputing attendance
+metrics from raw attendance events. This means Phase 3 effective schedule and
+rule results, Phase 4 permission coverage and penalty results, and Phase 6
+approved attendance-time adjustments are each applied once.
+
+Approved leave dates and company-effective schedules/holidays remain inputs to
+the absence-day boundary. Leave balances are read without mutating the leave
+ledger during payroll calculation; the approved leave requests and the
+allocated/used/pending/remaining balances are included in the immutable payroll
+inputs snapshot and exposed in the payroll employee details. Payroll
+adjustments remain a separate payroll-only input and finalized/locked periods
+continue to return their stored calculation without recalculation.
+
+The payroll contract and generated client/Zod outputs include leave-day and
+leave-balance detail, and the Payroll screen displays those values.
+
+Focused verification completed:
+
+- API-spec code generation — PASS.
+- Full workspace typecheck — PASS.
+- API typecheck and production build — PASS.
+- VAR HR typecheck and production build with managed `PORT`/`BASE_PATH` —
+  PASS.
+- Diff whitespace validation — PASS.
+
+Runtime/browser and broader Phase 8/final testing were intentionally not
+started in this continuation. No biometric, HR-record, or unrelated Phase 7
+systems were changed.
+
 Git history contains only the project initialization commits for the
 Part-7-shaped files. There is no separate Part 7 implementation commit from
 which to reconstruct a previous agent's exact patch. Treat the source tree,

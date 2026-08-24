@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EmployeeReference } from './employeeReference';
+import type { PayrollEmployeeLeaveBalancesItem } from './payrollEmployeeLeaveBalancesItem';
 import type { PayrollLineItem } from './payrollLineItem';
 
 export interface PayrollEmployee {
@@ -22,5 +23,8 @@ export interface PayrollEmployee {
   earlyCheckoutMinutes: number;
   missingHours: number;
   absentDays: number;
+  /** @minimum 0 */
+  leaveDays: number;
+  leaveBalances: PayrollEmployeeLeaveBalancesItem[];
   lineItems: PayrollLineItem[];
 }

@@ -155,6 +155,7 @@ export * from './payrollAdjustmentInputType';
 export * from './payrollAdjustmentType';
 export * from './payrollCalculation';
 export * from './payrollEmployee';
+export * from './payrollEmployeeLeaveBalancesItem';
 export * from './payrollLineItem';
 export * from './payrollLineItemType';
 export * from './payrollPeriod';
