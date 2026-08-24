@@ -5,6 +5,7 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { AttendanceCalculationAttendanceState } from './attendanceCalculationAttendanceState';
 import type { AttendanceCalculationScheduleSource } from './attendanceCalculationScheduleSource';
 
 export interface AttendanceCalculation {
@@ -38,6 +39,21 @@ export interface AttendanceCalculation {
   overtimeMinutes: number;
   workingDay: boolean;
   holiday: boolean;
+  attendanceState: AttendanceCalculationAttendanceState;
+  /** @minimum 0 */
+  approvedPermissionMinutes: number;
+  /** @minimum 0 */
+  permissionCoveredLateMinutes: number;
+  /** @minimum 0 */
+  permissionCoveredEarlyMinutes: number;
+  /** @minimum 0 */
+  latePenaltyMinutes: number;
+  /** @minimum 0 */
+  earlyDeparturePenaltyMinutes: number;
+  /** @minimum 0 */
+  absencePenaltyMinutes: number;
+  /** @minimum 0 */
+  totalPenaltyMinutes: number;
   explanation: string[];
   calculatedAt: string;
 }

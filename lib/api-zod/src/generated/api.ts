@@ -753,6 +753,20 @@ export const previewAttendanceCalculationResponseNormalWorkedMinutesMin = 0;
 
 export const previewAttendanceCalculationResponseOvertimeMinutesMin = 0;
 
+export const previewAttendanceCalculationResponseApprovedPermissionMinutesMin = 0;
+
+export const previewAttendanceCalculationResponsePermissionCoveredLateMinutesMin = 0;
+
+export const previewAttendanceCalculationResponsePermissionCoveredEarlyMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseLatePenaltyMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseEarlyDeparturePenaltyMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseAbsencePenaltyMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseTotalPenaltyMinutesMin = 0;
+
 
 
 export const PreviewAttendanceCalculationResponse = zod.object({
@@ -776,6 +790,14 @@ export const PreviewAttendanceCalculationResponse = zod.object({
   "overtimeMinutes": zod.int().min(previewAttendanceCalculationResponseOvertimeMinutesMin),
   "workingDay": zod.boolean(),
   "holiday": zod.boolean(),
+  "attendanceState": zod.enum(['present', 'scheduled_day_off', 'holiday', 'approved_leave', 'approved_permission', 'missing_attendance', 'unexcused_absence']),
+  "approvedPermissionMinutes": zod.int().min(previewAttendanceCalculationResponseApprovedPermissionMinutesMin),
+  "permissionCoveredLateMinutes": zod.int().min(previewAttendanceCalculationResponsePermissionCoveredLateMinutesMin),
+  "permissionCoveredEarlyMinutes": zod.int().min(previewAttendanceCalculationResponsePermissionCoveredEarlyMinutesMin),
+  "latePenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseLatePenaltyMinutesMin),
+  "earlyDeparturePenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseEarlyDeparturePenaltyMinutesMin),
+  "absencePenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseAbsencePenaltyMinutesMin),
+  "totalPenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseTotalPenaltyMinutesMin),
   "explanation": zod.array(zod.string()),
   "calculatedAt": zod.iso.datetime({"offset":true})
 })
@@ -808,6 +830,20 @@ export const recalculateAttendanceResponseNormalWorkedMinutesMin = 0;
 
 export const recalculateAttendanceResponseOvertimeMinutesMin = 0;
 
+export const recalculateAttendanceResponseApprovedPermissionMinutesMin = 0;
+
+export const recalculateAttendanceResponsePermissionCoveredLateMinutesMin = 0;
+
+export const recalculateAttendanceResponsePermissionCoveredEarlyMinutesMin = 0;
+
+export const recalculateAttendanceResponseLatePenaltyMinutesMin = 0;
+
+export const recalculateAttendanceResponseEarlyDeparturePenaltyMinutesMin = 0;
+
+export const recalculateAttendanceResponseAbsencePenaltyMinutesMin = 0;
+
+export const recalculateAttendanceResponseTotalPenaltyMinutesMin = 0;
+
 
 
 export const RecalculateAttendanceResponse = zod.object({
@@ -831,6 +867,14 @@ export const RecalculateAttendanceResponse = zod.object({
   "overtimeMinutes": zod.int().min(recalculateAttendanceResponseOvertimeMinutesMin),
   "workingDay": zod.boolean(),
   "holiday": zod.boolean(),
+  "attendanceState": zod.enum(['present', 'scheduled_day_off', 'holiday', 'approved_leave', 'approved_permission', 'missing_attendance', 'unexcused_absence']),
+  "approvedPermissionMinutes": zod.int().min(recalculateAttendanceResponseApprovedPermissionMinutesMin),
+  "permissionCoveredLateMinutes": zod.int().min(recalculateAttendanceResponsePermissionCoveredLateMinutesMin),
+  "permissionCoveredEarlyMinutes": zod.int().min(recalculateAttendanceResponsePermissionCoveredEarlyMinutesMin),
+  "latePenaltyMinutes": zod.int().min(recalculateAttendanceResponseLatePenaltyMinutesMin),
+  "earlyDeparturePenaltyMinutes": zod.int().min(recalculateAttendanceResponseEarlyDeparturePenaltyMinutesMin),
+  "absencePenaltyMinutes": zod.int().min(recalculateAttendanceResponseAbsencePenaltyMinutesMin),
+  "totalPenaltyMinutes": zod.int().min(recalculateAttendanceResponseTotalPenaltyMinutesMin),
   "explanation": zod.array(zod.string()),
   "calculatedAt": zod.iso.datetime({"offset":true})
 })
@@ -1182,6 +1226,13 @@ export const GetAttendanceRulesResponse = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(getAttendanceRulesResponseEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(getAttendanceRulesResponseAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
@@ -1240,6 +1291,13 @@ export const ListAttendanceRuleVersionsResponseItem = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
@@ -1293,6 +1351,13 @@ export const CreateAttendanceRuleVersionBody = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(createAttendanceRuleVersionBodyOneEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(createAttendanceRuleVersionBodyOneAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
@@ -1347,6 +1412,13 @@ export const CreateAttendanceRuleVersionResponse = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(createAttendanceRuleVersionResponseConfigurationEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(createAttendanceRuleVersionResponseConfigurationAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
@@ -1399,6 +1471,13 @@ export const UpdateAttendanceRulesBody = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(updateAttendanceRulesBodyEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(updateAttendanceRulesBodyAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
@@ -1443,6 +1522,13 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "earlyCheckoutDeductionFactor": zod.number().min(updateAttendanceRulesResponseEarlyCheckoutDeductionFactorMin),
   "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
   "absenceDeductionFactor": zod.number().min(updateAttendanceRulesResponseAbsenceDeductionFactorMin),
+  "latePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "earlyDeparturePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "absencePenaltyMultiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "permissionCoversLate": zod.boolean(),
+  "permissionCoversEarly": zod.boolean(),
+  "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),

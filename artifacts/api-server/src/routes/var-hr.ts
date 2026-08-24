@@ -672,6 +672,13 @@ const defaultAttendanceRules = {
   earlyCheckoutDeductionFactor: 0.5,
   absenceDeductionMethod: "daily_rate" as const,
   absenceDeductionFactor: 1,
+  latePenaltyMultiplier: 1,
+  earlyDeparturePenaltyMultiplier: 1,
+  absencePenaltyMultiplier: 1,
+  permissionCoversLate: true,
+  permissionCoversEarly: true,
+  permissionCoveredMinutesMultiplier: 0,
+  fullDayPermissionMultiplier: 0,
   workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
   holidayDates: [] as string[],
   gpsPolicy: "optional" as const,
@@ -709,6 +716,13 @@ function rulesConfiguration(
     earlyCheckoutDeductionFactor: rules.earlyCheckoutDeductionFactor,
     absenceDeductionMethod: rules.absenceDeductionMethod,
     absenceDeductionFactor: rules.absenceDeductionFactor,
+    latePenaltyMultiplier: rules.latePenaltyMultiplier,
+    earlyDeparturePenaltyMultiplier: rules.earlyDeparturePenaltyMultiplier,
+    absencePenaltyMultiplier: rules.absencePenaltyMultiplier,
+    permissionCoversLate: rules.permissionCoversLate,
+    permissionCoversEarly: rules.permissionCoversEarly,
+    permissionCoveredMinutesMultiplier: rules.permissionCoveredMinutesMultiplier,
+    fullDayPermissionMultiplier: rules.fullDayPermissionMultiplier,
     holidayDates: rules.holidayDates,
     workingDays: rules.workingDays,
     gpsPolicy: rules.gpsPolicy,
@@ -1009,6 +1023,26 @@ function isWorkingScheduleDay(
   return schedule.workingDays.includes(weekdayFor(date));
 }
 
+function permissionWindowMinutes(
+  startTime: string,
+  endTime: string,
+  schedule: EffectiveSchedule,
+): { start: number; end: number } {
+  const start = Math.max(0, clockMinutes(startTime) - clockMinutes(schedule.startTime));
+  const rawEnd = clockMinutes(endTime) - clockMinutes(schedule.startTime);
+  const end = Math.min(scheduleDurationMinutes(schedule.startTime, schedule.endTime), rawEnd <= 0 ? rawEnd + 1440 : rawEnd);
+  return { start, end: Math.max(start, end) };
+}
+
+function overlapMinutes(
+  firstStart: number,
+  firstEnd: number,
+  secondStart: number,
+  secondEnd: number,
+): number {
+  return Math.max(0, Math.min(firstEnd, secondEnd) - Math.max(firstStart, secondStart));
+}
+
 function attendanceMetrics(input: {
   checkIn: Date | null;
   checkOut: Date | null;
@@ -1134,6 +1168,30 @@ async function attendanceCalculationFor(
     rules,
     await holidaysForCompany(context.companyId),
   );
+  const [approvedLeave] = await db
+    .select({ id: leaveRequestsTable.id })
+    .from(leaveRequestsTable)
+    .where(
+      and(
+        eq(leaveRequestsTable.companyId, context.companyId),
+        eq(leaveRequestsTable.employeeId, attendance.employeeId),
+        eq(leaveRequestsTable.status, "approved"),
+        lte(leaveRequestsTable.from, attendance.date),
+        gte(leaveRequestsTable.to, attendance.date),
+      ),
+    )
+    .limit(1);
+  const approvedPermissions = await db
+    .select()
+    .from(permissionRequestsTable)
+    .where(
+      and(
+        eq(permissionRequestsTable.companyId, context.companyId),
+        eq(permissionRequestsTable.employeeId, attendance.employeeId),
+        eq(permissionRequestsTable.date, attendance.date),
+        eq(permissionRequestsTable.status, "approved"),
+      ),
+    );
   const metrics = attendanceMetrics({
     checkIn: attendance.checkIn,
     checkOut: attendance.checkOut,
@@ -1143,6 +1201,58 @@ async function attendanceCalculationFor(
     timeZone: context.company.timezone,
     holiday,
   });
+  const scheduledMinutes = scheduleDurationMinutes(schedule.startTime, schedule.endTime);
+  const fullDayPermission = approvedPermissions.some((permission) => {
+    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
+    return window.end - window.start >= scheduledMinutes;
+  });
+  const approvedPermissionMinutes = approvedPermissions.reduce((total, permission) => {
+    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
+    return total + overlapMinutes(0, scheduledMinutes, window.start, window.end);
+  }, 0);
+  const latePermissionMinutes = approvedPermissions.reduce((total, permission) => {
+    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
+    return total + overlapMinutes(0, metrics.rawLateMinutes, window.start, window.end);
+  }, 0);
+  const earlyPermissionMinutes = approvedPermissions.reduce((total, permission) => {
+    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
+    return total + overlapMinutes(scheduledMinutes - metrics.rawEarlyDepartureMinutes, scheduledMinutes, window.start, window.end);
+  }, 0);
+  const permissionCoveredLateMinutes = rules.permissionCoversLate
+    ? Math.min(metrics.lateMinutes, latePermissionMinutes)
+    : 0;
+  const permissionCoveredEarlyMinutes = rules.permissionCoversEarly
+    ? Math.min(metrics.earlyCheckoutMinutes, earlyPermissionMinutes)
+    : 0;
+  const uncoveredLateMinutes = Math.max(0, metrics.lateMinutes - permissionCoveredLateMinutes);
+  const uncoveredEarlyMinutes = Math.max(0, metrics.earlyCheckoutMinutes - permissionCoveredEarlyMinutes);
+  const attendanceState = holiday
+    ? "holiday"
+    : !metrics.workingDay
+      ? "scheduled_day_off"
+      : approvedLeave
+        ? "approved_leave"
+        : fullDayPermission
+          ? "approved_permission"
+          : attendance.status === "absent"
+            ? "unexcused_absence"
+            : !attendance.checkIn
+              ? "missing_attendance"
+              : "present";
+  const latePenaltyMinutes =
+    uncoveredLateMinutes * rules.latePenaltyMultiplier +
+    permissionCoveredLateMinutes *
+      (fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier);
+  const earlyDeparturePenaltyMinutes =
+    uncoveredEarlyMinutes * rules.earlyDeparturePenaltyMultiplier +
+    permissionCoveredEarlyMinutes *
+      (fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier);
+  const absencePenaltyMinutes =
+    attendanceState === "unexcused_absence" || attendanceState === "missing_attendance"
+      ? Math.round(scheduledMinutes * rules.absencePenaltyMultiplier)
+      : 0;
+  const totalPenaltyMinutes =
+    latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
   const explanation = [
     `Rule version ${rules.version} effective from ${rules.effectiveFrom}.`,
     `Schedule source: ${schedule.source}; ${schedule.startTime}–${schedule.endTime}${schedule.overnight ? " (overnight)" : ""}.`,
@@ -1151,6 +1261,9 @@ async function attendanceCalculationFor(
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+    `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; approved permissions: ${approvedPermissions.length}.`,
+    `Permission coverage: ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes.`,
+    `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
   ];
   const values = {
     companyId: context.companyId,
@@ -1173,6 +1286,14 @@ async function attendanceCalculationFor(
     overtimeMinutes: metrics.overtimeMinutes,
     workingDay: metrics.workingDay,
     holiday: metrics.holiday,
+    attendanceState,
+    approvedPermissionMinutes,
+    permissionCoveredLateMinutes,
+    permissionCoveredEarlyMinutes,
+    latePenaltyMinutes,
+    earlyDeparturePenaltyMinutes,
+    absencePenaltyMinutes,
+    totalPenaltyMinutes,
     explanation,
     calculatedAt: new Date(),
     updatedAt: new Date(),

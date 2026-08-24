@@ -6,9 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AttendanceRulesAbsenceDeductionMethod } from './attendanceRulesAbsenceDeductionMethod';
+import type { AttendanceRulesAbsencePenaltyMultiplier } from './attendanceRulesAbsencePenaltyMultiplier';
+import type { AttendanceRulesEarlyDeparturePenaltyMultiplier } from './attendanceRulesEarlyDeparturePenaltyMultiplier';
+import type { AttendanceRulesFullDayPermissionMultiplier } from './attendanceRulesFullDayPermissionMultiplier';
 import type { AttendanceRulesGpsPolicy } from './attendanceRulesGpsPolicy';
 import type { AttendanceRulesLateDeductionMethod } from './attendanceRulesLateDeductionMethod';
+import type { AttendanceRulesLatePenaltyMultiplier } from './attendanceRulesLatePenaltyMultiplier';
 import type { AttendanceRulesOvertimeMethod } from './attendanceRulesOvertimeMethod';
+import type { AttendanceRulesPermissionCoveredMinutesMultiplier } from './attendanceRulesPermissionCoveredMinutesMultiplier';
 
 export interface AttendanceRules {
   workStart: string;
@@ -36,6 +41,13 @@ export interface AttendanceRules {
   absenceDeductionMethod: AttendanceRulesAbsenceDeductionMethod;
   /** @minimum 0 */
   absenceDeductionFactor: number;
+  latePenaltyMultiplier: AttendanceRulesLatePenaltyMultiplier;
+  earlyDeparturePenaltyMultiplier: AttendanceRulesEarlyDeparturePenaltyMultiplier;
+  absencePenaltyMultiplier: AttendanceRulesAbsencePenaltyMultiplier;
+  permissionCoversLate: boolean;
+  permissionCoversEarly: boolean;
+  permissionCoveredMinutesMultiplier: AttendanceRulesPermissionCoveredMinutesMultiplier;
+  fullDayPermissionMultiplier: AttendanceRulesFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
   gpsPolicy: AttendanceRulesGpsPolicy;

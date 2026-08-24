@@ -585,6 +585,19 @@ export const AttendanceCalculationScheduleSource = {
   legacy_rules: 'legacy_rules',
 } as const;
 
+export type AttendanceCalculationAttendanceState = typeof AttendanceCalculationAttendanceState[keyof typeof AttendanceCalculationAttendanceState];
+
+
+export const AttendanceCalculationAttendanceState = {
+  present: 'present',
+  scheduled_day_off: 'scheduled_day_off',
+  holiday: 'holiday',
+  approved_leave: 'approved_leave',
+  approved_permission: 'approved_permission',
+  missing_attendance: 'missing_attendance',
+  unexcused_absence: 'unexcused_absence',
+} as const;
+
 export interface AttendanceCalculation {
   id: string;
   attendanceId: string;
@@ -616,6 +629,21 @@ export interface AttendanceCalculation {
   overtimeMinutes: number;
   workingDay: boolean;
   holiday: boolean;
+  attendanceState: AttendanceCalculationAttendanceState;
+  /** @minimum 0 */
+  approvedPermissionMinutes: number;
+  /** @minimum 0 */
+  permissionCoveredLateMinutes: number;
+  /** @minimum 0 */
+  permissionCoveredEarlyMinutes: number;
+  /** @minimum 0 */
+  latePenaltyMinutes: number;
+  /** @minimum 0 */
+  earlyDeparturePenaltyMinutes: number;
+  /** @minimum 0 */
+  absencePenaltyMinutes: number;
+  /** @minimum 0 */
+  totalPenaltyMinutes: number;
   explanation: string[];
   calculatedAt: string;
 }
@@ -736,6 +764,53 @@ export const AttendanceRulesAbsenceDeductionMethod = {
   none: 'none',
 } as const;
 
+export type AttendanceRulesLatePenaltyMultiplier = typeof AttendanceRulesLatePenaltyMultiplier[keyof typeof AttendanceRulesLatePenaltyMultiplier];
+
+
+export const AttendanceRulesLatePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesEarlyDeparturePenaltyMultiplier = typeof AttendanceRulesEarlyDeparturePenaltyMultiplier[keyof typeof AttendanceRulesEarlyDeparturePenaltyMultiplier];
+
+
+export const AttendanceRulesEarlyDeparturePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesAbsencePenaltyMultiplier = typeof AttendanceRulesAbsencePenaltyMultiplier[keyof typeof AttendanceRulesAbsencePenaltyMultiplier];
+
+
+export const AttendanceRulesAbsencePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesPermissionCoveredMinutesMultiplier = typeof AttendanceRulesPermissionCoveredMinutesMultiplier[keyof typeof AttendanceRulesPermissionCoveredMinutesMultiplier];
+
+
+export const AttendanceRulesPermissionCoveredMinutesMultiplier = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesFullDayPermissionMultiplier = typeof AttendanceRulesFullDayPermissionMultiplier[keyof typeof AttendanceRulesFullDayPermissionMultiplier];
+
+
+export const AttendanceRulesFullDayPermissionMultiplier = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
 export type AttendanceRulesGpsPolicy = typeof AttendanceRulesGpsPolicy[keyof typeof AttendanceRulesGpsPolicy];
 
 
@@ -771,6 +846,13 @@ export interface AttendanceRules {
   absenceDeductionMethod: AttendanceRulesAbsenceDeductionMethod;
   /** @minimum 0 */
   absenceDeductionFactor: number;
+  latePenaltyMultiplier: AttendanceRulesLatePenaltyMultiplier;
+  earlyDeparturePenaltyMultiplier: AttendanceRulesEarlyDeparturePenaltyMultiplier;
+  absencePenaltyMultiplier: AttendanceRulesAbsencePenaltyMultiplier;
+  permissionCoversLate: boolean;
+  permissionCoversEarly: boolean;
+  permissionCoveredMinutesMultiplier: AttendanceRulesPermissionCoveredMinutesMultiplier;
+  fullDayPermissionMultiplier: AttendanceRulesFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
   gpsPolicy: AttendanceRulesGpsPolicy;
@@ -804,6 +886,53 @@ export const AttendanceRulesInputAbsenceDeductionMethod = {
   daily_rate: 'daily_rate',
   fixed_per_day: 'fixed_per_day',
   none: 'none',
+} as const;
+
+export type AttendanceRulesInputLatePenaltyMultiplier = typeof AttendanceRulesInputLatePenaltyMultiplier[keyof typeof AttendanceRulesInputLatePenaltyMultiplier];
+
+
+export const AttendanceRulesInputLatePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputEarlyDeparturePenaltyMultiplier = typeof AttendanceRulesInputEarlyDeparturePenaltyMultiplier[keyof typeof AttendanceRulesInputEarlyDeparturePenaltyMultiplier];
+
+
+export const AttendanceRulesInputEarlyDeparturePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputAbsencePenaltyMultiplier = typeof AttendanceRulesInputAbsencePenaltyMultiplier[keyof typeof AttendanceRulesInputAbsencePenaltyMultiplier];
+
+
+export const AttendanceRulesInputAbsencePenaltyMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputPermissionCoveredMinutesMultiplier = typeof AttendanceRulesInputPermissionCoveredMinutesMultiplier[keyof typeof AttendanceRulesInputPermissionCoveredMinutesMultiplier];
+
+
+export const AttendanceRulesInputPermissionCoveredMinutesMultiplier = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputFullDayPermissionMultiplier = typeof AttendanceRulesInputFullDayPermissionMultiplier[keyof typeof AttendanceRulesInputFullDayPermissionMultiplier];
+
+
+export const AttendanceRulesInputFullDayPermissionMultiplier = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
 } as const;
 
 export type AttendanceRulesInputGpsPolicy = typeof AttendanceRulesInputGpsPolicy[keyof typeof AttendanceRulesInputGpsPolicy];
@@ -842,6 +971,13 @@ export interface AttendanceRulesInput {
   absenceDeductionMethod: AttendanceRulesInputAbsenceDeductionMethod;
   /** @minimum 0 */
   absenceDeductionFactor: number;
+  latePenaltyMultiplier: AttendanceRulesInputLatePenaltyMultiplier;
+  earlyDeparturePenaltyMultiplier: AttendanceRulesInputEarlyDeparturePenaltyMultiplier;
+  absencePenaltyMultiplier: AttendanceRulesInputAbsencePenaltyMultiplier;
+  permissionCoversLate: boolean;
+  permissionCoversEarly: boolean;
+  permissionCoveredMinutesMultiplier: AttendanceRulesInputPermissionCoveredMinutesMultiplier;
+  fullDayPermissionMultiplier: AttendanceRulesInputFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
   gpsPolicy: AttendanceRulesInputGpsPolicy;

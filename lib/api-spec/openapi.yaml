@@ -2083,6 +2083,14 @@ components:
           overtimeMinutes,
           workingDay,
           holiday,
+          attendanceState,
+          approvedPermissionMinutes,
+          permissionCoveredLateMinutes,
+          permissionCoveredEarlyMinutes,
+          latePenaltyMinutes,
+          earlyDeparturePenaltyMinutes,
+          absencePenaltyMinutes,
+          totalPenaltyMinutes,
           explanation,
           calculatedAt,
         ]
@@ -2107,6 +2115,16 @@ components:
         overtimeMinutes: { type: integer, minimum: 0 }
         workingDay: { type: boolean }
         holiday: { type: boolean }
+        attendanceState:
+          type: string
+          enum: [present, scheduled_day_off, holiday, approved_leave, approved_permission, missing_attendance, unexcused_absence]
+        approvedPermissionMinutes: { type: integer, minimum: 0 }
+        permissionCoveredLateMinutes: { type: integer, minimum: 0 }
+        permissionCoveredEarlyMinutes: { type: integer, minimum: 0 }
+        latePenaltyMinutes: { type: integer, minimum: 0 }
+        earlyDeparturePenaltyMinutes: { type: integer, minimum: 0 }
+        absencePenaltyMinutes: { type: integer, minimum: 0 }
+        totalPenaltyMinutes: { type: integer, minimum: 0 }
         explanation:
           type: array
           items: { type: string }
@@ -2223,6 +2241,13 @@ components:
           earlyCheckoutDeductionFactor,
           absenceDeductionMethod,
           absenceDeductionFactor,
+          latePenaltyMultiplier,
+          earlyDeparturePenaltyMultiplier,
+          absencePenaltyMultiplier,
+          permissionCoversLate,
+          permissionCoversEarly,
+          permissionCoveredMinutesMultiplier,
+          fullDayPermissionMultiplier,
           workingDays,
           holidayDates,
           gpsPolicy,
@@ -2250,6 +2275,13 @@ components:
           type: string
           enum: [daily_rate, fixed_per_day, none]
         absenceDeductionFactor: { type: number, minimum: 0 }
+        latePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        earlyDeparturePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        absencePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        permissionCoversLate: { type: boolean }
+        permissionCoversEarly: { type: boolean }
+        permissionCoveredMinutesMultiplier: { type: integer, enum: [0, 1, 2, 3] }
+        fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
           items: { type: string }
@@ -2282,6 +2314,13 @@ components:
           earlyCheckoutDeductionFactor,
           absenceDeductionMethod,
           absenceDeductionFactor,
+          latePenaltyMultiplier,
+          earlyDeparturePenaltyMultiplier,
+          absencePenaltyMultiplier,
+          permissionCoversLate,
+          permissionCoversEarly,
+          permissionCoveredMinutesMultiplier,
+          fullDayPermissionMultiplier,
           workingDays,
           holidayDates,
           gpsPolicy,
@@ -2310,6 +2349,13 @@ components:
           type: string
           enum: [daily_rate, fixed_per_day, none]
         absenceDeductionFactor: { type: number, minimum: 0 }
+        latePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        earlyDeparturePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        absencePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
+        permissionCoversLate: { type: boolean }
+        permissionCoversEarly: { type: boolean }
+        permissionCoveredMinutesMultiplier: { type: integer, enum: [0, 1, 2, 3] }
+        fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
           items: { type: string }

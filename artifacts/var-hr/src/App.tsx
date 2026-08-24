@@ -7388,6 +7388,11 @@ function Rules() {
           lateDeductionFactor: Number(form.lateDeductionFactor),
           earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
           absenceDeductionFactor: Number(form.absenceDeductionFactor),
+          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
+          earlyDeparturePenaltyMultiplier: Number(form.earlyDeparturePenaltyMultiplier),
+          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
+          permissionCoveredMinutesMultiplier: Number(form.permissionCoveredMinutesMultiplier),
+          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
           locationRadiusMeters: Number(form.locationRadiusMeters),
         } as any,
       },
@@ -7412,6 +7417,11 @@ function Rules() {
           graceMinutes: Number(form.graceMinutes),
           overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
           locationRadiusMeters: Number(form.locationRadiusMeters),
+          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
+          earlyDeparturePenaltyMultiplier: Number(form.earlyDeparturePenaltyMultiplier),
+          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
+          permissionCoveredMinutesMultiplier: Number(form.permissionCoveredMinutesMultiplier),
+          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
         } as any,
       },
       {
@@ -7515,6 +7525,57 @@ function Rules() {
           </div>
         </Card>
         <div className="space-y-6">
+          <Card className="p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {locale === "ar" ? "جزاءات الحضور والإذن" : "Attendance penalties & permissions"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {locale === "ar"
+                ? "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد."
+                : "Set late, early-departure, and absence multipliers, including approved permission coverage."}
+            </p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {[
+                ["latePenaltyMultiplier", locale === "ar" ? "مضاعف التأخير" : "Late arrival multiplier"],
+                ["earlyDeparturePenaltyMultiplier", locale === "ar" ? "مضاعف الانصراف المبكر" : "Early departure multiplier"],
+                ["absencePenaltyMultiplier", locale === "ar" ? "مضاعف الغياب" : "Absence multiplier"],
+                ["permissionCoveredMinutesMultiplier", locale === "ar" ? "مضاعف دقائق الإذن" : "Permission-covered minutes"],
+                ["fullDayPermissionMultiplier", locale === "ar" ? "مضاعف الإذن ليوم كامل" : "Full-day permission"],
+              ].map(([key, label]) => (
+                <label key={key} className="block text-sm font-semibold">
+                  {label}
+                  <select
+                    value={form[key]}
+                    onChange={(event) => setForm({ ...form, [key]: Number(event.target.value) })}
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    {(key === "permissionCoveredMinutesMultiplier" || key === "fullDayPermissionMultiplier") && (
+                      <option value={0}>0x</option>
+                    )}
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
+                </label>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["permissionCoversLate", locale === "ar" ? "الإذن يغطي التأخير" : "Permission covers late arrival"],
+                ["permissionCoversEarly", locale === "ar" ? "الإذن يغطي الانصراف المبكر" : "Permission covers early departure"],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form[key])}
+                    onChange={(event) => setForm({ ...form, [key]: event.target.checked })}
+                    className="h-4 w-4 rounded border-input accent-primary"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </Card>
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("locationVerification")}
