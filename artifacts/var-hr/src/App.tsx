@@ -6473,12 +6473,16 @@ function Attendance() {
       queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId),
     },
   });
-  const timeAdjustments = useListAttendanceTimeAdjustments(selectedAttendanceId, {
-    query: {
-      enabled: Boolean(selectedAttendanceId),
-      queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+  const timeAdjustments = useListAttendanceTimeAdjustments(
+    selectedAttendanceId,
+    {
+      query: {
+        enabled: Boolean(selectedAttendanceId),
+        queryKey:
+          getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+      },
     },
-  });
+  );
   const createAdjustment = useCreateAttendanceTimeAdjustment();
   const decideAdjustment = useDecideAttendanceTimeAdjustment();
   const reverseAdjustment = useReverseAttendanceTimeAdjustment();
@@ -6608,7 +6612,12 @@ function Attendance() {
   function submitAdjustment(event: FormEvent) {
     event.preventDefault();
     const minutes = Number(adjustmentForm.minutes);
-    if (!selectedAttendanceId || !Number.isInteger(minutes) || minutes === 0 || !adjustmentForm.reason.trim()) {
+    if (
+      !selectedAttendanceId ||
+      !Number.isInteger(minutes) ||
+      minutes === 0 ||
+      !adjustmentForm.reason.trim()
+    ) {
       return;
     }
     if (adjustmentForm.adjustmentType === "overtime" && minutes < 1) return;
@@ -6617,7 +6626,8 @@ function Attendance() {
         attendanceId: selectedAttendanceId,
         data: {
           minutes,
-          adjustmentType: adjustmentForm.adjustmentType as "time" | "overtime" | "permission",
+          adjustmentType: adjustmentForm.adjustmentType as
+            "time" | "overtime" | "permission",
           reason: adjustmentForm.reason.trim(),
         },
       },
@@ -6625,11 +6635,22 @@ function Attendance() {
         onSuccess: () => {
           toast.success("Attendance adjustment submitted for approval.");
           setShowAdjustmentForm(false);
-          setAdjustmentForm({ minutes: "", adjustmentType: "time", reason: "" });
-          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
-          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+          setAdjustmentForm({
+            minutes: "",
+            adjustmentType: "time",
+            reason: "",
+          });
+          qc.invalidateQueries({
+            queryKey:
+              getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+          });
+          qc.invalidateQueries({
+            queryKey:
+              getPreviewAttendanceCalculationQueryKey(selectedAttendanceId),
+          });
         },
-        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not submit adjustment.")),
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, "Could not submit adjustment.")),
       },
     );
   }
@@ -6639,10 +6660,17 @@ function Attendance() {
       {
         onSuccess: () => {
           toast.success(`Adjustment ${decision}.`);
-          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
-          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+          qc.invalidateQueries({
+            queryKey:
+              getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+          });
+          qc.invalidateQueries({
+            queryKey:
+              getPreviewAttendanceCalculationQueryKey(selectedAttendanceId),
+          });
         },
-        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not update adjustment.")),
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, "Could not update adjustment.")),
       },
     );
   }
@@ -6654,10 +6682,17 @@ function Attendance() {
       {
         onSuccess: () => {
           toast.success("Adjustment reversed.");
-          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
-          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+          qc.invalidateQueries({
+            queryKey:
+              getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+          });
+          qc.invalidateQueries({
+            queryKey:
+              getPreviewAttendanceCalculationQueryKey(selectedAttendanceId),
+          });
         },
-        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not reverse adjustment.")),
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, "Could not reverse adjustment.")),
       },
     );
   }
@@ -6890,9 +6925,7 @@ function Attendance() {
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
                       {(canCorrect || canAdjust) && (
-                        <th className="px-5 py-3 text-right">
-                          Actions
-                        </th>
+                        <th className="px-5 py-3 text-right">Actions</th>
                       )}
                     </tr>
                   </thead>
@@ -7046,43 +7079,72 @@ function Attendance() {
               <div className="grid gap-3 sm:grid-cols-3">
                 <Card className="bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Original</p>
-                  <p className="mt-1 font-mono">{calculation.data.originalWorkedMinutes}m worked</p>
-                  <p className="font-mono">{calculation.data.originalOvertimeMinutes}m overtime</p>
+                  <p className="mt-1 font-mono">
+                    {calculation.data.originalWorkedMinutes}m worked
+                  </p>
+                  <p className="font-mono">
+                    {calculation.data.originalOvertimeMinutes}m overtime
+                  </p>
                 </Card>
                 <Card className="bg-muted/40 p-3">
-                  <p className="text-xs text-muted-foreground">Manual approved</p>
-                  <p className="mt-1 font-mono">{calculation.data.manualMinutes}m time</p>
-                  <p className="font-mono">{calculation.data.manualOvertimeMinutes}m overtime</p>
+                  <p className="text-xs text-muted-foreground">
+                    Manual approved
+                  </p>
+                  <p className="mt-1 font-mono">
+                    {calculation.data.manualMinutes}m time
+                  </p>
+                  <p className="font-mono">
+                    {calculation.data.manualOvertimeMinutes}m overtime
+                  </p>
                 </Card>
                 <Card className="bg-primary/5 p-3">
                   <p className="text-xs text-muted-foreground">Final</p>
-                  <p className="mt-1 font-mono">{calculation.data.finalWorkedMinutes}m worked</p>
-                  <p className="font-mono">{calculation.data.finalOvertimeMinutes}m overtime</p>
-                  <p className="font-mono">{calculation.data.finalPenaltyMinutes}m penalties</p>
+                  <p className="mt-1 font-mono">
+                    {calculation.data.finalWorkedMinutes}m worked
+                  </p>
+                  <p className="font-mono">
+                    {calculation.data.finalOvertimeMinutes}m overtime
+                  </p>
+                  <p className="font-mono">
+                    {calculation.data.finalPenaltyMinutes}m penalties
+                  </p>
                 </Card>
               </div>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Adjustment history</h3>
                 {canAdjust && (
-                  <Button variant="outline" onClick={() => setShowAdjustmentForm((value) => !value)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAdjustmentForm((value) => !value)}
+                  >
                     {showAdjustmentForm ? "Close form" : "Add adjustment"}
                   </Button>
                 )}
               </div>
               {showAdjustmentForm && (
-                <form onSubmit={submitAdjustment} className="space-y-3 rounded-lg border border-border p-4">
+                <form
+                  onSubmit={submitAdjustment}
+                  className="space-y-3 rounded-lg border border-border p-4"
+                >
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field
                       label="Minutes (negative reduces time)"
                       type="number"
                       value={adjustmentForm.minutes}
-                      onChange={(value) => setAdjustmentForm({ ...adjustmentForm, minutes: value })}
+                      onChange={(value) =>
+                        setAdjustmentForm({ ...adjustmentForm, minutes: value })
+                      }
                     />
                     <label className="block text-sm font-semibold">
                       Type
                       <select
                         value={adjustmentForm.adjustmentType}
-                        onChange={(event) => setAdjustmentForm({ ...adjustmentForm, adjustmentType: event.target.value })}
+                        onChange={(event) =>
+                          setAdjustmentForm({
+                            ...adjustmentForm,
+                            adjustmentType: event.target.value,
+                          })
+                        }
                         className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                       >
                         <option value="time">Worked time</option>
@@ -7095,13 +7157,20 @@ function Attendance() {
                     required
                     minLength={1}
                     value={adjustmentForm.reason}
-                    onChange={(event) => setAdjustmentForm({ ...adjustmentForm, reason: event.target.value })}
+                    onChange={(event) =>
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        reason: event.target.value,
+                      })
+                    }
                     placeholder="Mandatory reason"
                     className="min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm"
                   />
                   <div className="flex justify-end">
                     <Button type="submit" disabled={createAdjustment.isPending}>
-                      {createAdjustment.isPending ? "Submitting…" : "Submit for approval"}
+                      {createAdjustment.isPending
+                        ? "Submitting…"
+                        : "Submit for approval"}
                     </Button>
                   </div>
                 </form>
@@ -7111,38 +7180,77 @@ function Attendance() {
               ) : timeAdjustments.data?.length ? (
                 <div className="space-y-2">
                   {timeAdjustments.data.map((item) => (
-                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
+                    <div
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm"
+                    >
                       <div>
                         <p className="font-semibold">
-                          {item.adjustmentType} · {item.minutes > 0 ? "+" : ""}{item.minutes} minutes
+                          {item.adjustmentType} · {item.minutes > 0 ? "+" : ""}
+                          {item.minutes} minutes
                         </p>
                         <p className="text-muted-foreground">{item.reason}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.status} · created by {item.createdBy} · {date(item.createdAt)}
-                          {item.approvedAt ? ` · approved ${date(item.approvedAt)}` : ""}
-                          {item.rejectedAt ? ` · rejected ${date(item.rejectedAt)}` : ""}
-                          {item.reversedAt ? ` · reversed ${date(item.reversedAt)}` : ""}
+                          {item.status} · created by {item.createdBy} ·{" "}
+                          {date(item.createdAt)}
+                          {item.approvedAt
+                            ? ` · approved ${date(item.approvedAt)}`
+                            : ""}
+                          {item.rejectedAt
+                            ? ` · rejected ${date(item.rejectedAt)}`
+                            : ""}
+                          {item.reversedAt
+                            ? ` · reversed ${date(item.reversedAt)}`
+                            : ""}
                         </p>
                       </div>
                       {canAdjust && item.status === "pending" && (
                         <div className="flex gap-2">
-                          <Button variant="outline" className="text-xs" onClick={() => decideAdjustmentById(item.id, "approved")}>Approve</Button>
-                          <Button variant="outline" className="text-xs" onClick={() => decideAdjustmentById(item.id, "rejected")}>Reject</Button>
+                          <Button
+                            variant="outline"
+                            className="text-xs"
+                            onClick={() =>
+                              decideAdjustmentById(item.id, "approved")
+                            }
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="text-xs"
+                            onClick={() =>
+                              decideAdjustmentById(item.id, "rejected")
+                            }
+                          >
+                            Reject
+                          </Button>
                         </div>
                       )}
                       {canAdjust && item.status === "approved" && (
-                        <Button variant="outline" className="text-xs" onClick={() => reverseAdjustmentById(item.id)}>Reverse</Button>
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          onClick={() => reverseAdjustmentById(item.id)}
+                        >
+                          Reverse
+                        </Button>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No attendance adjustments.</p>
+                <p className="text-sm text-muted-foreground">
+                  No attendance adjustments.
+                </p>
               )}
               <details>
-                <summary className="cursor-pointer text-sm font-semibold">Calculation explanation</summary>
+                <summary className="cursor-pointer text-sm font-semibold">
+                  Calculation explanation
+                </summary>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-                  {calculation.data.explanation.map((line) => <li key={line}>{line}</li>)}
+                  {calculation.data.explanation.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
                 </ul>
               </details>
             </div>
@@ -7182,7 +7290,9 @@ function Requests() {
   const ledger = useListLeaveBalanceTransactions();
   const createPolicy = useCreateLeavePolicy();
   const adjustBalance = useAdjustLeaveBalance();
-  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">("policies");
+  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">(
+    "policies",
+  );
   const [policyForm, setPolicyForm] = useState<any>({
     leaveType: "Annual leave",
     annualEntitlement: 21,
@@ -7194,7 +7304,11 @@ function Requests() {
     allowNegative: false,
     effectiveFrom: new Date().toISOString().slice(0, 10),
   });
-  const [adjustment, setAdjustment] = useState<{ id: string; amount: string; reason: string } | null>(null);
+  const [adjustment, setAdjustment] = useState<{
+    id: string;
+    amount: string;
+    reason: string;
+  } | null>(null);
   const decidePermission = useDecidePermissionRequest();
   const [form, setForm] = useState<any>({
     type: "Annual leave",
@@ -7300,48 +7414,72 @@ function Requests() {
   }
   function submitPolicy(event: FormEvent) {
     event.preventDefault();
-    createPolicy.mutate({
-      data: {
-        ...policyForm,
-        annualEntitlement: Number(policyForm.annualEntitlement),
-        carryForwardDays: Number(policyForm.carryForwardDays),
-        carryForwardExpiryMonths: policyForm.carryForwardExpiryMonths === "" ? null : Number(policyForm.carryForwardExpiryMonths),
+    createPolicy.mutate(
+      {
+        data: {
+          ...policyForm,
+          annualEntitlement: Number(policyForm.annualEntitlement),
+          carryForwardDays: Number(policyForm.carryForwardDays),
+          carryForwardExpiryMonths:
+            policyForm.carryForwardExpiryMonths === ""
+              ? null
+              : Number(policyForm.carryForwardExpiryMonths),
+        },
+      } as any,
+      {
+        onSuccess: () => {
+          toast.success("Leave policy version created");
+          qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+        },
+        onError: () => toast.error("Could not create leave policy"),
       },
-    } as any, {
-      onSuccess: () => {
-        toast.success("Leave policy version created");
-        qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
-        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-      },
-      onError: () => toast.error("Could not create leave policy"),
-    });
+    );
   }
   function submitAdjustment(event: FormEvent) {
     event.preventDefault();
-    if (!adjustment || !adjustment.reason.trim() || Number(adjustment.amount) === 0) return;
-    adjustBalance.mutate({
-      balanceId: adjustment.id,
-      data: { amount: Number(adjustment.amount), reason: adjustment.reason.trim() },
-    }, {
-      onSuccess: () => {
-        toast.success("Balance adjusted");
-        setAdjustment(null);
-        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() });
+    if (
+      !adjustment ||
+      !adjustment.reason.trim() ||
+      Number(adjustment.amount) === 0
+    )
+      return;
+    adjustBalance.mutate(
+      {
+        balanceId: adjustment.id,
+        data: {
+          amount: Number(adjustment.amount),
+          reason: adjustment.reason.trim(),
+        },
       },
-      onError: () => toast.error("Could not adjust balance"),
-    });
+      {
+        onSuccess: () => {
+          toast.success("Balance adjusted");
+          setAdjustment(null);
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListLeaveBalanceTransactionsQueryKey(),
+          });
+        },
+        onError: () => toast.error("Could not adjust balance"),
+      },
+    );
   }
   function cancelRequest(id: string) {
-    cancelLeave.mutate({ requestId: id, data: { reason: "Cancelled by requester" } }, {
-      onSuccess: () => {
-        toast.success("Leave request cancelled");
-        qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
-        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() });
+    cancelLeave.mutate(
+      { requestId: id, data: { reason: "Cancelled by requester" } },
+      {
+        onSuccess: () => {
+          toast.success("Leave request cancelled");
+          qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListLeaveBalanceTransactionsQueryKey(),
+          });
+        },
+        onError: () => toast.error("Could not cancel leave request"),
       },
-      onError: () => toast.error("Could not cancel leave request"),
-    });
+    );
   }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
@@ -7364,60 +7502,228 @@ function Requests() {
         <Card className="mb-6 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">Leave controls</p>
-              <h2 className="mt-1 font-display text-xl font-semibold">Policies & balance ledger</h2>
+              <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
+                Leave controls
+              </p>
+              <h2 className="mt-1 font-display text-xl font-semibold">
+                Policies & balance ledger
+              </h2>
             </div>
             <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <Button className="px-3 py-1.5 text-xs" variant={leaveAdminTab === "policies" ? "primary" : "quiet"} onClick={() => setLeaveAdminTab("policies")}>Policies</Button>
-              <Button className="px-3 py-1.5 text-xs" variant={leaveAdminTab === "ledger" ? "primary" : "quiet"} onClick={() => setLeaveAdminTab("ledger")}>Ledger</Button>
+              <Button
+                className="px-3 py-1.5 text-xs"
+                variant={leaveAdminTab === "policies" ? "primary" : "quiet"}
+                onClick={() => setLeaveAdminTab("policies")}
+              >
+                Policies
+              </Button>
+              <Button
+                className="px-3 py-1.5 text-xs"
+                variant={leaveAdminTab === "ledger" ? "primary" : "quiet"}
+                onClick={() => setLeaveAdminTab("ledger")}
+              >
+                Ledger
+              </Button>
             </div>
           </div>
           {leaveAdminTab === "policies" ? (
             <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
               <div className="space-y-3">
                 {(policies.data || []).map((p: any) => (
-                  <div key={p.id} className="rounded-xl border border-border p-4">
+                  <div
+                    key={p.id}
+                    className="rounded-xl border border-border p-4"
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold">{requestTypeLabel(p.leaveType, t)} · v{p.version}</span>
+                      <span className="font-semibold">
+                        {requestTypeLabel(p.leaveType, t)} · v{p.version}
+                      </span>
                       <Status value={p.status} />
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {p.annualEntitlement} days/year · {p.accrualFrequency} · {p.deductionMode} deduction · effective {p.effectiveFrom}
+                      {p.annualEntitlement} days/year · {p.accrualFrequency} ·{" "}
+                      {p.deductionMode} deduction · effective {p.effectiveFrom}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Carry-forward: {p.carryForwardAllowed ? `${p.carryForwardDays} days` : "off"} · Negative balance: {p.allowNegative ? "allowed" : "blocked"}
+                      Carry-forward:{" "}
+                      {p.carryForwardAllowed
+                        ? `${p.carryForwardDays} days`
+                        : "off"}{" "}
+                      · Negative balance:{" "}
+                      {p.allowNegative ? "allowed" : "blocked"}
                     </p>
                   </div>
                 ))}
-                {!policies.isLoading && !policies.data?.length && <Empty title="No leave policies" detail="Create the first effective-dated policy." />}
+                {!policies.isLoading && !policies.data?.length && (
+                  <Empty
+                    title="No leave policies"
+                    detail="Create the first effective-dated policy."
+                  />
+                )}
               </div>
-              <form onSubmit={submitPolicy} className="space-y-3 rounded-xl bg-muted/40 p-4">
+              <form
+                onSubmit={submitPolicy}
+                className="space-y-3 rounded-xl bg-muted/40 p-4"
+              >
                 <h3 className="font-semibold">Create policy version</h3>
-                <Field label="Leave type" value={policyForm.leaveType} onChange={(value) => setPolicyForm({ ...policyForm, leaveType: value })} required />
+                <Field
+                  label="Leave type"
+                  value={policyForm.leaveType}
+                  onChange={(value) =>
+                    setPolicyForm({ ...policyForm, leaveType: value })
+                  }
+                  required
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Annual entitlement" type="number" min={0} value={policyForm.annualEntitlement} onChange={(value) => setPolicyForm({ ...policyForm, annualEntitlement: value })} required />
-                  <Field label="Effective from" type="date" value={policyForm.effectiveFrom} onChange={(value) => setPolicyForm({ ...policyForm, effectiveFrom: value })} required />
+                  <Field
+                    label="Annual entitlement"
+                    type="number"
+                    min={0}
+                    value={policyForm.annualEntitlement}
+                    onChange={(value) =>
+                      setPolicyForm({ ...policyForm, annualEntitlement: value })
+                    }
+                    required
+                  />
+                  <Field
+                    label="Effective from"
+                    type="date"
+                    value={policyForm.effectiveFrom}
+                    onChange={(value) =>
+                      setPolicyForm({ ...policyForm, effectiveFrom: value })
+                    }
+                    required
+                  />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm font-semibold">Accrual frequency<select className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal" value={policyForm.accrualFrequency} onChange={(e) => setPolicyForm({ ...policyForm, accrualFrequency: e.target.value })}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option><option value="hire_date">Hire date</option></select></label>
-                  <label className="text-sm font-semibold">Deduction mode<select className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal" value={policyForm.deductionMode} onChange={(e) => setPolicyForm({ ...policyForm, deductionMode: e.target.value })}><option value="automatic">Automatic</option><option value="manual">Manual</option></select></label>
+                  <label className="text-sm font-semibold">
+                    Accrual frequency
+                    <select
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                      value={policyForm.accrualFrequency}
+                      onChange={(e) =>
+                        setPolicyForm({
+                          ...policyForm,
+                          accrualFrequency: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annual">Annual</option>
+                      <option value="hire_date">Hire date</option>
+                    </select>
+                  </label>
+                  <label className="text-sm font-semibold">
+                    Deduction mode
+                    <select
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                      value={policyForm.deductionMode}
+                      onChange={(e) =>
+                        setPolicyForm({
+                          ...policyForm,
+                          deductionMode: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="automatic">Automatic</option>
+                      <option value="manual">Manual</option>
+                    </select>
+                  </label>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Carry-forward days" type="number" min={0} value={policyForm.carryForwardDays} onChange={(value) => setPolicyForm({ ...policyForm, carryForwardDays: value })} />
-                  <Field label="Carry-forward expiry (months)" type="number" min={0} value={policyForm.carryForwardExpiryMonths} onChange={(value) => setPolicyForm({ ...policyForm, carryForwardExpiryMonths: value })} />
+                  <Field
+                    label="Carry-forward days"
+                    type="number"
+                    min={0}
+                    value={policyForm.carryForwardDays}
+                    onChange={(value) =>
+                      setPolicyForm({ ...policyForm, carryForwardDays: value })
+                    }
+                  />
+                  <Field
+                    label="Carry-forward expiry (months)"
+                    type="number"
+                    min={0}
+                    value={policyForm.carryForwardExpiryMonths}
+                    onChange={(value) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        carryForwardExpiryMonths: value,
+                      })
+                    }
+                  />
                 </div>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={policyForm.carryForwardAllowed} onChange={(e) => setPolicyForm({ ...policyForm, carryForwardAllowed: e.target.checked })} /> Allow carry-forward</label>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={policyForm.allowNegative} onChange={(e) => setPolicyForm({ ...policyForm, allowNegative: e.target.checked })} /> Allow negative balance</label>
-                <Button type="submit" disabled={createPolicy.isPending}>{createPolicy.isPending ? "Saving…" : "Create policy version"}</Button>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={policyForm.carryForwardAllowed}
+                    onChange={(e) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        carryForwardAllowed: e.target.checked,
+                      })
+                    }
+                  />{" "}
+                  Allow carry-forward
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={policyForm.allowNegative}
+                    onChange={(e) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        allowNegative: e.target.checked,
+                      })
+                    }
+                  />{" "}
+                  Allow negative balance
+                </label>
+                <Button type="submit" disabled={createPolicy.isPending}>
+                  {createPolicy.isPending ? "Saving…" : "Create policy version"}
+                </Button>
               </form>
             </div>
           ) : (
             <div className="mt-5 overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="p-3">Employee</th><th className="p-3">Type</th><th className="p-3">Event</th><th className="p-3">Amount</th><th className="p-3">Balance</th><th className="p-3">Reason</th></tr></thead>
-                <tbody>{(ledger.data || []).map((item: any) => <tr key={item.id} className="border-b border-border/60"><td className="p-3 font-medium">{item.employee.name}</td><td className="p-3">{requestTypeLabel(item.leaveType, t)}</td><td className="p-3">{item.transactionType}</td><td className="p-3 font-mono">{item.amount > 0 ? "+" : ""}{item.amount}</td><td className="p-3 font-mono">{item.afterBalance}</td><td className="max-w-[240px] p-3 text-muted-foreground">{item.reason}</td></tr>)}</tbody>
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="p-3">Employee</th>
+                    <th className="p-3">Type</th>
+                    <th className="p-3">Event</th>
+                    <th className="p-3">Amount</th>
+                    <th className="p-3">Balance</th>
+                    <th className="p-3">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(ledger.data || []).map((item: any) => (
+                    <tr key={item.id} className="border-b border-border/60">
+                      <td className="p-3 font-medium">{item.employee.name}</td>
+                      <td className="p-3">
+                        {requestTypeLabel(item.leaveType, t)}
+                      </td>
+                      <td className="p-3">{item.transactionType}</td>
+                      <td className="p-3 font-mono">
+                        {item.amount > 0 ? "+" : ""}
+                        {item.amount}
+                      </td>
+                      <td className="p-3 font-mono">{item.afterBalance}</td>
+                      <td className="max-w-[240px] p-3 text-muted-foreground">
+                        {item.reason}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
-              {!ledger.isLoading && !ledger.data?.length && <Empty title="Ledger is empty" detail="Accruals and request transitions will appear here." />}
+              {!ledger.isLoading && !ledger.data?.length && (
+                <Empty
+                  title="Ledger is empty"
+                  detail="Accruals and request transitions will appear here."
+                />
+              )}
             </div>
           )}
         </Card>
@@ -7452,7 +7758,9 @@ function Requests() {
                       <Button
                         variant="quiet"
                         className="mt-2 px-2 py-1 text-xs"
-                        onClick={() => setAdjustment({ id: b.id, amount: "", reason: "" })}
+                        onClick={() =>
+                          setAdjustment({ id: b.id, amount: "", reason: "" })
+                        }
                       >
                         Adjust balance
                       </Button>
@@ -7555,20 +7863,20 @@ function Requests() {
                           </Button>
                         </div>
                       )}
-                      {kind === "leave" &&
-                        currentEmployeeId === r.employee?.id &&
-                        (r.status === "pending" || r.status === "approved") && (
-                          <div className="mt-3 flex justify-end">
-                            <Button
-                              variant="quiet"
-                              className="px-3 py-1.5 text-xs"
-                              onClick={() => cancelRequest(r.id)}
-                              disabled={cancelLeave.isPending}
-                            >
-                              Cancel request
-                            </Button>
-                          </div>
-                        )}
+                    {kind === "leave" &&
+                      currentEmployeeId === r.employee?.id &&
+                      (r.status === "pending" || r.status === "approved") && (
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            variant="quiet"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={() => cancelRequest(r.id)}
+                            disabled={cancelLeave.isPending}
+                          >
+                            Cancel request
+                          </Button>
+                        </div>
+                      )}
                   </div>
                 </div>
               ))}
@@ -7740,7 +8048,9 @@ function Requests() {
               label="Adjustment amount"
               type="number"
               value={adjustment.amount}
-              onChange={(value) => setAdjustment({ ...adjustment, amount: value })}
+              onChange={(value) =>
+                setAdjustment({ ...adjustment, amount: value })
+              }
               placeholder="Use a negative number to remove days"
               required
             />
@@ -7749,13 +8059,23 @@ function Requests() {
               <textarea
                 required
                 value={adjustment.reason}
-                onChange={(event) => setAdjustment({ ...adjustment, reason: event.target.value })}
+                onChange={(event) =>
+                  setAdjustment({ ...adjustment, reason: event.target.value })
+                }
                 className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
               />
             </label>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="quiet" onClick={() => setAdjustment(null)}>Cancel</Button>
-              <Button type="submit" disabled={adjustBalance.isPending}>{adjustBalance.isPending ? "Saving…" : "Apply adjustment"}</Button>
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setAdjustment(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={adjustBalance.isPending}>
+                {adjustBalance.isPending ? "Saving…" : "Apply adjustment"}
+              </Button>
             </div>
           </form>
         </Modal>
@@ -7798,12 +8118,18 @@ function Rules() {
           overtimeMultiplier: Number(form.overtimeMultiplier),
           hourlyRateDivisor: Number(form.hourlyRateDivisor),
           lateDeductionFactor: Number(form.lateDeductionFactor),
-          earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
+          earlyCheckoutDeductionFactor: Number(
+            form.earlyCheckoutDeductionFactor,
+          ),
           absenceDeductionFactor: Number(form.absenceDeductionFactor),
           latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
-          earlyDeparturePenaltyMultiplier: Number(form.earlyDeparturePenaltyMultiplier),
+          earlyDeparturePenaltyMultiplier: Number(
+            form.earlyDeparturePenaltyMultiplier,
+          ),
           absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
-          permissionCoveredMinutesMultiplier: Number(form.permissionCoveredMinutesMultiplier),
+          permissionCoveredMinutesMultiplier: Number(
+            form.permissionCoveredMinutesMultiplier,
+          ),
           fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
           locationRadiusMeters: Number(form.locationRadiusMeters),
         } as any,
@@ -7813,7 +8139,9 @@ function Rules() {
           toast.success(t("attendancePolicyUpdated"));
           setReviewVersion(false);
           qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
-          qc.invalidateQueries({ queryKey: getListAttendanceRuleVersionsQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListAttendanceRuleVersionsQueryKey(),
+          });
         },
         onError: (error) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
@@ -7830,9 +8158,13 @@ function Rules() {
           overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
           locationRadiusMeters: Number(form.locationRadiusMeters),
           latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
-          earlyDeparturePenaltyMultiplier: Number(form.earlyDeparturePenaltyMultiplier),
+          earlyDeparturePenaltyMultiplier: Number(
+            form.earlyDeparturePenaltyMultiplier,
+          ),
           absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
-          permissionCoveredMinutesMultiplier: Number(form.permissionCoveredMinutesMultiplier),
+          permissionCoveredMinutesMultiplier: Number(
+            form.permissionCoveredMinutesMultiplier,
+          ),
           fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
         } as any,
       },
@@ -7939,7 +8271,9 @@ function Rules() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
-              {locale === "ar" ? "جزاءات الحضور والإذن" : "Attendance penalties & permissions"}
+              {locale === "ar"
+                ? "جزاءات الحضور والإذن"
+                : "Attendance penalties & permissions"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {locale === "ar"
@@ -7948,20 +8282,44 @@ function Rules() {
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
-                ["latePenaltyMultiplier", locale === "ar" ? "مضاعف التأخير" : "Late arrival multiplier"],
-                ["earlyDeparturePenaltyMultiplier", locale === "ar" ? "مضاعف الانصراف المبكر" : "Early departure multiplier"],
-                ["absencePenaltyMultiplier", locale === "ar" ? "مضاعف الغياب" : "Absence multiplier"],
-                ["permissionCoveredMinutesMultiplier", locale === "ar" ? "مضاعف دقائق الإذن" : "Permission-covered minutes"],
-                ["fullDayPermissionMultiplier", locale === "ar" ? "مضاعف الإذن ليوم كامل" : "Full-day permission"],
+                [
+                  "latePenaltyMultiplier",
+                  locale === "ar" ? "مضاعف التأخير" : "Late arrival multiplier",
+                ],
+                [
+                  "earlyDeparturePenaltyMultiplier",
+                  locale === "ar"
+                    ? "مضاعف الانصراف المبكر"
+                    : "Early departure multiplier",
+                ],
+                [
+                  "absencePenaltyMultiplier",
+                  locale === "ar" ? "مضاعف الغياب" : "Absence multiplier",
+                ],
+                [
+                  "permissionCoveredMinutesMultiplier",
+                  locale === "ar"
+                    ? "مضاعف دقائق الإذن"
+                    : "Permission-covered minutes",
+                ],
+                [
+                  "fullDayPermissionMultiplier",
+                  locale === "ar"
+                    ? "مضاعف الإذن ليوم كامل"
+                    : "Full-day permission",
+                ],
               ].map(([key, label]) => (
                 <label key={key} className="block text-sm font-semibold">
                   {label}
                   <select
                     value={form[key]}
-                    onChange={(event) => setForm({ ...form, [key]: Number(event.target.value) })}
+                    onChange={(event) =>
+                      setForm({ ...form, [key]: Number(event.target.value) })
+                    }
                     className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                   >
-                    {(key === "permissionCoveredMinutesMultiplier" || key === "fullDayPermissionMultiplier") && (
+                    {(key === "permissionCoveredMinutesMultiplier" ||
+                      key === "fullDayPermissionMultiplier") && (
                       <option value={0}>0x</option>
                     )}
                     <option value={1}>1x</option>
@@ -7973,14 +8331,29 @@ function Rules() {
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
-                ["permissionCoversLate", locale === "ar" ? "الإذن يغطي التأخير" : "Permission covers late arrival"],
-                ["permissionCoversEarly", locale === "ar" ? "الإذن يغطي الانصراف المبكر" : "Permission covers early departure"],
+                [
+                  "permissionCoversLate",
+                  locale === "ar"
+                    ? "الإذن يغطي التأخير"
+                    : "Permission covers late arrival",
+                ],
+                [
+                  "permissionCoversEarly",
+                  locale === "ar"
+                    ? "الإذن يغطي الانصراف المبكر"
+                    : "Permission covers early departure",
+                ],
               ].map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm font-semibold">
+                <label
+                  key={key}
+                  className="flex items-center gap-2 text-sm font-semibold"
+                >
                   <input
                     type="checkbox"
                     checked={Boolean(form[key])}
-                    onChange={(event) => setForm({ ...form, [key]: event.target.checked })}
+                    onChange={(event) =>
+                      setForm({ ...form, [key]: event.target.checked })
+                    }
                     className="h-4 w-4 rounded border-input accent-primary"
                   />
                   {label}
@@ -8034,8 +8407,12 @@ function Rules() {
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-semibold">{localized.historical}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{localized.current}: {rules.version || 1}</p>
+            <h2 className="font-display text-lg font-semibold">
+              {localized.historical}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {localized.current}: {rules.version || 1}
+            </p>
           </div>
           <Button type="button" onClick={() => setReviewVersion(true)}>
             {localized.create}
@@ -8043,18 +8420,31 @@ function Rules() {
         </div>
         <div className="mt-5 grid gap-3">
           {(versions.data || []).map((version) => (
-            <div key={version.id} className="grid gap-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-4">
-              <strong>{t("version")} {version.version}</strong>
-              <span>{localized.effectiveFrom}: {version.effectiveFrom}</span>
-              <span>{localized.effectiveTo}: {version.effectiveTo || "—"}</span>
-              <span>{localized.createdBy}: {version.createdBy}</span>
+            <div
+              key={version.id}
+              className="grid gap-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-4"
+            >
+              <strong>
+                {t("version")} {version.version}
+              </strong>
+              <span>
+                {localized.effectiveFrom}: {version.effectiveFrom}
+              </span>
+              <span>
+                {localized.effectiveTo}: {version.effectiveTo || "—"}
+              </span>
+              <span>
+                {localized.createdBy}: {version.createdBy}
+              </span>
             </div>
           ))}
         </div>
       </Card>
       {reviewVersion && (
         <Modal title={localized.review} onClose={() => setReviewVersion(false)}>
-          <p className="text-sm text-muted-foreground">{t("rulesEffectiveNote")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("rulesEffectiveNote")}
+          </p>
           <label className="mt-5 block text-sm font-semibold">
             {localized.effectiveFrom}
             <input
@@ -8065,14 +8455,32 @@ function Rules() {
             />
           </label>
           <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 p-4 text-sm">
-            <span>{t("workStarts")}: {form.workStart}</span>
-            <span>{t("workEnds")}: {form.workEnd}</span>
-            <span>{t("gracePeriod")}: {form.graceMinutes}</span>
-            <span>{t("overtimeAfter")}: {form.overtimeAfterMinutes}</span>
+            <span>
+              {t("workStarts")}: {form.workStart}
+            </span>
+            <span>
+              {t("workEnds")}: {form.workEnd}
+            </span>
+            <span>
+              {t("gracePeriod")}: {form.graceMinutes}
+            </span>
+            <span>
+              {t("overtimeAfter")}: {form.overtimeAfterMinutes}
+            </span>
           </div>
           <div className="mt-6 flex justify-end gap-2">
-            <Button type="button" variant="quiet" onClick={() => setReviewVersion(false)}>{t("cancel")}</Button>
-            <Button type="button" disabled={createVersion.isPending || !effectiveFrom} onClick={saveVersion}>
+            <Button
+              type="button"
+              variant="quiet"
+              onClick={() => setReviewVersion(false)}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={createVersion.isPending || !effectiveFrom}
+              onClick={saveVersion}
+            >
               {localized.confirm}
             </Button>
           </div>
@@ -9722,7 +10130,10 @@ function Schedules() {
   const assign = useAssignEmployeeSchedule();
   const setDefault = useSetDefaultWorkSchedule();
   const history = useListScheduleAssignments({
-    query: { enabled: canAdminister || role === "manager", queryKey: getListScheduleAssignmentsQueryKey() },
+    query: {
+      enabled: canAdminister || role === "manager",
+      queryKey: getListScheduleAssignmentsQueryKey(),
+    },
   });
   const bulkAssign = useBulkAssignEmployeeSchedules();
   const [showEditor, setShowEditor] = useState(false);
@@ -9752,7 +10163,9 @@ function Schedules() {
             nameAr: schedule.nameAr || "",
             requiredHours: String(schedule.requiredHours),
             breakDurationMinutes: String(schedule.breakDurationMinutes),
-            earlyCheckoutGraceMinutes: String(schedule.earlyCheckoutGraceMinutes),
+            earlyCheckoutGraceMinutes: String(
+              schedule.earlyCheckoutGraceMinutes,
+            ),
             graceMinutes: String(schedule.graceMinutes),
             overtimeAfterMinutes: String(schedule.overtimeAfterMinutes),
           }
@@ -9866,7 +10279,8 @@ function Schedules() {
   function submitBulkAssignment(event: FormEvent) {
     event.preventDefault();
     const selected = draft.bulkEmployeeIds || [];
-    if (!selected.length || !draft.bulkScheduleId || !draft.bulkEffectiveFrom) return;
+    if (!selected.length || !draft.bulkScheduleId || !draft.bulkEffectiveFrom)
+      return;
     bulkAssign.mutate(
       {
         data: {
@@ -9880,7 +10294,9 @@ function Schedules() {
         onSuccess: (result: any) => {
           toast.success(`${result.assigned} ${t("bulkAssigned")}`);
           setDraft((value: any) => ({ ...value, bulkEmployeeIds: [] }));
-          qc.invalidateQueries({ queryKey: getListScheduleAssignmentsQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListScheduleAssignmentsQueryKey(),
+          });
           qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
         },
         onError: (error: unknown) =>
@@ -9961,7 +10377,10 @@ function Schedules() {
                             {t("setDefaultSchedule")}
                           </Button>
                         )}
-                        <Button variant="outline" onClick={() => openEditor(schedule)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => openEditor(schedule)}
+                        >
                           {t("editSchedule")}
                         </Button>
                       </div>
@@ -10105,10 +10524,17 @@ function Schedules() {
           </Card>
           <Card className="xl:col-span-2">
             <div className="border-b border-border p-5">
-              <h2 className="font-display text-lg font-semibold">{t("bulkAssignment")}</h2>
-              <p className="text-sm text-muted-foreground">{t("effectiveSchedule")}</p>
+              <h2 className="font-display text-lg font-semibold">
+                {t("bulkAssignment")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t("effectiveSchedule")}
+              </p>
             </div>
-            <form onSubmit={submitBulkAssignment} className="grid gap-4 p-5 lg:grid-cols-[1fr_1fr_1fr_auto]">
+            <form
+              onSubmit={submitBulkAssignment}
+              className="grid gap-4 p-5 lg:grid-cols-[1fr_1fr_1fr_auto]"
+            >
               <label className="block text-sm font-semibold">
                 {t("selectEmployees")}
                 <select
@@ -10117,7 +10543,10 @@ function Schedules() {
                   onChange={(event) =>
                     setDraft({
                       ...draft,
-                      bulkEmployeeIds: Array.from(event.target.selectedOptions, (option) => option.value),
+                      bulkEmployeeIds: Array.from(
+                        event.target.selectedOptions,
+                        (option) => option.value,
+                      ),
                     })
                   }
                   className="mt-1 min-h-28 w-full rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal"
@@ -10134,33 +10563,88 @@ function Schedules() {
                 <select
                   required
                   value={draft.bulkScheduleId || ""}
-                  onChange={(event) => setDraft({ ...draft, bulkScheduleId: event.target.value })}
+                  onChange={(event) =>
+                    setDraft({ ...draft, bulkScheduleId: event.target.value })
+                  }
                   className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
                 >
                   <option value="">{t("selectSchedule")}</option>
-                  {schedules.data?.filter((schedule: any) => schedule.active).map((schedule: any) => (
-                    <option key={schedule.id} value={schedule.id}>{schedule.name}</option>
-                  ))}
+                  {schedules.data
+                    ?.filter((schedule: any) => schedule.active)
+                    .map((schedule: any) => (
+                      <option key={schedule.id} value={schedule.id}>
+                        {schedule.name}
+                      </option>
+                    ))}
                 </select>
               </label>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <Field label={t("effectiveFrom")} type="date" required value={draft.bulkEffectiveFrom || ""} onChange={(value) => setDraft({ ...draft, bulkEffectiveFrom: value })} />
-                <Field label={t("effectiveTo")} type="date" value={draft.bulkEffectiveTo || ""} onChange={(value) => setDraft({ ...draft, bulkEffectiveTo: value })} />
+                <Field
+                  label={t("effectiveFrom")}
+                  type="date"
+                  required
+                  value={draft.bulkEffectiveFrom || ""}
+                  onChange={(value) =>
+                    setDraft({ ...draft, bulkEffectiveFrom: value })
+                  }
+                />
+                <Field
+                  label={t("effectiveTo")}
+                  type="date"
+                  value={draft.bulkEffectiveTo || ""}
+                  onChange={(value) =>
+                    setDraft({ ...draft, bulkEffectiveTo: value })
+                  }
+                />
               </div>
-              <Button type="submit" disabled={bulkAssign.isPending} className="self-end">
+              <Button
+                type="submit"
+                disabled={bulkAssign.isPending}
+                className="self-end"
+              >
                 {bulkAssign.isPending ? t("saving") : t("bulkAssignment")}
               </Button>
             </form>
           </Card>
           <Card className="xl:col-span-2">
             <div className="border-b border-border p-5">
-              <h2 className="font-display text-lg font-semibold">{t("assignmentHistory")}</h2>
+              <h2 className="font-display text-lg font-semibold">
+                {t("assignmentHistory")}
+              </h2>
             </div>
-            {history.isLoading ? <Skeleton className="m-5 h-24" /> : history.isError ? <ErrorState retry={() => history.refetch()} /> : (
+            {history.isLoading ? (
+              <Skeleton className="m-5 h-24" />
+            ) : history.isError ? (
+              <ErrorState retry={() => history.refetch()} />
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-sm">
-                  <thead><tr className="border-b border-border text-muted-foreground"><th className="px-5 py-3 text-start">{t("employee")}</th><th className="px-5 py-3 text-start">{t("scheduleName")}</th><th className="px-5 py-3 text-start">{t("effectiveFrom")}</th><th className="px-5 py-3 text-start">{t("effectiveTo")}</th></tr></thead>
-                  <tbody>{history.data?.map((item: any) => <tr className="border-b border-border/60" key={item.id}><td className="px-5 py-3">{item.employeeName}</td><td className="px-5 py-3">{item.scheduleName}</td><td className="px-5 py-3">{date(item.effectiveFrom)}</td><td className="px-5 py-3">{date(item.effectiveTo)}</td></tr>)}</tbody>
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th className="px-5 py-3 text-start">{t("employee")}</th>
+                      <th className="px-5 py-3 text-start">
+                        {t("scheduleName")}
+                      </th>
+                      <th className="px-5 py-3 text-start">
+                        {t("effectiveFrom")}
+                      </th>
+                      <th className="px-5 py-3 text-start">
+                        {t("effectiveTo")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.data?.map((item: any) => (
+                      <tr className="border-b border-border/60" key={item.id}>
+                        <td className="px-5 py-3">{item.employeeName}</td>
+                        <td className="px-5 py-3">{item.scheduleName}</td>
+                        <td className="px-5 py-3">
+                          {date(item.effectiveFrom)}
+                        </td>
+                        <td className="px-5 py-3">{date(item.effectiveTo)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )}
@@ -10269,7 +10753,13 @@ function Schedules() {
               </p>
             ) : null}
             <label className="flex items-center gap-2 text-sm font-semibold">
-              <input type="checkbox" checked={draft.overnight} onChange={(event) => setDraft({ ...draft, overnight: event.target.checked })} />
+              <input
+                type="checkbox"
+                checked={draft.overnight}
+                onChange={(event) =>
+                  setDraft({ ...draft, overnight: event.target.checked })
+                }
+              />
               {t("overnightSchedule")}
             </label>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -10296,14 +10786,18 @@ function Schedules() {
                 required
                 type="number"
                 value={draft.earlyCheckoutGraceMinutes}
-                onChange={(value) => setDraft({ ...draft, earlyCheckoutGraceMinutes: value })}
+                onChange={(value) =>
+                  setDraft({ ...draft, earlyCheckoutGraceMinutes: value })
+                }
               />
               <Field
                 label={t("breakDurationMinutes")}
                 required
                 type="number"
                 value={draft.breakDurationMinutes}
-                onChange={(value) => setDraft({ ...draft, breakDurationMinutes: value })}
+                onChange={(value) =>
+                  setDraft({ ...draft, breakDurationMinutes: value })
+                }
               />
               <Field
                 label={t("overtimeAfterMinutes")}
@@ -10316,7 +10810,13 @@ function Schedules() {
               />
             </div>
             <label className="flex items-center gap-2 text-sm font-semibold">
-              <input type="checkbox" checked={draft.breakPaid} onChange={(event) => setDraft({ ...draft, breakPaid: event.target.checked })} />
+              <input
+                type="checkbox"
+                checked={draft.breakPaid}
+                onChange={(event) =>
+                  setDraft({ ...draft, breakPaid: event.target.checked })
+                }
+              />
               {t("breakPaid")}
             </label>
             <label className="flex items-center gap-2 text-sm font-semibold">

@@ -1,0 +1,118 @@
+Implement Phase 8 only: Final Testing & Full System Verification.
+
+Do NOT add new features unless a test exposes a real bug.
+
+Run a comprehensive verification of the complete VAR HR system from Phase 0 through Phase 7.
+
+Test:
+
+1. Attendance rules
+- Rule versions
+- Effective dates
+- Historical calculations
+- No overlapping versions
+
+2. Shifts
+- Employee assignments
+- Company default
+- Effective dates
+- Overnight shifts
+- Breaks
+- Assignment precedence
+
+3. Attendance calculation
+- Late arrival
+- Grace periods
+- Early checkout
+- Overtime
+- Permissions
+- Absence
+- Holidays
+- Leave
+- Manual adjustments
+- Recalculation
+- Calculation explanations
+
+4. Leave system
+- Accrual
+- Monthly/quarterly/annual/hire-date accrual
+- Carry-forward
+- Expiry
+- Approval
+- Cancellation
+- Balance restoration
+- Manual adjustments
+- Ledger integrity
+- Duplicate protection
+
+5. Payroll
+- Overtime
+- Late/early deductions
+- Absence
+- Permissions
+- Leave
+- Manual attendance adjustments
+- Payroll adjustments
+- Calculation snapshots
+- Finalized payroll immutability
+- No duplicate deductions
+
+6. Authorization & security
+Test Platform Owner, Company Owner, Manager/Staff, and Employee.
+
+Verify:
+- Tenant isolation
+- Role permissions
+- Unauthorized API access
+- Employee cannot access company administration
+- Company Owner cannot access Platform Owner tools
+- Sensitive fields are never exposed
+
+7. Backup & Restore
+- Create
+- Download
+- Upload
+- Validation
+- Restore
+- Tenant isolation
+- Generated vs uploaded backups
+
+8. Account/Profile
+- Company Owner
+- Staff
+- Employee
+- Platform Owner
+- Arabic/English
+- RTL/LTR
+
+9. UI
+- Mobile navigation scrolling
+- Arabic translations
+- Responsive layouts
+- Forms and validation
+- Empty/error/loading states
+
+Use the project's existing test/build/typecheck infrastructure.
+If tests are missing, create focused regression tests using the existing stack rather than introducing a new testing framework.
+
+Fix every genuine bug discovered during testing.
+Do not hide errors with any, ts-ignore, disabled checks, or skipped tests.
+
+After fixing issues, run:
+- Full typecheck
+- API build
+- Frontend build
+- API/contract generation
+- Database migration/schema validation
+- All available automated tests
+- Final diff/format validation
+
+At the end, give me a clear report:
+- Tests executed
+- Passed
+- Failed
+- Bugs found and fixed
+- Any remaining issues
+- Final production-readiness assessment
+
+Do not start another phase. This is the final verification phase.

@@ -1901,7 +1901,8 @@ components:
               primaryPhone: { type: string }
               backupPhones: { type: array, items: { type: string } }
               email: { type: string, format: email }
-              backupEmails: { type: array, items: { type: string, format: email } }
+              backupEmails:
+                { type: array, items: { type: string, format: email } }
         monthlyPrice: { type: number, minimum: 0 }
         annualPrice: { type: number, minimum: 0 }
         active: { type: boolean, default: true }
@@ -2260,15 +2261,15 @@ components:
           earlyDeparturePenaltyMinutes,
           absencePenaltyMinutes,
           totalPenaltyMinutes,
-           originalWorkedMinutes,
-           originalOvertimeMinutes,
-           manualMinutes,
-           manualOvertimeMinutes,
-           manualPermissionMinutes,
-           finalWorkedMinutes,
-           finalOvertimeMinutes,
-           finalPenaltyMinutes,
-           adjustments,
+          originalWorkedMinutes,
+          originalOvertimeMinutes,
+          manualMinutes,
+          manualOvertimeMinutes,
+          manualPermissionMinutes,
+          finalWorkedMinutes,
+          finalOvertimeMinutes,
+          finalPenaltyMinutes,
+          adjustments,
           explanation,
           calculatedAt,
         ]
@@ -2279,7 +2280,11 @@ components:
         attendanceDate: { type: string, format: date }
         ruleVersion: { type: integer }
         ruleEffectiveFrom: { type: string, format: date }
-        scheduleSource: { type: string, enum: [employee_assignment, company_default, legacy_rules] }
+        scheduleSource:
+          {
+            type: string,
+            enum: [employee_assignment, company_default, legacy_rules],
+          }
         rawLateMinutes: { type: integer, minimum: 0 }
         lateGraceMinutes: { type: integer, minimum: 0 }
         effectiveLateMinutes: { type: integer, minimum: 0 }
@@ -2295,7 +2300,16 @@ components:
         holiday: { type: boolean }
         attendanceState:
           type: string
-          enum: [present, scheduled_day_off, holiday, approved_leave, approved_permission, missing_attendance, unexcused_absence]
+          enum:
+            [
+              present,
+              scheduled_day_off,
+              holiday,
+              approved_leave,
+              approved_permission,
+              missing_attendance,
+              unexcused_absence,
+            ]
         approvedPermissionMinutes: { type: integer, minimum: 0 }
         permissionCoveredLateMinutes: { type: integer, minimum: 0 }
         permissionCoveredEarlyMinutes: { type: integer, minimum: 0 }
@@ -2322,7 +2336,18 @@ components:
     AttendanceTimeAdjustment:
       type: object
       required:
-        [id, attendanceId, employeeId, adjustmentDate, minutes, adjustmentType, reason, status, createdBy, createdAt]
+        [
+          id,
+          attendanceId,
+          employeeId,
+          adjustmentDate,
+          minutes,
+          adjustmentType,
+          reason,
+          status,
+          createdBy,
+          createdAt,
+        ]
       properties:
         id: { type: string }
         attendanceId: { type: string }
@@ -2386,7 +2411,20 @@ components:
         remaining: { type: number }
     LeavePolicy:
       type: object
-      required: [id, leaveType, version, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, allowNegative, effectiveFrom, status]
+      required:
+        [
+          id,
+          leaveType,
+          version,
+          annualEntitlement,
+          accrualFrequency,
+          deductionMode,
+          carryForwardAllowed,
+          carryForwardDays,
+          allowNegative,
+          effectiveFrom,
+          status,
+        ]
       properties:
         id: { type: string }
         leaveType: { type: string }
@@ -2409,7 +2447,17 @@ components:
         createdAt: { type: string, format: date-time }
     LeavePolicyInput:
       type: object
-      required: [leaveType, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, allowNegative, effectiveFrom]
+      required:
+        [
+          leaveType,
+          annualEntitlement,
+          accrualFrequency,
+          deductionMode,
+          carryForwardAllowed,
+          carryForwardDays,
+          allowNegative,
+          effectiveFrom,
+        ]
       properties:
         leaveType: { type: string, minLength: 1 }
         annualEntitlement: { type: number, minimum: 0 }
@@ -2426,14 +2474,38 @@ components:
         effectiveFrom: { type: string, format: date }
     LeaveBalanceTransaction:
       type: object
-      required: [id, employee, leaveType, amount, transactionType, beforeBalance, afterBalance, actorId, reason, createdAt]
+      required:
+        [
+          id,
+          employee,
+          leaveType,
+          amount,
+          transactionType,
+          beforeBalance,
+          afterBalance,
+          actorId,
+          reason,
+          createdAt,
+        ]
       properties:
         id: { type: string }
         employee:
           $ref: "#/components/schemas/EmployeeReference"
         leaveType: { type: string }
         amount: { type: number }
-        transactionType: { type: string, enum: [accrual, deduction, restoration, carry_forward, expiry, manual_adjustment] }
+        transactionType:
+          {
+            type: string,
+            enum:
+              [
+                accrual,
+                deduction,
+                restoration,
+                carry_forward,
+                expiry,
+                manual_adjustment,
+              ],
+          }
         beforeBalance: { type: number }
         afterBalance: { type: number }
         sourceRequestId: { type: [string, "null"] }
@@ -2582,7 +2654,8 @@ components:
         absencePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
         permissionCoversLate: { type: boolean }
         permissionCoversEarly: { type: boolean }
-        permissionCoveredMinutesMultiplier: { type: integer, enum: [0, 1, 2, 3] }
+        permissionCoveredMinutesMultiplier:
+          { type: integer, enum: [0, 1, 2, 3] }
         fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
@@ -2656,7 +2729,8 @@ components:
         absencePenaltyMultiplier: { type: integer, enum: [1, 2, 3] }
         permissionCoversLate: { type: boolean }
         permissionCoversEarly: { type: boolean }
-        permissionCoveredMinutesMultiplier: { type: integer, enum: [0, 1, 2, 3] }
+        permissionCoveredMinutesMultiplier:
+          { type: integer, enum: [0, 1, 2, 3] }
         fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
@@ -2670,7 +2744,17 @@ components:
         locationRadiusMeters: { type: integer, minimum: 0 }
     AttendanceRuleVersion:
       type: object
-      required: [id, version, effectiveFrom, effectiveTo, status, createdBy, createdAt, configuration]
+      required:
+        [
+          id,
+          version,
+          effectiveFrom,
+          effectiveTo,
+          status,
+          createdBy,
+          createdAt,
+          configuration,
+        ]
       properties:
         id: { type: string, format: uuid }
         version: { type: integer }
@@ -2905,8 +2989,8 @@ components:
           earlyCheckoutMinutes,
           missingHours,
           absentDays,
-            leaveDays,
-            leaveBalances,
+          leaveDays,
+          leaveBalances,
           lineItems,
         ]
       properties:
@@ -3454,7 +3538,15 @@ components:
       properties:
         metrics:
           type: object
-          required: [totalCompanies, activeCompanies, suspendedCompanies, totalEmployees, totalPlatformUsers, activeSubscriptions]
+          required:
+            [
+              totalCompanies,
+              activeCompanies,
+              suspendedCompanies,
+              totalEmployees,
+              totalPlatformUsers,
+              activeSubscriptions,
+            ]
           properties:
             totalCompanies: { type: integer }
             activeCompanies: { type: integer }
@@ -3484,7 +3576,28 @@ components:
             $ref: "#/components/schemas/PlatformAlert"
     PlatformCompanyDetail:
       type: object
-      required: [id, name, slug, timezone, currency, active, status, planName, subscriptionStatus, employeeCount, activeEmployees, userCount, activeUsers, employeeLimit, ownerCount, monthlyPrice, annualPrice, owner, createdAt]
+      required:
+        [
+          id,
+          name,
+          slug,
+          timezone,
+          currency,
+          active,
+          status,
+          planName,
+          subscriptionStatus,
+          employeeCount,
+          activeEmployees,
+          userCount,
+          activeUsers,
+          employeeLimit,
+          ownerCount,
+          monthlyPrice,
+          annualPrice,
+          owner,
+          createdAt,
+        ]
       properties:
         id: { type: string }
         name: { type: string }
@@ -3518,7 +3631,17 @@ components:
         active: { type: boolean }
     PlatformActivity:
       type: object
-      required: [id, action, entityType, entityId, accountId, companyId, metadata, createdAt]
+      required:
+        [
+          id,
+          action,
+          entityType,
+          entityId,
+          accountId,
+          companyId,
+          metadata,
+          createdAt,
+        ]
       properties:
         id: { type: string }
         action: { type: string }

@@ -362,7 +362,10 @@ function scheduleDurationMinutes(startTime: string, endTime: string): number {
 function isOvernightSchedule(
   schedule: Pick<EffectiveSchedule, "startTime" | "endTime" | "overnight">,
 ): boolean {
-  return schedule.overnight || clockMinutes(schedule.endTime) <= clockMinutes(schedule.startTime);
+  return (
+    schedule.overnight ||
+    clockMinutes(schedule.endTime) <= clockMinutes(schedule.startTime)
+  );
 }
 
 function haversineMeters(
@@ -722,7 +725,8 @@ type ResolvedAttendanceRules = typeof defaultAttendanceRules & {
 };
 
 function rulesConfiguration(
-  rules: typeof attendanceRulesTable.$inferSelect | typeof defaultAttendanceRules,
+  rules:
+    typeof attendanceRulesTable.$inferSelect | typeof defaultAttendanceRules,
 ) {
   return {
     workStart: rules.workStart,
@@ -746,7 +750,8 @@ function rulesConfiguration(
     absencePenaltyMultiplier: rules.absencePenaltyMultiplier,
     permissionCoversLate: rules.permissionCoversLate,
     permissionCoversEarly: rules.permissionCoversEarly,
-    permissionCoveredMinutesMultiplier: rules.permissionCoveredMinutesMultiplier,
+    permissionCoveredMinutesMultiplier:
+      rules.permissionCoveredMinutesMultiplier,
     fullDayPermissionMultiplier: rules.fullDayPermissionMultiplier,
     holidayDates: rules.holidayDates,
     workingDays: rules.workingDays,
@@ -1053,9 +1058,15 @@ function permissionWindowMinutes(
   endTime: string,
   schedule: EffectiveSchedule,
 ): { start: number; end: number } {
-  const start = Math.max(0, clockMinutes(startTime) - clockMinutes(schedule.startTime));
+  const start = Math.max(
+    0,
+    clockMinutes(startTime) - clockMinutes(schedule.startTime),
+  );
   const rawEnd = clockMinutes(endTime) - clockMinutes(schedule.startTime);
-  const end = Math.min(scheduleDurationMinutes(schedule.startTime, schedule.endTime), rawEnd <= 0 ? rawEnd + 1440 : rawEnd);
+  const end = Math.min(
+    scheduleDurationMinutes(schedule.startTime, schedule.endTime),
+    rawEnd <= 0 ? rawEnd + 1440 : rawEnd,
+  );
   return { start, end: Math.max(start, end) };
 }
 
@@ -1082,7 +1093,10 @@ function overlapMinutes(
   secondStart: number,
   secondEnd: number,
 ): number {
-  return Math.max(0, Math.min(firstEnd, secondEnd) - Math.max(firstStart, secondStart));
+  return Math.max(
+    0,
+    Math.min(firstEnd, secondEnd) - Math.max(firstStart, secondStart),
+  );
 }
 
 function attendanceMetrics(input: {
@@ -1112,9 +1126,7 @@ function attendanceMetrics(input: {
     Math.max(0, input.schedule.breakDurationMinutes),
     workedMinutes,
   );
-  const unpaidBreakMinutes = input.schedule.breakPaid
-    ? 0
-    : breakMinutes;
+  const unpaidBreakMinutes = input.schedule.breakPaid ? 0 : breakMinutes;
   const netWorkedMinutes = Math.max(0, workedMinutes - unpaidBreakMinutes);
   const normalScheduledMinutes = Math.max(
     0,
@@ -1138,20 +1150,12 @@ function attendanceMetrics(input: {
       )
     : 0;
   const rawLateMinutes =
-    input.holiday || !workingDay
-      ? 0
-      : Math.max(0, checkInElapsed);
-  const lateMinutes = Math.max(
-    0,
-    rawLateMinutes - input.schedule.graceMinutes,
-  );
+    input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed);
+  const lateMinutes = Math.max(0, rawLateMinutes - input.schedule.graceMinutes);
   const rawEarlyDepartureMinutes =
     input.holiday || !workingDay || !input.checkOut
       ? 0
-      : Math.max(
-          0,
-          scheduledMinutes - checkOutElapsed,
-        );
+      : Math.max(0, scheduledMinutes - checkOutElapsed);
   const earlyCheckoutMinutes = Math.max(
     0,
     rawEarlyDepartureMinutes - input.schedule.earlyCheckoutGraceMinutes,
@@ -1165,13 +1169,13 @@ function attendanceMetrics(input: {
         );
   const overtimeMinutes =
     input.schedule.overtimeEligible && workingDay && !input.holiday
-    ? Math.max(
-        0,
-        netWorkedMinutes -
-          normalScheduledMinutes -
-          input.schedule.overtimeAfterMinutes,
-      )
-    : 0;
+      ? Math.max(
+          0,
+          netWorkedMinutes -
+            normalScheduledMinutes -
+            input.schedule.overtimeAfterMinutes,
+        )
+      : 0;
   return {
     workedMinutes,
     netWorkedMinutes,
@@ -1257,7 +1261,11 @@ async function attendanceCalculationFor(
   );
   const approvedPermissionWindows = mergePermissionWindows(
     approvedPermissions.map((permission) =>
-      permissionWindowMinutes(permission.startTime, permission.endTime, schedule),
+      permissionWindowMinutes(
+        permission.startTime,
+        permission.endTime,
+        schedule,
+      ),
     ),
   );
   const metrics = attendanceMetrics({
@@ -1278,8 +1286,14 @@ async function attendanceCalculationFor(
   const manualPermissionMinutes = approvedAdjustments
     .filter((adjustment) => adjustment.adjustmentType === "permission")
     .reduce((total, adjustment) => total + Math.max(0, adjustment.minutes), 0);
-  const finalWorkedMinutes = Math.max(0, metrics.netWorkedMinutes + manualMinutes);
-  const scheduledMinutes = scheduleDurationMinutes(schedule.startTime, schedule.endTime);
+  const finalWorkedMinutes = Math.max(
+    0,
+    metrics.netWorkedMinutes + manualMinutes,
+  );
+  const scheduledMinutes = scheduleDurationMinutes(
+    schedule.startTime,
+    schedule.endTime,
+  );
   const fullDayPermission = approvedPermissionWindows.some(
     (window) => window.start <= 0 && window.end >= scheduledMinutes,
   );
@@ -1290,7 +1304,8 @@ async function attendanceCalculationFor(
   );
   const latePermissionMinutes = approvedPermissionWindows.reduce(
     (total, window) =>
-      total + overlapMinutes(0, metrics.rawLateMinutes, window.start, window.end),
+      total +
+      overlapMinutes(0, metrics.rawLateMinutes, window.start, window.end),
     0,
   );
   const earlyPermissionMinutes = approvedPermissionWindows.reduce(
@@ -1310,8 +1325,14 @@ async function attendanceCalculationFor(
   const permissionCoveredEarlyMinutes = rules.permissionCoversEarly
     ? Math.min(metrics.earlyCheckoutMinutes, earlyPermissionMinutes)
     : 0;
-  const uncoveredLateMinutes = Math.max(0, metrics.lateMinutes - permissionCoveredLateMinutes);
-  const uncoveredEarlyMinutes = Math.max(0, metrics.earlyCheckoutMinutes - permissionCoveredEarlyMinutes);
+  const uncoveredLateMinutes = Math.max(
+    0,
+    metrics.lateMinutes - permissionCoveredLateMinutes,
+  );
+  const uncoveredEarlyMinutes = Math.max(
+    0,
+    metrics.earlyCheckoutMinutes - permissionCoveredEarlyMinutes,
+  );
   const attendanceState = holiday
     ? "holiday"
     : !metrics.workingDay
@@ -1328,13 +1349,18 @@ async function attendanceCalculationFor(
   const latePenaltyMinutes =
     uncoveredLateMinutes * rules.latePenaltyMultiplier +
     permissionCoveredLateMinutes *
-      (fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier);
+      (fullDayPermission
+        ? rules.fullDayPermissionMultiplier
+        : rules.permissionCoveredMinutesMultiplier);
   const earlyDeparturePenaltyMinutes =
     uncoveredEarlyMinutes * rules.earlyDeparturePenaltyMultiplier +
     permissionCoveredEarlyMinutes *
-      (fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier);
+      (fullDayPermission
+        ? rules.fullDayPermissionMultiplier
+        : rules.permissionCoveredMinutesMultiplier);
   const absencePenaltyMinutes =
-    attendanceState === "unexcused_absence" || attendanceState === "missing_attendance"
+    attendanceState === "unexcused_absence" ||
+    attendanceState === "missing_attendance"
       ? Math.round(scheduledMinutes * rules.absencePenaltyMultiplier)
       : 0;
   const totalPenaltyMinutes =
@@ -2454,19 +2480,25 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   const [row] = (await employeeRows(context)).filter(
     (item) => item.employee.id === employee.id,
   );
-  const activeLeavePolicies = await db.select({ leaveType: leavePoliciesTable.leaveType })
+  const activeLeavePolicies = await db
+    .select({ leaveType: leavePoliciesTable.leaveType })
     .from(leavePoliciesTable)
-    .where(and(
-      eq(leavePoliciesTable.companyId, context.companyId),
-      eq(leavePoliciesTable.status, "active"),
-      lte(leavePoliciesTable.effectiveFrom, TODAY),
-    ));
+    .where(
+      and(
+        eq(leavePoliciesTable.companyId, context.companyId),
+        eq(leavePoliciesTable.status, "active"),
+        lte(leavePoliciesTable.effectiveFrom, TODAY),
+      ),
+    );
   for (const policy of activeLeavePolicies) {
-    await db.insert(leaveBalancesTable).values({
-      companyId: context.companyId,
-      employeeId: employee.id,
-      type: policy.leaveType,
-    }).onConflictDoNothing();
+    await db
+      .insert(leaveBalancesTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: employee.id,
+        type: policy.leaveType,
+      })
+      .onConflictDoNothing();
   }
   await recordAudit(
     context.companyId,
@@ -2664,10 +2696,7 @@ router.post(
       res.status(400).json({ error: "Adjustment minutes must be non-zero." });
       return;
     }
-    if (
-      parsed.data.adjustmentType === "overtime" &&
-      parsed.data.minutes <= 0
-    ) {
+    if (parsed.data.adjustmentType === "overtime" && parsed.data.minutes <= 0) {
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
@@ -2682,29 +2711,45 @@ router.post(
       .where(
         and(
           eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
-          eq(attendanceTimeAdjustmentsTable.employeeId, row.attendance.employeeId),
-          eq(attendanceTimeAdjustmentsTable.adjustmentDate, row.attendance.date),
-          eq(attendanceTimeAdjustmentsTable.adjustmentType, parsed.data.adjustmentType),
+          eq(
+            attendanceTimeAdjustmentsTable.employeeId,
+            row.attendance.employeeId,
+          ),
+          eq(
+            attendanceTimeAdjustmentsTable.adjustmentDate,
+            row.attendance.date,
+          ),
+          eq(
+            attendanceTimeAdjustmentsTable.adjustmentType,
+            parsed.data.adjustmentType,
+          ),
         ),
       );
-    const active = existing.filter((item) =>
-      item.status === "pending" || item.status === "approved",
+    const active = existing.filter(
+      (item) => item.status === "pending" || item.status === "approved",
     );
     if (
       active.some(
         (item) =>
           item.minutes === parsed.data.minutes &&
-          item.reason.trim().toLowerCase() === parsed.data.reason.trim().toLowerCase(),
+          item.reason.trim().toLowerCase() ===
+            parsed.data.reason.trim().toLowerCase(),
       )
     ) {
-      res.status(409).json({ error: "A duplicate attendance adjustment already exists." });
+      res
+        .status(409)
+        .json({ error: "A duplicate attendance adjustment already exists." });
       return;
     }
     if (
       parsed.data.adjustmentType === "time" &&
-      active.some((item) => Math.sign(item.minutes) !== Math.sign(parsed.data.minutes))
+      active.some(
+        (item) => Math.sign(item.minutes) !== Math.sign(parsed.data.minutes),
+      )
     ) {
-      res.status(409).json({ error: "A conflicting time adjustment is already pending or approved." });
+      res.status(409).json({
+        error: "A conflicting time adjustment is already pending or approved.",
+      });
       return;
     }
     const [created] = await db
@@ -2742,7 +2787,11 @@ router.post(
     }
     const params = DecideAttendanceTimeAdjustmentParams.safeParse(req.params);
     const parsed = DecideAttendanceTimeAdjustmentBody.safeParse(req.body);
-    if (!params.success || !parsed.success || !isUuid(params.data.adjustmentId)) {
+    if (
+      !params.success ||
+      !parsed.success ||
+      !isUuid(params.data.adjustmentId)
+    ) {
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
@@ -2760,7 +2809,9 @@ router.post(
       return;
     }
     if (current.status !== "pending") {
-      res.status(409).json({ error: "Only pending adjustments can be decided." });
+      res
+        .status(409)
+        .json({ error: "Only pending adjustments can be decided." });
       return;
     }
     const now = new Date();
@@ -2768,7 +2819,11 @@ router.post(
       .update(attendanceTimeAdjustmentsTable)
       .set(
         parsed.data.decision === "approved"
-          ? { status: "approved", approvedBy: context.accountId, approvedAt: now }
+          ? {
+              status: "approved",
+              approvedBy: context.accountId,
+              approvedAt: now,
+            }
           : {
               status: "rejected",
               rejectedBy: context.accountId,
@@ -2806,7 +2861,11 @@ router.post(
     }
     const params = ReverseAttendanceTimeAdjustmentParams.safeParse(req.params);
     const parsed = ReverseAttendanceTimeAdjustmentBody.safeParse(req.body);
-    if (!params.success || !parsed.success || !isUuid(params.data.adjustmentId)) {
+    if (
+      !params.success ||
+      !parsed.success ||
+      !isUuid(params.data.adjustmentId)
+    ) {
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
@@ -2824,12 +2883,18 @@ router.post(
       return;
     }
     if (current.status !== "approved") {
-      res.status(409).json({ error: "Only approved adjustments can be reversed." });
+      res
+        .status(409)
+        .json({ error: "Only approved adjustments can be reversed." });
       return;
     }
     const [updated] = await db
       .update(attendanceTimeAdjustmentsTable)
-      .set({ status: "reversed", reversedBy: context.accountId, reversedAt: new Date() })
+      .set({
+        status: "reversed",
+        reversedBy: context.accountId,
+        reversedAt: new Date(),
+      })
       .where(eq(attendanceTimeAdjustmentsTable.id, current.id))
       .returning();
     await recordAudit(
@@ -3298,7 +3363,10 @@ async function effectiveLeavePolicy(
         eq(leavePoliciesTable.status, "active"),
       ),
     )
-    .orderBy(desc(leavePoliciesTable.effectiveFrom), desc(leavePoliciesTable.version))
+    .orderBy(
+      desc(leavePoliciesTable.effectiveFrom),
+      desc(leavePoliciesTable.version),
+    )
     .limit(1);
   return policy;
 }
@@ -3328,9 +3396,10 @@ function accrualPeriodKeys(
   employee: { id: string; joinedOn: string },
   through = TODAY,
 ) {
-  const start = policy.effectiveFrom > employee.joinedOn
-    ? policy.effectiveFrom
-    : employee.joinedOn;
+  const start =
+    policy.effectiveFrom > employee.joinedOn
+      ? policy.effectiveFrom
+      : employee.joinedOn;
   const startYear = Number(start.slice(0, 4));
   const endYear = Number(through.slice(0, 4));
   const keys: string[] = [];
@@ -3341,7 +3410,8 @@ function accrualPeriodKeys(
     } else if (policy.accrualFrequency === "monthly") {
       for (let month = 1; month <= 12; month += 1) {
         const date = `${year}-${String(month).padStart(2, "0")}-01`;
-        if (date >= start && date <= through) keys.push(`${year}-${String(month).padStart(2, "0")}`);
+        if (date >= start && date <= through)
+          keys.push(`${year}-${String(month).padStart(2, "0")}`);
       }
     } else if (policy.accrualFrequency === "quarterly") {
       for (let quarter = 1; quarter <= 4; quarter += 1) {
@@ -3365,51 +3435,84 @@ function addMonths(value: string, months: number) {
 
 async function ensureLeaveAccruals(companyId: string, through = TODAY) {
   const [employees, policies] = await Promise.all([
-    db.select({ id: employeesTable.id, joinedOn: employeesTable.joinedOn })
-      .from(employeesTable).where(eq(employeesTable.companyId, companyId)),
-    db.select().from(leavePoliciesTable)
-      .where(and(eq(leavePoliciesTable.companyId, companyId), eq(leavePoliciesTable.status, "active"))),
+    db
+      .select({ id: employeesTable.id, joinedOn: employeesTable.joinedOn })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId)),
+    db
+      .select()
+      .from(leavePoliciesTable)
+      .where(
+        and(
+          eq(leavePoliciesTable.companyId, companyId),
+          eq(leavePoliciesTable.status, "active"),
+        ),
+      ),
   ]);
   for (const policy of policies) {
-    const periodsPerYear = policy.accrualFrequency === "monthly" ? 12
-      : policy.accrualFrequency === "quarterly" ? 4 : 1;
+    const periodsPerYear =
+      policy.accrualFrequency === "monthly"
+        ? 12
+        : policy.accrualFrequency === "quarterly"
+          ? 4
+          : 1;
     const amount = policy.annualEntitlement / periodsPerYear;
     for (const employee of employees) {
-      await db.insert(leaveBalancesTable).values({
-        companyId,
-        employeeId: employee.id,
-        type: policy.leaveType,
-      }).onConflictDoNothing();
-      const [balance] = await db.select().from(leaveBalancesTable).where(and(
-        eq(leaveBalancesTable.companyId, companyId),
-        eq(leaveBalancesTable.employeeId, employee.id),
-        eq(leaveBalancesTable.type, policy.leaveType),
-      )).limit(1);
+      await db
+        .insert(leaveBalancesTable)
+        .values({
+          companyId,
+          employeeId: employee.id,
+          type: policy.leaveType,
+        })
+        .onConflictDoNothing();
+      const [balance] = await db
+        .select()
+        .from(leaveBalancesTable)
+        .where(
+          and(
+            eq(leaveBalancesTable.companyId, companyId),
+            eq(leaveBalancesTable.employeeId, employee.id),
+            eq(leaveBalancesTable.type, policy.leaveType),
+          ),
+        )
+        .limit(1);
       if (!balance) continue;
       for (const period of accrualPeriodKeys(policy, employee, through)) {
         const transactionKey = `accrual:${policy.id}:${employee.id}:${period}`;
-        const [existing] = await db.select({ id: leaveBalanceTransactionsTable.id })
+        const [existing] = await db
+          .select({ id: leaveBalanceTransactionsTable.id })
           .from(leaveBalanceTransactionsTable)
-          .where(eq(leaveBalanceTransactionsTable.transactionKey, transactionKey)).limit(1);
+          .where(
+            eq(leaveBalanceTransactionsTable.transactionKey, transactionKey),
+          )
+          .limit(1);
         if (existing) continue;
         const before = balance.allocated - balance.used;
         const after = before + amount;
-        const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
-          companyId,
-          employeeId: employee.id,
-          leaveType: policy.leaveType,
-          amount,
-          transactionType: "accrual",
-          beforeBalance: before,
-          afterBalance: after,
-          actorId: "system",
-          reason: `Automatic ${policy.accrualFrequency} accrual`,
-          transactionKey,
-        }).onConflictDoNothing().returning();
+        const [transaction] = await db
+          .insert(leaveBalanceTransactionsTable)
+          .values({
+            companyId,
+            employeeId: employee.id,
+            leaveType: policy.leaveType,
+            amount,
+            transactionType: "accrual",
+            beforeBalance: before,
+            afterBalance: after,
+            actorId: "system",
+            reason: `Automatic ${policy.accrualFrequency} accrual`,
+            transactionKey,
+          })
+          .onConflictDoNothing()
+          .returning();
         if (transaction) {
-          await db.update(leaveBalancesTable).set({
-            allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
-          }).where(eq(leaveBalancesTable.id, balance.id));
+          await db
+            .update(leaveBalancesTable)
+            .set({
+              allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
+            })
+            .where(eq(leaveBalancesTable.id, balance.id));
           balance.allocated += amount;
         }
       }
@@ -3419,9 +3522,13 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         const yearStart = `${year}-01-01`;
         if (policy.effectiveFrom <= yearStart && through >= yearStart) {
           const transactionKey = `carry_forward:${policy.id}:${employee.id}:${year}`;
-          const [existing] = await db.select({ id: leaveBalanceTransactionsTable.id })
+          const [existing] = await db
+            .select({ id: leaveBalanceTransactionsTable.id })
             .from(leaveBalanceTransactionsTable)
-            .where(eq(leaveBalanceTransactionsTable.transactionKey, transactionKey)).limit(1);
+            .where(
+              eq(leaveBalanceTransactionsTable.transactionKey, transactionKey),
+            )
+            .limit(1);
           if (!existing) {
             const amountToCarry = Math.min(
               policy.carryForwardDays,
@@ -3429,51 +3536,85 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
             );
             if (amountToCarry > 0) {
               const before = balance.allocated - balance.used;
-              const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
-                companyId, employeeId: employee.id, leaveType: policy.leaveType,
-                amount: amountToCarry, transactionType: "carry_forward",
-                beforeBalance: before, afterBalance: before + amountToCarry,
-                actorId: "system", reason: "Automatic carry-forward",
-                transactionKey,
-              }).onConflictDoNothing().returning();
+              const [transaction] = await db
+                .insert(leaveBalanceTransactionsTable)
+                .values({
+                  companyId,
+                  employeeId: employee.id,
+                  leaveType: policy.leaveType,
+                  amount: amountToCarry,
+                  transactionType: "carry_forward",
+                  beforeBalance: before,
+                  afterBalance: before + amountToCarry,
+                  actorId: "system",
+                  reason: "Automatic carry-forward",
+                  transactionKey,
+                })
+                .onConflictDoNothing()
+                .returning();
               if (transaction) {
-                await db.update(leaveBalancesTable).set({
-                  allocated: sql`${leaveBalancesTable.allocated} + ${amountToCarry}`,
-                }).where(eq(leaveBalancesTable.id, balance.id));
+                await db
+                  .update(leaveBalancesTable)
+                  .set({
+                    allocated: sql`${leaveBalancesTable.allocated} + ${amountToCarry}`,
+                  })
+                  .where(eq(leaveBalancesTable.id, balance.id));
                 balance.allocated += amountToCarry;
               }
             }
           }
         }
       }
-      if (policy.carryForwardExpiryMonths && policy.carryForwardExpiryMonths > 0) {
+      if (
+        policy.carryForwardExpiryMonths &&
+        policy.carryForwardExpiryMonths > 0
+      ) {
         const year = Number(through.slice(0, 4));
         const priorYear = year - 1;
-        const expiryDate = addMonths(`${priorYear}-01-01`, policy.carryForwardExpiryMonths);
+        const expiryDate = addMonths(
+          `${priorYear}-01-01`,
+          policy.carryForwardExpiryMonths,
+        );
         if (through >= expiryDate) {
           const carryKey = `carry_forward:${policy.id}:${employee.id}:${priorYear}`;
-          const [carry] = await db.select({ amount: leaveBalanceTransactionsTable.amount })
+          const [carry] = await db
+            .select({ amount: leaveBalanceTransactionsTable.amount })
             .from(leaveBalanceTransactionsTable)
-            .where(eq(leaveBalanceTransactionsTable.transactionKey, carryKey)).limit(1);
+            .where(eq(leaveBalanceTransactionsTable.transactionKey, carryKey))
+            .limit(1);
           const expiryKey = `expiry:${policy.id}:${employee.id}:${priorYear}`;
-          const [expired] = await db.select({ id: leaveBalanceTransactionsTable.id })
+          const [expired] = await db
+            .select({ id: leaveBalanceTransactionsTable.id })
             .from(leaveBalanceTransactionsTable)
-            .where(eq(leaveBalanceTransactionsTable.transactionKey, expiryKey)).limit(1);
+            .where(eq(leaveBalanceTransactionsTable.transactionKey, expiryKey))
+            .limit(1);
           if (carry && carry.amount > 0 && !expired) {
             const before = balance.allocated - balance.used;
             const amount = -Math.min(carry.amount, Math.max(0, before));
             if (amount < 0) {
-              const [transaction] = await db.insert(leaveBalanceTransactionsTable).values({
-                companyId, employeeId: employee.id, leaveType: policy.leaveType,
-                amount, transactionType: "expiry",
-                beforeBalance: before, afterBalance: before + amount,
-                actorId: "system", reason: `Carry-forward expired on ${expiryDate}`,
-                transactionKey: expiryKey,
-              }).onConflictDoNothing().returning();
+              const [transaction] = await db
+                .insert(leaveBalanceTransactionsTable)
+                .values({
+                  companyId,
+                  employeeId: employee.id,
+                  leaveType: policy.leaveType,
+                  amount,
+                  transactionType: "expiry",
+                  beforeBalance: before,
+                  afterBalance: before + amount,
+                  actorId: "system",
+                  reason: `Carry-forward expired on ${expiryDate}`,
+                  transactionKey: expiryKey,
+                })
+                .onConflictDoNothing()
+                .returning();
               if (transaction) {
-                await db.update(leaveBalancesTable).set({
-                  allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
-                }).where(eq(leaveBalancesTable.id, balance.id));
+                await db
+                  .update(leaveBalancesTable)
+                  .set({
+                    allocated: sql`${leaveBalancesTable.allocated} + ${amount}`,
+                  })
+                  .where(eq(leaveBalancesTable.id, balance.id));
                 balance.allocated += amount;
               }
             }
@@ -3491,16 +3632,28 @@ router.get("/leave/policies", async (req, res): Promise<void> => {
     return;
   }
   await ensureLeaveAccruals(context.companyId);
-  const policies = await db.select().from(leavePoliciesTable)
-    .where(and(
-      eq(leavePoliciesTable.companyId, context.companyId),
-      eq(leavePoliciesTable.status, "active"),
-      lte(leavePoliciesTable.effectiveFrom, TODAY),
-    ))
-    .orderBy(asc(leavePoliciesTable.leaveType), desc(leavePoliciesTable.version));
-  const current = policies.filter((policy) => !policies.some((other) =>
-    other.leaveType === policy.leaveType && other.version > policy.version,
-  ));
+  const policies = await db
+    .select()
+    .from(leavePoliciesTable)
+    .where(
+      and(
+        eq(leavePoliciesTable.companyId, context.companyId),
+        eq(leavePoliciesTable.status, "active"),
+        lte(leavePoliciesTable.effectiveFrom, TODAY),
+      ),
+    )
+    .orderBy(
+      asc(leavePoliciesTable.leaveType),
+      desc(leavePoliciesTable.version),
+    );
+  const current = policies.filter(
+    (policy) =>
+      !policies.some(
+        (other) =>
+          other.leaveType === policy.leaveType &&
+          other.version > policy.version,
+      ),
+  );
   res.json(ListLeavePoliciesResponse.parse(current.map(leavePolicyResponse)));
 });
 
@@ -3511,49 +3664,84 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
     return;
   }
   const parsed = CreateLeavePolicyBody.safeParse(req.body ?? {});
-  if (!parsed.success || (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0)) {
+  if (
+    !parsed.success ||
+    (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0)
+  ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const previous = await db.select().from(leavePoliciesTable).where(and(
-    eq(leavePoliciesTable.companyId, context.companyId),
-    eq(leavePoliciesTable.leaveType, parsed.data.leaveType),
-    eq(leavePoliciesTable.status, "active"),
-  ));
+  const previous = await db
+    .select()
+    .from(leavePoliciesTable)
+    .where(
+      and(
+        eq(leavePoliciesTable.companyId, context.companyId),
+        eq(leavePoliciesTable.leaveType, parsed.data.leaveType),
+        eq(leavePoliciesTable.status, "active"),
+      ),
+    );
   const version = Math.max(0, ...previous.map((item) => item.version)) + 1;
-  const prior = previous.filter((item) => item.effectiveTo === null && item.effectiveFrom < parsed.data.effectiveFrom)
+  const prior = previous
+    .filter(
+      (item) =>
+        item.effectiveTo === null &&
+        item.effectiveFrom < parsed.data.effectiveFrom,
+    )
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
-  if (previous.some((item) => item.effectiveFrom === parsed.data.effectiveFrom)) {
+  if (
+    previous.some((item) => item.effectiveFrom === parsed.data.effectiveFrom)
+  ) {
     res.status(409).json({ error: message(req, "invalidRequest") });
     return;
   }
-  if (prior) await db.update(leavePoliciesTable).set({ effectiveTo: dateOffset(parsed.data.effectiveFrom, -1) }).where(eq(leavePoliciesTable.id, prior.id));
-  const [policy] = await db.insert(leavePoliciesTable).values({
-    companyId: context.companyId,
-    leaveType: parsed.data.leaveType,
-    version,
-    annualEntitlement: parsed.data.annualEntitlement,
-    accrualFrequency: parsed.data.accrualFrequency,
-    deductionMode: parsed.data.deductionMode,
-    carryForwardAllowed: parsed.data.carryForwardAllowed,
-    carryForwardDays: parsed.data.carryForwardDays,
-    carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
-    allowNegative: parsed.data.allowNegative,
-    effectiveFrom: parsed.data.effectiveFrom,
-    createdBy: context.accountId,
-  }).returning();
-  const employees = await db.select({ id: employeesTable.id }).from(employeesTable)
+  if (prior)
+    await db
+      .update(leavePoliciesTable)
+      .set({ effectiveTo: dateOffset(parsed.data.effectiveFrom, -1) })
+      .where(eq(leavePoliciesTable.id, prior.id));
+  const [policy] = await db
+    .insert(leavePoliciesTable)
+    .values({
+      companyId: context.companyId,
+      leaveType: parsed.data.leaveType,
+      version,
+      annualEntitlement: parsed.data.annualEntitlement,
+      accrualFrequency: parsed.data.accrualFrequency,
+      deductionMode: parsed.data.deductionMode,
+      carryForwardAllowed: parsed.data.carryForwardAllowed,
+      carryForwardDays: parsed.data.carryForwardDays,
+      carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
+      allowNegative: parsed.data.allowNegative,
+      effectiveFrom: parsed.data.effectiveFrom,
+      createdBy: context.accountId,
+    })
+    .returning();
+  const employees = await db
+    .select({ id: employeesTable.id })
+    .from(employeesTable)
     .where(eq(employeesTable.companyId, context.companyId));
   for (const employee of employees) {
-    await db.insert(leaveBalancesTable).values({
-      companyId: context.companyId,
-      employeeId: employee.id,
-      type: policy.leaveType,
-      allocated: 0,
-    }).onConflictDoNothing();
+    await db
+      .insert(leaveBalancesTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: employee.id,
+        type: policy.leaveType,
+        allocated: 0,
+      })
+      .onConflictDoNothing();
   }
-  await recordAudit(context.companyId, "created", "leave_policy", policy.id, policy);
-  res.status(201).json(CreateLeavePolicyResponse.parse(leavePolicyResponse(policy)));
+  await recordAudit(
+    context.companyId,
+    "created",
+    "leave_policy",
+    policy.id,
+    policy,
+  );
+  res
+    .status(201)
+    .json(CreateLeavePolicyResponse.parse(leavePolicyResponse(policy)));
 });
 
 router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
@@ -3563,85 +3751,146 @@ router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
     return;
   }
   await ensureLeaveAccruals(context.companyId);
-  const rows = await db.select({ transaction: leaveBalanceTransactionsTable, employee: employeesTable, department: departmentsTable })
+  const rows = await db
+    .select({
+      transaction: leaveBalanceTransactionsTable,
+      employee: employeesTable,
+      department: departmentsTable,
+    })
     .from(leaveBalanceTransactionsTable)
-    .innerJoin(employeesTable, eq(leaveBalanceTransactionsTable.employeeId, employeesTable.id))
-    .innerJoin(departmentsTable, eq(employeesTable.departmentId, departmentsTable.id))
-    .where(and(eq(leaveBalanceTransactionsTable.companyId, context.companyId), employeeScopeCondition(context)))
+    .innerJoin(
+      employeesTable,
+      eq(leaveBalanceTransactionsTable.employeeId, employeesTable.id),
+    )
+    .innerJoin(
+      departmentsTable,
+      eq(employeesTable.departmentId, departmentsTable.id),
+    )
+    .where(
+      and(
+        eq(leaveBalanceTransactionsTable.companyId, context.companyId),
+        employeeScopeCondition(context),
+      ),
+    )
     .orderBy(desc(leaveBalanceTransactionsTable.createdAt));
-  res.json(ListLeaveBalanceTransactionsResponse.parse(rows.map(({ transaction, employee, department }) => ({
-    id: transaction.id,
-    employee: employeeReference(employee, department.name),
-    leaveType: transaction.leaveType,
-    amount: transaction.amount,
-    transactionType: transaction.transactionType,
-    beforeBalance: transaction.beforeBalance,
-    afterBalance: transaction.afterBalance,
-    sourceRequestId: transaction.sourceRequestId,
-    actorId: transaction.actorId,
-    reason: transaction.reason,
-    createdAt: transaction.createdAt.toISOString(),
-  }))));
+  res.json(
+    ListLeaveBalanceTransactionsResponse.parse(
+      rows.map(({ transaction, employee, department }) => ({
+        id: transaction.id,
+        employee: employeeReference(employee, department.name),
+        leaveType: transaction.leaveType,
+        amount: transaction.amount,
+        transactionType: transaction.transactionType,
+        beforeBalance: transaction.beforeBalance,
+        afterBalance: transaction.afterBalance,
+        sourceRequestId: transaction.sourceRequestId,
+        actorId: transaction.actorId,
+        reason: transaction.reason,
+        createdAt: transaction.createdAt.toISOString(),
+      })),
+    ),
+  );
 });
 
-router.post("/leave/balances/:balanceId/adjust", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve")) {
-    denyCapability(res, req, "leave.approve");
-    return;
-  }
-  const params = AdjustLeaveBalanceParams.safeParse(req.params);
-  const parsed = AdjustLeaveBalanceBody.safeParse(req.body ?? {});
-  if (!params.success || !parsed.success || !isUuid(params.data.balanceId) || !parsed.data.reason.trim() || parsed.data.amount === 0) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const [balance] = await db.select().from(leaveBalancesTable).where(and(
-    eq(leaveBalancesTable.id, params.data.balanceId),
-    eq(leaveBalancesTable.companyId, context.companyId),
-  )).limit(1);
-  if (!balance) {
-    res.status(404).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const policy = await effectiveLeavePolicy(context.companyId, balance.type);
-  const before = balance.allocated - balance.used;
-  const after = before + parsed.data.amount;
-  if (policy && !policy.allowNegative && after - balance.pending < 0) {
-    res.status(409).json({ error: message(req, "leaveExceedsBalance", { type: balance.type }) });
-    return;
-  }
-  const [updated] = await db.update(leaveBalancesTable).set({
-    allocated: sql`${leaveBalancesTable.allocated} + ${parsed.data.amount}`,
-  }).where(and(
-    eq(leaveBalancesTable.id, balance.id),
-    eq(leaveBalancesTable.companyId, context.companyId),
-  )).returning();
-  await db.insert(leaveBalanceTransactionsTable).values({
-    companyId: context.companyId,
-    employeeId: balance.employeeId,
-    leaveType: balance.type,
-    amount: parsed.data.amount,
-    transactionType: "manual_adjustment",
-    beforeBalance: before,
-    afterBalance: after,
-    actorId: context.accountId,
-    reason: parsed.data.reason.trim(),
-  });
-  await recordAudit(context.companyId, "manual_adjustment", "leave_balance", balance.id, parsed.data, balance);
-  const [employee] = await db.select({ employee: employeesTable, department: departmentsTable }).from(employeesTable)
-    .innerJoin(departmentsTable, eq(employeesTable.departmentId, departmentsTable.id))
-    .where(eq(employeesTable.id, updated.employeeId)).limit(1);
-  res.json(AdjustLeaveBalanceResponse.parse({
-    id: updated.id,
-    employee: employeeReference(employee.employee, employee.department.name),
-    type: updated.type,
-    allocated: updated.allocated,
-    used: updated.used,
-    pending: updated.pending,
-    remaining: updated.allocated - updated.used - updated.pending,
-  }));
-});
+router.post(
+  "/leave/balances/:balanceId/adjust",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "leave.approve")) {
+      denyCapability(res, req, "leave.approve");
+      return;
+    }
+    const params = AdjustLeaveBalanceParams.safeParse(req.params);
+    const parsed = AdjustLeaveBalanceBody.safeParse(req.body ?? {});
+    if (
+      !params.success ||
+      !parsed.success ||
+      !isUuid(params.data.balanceId) ||
+      !parsed.data.reason.trim() ||
+      parsed.data.amount === 0
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [balance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.id, params.data.balanceId),
+          eq(leaveBalancesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!balance) {
+      res.status(404).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const policy = await effectiveLeavePolicy(context.companyId, balance.type);
+    const before = balance.allocated - balance.used;
+    const after = before + parsed.data.amount;
+    if (policy && !policy.allowNegative && after - balance.pending < 0) {
+      res.status(409).json({
+        error: message(req, "leaveExceedsBalance", { type: balance.type }),
+      });
+      return;
+    }
+    const [updated] = await db
+      .update(leaveBalancesTable)
+      .set({
+        allocated: sql`${leaveBalancesTable.allocated} + ${parsed.data.amount}`,
+      })
+      .where(
+        and(
+          eq(leaveBalancesTable.id, balance.id),
+          eq(leaveBalancesTable.companyId, context.companyId),
+        ),
+      )
+      .returning();
+    await db.insert(leaveBalanceTransactionsTable).values({
+      companyId: context.companyId,
+      employeeId: balance.employeeId,
+      leaveType: balance.type,
+      amount: parsed.data.amount,
+      transactionType: "manual_adjustment",
+      beforeBalance: before,
+      afterBalance: after,
+      actorId: context.accountId,
+      reason: parsed.data.reason.trim(),
+    });
+    await recordAudit(
+      context.companyId,
+      "manual_adjustment",
+      "leave_balance",
+      balance.id,
+      parsed.data,
+      balance,
+    );
+    const [employee] = await db
+      .select({ employee: employeesTable, department: departmentsTable })
+      .from(employeesTable)
+      .innerJoin(
+        departmentsTable,
+        eq(employeesTable.departmentId, departmentsTable.id),
+      )
+      .where(eq(employeesTable.id, updated.employeeId))
+      .limit(1);
+    res.json(
+      AdjustLeaveBalanceResponse.parse({
+        id: updated.id,
+        employee: employeeReference(
+          employee.employee,
+          employee.department.name,
+        ),
+        type: updated.type,
+        allocated: updated.allocated,
+        used: updated.used,
+        pending: updated.pending,
+        remaining: updated.allocated - updated.used - updated.pending,
+      }),
+    );
+  },
+);
 
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
@@ -3762,7 +4011,10 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
     parsed.data.type,
     calendarDate(parsed.data.from) ?? TODAY,
   );
-  if (!requestPolicy?.allowNegative && balance.allocated - balance.used - balance.pending < days) {
+  if (
+    !requestPolicy?.allowNegative &&
+    balance.allocated - balance.used - balance.pending < days
+  ) {
     res.status(409).json({
       error: message(req, "leaveExceedsBalance", { type: parsed.data.type }),
     });
@@ -3808,10 +4060,12 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
   await db
     .update(leaveBalancesTable)
     .set({ pending: sql`${leaveBalancesTable.pending} + ${days}` })
-    .where(and(
-      eq(leaveBalancesTable.id, balance.id),
-      eq(leaveBalancesTable.companyId, context.companyId),
-    ));
+    .where(
+      and(
+        eq(leaveBalancesTable.id, balance.id),
+        eq(leaveBalancesTable.companyId, context.companyId),
+      ),
+    );
   await recordAudit(
     context.companyId,
     "created",
@@ -3910,7 +4164,9 @@ router.post(
       )
       .limit(1);
     if (!balance) {
-      res.status(409).json({ error: message(req, "leaveBalanceMissing", { type: request.type }) });
+      res.status(409).json({
+        error: message(req, "leaveBalanceMissing", { type: request.type }),
+      });
       return;
     }
     const policy = await effectiveLeavePolicy(
@@ -3942,19 +4198,31 @@ router.post(
           eq(leaveBalancesTable.type, request.type),
         ),
       );
-    await db.insert(leaveBalanceTransactionsTable).values({
-      companyId: context.companyId,
-      employeeId: request.employeeId,
-      leaveType: request.type,
-      amount: parsed.data.decision === "approved" && policy?.deductionMode !== "manual" ? -request.days : 0,
-      transactionType: parsed.data.decision === "approved" && policy?.deductionMode !== "manual" ? "deduction" : "restoration",
-      beforeBalance,
-      afterBalance,
-      sourceRequestId: request.id,
-      actorId: context.accountId,
-      reason: parsed.data.reason?.trim() || `Leave request ${parsed.data.decision}`,
-      transactionKey: `request:${request.id}:${parsed.data.decision}`,
-    }).onConflictDoNothing();
+    await db
+      .insert(leaveBalanceTransactionsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: request.employeeId,
+        leaveType: request.type,
+        amount:
+          parsed.data.decision === "approved" &&
+          policy?.deductionMode !== "manual"
+            ? -request.days
+            : 0,
+        transactionType:
+          parsed.data.decision === "approved" &&
+          policy?.deductionMode !== "manual"
+            ? "deduction"
+            : "restoration",
+        beforeBalance,
+        afterBalance,
+        sourceRequestId: request.id,
+        actorId: context.accountId,
+        reason:
+          parsed.data.reason?.trim() || `Leave request ${parsed.data.decision}`,
+        transactionKey: `request:${request.id}:${parsed.data.decision}`,
+      })
+      .onConflictDoNothing();
     await recordAudit(
       context.companyId,
       parsed.data.decision,
@@ -3982,99 +4250,145 @@ router.post(
   },
 );
 
-router.post("/leave/requests/:requestId/cancel", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  const params = CancelLeaveRequestParams.safeParse(req.params);
-  const parsed = CancelLeaveRequestBody.safeParse(req.body ?? {});
-  if (!params.success || !parsed.success || !parsed.data.reason.trim()) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const scopedRequest = (await leaveRows(context)).find(
-    (row) => row.request.id === params.data.requestId,
-  );
-  if (!scopedRequest) {
-    res.status(404).json({ error: message(req, "leaveNotFound") });
-    return;
-  }
-  const isApprover = canApprove(context);
-  if (!isApprover && scopedRequest.request.employeeId !== context.employeeId) {
-    res.status(403).json({ error: message(req, "noPermissionDecideLeave") });
-    return;
-  }
-  if (!["pending", "approved"].includes(scopedRequest.request.status)) {
-    res.status(409).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const request = scopedRequest.request;
-  const policy = await effectiveLeavePolicy(context.companyId, request.type, request.from);
-  const [balance] = await db.select().from(leaveBalancesTable).where(and(
-    eq(leaveBalancesTable.companyId, context.companyId),
-    eq(leaveBalancesTable.employeeId, request.employeeId),
-    eq(leaveBalancesTable.type, request.type),
-  )).limit(1);
-  if (!balance) {
-    res.status(409).json({ error: message(req, "leaveBalanceMissing", { type: request.type }) });
-    return;
-  }
-  const wasApproved = request.status === "approved";
-  const shouldRestoreUsed = wasApproved && policy?.deductionMode !== "manual";
-  const [updatedRequest] = await db.update(leaveRequestsTable).set({
-    status: "cancelled",
-    decidedBy: context.accountId,
-    decisionReason: parsed.data.reason.trim(),
-    decidedAt: new Date(),
-  }).where(and(
-    eq(leaveRequestsTable.id, request.id),
-    eq(leaveRequestsTable.companyId, context.companyId),
-    or(eq(leaveRequestsTable.status, "pending"), eq(leaveRequestsTable.status, "approved")),
-  )).returning();
-  if (!updatedRequest) {
-    res.status(409).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  await db.update(leaveBalancesTable).set({
-    ...(request.status === "pending"
-      ? { pending: sql`${leaveBalancesTable.pending} - ${request.days}` }
-      : {}),
-    ...(shouldRestoreUsed
-      ? { used: sql`${leaveBalancesTable.used} - ${request.days}` }
-      : {}),
-  }).where(and(
-    eq(leaveBalancesTable.id, balance.id),
-    eq(leaveBalancesTable.companyId, context.companyId),
-  ));
-  const beforeBalance = balance.allocated - balance.used;
-  await db.insert(leaveBalanceTransactionsTable).values({
-    companyId: context.companyId,
-    employeeId: request.employeeId,
-    leaveType: request.type,
-    amount: shouldRestoreUsed ? request.days : 0,
-    transactionType: "restoration",
-    beforeBalance,
-    afterBalance: shouldRestoreUsed ? beforeBalance + request.days : beforeBalance,
-    sourceRequestId: request.id,
-    actorId: context.accountId,
-    reason: parsed.data.reason.trim(),
-    transactionKey: `request:${request.id}:cancelled`,
-  }).onConflictDoNothing();
-  await recordAudit(context.companyId, "cancelled", "leave_request", request.id, updatedRequest, request);
-  const rows = await leaveRows(context);
-  const row = rows.find((item) => item.request.id === request.id)!;
-  res.json(DecideLeaveRequestResponse.parse({
-    id: updatedRequest.id,
-    employee: requestEmployeeReference(row.employee, row.department.name),
-    type: updatedRequest.type,
-    from: updatedRequest.from,
-    to: updatedRequest.to,
-    days: updatedRequest.days,
-    reason: updatedRequest.reason,
-    status: "cancelled",
-    submittedAt: updatedRequest.submittedAt.toISOString(),
-    decidedBy: updatedRequest.decidedBy,
-    decisionReason: updatedRequest.decisionReason,
-  }));
-});
+router.post(
+  "/leave/requests/:requestId/cancel",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = CancelLeaveRequestParams.safeParse(req.params);
+    const parsed = CancelLeaveRequestBody.safeParse(req.body ?? {});
+    if (!params.success || !parsed.success || !parsed.data.reason.trim()) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const scopedRequest = (await leaveRows(context)).find(
+      (row) => row.request.id === params.data.requestId,
+    );
+    if (!scopedRequest) {
+      res.status(404).json({ error: message(req, "leaveNotFound") });
+      return;
+    }
+    const isApprover = canApprove(context);
+    if (
+      !isApprover &&
+      scopedRequest.request.employeeId !== context.employeeId
+    ) {
+      res.status(403).json({ error: message(req, "noPermissionDecideLeave") });
+      return;
+    }
+    if (!["pending", "approved"].includes(scopedRequest.request.status)) {
+      res.status(409).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const request = scopedRequest.request;
+    const policy = await effectiveLeavePolicy(
+      context.companyId,
+      request.type,
+      request.from,
+    );
+    const [balance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, context.companyId),
+          eq(leaveBalancesTable.employeeId, request.employeeId),
+          eq(leaveBalancesTable.type, request.type),
+        ),
+      )
+      .limit(1);
+    if (!balance) {
+      res.status(409).json({
+        error: message(req, "leaveBalanceMissing", { type: request.type }),
+      });
+      return;
+    }
+    const wasApproved = request.status === "approved";
+    const shouldRestoreUsed = wasApproved && policy?.deductionMode !== "manual";
+    const [updatedRequest] = await db
+      .update(leaveRequestsTable)
+      .set({
+        status: "cancelled",
+        decidedBy: context.accountId,
+        decisionReason: parsed.data.reason.trim(),
+        decidedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(leaveRequestsTable.id, request.id),
+          eq(leaveRequestsTable.companyId, context.companyId),
+          or(
+            eq(leaveRequestsTable.status, "pending"),
+            eq(leaveRequestsTable.status, "approved"),
+          ),
+        ),
+      )
+      .returning();
+    if (!updatedRequest) {
+      res.status(409).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    await db
+      .update(leaveBalancesTable)
+      .set({
+        ...(request.status === "pending"
+          ? { pending: sql`${leaveBalancesTable.pending} - ${request.days}` }
+          : {}),
+        ...(shouldRestoreUsed
+          ? { used: sql`${leaveBalancesTable.used} - ${request.days}` }
+          : {}),
+      })
+      .where(
+        and(
+          eq(leaveBalancesTable.id, balance.id),
+          eq(leaveBalancesTable.companyId, context.companyId),
+        ),
+      );
+    const beforeBalance = balance.allocated - balance.used;
+    await db
+      .insert(leaveBalanceTransactionsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: request.employeeId,
+        leaveType: request.type,
+        amount: shouldRestoreUsed ? request.days : 0,
+        transactionType: "restoration",
+        beforeBalance,
+        afterBalance: shouldRestoreUsed
+          ? beforeBalance + request.days
+          : beforeBalance,
+        sourceRequestId: request.id,
+        actorId: context.accountId,
+        reason: parsed.data.reason.trim(),
+        transactionKey: `request:${request.id}:cancelled`,
+      })
+      .onConflictDoNothing();
+    await recordAudit(
+      context.companyId,
+      "cancelled",
+      "leave_request",
+      request.id,
+      updatedRequest,
+      request,
+    );
+    const rows = await leaveRows(context);
+    const row = rows.find((item) => item.request.id === request.id)!;
+    res.json(
+      DecideLeaveRequestResponse.parse({
+        id: updatedRequest.id,
+        employee: requestEmployeeReference(row.employee, row.department.name),
+        type: updatedRequest.type,
+        from: updatedRequest.from,
+        to: updatedRequest.to,
+        days: updatedRequest.days,
+        reason: updatedRequest.reason,
+        status: "cancelled",
+        submittedAt: updatedRequest.submittedAt.toISOString(),
+        decidedBy: updatedRequest.decidedBy,
+        decisionReason: updatedRequest.decisionReason,
+      }),
+    );
+  },
+);
 
 router.get("/permissions/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
@@ -4313,7 +4627,9 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
       ),
     );
   const prior = existing
-    .filter((row) => row.effectiveFrom < effectiveFrom && row.effectiveTo === null)
+    .filter(
+      (row) => row.effectiveFrom < effectiveFrom && row.effectiveTo === null,
+    )
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
   const overlaps = existing.some(
     (row) =>
@@ -4322,9 +4638,9 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
       (row.effectiveTo === null || row.effectiveTo >= effectiveFrom),
   );
   if (overlaps) {
-    res
-      .status(409)
-      .json({ error: "The effective date overlaps an existing attendance rule version." });
+    res.status(409).json({
+      error: "The effective date overlaps an existing attendance rule version.",
+    });
     return;
   }
   const nextVersion = Math.max(0, ...existing.map((row) => row.version)) + 1;
@@ -4358,7 +4674,9 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
   );
   res
     .status(201)
-    .json(CreateAttendanceRuleVersionResponse.parse(ruleVersionResponse(created)));
+    .json(
+      CreateAttendanceRuleVersionResponse.parse(ruleVersionResponse(created)),
+    );
 });
 
 router.put("/rules", async (req, res): Promise<void> => {
@@ -4539,41 +4857,52 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
   res.json(UpdateWorkScheduleResponse.parse(mapWorkSchedule(schedule)));
 });
 
-router.put("/schedules/:scheduleId/default", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules")) {
-    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
-    return;
-  }
-  const params = z.object({ scheduleId: z.string() }).safeParse(req.params);
-  if (!params.success || !isUuid(params.data.scheduleId)) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const [schedule] = await db
-    .select()
-    .from(workSchedulesTable)
-    .where(
-      and(
-        eq(workSchedulesTable.id, params.data.scheduleId),
-        eq(workSchedulesTable.companyId, context.companyId),
-        eq(workSchedulesTable.active, true),
-      ),
-    )
-    .limit(1);
-  if (!schedule) {
-    res.status(404).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  await db
-    .update(companiesTable)
-    .set({ defaultScheduleId: schedule.id })
-    .where(eq(companiesTable.id, context.companyId));
-  await recordAudit(context.companyId, "updated", "company_default_schedule", schedule.id, {
-    scheduleId: schedule.id,
-  });
-  res.json(SetDefaultWorkScheduleResponse.parse(mapWorkSchedule(schedule, true)));
-});
+router.put(
+  "/schedules/:scheduleId/default",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "schedules")) {
+      res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+      return;
+    }
+    const params = z.object({ scheduleId: z.string() }).safeParse(req.params);
+    if (!params.success || !isUuid(params.data.scheduleId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [schedule] = await db
+      .select()
+      .from(workSchedulesTable)
+      .where(
+        and(
+          eq(workSchedulesTable.id, params.data.scheduleId),
+          eq(workSchedulesTable.companyId, context.companyId),
+          eq(workSchedulesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (!schedule) {
+      res.status(404).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    await db
+      .update(companiesTable)
+      .set({ defaultScheduleId: schedule.id })
+      .where(eq(companiesTable.id, context.companyId));
+    await recordAudit(
+      context.companyId,
+      "updated",
+      "company_default_schedule",
+      schedule.id,
+      {
+        scheduleId: schedule.id,
+      },
+    );
+    res.json(
+      SetDefaultWorkScheduleResponse.parse(mapWorkSchedule(schedule, true)),
+    );
+  },
+);
 
 function historyRow(
   assignment: typeof employeeScheduleAssignmentsTable.$inferSelect,
@@ -4602,11 +4931,21 @@ router.get("/schedule-assignments", async (req, res): Promise<void> => {
       schedule: workSchedulesTable,
     })
     .from(employeeScheduleAssignmentsTable)
-    .innerJoin(employeesTable, eq(employeeScheduleAssignmentsTable.employeeId, employeesTable.id))
-    .innerJoin(workSchedulesTable, eq(employeeScheduleAssignmentsTable.scheduleId, workSchedulesTable.id))
+    .innerJoin(
+      employeesTable,
+      eq(employeeScheduleAssignmentsTable.employeeId, employeesTable.id),
+    )
+    .innerJoin(
+      workSchedulesTable,
+      eq(employeeScheduleAssignmentsTable.scheduleId, workSchedulesTable.id),
+    )
     .where(eq(employeeScheduleAssignmentsTable.companyId, context.companyId))
     .orderBy(desc(employeeScheduleAssignmentsTable.effectiveFrom));
-  res.json(ListScheduleAssignmentsResponse.parse(rows.map((row) => historyRow(row.assignment, row.employee, row.schedule))));
+  res.json(
+    ListScheduleAssignmentsResponse.parse(
+      rows.map((row) => historyRow(row.assignment, row.employee, row.schedule)),
+    ),
+  );
 });
 
 router.post("/schedule-assignments", async (req, res): Promise<void> => {
@@ -4616,23 +4955,41 @@ router.post("/schedule-assignments", async (req, res): Promise<void> => {
     return;
   }
   const parsed = BulkAssignEmployeeSchedulesBody.safeParse(req.body ?? {});
-  if (!parsed.success || parsed.data.employeeIds.some((id) => !isUuid(id)) || !isUuid(parsed.data.scheduleId)) {
+  if (
+    !parsed.success ||
+    parsed.data.employeeIds.some((id) => !isUuid(id)) ||
+    !isUuid(parsed.data.scheduleId)
+  ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  if (parsed.data.effectiveTo && parsed.data.effectiveTo < parsed.data.effectiveFrom) {
+  if (
+    parsed.data.effectiveTo &&
+    parsed.data.effectiveTo < parsed.data.effectiveFrom
+  ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
   const [schedule] = await db
     .select()
     .from(workSchedulesTable)
-    .where(and(eq(workSchedulesTable.id, parsed.data.scheduleId), eq(workSchedulesTable.companyId, context.companyId), eq(workSchedulesTable.active, true)))
+    .where(
+      and(
+        eq(workSchedulesTable.id, parsed.data.scheduleId),
+        eq(workSchedulesTable.companyId, context.companyId),
+        eq(workSchedulesTable.active, true),
+      ),
+    )
     .limit(1);
   const employees = await db
     .select()
     .from(employeesTable)
-    .where(and(eq(employeesTable.companyId, context.companyId), sql`${employeesTable.id} = ANY(${parsed.data.employeeIds})`));
+    .where(
+      and(
+        eq(employeesTable.companyId, context.companyId),
+        sql`${employeesTable.id} = ANY(${parsed.data.employeeIds})`,
+      ),
+    );
   if (!schedule || employees.length !== parsed.data.employeeIds.length) {
     res.status(404).json({ error: message(req, "invalidRequest") });
     return;
@@ -4642,21 +4999,64 @@ router.post("/schedule-assignments", async (req, res): Promise<void> => {
     const existing = await db
       .select()
       .from(employeeScheduleAssignmentsTable)
-      .where(and(eq(employeeScheduleAssignmentsTable.companyId, context.companyId), eq(employeeScheduleAssignmentsTable.employeeId, employee.id)));
+      .where(
+        and(
+          eq(employeeScheduleAssignmentsTable.companyId, context.companyId),
+          eq(employeeScheduleAssignmentsTable.employeeId, employee.id),
+        ),
+      );
     const newEnd = parsed.data.effectiveTo ?? "9999-12-31";
-    const overlaps = existing.some((item) => item.effectiveFrom !== parsed.data.effectiveFrom && item.effectiveFrom <= newEnd && (item.effectiveTo ?? "9999-12-31") >= parsed.data.effectiveFrom);
+    const overlaps = existing.some(
+      (item) =>
+        item.effectiveFrom !== parsed.data.effectiveFrom &&
+        item.effectiveFrom <= newEnd &&
+        (item.effectiveTo ?? "9999-12-31") >= parsed.data.effectiveFrom,
+    );
     if (overlaps) {
       res.status(409).json({ error: message(req, "invalidRequest") });
       return;
     }
-    const sameStart = existing.find((item) => item.effectiveFrom === parsed.data.effectiveFrom);
+    const sameStart = existing.find(
+      (item) => item.effectiveFrom === parsed.data.effectiveFrom,
+    );
     const assignment = sameStart
-      ? (await db.update(employeeScheduleAssignmentsTable).set({ scheduleId: schedule.id, effectiveTo: parsed.data.effectiveTo ?? null }).where(eq(employeeScheduleAssignmentsTable.id, sameStart.id)).returning())[0]
-      : (await db.insert(employeeScheduleAssignmentsTable).values({ companyId: context.companyId, employeeId: employee.id, scheduleId: schedule.id, effectiveFrom: parsed.data.effectiveFrom, effectiveTo: parsed.data.effectiveTo ?? null }).returning())[0];
+      ? (
+          await db
+            .update(employeeScheduleAssignmentsTable)
+            .set({
+              scheduleId: schedule.id,
+              effectiveTo: parsed.data.effectiveTo ?? null,
+            })
+            .where(eq(employeeScheduleAssignmentsTable.id, sameStart.id))
+            .returning()
+        )[0]
+      : (
+          await db
+            .insert(employeeScheduleAssignmentsTable)
+            .values({
+              companyId: context.companyId,
+              employeeId: employee.id,
+              scheduleId: schedule.id,
+              effectiveFrom: parsed.data.effectiveFrom,
+              effectiveTo: parsed.data.effectiveTo ?? null,
+            })
+            .returning()
+        )[0];
     created.push(historyRow(assignment, employee, schedule));
-    await recordAudit(context.companyId, sameStart ? "updated" : "created", "employee_schedule_assignment", assignment.id, assignment);
+    await recordAudit(
+      context.companyId,
+      sameStart ? "updated" : "created",
+      "employee_schedule_assignment",
+      assignment.id,
+      assignment,
+    );
   }
-  res.status(201).json(BulkAssignEmployeeSchedulesResponse.parse({ assigned: created.length, assignments: created }));
+  res.status(201).json(
+    BulkAssignEmployeeSchedulesResponse.parse({
+      assigned: created.length,
+      assignments: created,
+    }),
+  );
 });
 
 router.get(
@@ -6081,15 +6481,17 @@ async function storedPayrollCalculation(
       (row.calculation.inputsSnapshot as { leaveDays?: number }).leaveDays ?? 0,
     ),
     leaveBalances:
-      (row.calculation.inputsSnapshot as {
-        leaveBalances?: Array<{
-          type: string;
-          allocated: number;
-          used: number;
-          pending: number;
-          remaining: number;
-        }>;
-      }).leaveBalances ?? [],
+      (
+        row.calculation.inputsSnapshot as {
+          leaveBalances?: Array<{
+            type: string;
+            allocated: number;
+            used: number;
+            pending: number;
+            remaining: number;
+          }>;
+        }
+      ).leaveBalances ?? [],
     lineItems: row.calculation.lineItems as PayrollLineItem[],
   }));
   if (!items.length) return null;
@@ -6220,13 +6622,12 @@ async function calculatePayrollPeriod(
         leave.to >= period.from,
     );
     const leaveDates = new Set(
-      employeeLeaveRows
-        .flatMap((leave) =>
-          dateStrings(
-            leave.from < period.from ? period.from : leave.from,
-            leave.to > period.to ? period.to : leave.to,
-          ),
+      employeeLeaveRows.flatMap((leave) =>
+        dateStrings(
+          leave.from < period.from ? period.from : leave.from,
+          leave.to > period.to ? period.to : leave.to,
         ),
+      ),
     );
     const permissionDates = new Set(
       approvedPermissions
@@ -6284,8 +6685,7 @@ async function calculatePayrollPeriod(
     );
     const overtimeHours = moneyValue(
       employeeCalculations.reduce(
-        (total, calculation) =>
-          total + calculation.finalOvertimeMinutes / 60,
+        (total, calculation) => total + calculation.finalOvertimeMinutes / 60,
         0,
       ),
     );
@@ -6294,7 +6694,8 @@ async function calculatePayrollPeriod(
       0,
     );
     const earlyCheckoutMinutes = employeeCalculations.reduce(
-      (total, calculation) => total + calculation.effectiveEarlyDepartureMinutes,
+      (total, calculation) =>
+        total + calculation.effectiveEarlyDepartureMinutes,
       0,
     );
     const missingHours = employeeAttendance.reduce(
@@ -6431,7 +6832,7 @@ async function calculatePayrollPeriod(
               amount: -earlyDeduction,
               type: "early_checkout_deduction" as const,
               explanation: message(req, "earlyCheckoutDeductionExplanation", {
-                  minutes: earlyPenaltyMinutes,
+                minutes: earlyPenaltyMinutes,
               }),
             },
           ]
@@ -6443,7 +6844,7 @@ async function calculatePayrollPeriod(
               amount: -absenceDeduction,
               type: "absence_deduction" as const,
               explanation: message(req, "absenceDeductionExplanation", {
-                  days: calculatedAbsenceDays,
+                days: calculatedAbsenceDays,
               }),
             },
           ]
@@ -7738,10 +8139,10 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
       id: mapping.id,
       deviceId: mapping.deviceId,
       deviceEmployeeId: mapping.deviceEmployeeId,
-       username: account.username,
+      username: account.username,
       employee: employeeReference(employee.employee, employee.department.name),
       active: mapping.active,
-       temporaryPassword,
+      temporaryPassword,
     }),
   );
 });
@@ -8019,7 +8420,8 @@ router.get("/subscription", async (req, res): Promise<void> => {
       status: (row?.subscription.status ?? "trial") as
         "trial" | "active" | "past_due" | "cancelled",
       activeEmployees: activeEmployees.length,
-      employeeLimit: row?.subscription.employeeLimit ?? row?.plan.employeeLimit ?? 0,
+      employeeLimit:
+        row?.subscription.employeeLimit ?? row?.plan.employeeLimit ?? 0,
       features: row?.plan.features ?? [],
     }),
   );
@@ -8051,12 +8453,11 @@ router.get("/platform/companies", async (req, res): Promise<void> => {
     rows.push({
       id: company.id,
       name: company.name,
-      status:
-        company.active
-          ? subscription?.subscription.status === "active"
-            ? "active"
-            : "trial"
-          : "suspended",
+      status: company.active
+        ? subscription?.subscription.status === "active"
+          ? "active"
+          : "trial"
+        : "suspended",
       planName: subscription?.plan.name ?? message(req, "unconfigured"),
       activeEmployees: activeEmployees.length,
       employeeLimit:
@@ -8075,44 +8476,55 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
   const [companies, employees, accounts, subscriptions, activity] =
     await Promise.all([
       db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt)),
-      db.select({
-        id: employeesTable.id,
-        companyId: employeesTable.companyId,
-        status: employeesTable.status,
-      }).from(employeesTable),
-      db.select({
-        id: userAccountsTable.id,
-        username: userAccountsTable.username,
-        displayRole: userAccountsTable.displayRole,
-        companyId: userAccountsTable.companyId,
-        active: userAccountsTable.active,
-        accountType: userAccountsTable.accountType,
-      }).from(userAccountsTable),
-      db.select({
-        companyId: subscriptionsTable.companyId,
-        status: subscriptionsTable.status,
-        planName: plansTable.name,
-        employeeLimit: subscriptionsTable.employeeLimit,
-        planEmployeeLimit: plansTable.employeeLimit,
-        monthlyPrice: subscriptionsTable.monthlyPrice,
-        annualPrice: subscriptionsTable.annualPrice,
-      }).from(subscriptionsTable)
+      db
+        .select({
+          id: employeesTable.id,
+          companyId: employeesTable.companyId,
+          status: employeesTable.status,
+        })
+        .from(employeesTable),
+      db
+        .select({
+          id: userAccountsTable.id,
+          username: userAccountsTable.username,
+          displayRole: userAccountsTable.displayRole,
+          companyId: userAccountsTable.companyId,
+          active: userAccountsTable.active,
+          accountType: userAccountsTable.accountType,
+        })
+        .from(userAccountsTable),
+      db
+        .select({
+          companyId: subscriptionsTable.companyId,
+          status: subscriptionsTable.status,
+          planName: plansTable.name,
+          employeeLimit: subscriptionsTable.employeeLimit,
+          planEmployeeLimit: plansTable.employeeLimit,
+          monthlyPrice: subscriptionsTable.monthlyPrice,
+          annualPrice: subscriptionsTable.annualPrice,
+        })
+        .from(subscriptionsTable)
         .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id)),
-      db.select({
-        id: authAuditEventsTable.id,
-        action: authAuditEventsTable.action,
-        entityType: authAuditEventsTable.entityType,
-        entityId: authAuditEventsTable.entityId,
-        accountId: authAuditEventsTable.accountId,
-        companyId: authAuditEventsTable.companyId,
-        metadata: authAuditEventsTable.metadata,
-        createdAt: authAuditEventsTable.createdAt,
-      }).from(authAuditEventsTable)
+      db
+        .select({
+          id: authAuditEventsTable.id,
+          action: authAuditEventsTable.action,
+          entityType: authAuditEventsTable.entityType,
+          entityId: authAuditEventsTable.entityId,
+          accountId: authAuditEventsTable.accountId,
+          companyId: authAuditEventsTable.companyId,
+          metadata: authAuditEventsTable.metadata,
+          createdAt: authAuditEventsTable.createdAt,
+        })
+        .from(authAuditEventsTable)
         .orderBy(desc(authAuditEventsTable.createdAt))
         .limit(12),
     ]);
 
-  const employeesByCompany = new Map<string, { total: number; active: number }>();
+  const employeesByCompany = new Map<
+    string,
+    { total: number; active: number }
+  >();
   for (const employee of employees) {
     const current = employeesByCompany.get(employee.companyId) ?? {
       total: 0,
@@ -8134,7 +8546,10 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
   );
   const ownerByCompany = new Map(
     accounts
-      .filter((account) => account.accountType === "company_owner" && account.companyId)
+      .filter(
+        (account) =>
+          account.accountType === "company_owner" && account.companyId,
+      )
       .map((account) => [account.companyId!, account]),
   );
 
@@ -8162,7 +8577,9 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
     ...subscriptions
       .filter((subscription) => subscription.status === "past_due")
       .map((subscription) => {
-        const company = companies.find((item) => item.id === subscription.companyId);
+        const company = companies.find(
+          (item) => item.id === subscription.companyId,
+        );
         return {
           id: `subscription-past-due-${subscription.companyId}`,
           severity: "critical" as const,
@@ -8204,13 +8621,13 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
         id: company.id,
         name: company.name,
         slug: company.slug,
-         timezone: company.timezone,
-         currency: company.currency,
+        timezone: company.timezone,
+        currency: company.currency,
         active: company.active,
         status: company.active
           ? subscription?.status === "active"
             ? "active"
-            : subscription?.status ?? "trial"
+            : (subscription?.status ?? "trial")
           : "suspended",
         planName: subscription?.planName ?? "Unconfigured",
         subscriptionStatus: subscription?.status ?? "trial",
@@ -8219,14 +8636,12 @@ router.get("/platform/summary", async (req, res): Promise<void> => {
         userCount: companyAccounts.length,
         activeUsers: companyAccounts.filter((account) => account.active).length,
         employeeLimit:
-          subscription?.employeeLimit ??
-          subscription?.planEmployeeLimit ??
-          0,
-         ownerCount: companyAccounts.filter(
-           (account) => account.accountType === "company_owner",
-         ).length,
-         monthlyPrice: subscription?.monthlyPrice ?? 0,
-         annualPrice: subscription?.annualPrice ?? 0,
+          subscription?.employeeLimit ?? subscription?.planEmployeeLimit ?? 0,
+        ownerCount: companyAccounts.filter(
+          (account) => account.accountType === "company_owner",
+        ).length,
+        monthlyPrice: subscription?.monthlyPrice ?? 0,
+        annualPrice: subscription?.annualPrice ?? 0,
         owner: owner
           ? {
               id: owner.id,
