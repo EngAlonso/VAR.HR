@@ -450,6 +450,46 @@ const copy = {
     accountManagement: "Account management",
     databaseAdministration: "Database Administration",
     accountSettings: "Account Settings",
+    platformOwnerOnly: "Platform Owner only",
+    databaseAdminDetail:
+      "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
+    databaseEntity: "Data entity",
+    filterRecords: "Filter records",
+    searchValues: "Search values",
+    refresh: "Refresh",
+    emergencyDestructiveOperations: "Emergency destructive operations",
+    deleteSelected: "Delete selected",
+    clearEntityData: "Clear filtered/entity data",
+    actions: "Actions",
+    edit: "Edit",
+    noRecordsFound: "No records found",
+    tryAnotherEntityOrFilter: "Try another entity or filter.",
+    editRecord: "Edit record",
+    saveChanges: "Save changes",
+    loadingData: "Loading data…",
+    couldNotLoadDatabaseEntities: "Could not load database entities.",
+    couldNotLoadData: "Could not load data.",
+    couldNotSaveRecord: "Could not save record.",
+    deleteFailed:
+      "Delete failed. Relationships may prevent this record from being removed.",
+    clearFailed: "Clear failed.",
+    exportFailed: "Export failed.",
+    deleteRecordsConfirmation:
+      "This will permanently delete {count} record(s). Type {phrase} to continue.",
+    clearEntityConfirmation:
+      "This emergency operation will delete all matching records. Type {phrase} to continue.",
+    accountSettingsDetail:
+      "Update only your currently authenticated Platform Owner account.",
+    fullName: "Full name",
+    phoneLoginUsername: "Phone number / login username",
+    changePassword: "Change password",
+    passwordChangeHint:
+      "Enter your current password to set a new password (minimum 6 characters).",
+    currentPassword: "Current password",
+    newPassword: "New password",
+    saveAccountSettings: "Save account settings",
+    accountSettingsUpdated: "Account settings updated.",
+    couldNotUpdateAccountSettings: "Could not update account settings.",
     workspace: "Workspace",
     departmentOperations: "Operations",
     departmentPeopleCulture: "People & Culture",
@@ -1766,6 +1806,44 @@ const pageCopy = {
     accountManagement: "إدارة الحسابات",
     databaseAdministration: "إدارة قاعدة البيانات",
     accountSettings: "إعدادات الحساب",
+    platformOwnerOnly: "للمالك فقط",
+    databaseAdminDetail:
+      "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
+    databaseEntity: "كيان البيانات",
+    filterRecords: "تصفية السجلات",
+    searchValues: "ابحث في القيم",
+    refresh: "تحديث",
+    emergencyDestructiveOperations: "عمليات طارئة مدمرة",
+    deleteSelected: "حذف المحدد",
+    clearEntityData: "تنظيف البيانات المصفاة/الكيان",
+    actions: "الإجراءات",
+    edit: "تعديل",
+    noRecordsFound: "لا توجد سجلات",
+    tryAnotherEntityOrFilter: "جرّب كياناً أو تصفية أخرى.",
+    editRecord: "تعديل السجل",
+    saveChanges: "حفظ التغييرات",
+    loadingData: "جارٍ تحميل البيانات…",
+    couldNotLoadDatabaseEntities: "تعذر تحميل كيانات قاعدة البيانات.",
+    couldNotLoadData: "تعذر تحميل البيانات.",
+    couldNotSaveRecord: "تعذر حفظ السجل.",
+    deleteFailed: "فشل الحذف. قد تمنع العلاقات حذف هذا السجل.",
+    clearFailed: "فشل تنظيف البيانات.",
+    exportFailed: "فشل التصدير.",
+    deleteRecordsConfirmation:
+      "سيتم حذف {count} سجل نهائياً. اكتب {phrase} للمتابعة.",
+    clearEntityConfirmation:
+      "سيحذف هذا الإجراء الطارئ كل السجلات المطابقة. اكتب {phrase} للمتابعة.",
+    accountSettingsDetail: "حدّث حساب مالك المنصة المصادق عليه حالياً فقط.",
+    fullName: "الاسم الكامل",
+    phoneLoginUsername: "رقم الهاتف / اسم تسجيل الدخول",
+    changePassword: "تغيير كلمة المرور",
+    passwordChangeHint:
+      "أدخل كلمة المرور الحالية لتعيين كلمة مرور جديدة (6 أحرف على الأقل).",
+    currentPassword: "كلمة المرور الحالية",
+    newPassword: "كلمة المرور الجديدة",
+    saveAccountSettings: "حفظ إعدادات الحساب",
+    accountSettingsUpdated: "تم تحديث إعدادات الحساب.",
+    couldNotUpdateAccountSettings: "تعذر تحديث إعدادات الحساب.",
   },
   fr: {
     employeesEyebrow: "Registre des effectifs",
@@ -10137,11 +10215,30 @@ type AdminEntity = {
   editable: string[];
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
+const entityLabels: Record<string, string> = {
+  companies: "Companies",
+  departments: "Departments",
+  branches: "Branches",
+  employees: "Employees",
+  attendance: "Attendance",
+  devices: "Devices",
+  holidays: "Holidays",
+  payrollPeriods: "Payroll periods",
+};
+const entityLabelsArabic: Record<string, string> = {
+  companies: "الشركات",
+  departments: "الأقسام",
+  branches: "الفروع",
+  employees: "الموظفون",
+  attendance: "الحضور",
+  devices: "الأجهزة",
+  holidays: "العطلات",
+  payrollPeriods: "فترات الرواتب",
+};
 
 function DatabaseAdministration() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const auth = useAuth();
-  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const [entities, setEntities] = useState<AdminEntity[]>([]);
   const [entity, setEntity] = useState("");
   const [data, setData] = useState<AdminData | null>(null);
@@ -10173,23 +10270,14 @@ function DatabaseAdministration() {
       );
       setSelected([]);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : text("Could not load data.", "تعذر تحميل البيانات."),
-      );
+      setError(t("couldNotLoadData"));
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
     void loadEntities().catch(() =>
-      setError(
-        text(
-          "Could not load database entities.",
-          "تعذر تحميل كيانات قاعدة البيانات.",
-        ),
-      ),
+      setError(t("couldNotLoadDatabaseEntities")),
     );
   }, []);
   useEffect(() => {
@@ -10211,11 +10299,7 @@ function DatabaseAdministration() {
       setEditing(null);
       await load();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : text("Could not save record.", "تعذر حفظ السجل."),
-      );
+      setError(t("couldNotSaveRecord"));
     } finally {
       setPending("");
     }
@@ -10223,10 +10307,9 @@ function DatabaseAdministration() {
   const remove = async (ids: string[]) => {
     const phrase = ids.length > 1 ? "DELETE SELECTED" : "DELETE RECORD";
     const typed = window.prompt(
-      text(
-        `This will permanently delete ${ids.length} record(s). Type ${phrase} to continue.`,
-        `سيتم حذف ${ids.length} سجل نهائياً. اكتب ${phrase} للمتابعة.`,
-      ),
+      t("deleteRecordsConfirmation")
+        .replace("{count}", String(ids.length))
+        .replace("{phrase}", phrase),
     );
     if (typed !== phrase) return;
     setPending("delete");
@@ -10240,14 +10323,7 @@ function DatabaseAdministration() {
       });
       await load();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : text(
-              "Delete failed. Relationships may prevent this record from being removed.",
-              "فشل الحذف. قد تمنع العلاقات حذف هذا السجل.",
-            ),
-      );
+      setError(t("deleteFailed"));
     } finally {
       setPending("");
     }
@@ -10255,10 +10331,7 @@ function DatabaseAdministration() {
   const clear = async () => {
     const phrase = `CLEAR ${entity.toUpperCase()}`;
     const typed = window.prompt(
-      text(
-        `This emergency operation will delete all matching records. Type ${phrase} to continue.`,
-        `سيحذف هذا الإجراء الطارئ كل السجلات المطابقة. اكتب ${phrase} للمتابعة.`,
-      ),
+      t("clearEntityConfirmation").replace("{phrase}", phrase),
     );
     if (typed !== phrase) return;
     setPending("clear");
@@ -10269,11 +10342,7 @@ function DatabaseAdministration() {
       });
       await load();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : text("Clear failed.", "فشل تنظيف البيانات."),
-      );
+      setError(t("clearFailed"));
     } finally {
       setPending("");
     }
@@ -10284,7 +10353,7 @@ function DatabaseAdministration() {
       const response = await fetch(`/api/platform/database/${entity}/export`, {
         credentials: "include",
       });
-      if (!response.ok) throw new Error(text("Export failed.", "فشل التصدير."));
+      if (!response.ok) throw new Error(t("exportFailed"));
       const url = URL.createObjectURL(await response.blob());
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -10292,11 +10361,7 @@ function DatabaseAdministration() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : text("Export failed.", "فشل التصدير."),
-      );
+      setError(t("exportFailed"));
     } finally {
       setPending("");
     }
@@ -10304,17 +10369,14 @@ function DatabaseAdministration() {
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={text("Platform Owner only", "للمالك فقط")}
-        title={text("Database Administration", "إدارة قاعدة البيانات")}
-        detail={text(
-          "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
-          "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
-        )}
+        eyebrow={t("platformOwnerOnly")}
+        title={t("databaseAdministration")}
+        detail={t("databaseAdminDetail")}
       />
       <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-border p-5 lg:flex-row lg:items-end">
           <label className="flex-1 text-sm font-semibold">
-            {text("Data entity", "كيان البيانات")}
+            {t("databaseEntity")}
             <select
               className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
               value={entity}
@@ -10322,18 +10384,20 @@ function DatabaseAdministration() {
             >
               {entities.map((item) => (
                 <option key={item.key} value={item.key}>
-                  {locale === "ar" ? item.key : item.label}
+                  {locale === "ar"
+                    ? (entityLabelsArabic[item.key] ?? item.label)
+                    : (entityLabels[item.key] ?? item.label)}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex-1 text-sm font-semibold">
-            {text("Filter records", "تصفية السجلات")}
+            {t("filterRecords")}
             <input
               className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={text("Search values", "ابحث في القيم")}
+              placeholder={t("searchValues")}
             />
           </label>
           <Button
@@ -10341,7 +10405,7 @@ function DatabaseAdministration() {
             onClick={() => void load()}
             disabled={pending !== ""}
           >
-            {text("Refresh", "تحديث")}
+            {t("refresh")}
           </Button>
           <Button
             variant="outline"
@@ -10349,7 +10413,7 @@ function DatabaseAdministration() {
             disabled={pending !== "" || !data}
           >
             <Download size={14} />
-            {pending === "export" ? "…" : text("Export Excel", "تصدير Excel")}
+            {pending === "export" ? "…" : t("exportExcel")}
           </Button>
         </div>
         {error && (
@@ -10359,7 +10423,7 @@ function DatabaseAdministration() {
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 p-4 text-sm">
           <span className="font-semibold text-destructive">
-            {text("Emergency destructive operations", "عمليات طارئة مدمرة")}
+            {t("emergencyDestructiveOperations")}
           </span>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -10367,25 +10431,23 @@ function DatabaseAdministration() {
               disabled={pending !== "" || selected.length === 0}
               onClick={() => void remove(selected)}
             >
-              {text("Delete selected", "حذف المحدد")}
+              {t("deleteSelected")}
             </Button>
             <Button
               variant="danger"
               disabled={pending !== "" || !data}
               onClick={() => void clear()}
             >
-              {pending === "clear"
-                ? "…"
-                : text(
-                    "Clear filtered/entity data",
-                    "تنظيف البيانات المصفاة/الكيان",
-                  )}
+              {pending === "clear" ? "…" : t("clearEntityData")}
             </Button>
           </div>
         </div>
         {loading ? (
           <div className="p-5">
             <Skeleton className="h-64" />
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              {t("loadingData")}
+            </p>
           </div>
         ) : data && data.rows.length ? (
           <div className="overflow-x-auto">
@@ -10410,7 +10472,7 @@ function DatabaseAdministration() {
                       {column}
                     </th>
                   ))}
-                  <th className="p-3">{text("Actions", "الإجراءات")}</th>
+                  <th className="p-3">{t("actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -10445,7 +10507,7 @@ function DatabaseAdministration() {
                           variant="outline"
                           onClick={() => setEditing({ ...row })}
                         >
-                          {text("Edit", "تعديل")}
+                          {t("edit")}
                         </Button>
                         <Button
                           variant="danger"
@@ -10462,17 +10524,14 @@ function DatabaseAdministration() {
           </div>
         ) : (
           <Empty
-            title={text("No records found", "لا توجد سجلات")}
-            detail={text(
-              "Try another entity or filter.",
-              "جرّب كياناً أو تصفية أخرى.",
-            )}
+            title={t("noRecordsFound")}
+            detail={t("tryAnotherEntityOrFilter")}
           />
         )}
       </Card>
       {editing && data && (
         <Modal
-          title={text("Edit record", "تعديل السجل")}
+          title={t("editRecord")}
           onClose={() => setEditing(null)}
           className="max-w-2xl"
         >
@@ -10488,10 +10547,10 @@ function DatabaseAdministration() {
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="quiet" onClick={() => setEditing(null)}>
-              {text("Cancel", "إلغاء")}
+              {t("cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={pending !== ""}>
-              {pending === "save" ? "…" : text("Save changes", "حفظ التغييرات")}
+              {pending === "save" ? "…" : t("saveChanges")}
             </Button>
           </div>
         </Modal>
@@ -10501,9 +10560,8 @@ function DatabaseAdministration() {
 }
 
 function PlatformAccountSettings() {
-  const { locale } = useI18n();
+  const { t } = useI18n();
   const auth = useAuth();
-  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const [fullName, setFullName] = useState(auth.account.fullName);
   const [username, setUsername] = useState(auth.account.username);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -10525,18 +10583,9 @@ function PlatformAccountSettings() {
       });
       setCurrentPassword("");
       setNewPassword("");
-      toast.success(
-        text("Account settings updated.", "تم تحديث إعدادات الحساب."),
-      );
+      toast.success(t("accountSettingsUpdated"));
     } catch (cause) {
-      toast.error(
-        cause instanceof Error
-          ? cause.message
-          : text(
-              "Could not update account settings.",
-              "تعذر تحديث إعدادات الحساب.",
-            ),
-      );
+      toast.error(t("couldNotUpdateAccountSettings"));
     } finally {
       setPending(false);
     }
@@ -10544,47 +10593,36 @@ function PlatformAccountSettings() {
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={text("Platform Owner only", "للمالك فقط")}
-        title={text("Account Settings", "إعدادات الحساب")}
-        detail={text(
-          "Update only your currently authenticated Platform Owner account.",
-          "حدّث حساب مالك المنصة المصادق عليه حالياً فقط.",
-        )}
+        eyebrow={t("platformOwnerOnly")}
+        title={t("accountSettings")}
+        detail={t("accountSettingsDetail")}
       />
       <Card className="max-w-2xl p-5">
         <div className="space-y-4">
           <Field
-            label={text("Full name", "الاسم الكامل")}
+            label={t("fullName")}
             value={fullName}
             onChange={setFullName}
           />
           <Field
-            label={text(
-              "Phone number / login username",
-              "رقم الهاتف / اسم تسجيل الدخول",
-            )}
+            label={t("phoneLoginUsername")}
             value={username}
             onChange={setUsername}
           />
           <div className="border-t border-border pt-4">
-            <h2 className="font-semibold">
-              {text("Change password", "تغيير كلمة المرور")}
-            </h2>
+            <h2 className="font-semibold">{t("changePassword")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {text(
-                "Enter your current password to set a new password (minimum 6 characters).",
-                "أدخل كلمة المرور الحالية لتعيين كلمة مرور جديدة (6 أحرف على الأقل).",
-              )}
+              {t("passwordChangeHint")}
             </p>
             <div className="mt-3 space-y-3">
               <Field
-                label={text("Current password", "كلمة المرور الحالية")}
+                label={t("currentPassword")}
                 type="password"
                 value={currentPassword}
                 onChange={setCurrentPassword}
               />
               <Field
-                label={text("New password", "كلمة المرور الجديدة")}
+                label={t("newPassword")}
                 type="password"
                 value={newPassword}
                 onChange={setNewPassword}
@@ -10593,9 +10631,7 @@ function PlatformAccountSettings() {
           </div>
           <div className="flex justify-end">
             <Button onClick={() => void save()} disabled={pending}>
-              {pending
-                ? "…"
-                : text("Save account settings", "حفظ إعدادات الحساب")}
+              {pending ? "…" : t("saveAccountSettings")}
             </Button>
           </div>
         </div>
