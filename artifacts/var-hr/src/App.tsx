@@ -126,6 +126,9 @@ import {
   useUpdateWorkSchedule,
   useGetEmployeeSchedule,
   useAssignEmployeeSchedule,
+  useSetDefaultWorkSchedule,
+  useListScheduleAssignments,
+  useBulkAssignEmployeeSchedules,
   useListHolidays,
   useCreateHoliday,
   useUpdateHoliday,
@@ -162,6 +165,7 @@ import {
   getListDeviceMappingsQueryKey,
   getListWorkSchedulesQueryKey,
   getGetEmployeeScheduleQueryKey,
+  getListScheduleAssignmentsQueryKey,
   getListHolidaysQueryKey,
   getListDeviceSyncHistoryQueryKey,
   getListAttendanceLocationsQueryKey,
@@ -3380,11 +3384,21 @@ const task5Copy = {
     createSchedule: "Create schedule",
     editSchedule: "Edit schedule",
     scheduleName: "Schedule name",
+    scheduleNameAr: "Arabic name",
     workingDays: "Working days",
     startTime: "Start time",
     endTime: "End time",
     requiredHours: "Required hours",
     graceMinutes: "Grace minutes",
+    earlyCheckoutGraceMinutes: "Early checkout grace (minutes)",
+    breakDurationMinutes: "Break duration (minutes)",
+    breakPaid: "Paid break",
+    defaultSchedule: "Company default",
+    setDefaultSchedule: "Set as default",
+    assignmentHistory: "Assignment history",
+    bulkAssignment: "Bulk assignment",
+    selectEmployees: "Select employees",
+    bulkAssigned: "Employees assigned",
     overtimeAfterMinutes: "Overtime after (minutes)",
     overtimeEligible: "Overtime eligible",
     activeSchedule: "Active schedule",
@@ -3480,11 +3494,21 @@ const task5Copy = {
     createSchedule: "إنشاء جدول",
     editSchedule: "تعديل الجدول",
     scheduleName: "اسم الجدول",
+    scheduleNameAr: "الاسم بالعربية",
     workingDays: "أيام العمل",
     startTime: "وقت البدء",
     endTime: "وقت الانتهاء",
     requiredHours: "الساعات المطلوبة",
     graceMinutes: "دقائق السماح",
+    earlyCheckoutGraceMinutes: "سماح الانصراف المبكر (بالدقائق)",
+    breakDurationMinutes: "مدة الاستراحة (بالدقائق)",
+    breakPaid: "استراحة مدفوعة",
+    defaultSchedule: "الافتراضي للشركة",
+    setDefaultSchedule: "تعيين كافتراضي",
+    assignmentHistory: "سجل التعيينات",
+    bulkAssignment: "تعيين جماعي",
+    selectEmployees: "اختر الموظفين",
+    bulkAssigned: "تم تعيين الموظفين",
     overtimeAfterMinutes: "العمل الإضافي بعد (دقائق)",
     overtimeEligible: "مؤهل للعمل الإضافي",
     activeSchedule: "جدول نشط",
@@ -9202,15 +9226,25 @@ function Schedules() {
   const create = useCreateWorkSchedule();
   const update = useUpdateWorkSchedule();
   const assign = useAssignEmployeeSchedule();
+  const setDefault = useSetDefaultWorkSchedule();
+  const history = useListScheduleAssignments({
+    query: { enabled: canAdminister || role === "manager", queryKey: getListScheduleAssignmentsQueryKey() },
+  });
+  const bulkAssign = useBulkAssignEmployeeSchedules();
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({
     name: "",
+    nameAr: "",
     workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
     startTime: "09:00",
     endTime: "17:00",
+    overnight: false,
     requiredHours: "8",
+    breakDurationMinutes: "0",
+    breakPaid: true,
     graceMinutes: "15",
+    earlyCheckoutGraceMinutes: "0",
     overtimeAfterMinutes: "30",
     overtimeEligible: true,
     active: true,
@@ -9221,17 +9255,25 @@ function Schedules() {
       schedule
         ? {
             ...schedule,
+            nameAr: schedule.nameAr || "",
             requiredHours: String(schedule.requiredHours),
+            breakDurationMinutes: String(schedule.breakDurationMinutes),
+            earlyCheckoutGraceMinutes: String(schedule.earlyCheckoutGraceMinutes),
             graceMinutes: String(schedule.graceMinutes),
             overtimeAfterMinutes: String(schedule.overtimeAfterMinutes),
           }
         : {
             name: "",
+            nameAr: "",
             workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
             startTime: "09:00",
             endTime: "17:00",
+            overnight: false,
             requiredHours: "8",
+            breakDurationMinutes: "0",
+            breakPaid: true,
             graceMinutes: "15",
+            earlyCheckoutGraceMinutes: "0",
             overtimeAfterMinutes: "30",
             overtimeEligible: true,
             active: true,
@@ -9253,8 +9295,12 @@ function Schedules() {
     const data = {
       ...draft,
       name: draft.name.trim(),
+      nameAr: draft.nameAr.trim(),
       requiredHours: Number(draft.requiredHours),
+      breakDurationMinutes: Number(draft.breakDurationMinutes),
+      breakPaid: Boolean(draft.breakPaid),
       graceMinutes: Number(draft.graceMinutes),
+      earlyCheckoutGraceMinutes: Number(draft.earlyCheckoutGraceMinutes),
       overtimeAfterMinutes: Number(draft.overtimeAfterMinutes),
       active: Boolean(draft.active),
     };
@@ -9310,6 +9356,44 @@ function Schedules() {
       effectiveTo: effective.data?.assignment?.effectiveTo || "",
     }));
   }
+  function makeDefault(scheduleId: string) {
+    setDefault.mutate(
+      { scheduleId },
+      {
+        onSuccess: () => {
+          toast.success(t("defaultSchedule"));
+          qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("scheduleSaveFailed"))),
+      },
+    );
+  }
+  function submitBulkAssignment(event: FormEvent) {
+    event.preventDefault();
+    const selected = draft.bulkEmployeeIds || [];
+    if (!selected.length || !draft.bulkScheduleId || !draft.bulkEffectiveFrom) return;
+    bulkAssign.mutate(
+      {
+        data: {
+          employeeIds: selected,
+          scheduleId: draft.bulkScheduleId,
+          effectiveFrom: draft.bulkEffectiveFrom,
+          effectiveTo: draft.bulkEffectiveTo || null,
+        },
+      },
+      {
+        onSuccess: (result: any) => {
+          toast.success(`${result.assigned} ${t("bulkAssigned")}`);
+          setDraft((value: any) => ({ ...value, bulkEmployeeIds: [] }));
+          qc.invalidateQueries({ queryKey: getListScheduleAssignmentsQueryKey() });
+          qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("scheduleAssignmentFailed"))),
+      },
+    );
+  }
   const effectiveSchedule = effective.data?.schedule;
   return (
     <div className="animate-in">
@@ -9352,6 +9436,9 @@ function Schedules() {
                       <div>
                         <div className="flex items-center gap-2 font-semibold">
                           {schedule.name}
+                          {schedule.isDefault && (
+                            <Badge tone="accent">{t("defaultSchedule")}</Badge>
+                          )}
                           <Badge tone={schedule.active ? "good" : "neutral"}>
                             {schedule.active
                               ? t("activeSchedule")
@@ -9370,12 +9457,20 @@ function Schedules() {
                             .join(" · ")}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => openEditor(schedule)}
-                      >
-                        {t("editSchedule")}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        {!schedule.isDefault && (
+                          <Button
+                            variant="outline"
+                            onClick={() => makeDefault(schedule.id)}
+                            disabled={setDefault.isPending}
+                          >
+                            {t("setDefaultSchedule")}
+                          </Button>
+                        )}
+                        <Button variant="outline" onClick={() => openEditor(schedule)}>
+                          {t("editSchedule")}
+                        </Button>
+                      </div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <Info label={t("startTime")} value={schedule.startTime} />
@@ -9514,6 +9609,68 @@ function Schedules() {
               )}
             </div>
           </Card>
+          <Card className="xl:col-span-2">
+            <div className="border-b border-border p-5">
+              <h2 className="font-display text-lg font-semibold">{t("bulkAssignment")}</h2>
+              <p className="text-sm text-muted-foreground">{t("effectiveSchedule")}</p>
+            </div>
+            <form onSubmit={submitBulkAssignment} className="grid gap-4 p-5 lg:grid-cols-[1fr_1fr_1fr_auto]">
+              <label className="block text-sm font-semibold">
+                {t("selectEmployees")}
+                <select
+                  multiple
+                  value={draft.bulkEmployeeIds || []}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      bulkEmployeeIds: Array.from(event.target.selectedOptions, (option) => option.value),
+                    })
+                  }
+                  className="mt-1 min-h-28 w-full rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal"
+                >
+                  {employees.data?.map((employee: any) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.firstName} {employee.lastName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                {t("selectSchedule")}
+                <select
+                  required
+                  value={draft.bulkScheduleId || ""}
+                  onChange={(event) => setDraft({ ...draft, bulkScheduleId: event.target.value })}
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
+                >
+                  <option value="">{t("selectSchedule")}</option>
+                  {schedules.data?.filter((schedule: any) => schedule.active).map((schedule: any) => (
+                    <option key={schedule.id} value={schedule.id}>{schedule.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <Field label={t("effectiveFrom")} type="date" required value={draft.bulkEffectiveFrom || ""} onChange={(value) => setDraft({ ...draft, bulkEffectiveFrom: value })} />
+                <Field label={t("effectiveTo")} type="date" value={draft.bulkEffectiveTo || ""} onChange={(value) => setDraft({ ...draft, bulkEffectiveTo: value })} />
+              </div>
+              <Button type="submit" disabled={bulkAssign.isPending} className="self-end">
+                {bulkAssign.isPending ? t("saving") : t("bulkAssignment")}
+              </Button>
+            </form>
+          </Card>
+          <Card className="xl:col-span-2">
+            <div className="border-b border-border p-5">
+              <h2 className="font-display text-lg font-semibold">{t("assignmentHistory")}</h2>
+            </div>
+            {history.isLoading ? <Skeleton className="m-5 h-24" /> : history.isError ? <ErrorState retry={() => history.refetch()} /> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-start text-sm">
+                  <thead><tr className="border-b border-border text-muted-foreground"><th className="px-5 py-3 text-start">{t("employee")}</th><th className="px-5 py-3 text-start">{t("scheduleName")}</th><th className="px-5 py-3 text-start">{t("effectiveFrom")}</th><th className="px-5 py-3 text-start">{t("effectiveTo")}</th></tr></thead>
+                  <tbody>{history.data?.map((item: any) => <tr className="border-b border-border/60" key={item.id}><td className="px-5 py-3">{item.employeeName}</td><td className="px-5 py-3">{item.scheduleName}</td><td className="px-5 py-3">{date(item.effectiveFrom)}</td><td className="px-5 py-3">{date(item.effectiveTo)}</td></tr>)}</tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </div>
       ) : (
         <Card>
@@ -9560,6 +9717,11 @@ function Schedules() {
               required
               value={draft.name}
               onChange={(value) => setDraft({ ...draft, name: value })}
+            />
+            <Field
+              label={t("scheduleNameAr")}
+              value={draft.nameAr}
+              onChange={(value) => setDraft({ ...draft, nameAr: value })}
             />
             <div>
               <p className="text-sm font-semibold">{t("workingDays")}</p>
@@ -9612,6 +9774,10 @@ function Schedules() {
                 {t("overnightScheduleDetail")}
               </p>
             ) : null}
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={draft.overnight} onChange={(event) => setDraft({ ...draft, overnight: event.target.checked })} />
+              {t("overnightSchedule")}
+            </label>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field
                 label={t("requiredHours")}
@@ -9632,6 +9798,20 @@ function Schedules() {
                 }
               />
               <Field
+                label={t("earlyCheckoutGraceMinutes")}
+                required
+                type="number"
+                value={draft.earlyCheckoutGraceMinutes}
+                onChange={(value) => setDraft({ ...draft, earlyCheckoutGraceMinutes: value })}
+              />
+              <Field
+                label={t("breakDurationMinutes")}
+                required
+                type="number"
+                value={draft.breakDurationMinutes}
+                onChange={(value) => setDraft({ ...draft, breakDurationMinutes: value })}
+              />
+              <Field
                 label={t("overtimeAfterMinutes")}
                 required
                 type="number"
@@ -9641,6 +9821,10 @@ function Schedules() {
                 }
               />
             </div>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={draft.breakPaid} onChange={(event) => setDraft({ ...draft, breakPaid: event.target.checked })} />
+              {t("breakPaid")}
+            </label>
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"

@@ -43,6 +43,8 @@ import type {
   BiometricProvider,
   Branch,
   BranchInput,
+  BulkScheduleAssignmentInput,
+  BulkScheduleAssignmentResponse,
   DashboardSummary,
   Department,
   DepartmentInput,
@@ -93,6 +95,7 @@ import type {
   PlatformSummary,
   Report,
   RequestDecisionInput,
+  ScheduleAssignmentHistory,
   SetAuthAccountPassword200,
   StaffAccountCreated,
   StaffAccountInput,
@@ -3326,6 +3329,225 @@ export const useUpdateWorkSchedule = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateWorkScheduleMutationOptions(options));
+    }
+
+export const getSetDefaultWorkScheduleUrl = (scheduleId: string,) => {
+
+
+
+
+  return `/api/schedules/${scheduleId}/default`
+}
+
+/**
+ * @summary Set the company's default work schedule
+ */
+export const setDefaultWorkSchedule = async (scheduleId: string, options?: Parameters<typeof customFetch>[1]): Promise<WorkSchedule> => {
+
+  return customFetch<WorkSchedule>(getSetDefaultWorkScheduleUrl(scheduleId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getSetDefaultWorkScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setDefaultWorkSchedule>>, TError,{scheduleId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setDefaultWorkSchedule>>, TError,{scheduleId: string}, TContext> => {
+
+const mutationKey = ['setDefaultWorkSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setDefaultWorkSchedule>>, {scheduleId: string}> = (props) => {
+          const {scheduleId} = props ?? {};
+
+          return  setDefaultWorkSchedule(scheduleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetDefaultWorkScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof setDefaultWorkSchedule>>>
+
+    export type SetDefaultWorkScheduleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set the company's default work schedule
+ */
+export const useSetDefaultWorkSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setDefaultWorkSchedule>>, TError,{scheduleId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setDefaultWorkSchedule>>,
+        TError,
+        {scheduleId: string},
+        TContext
+      > => {
+      return useMutation(getSetDefaultWorkScheduleMutationOptions(options));
+    }
+
+export const getListScheduleAssignmentsUrl = () => {
+
+
+
+
+  return `/api/schedule-assignments`
+}
+
+/**
+ * @summary List schedule assignment history
+ */
+export const listScheduleAssignments = async ( options?: Parameters<typeof customFetch>[1]): Promise<ScheduleAssignmentHistory[]> => {
+
+  return customFetch<ScheduleAssignmentHistory[]>(getListScheduleAssignmentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListScheduleAssignmentsQueryKey = () => {
+    return [
+    `/api/schedule-assignments`
+    ] as const;
+    }
+
+
+export const getListScheduleAssignmentsQueryOptions = <TData = Awaited<ReturnType<typeof listScheduleAssignments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduleAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListScheduleAssignmentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScheduleAssignments>>> = ({ signal }) => listScheduleAssignments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listScheduleAssignments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListScheduleAssignmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listScheduleAssignments>>>
+export type ListScheduleAssignmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List schedule assignment history
+ */
+
+export function useListScheduleAssignments<TData = Awaited<ReturnType<typeof listScheduleAssignments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduleAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListScheduleAssignmentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getBulkAssignEmployeeSchedulesUrl = () => {
+
+
+
+
+  return `/api/schedule-assignments`
+}
+
+/**
+ * @summary Assign a schedule to multiple employees
+ */
+export const bulkAssignEmployeeSchedules = async (bulkScheduleAssignmentInput: BulkScheduleAssignmentInput, options?: Parameters<typeof customFetch>[1]): Promise<BulkScheduleAssignmentResponse> => {
+
+  return customFetch<BulkScheduleAssignmentResponse>(getBulkAssignEmployeeSchedulesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkScheduleAssignmentInput)
+  }
+);}
+
+
+
+
+
+export const getBulkAssignEmployeeSchedulesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>, TError,{data: BodyType<BulkScheduleAssignmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>, TError,{data: BodyType<BulkScheduleAssignmentInput>}, TContext> => {
+
+const mutationKey = ['bulkAssignEmployeeSchedules'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>, {data: BodyType<BulkScheduleAssignmentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkAssignEmployeeSchedules(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkAssignEmployeeSchedulesMutationResult = NonNullable<Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>>
+    export type BulkAssignEmployeeSchedulesMutationBody = BodyType<BulkScheduleAssignmentInput>
+    export type BulkAssignEmployeeSchedulesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Assign a schedule to multiple employees
+ */
+export const useBulkAssignEmployeeSchedules = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>, TError,{data: BodyType<BulkScheduleAssignmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkAssignEmployeeSchedules>>,
+        TError,
+        {data: BodyType<BulkScheduleAssignmentInput>},
+        TContext
+      > => {
+      return useMutation(getBulkAssignEmployeeSchedulesMutationOptions(options));
     }
 
 export const getGetEmployeeScheduleUrl = (employeeId: string,) => {

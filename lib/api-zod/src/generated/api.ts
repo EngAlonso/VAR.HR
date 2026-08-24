@@ -1350,8 +1350,14 @@ export const listWorkSchedulesResponseEndTimeRegExp = new RegExp('^[0-2][0-9]:[0
 export const listWorkSchedulesResponseRequiredHoursMin = 0;
 export const listWorkSchedulesResponseRequiredHoursMax = 24;
 
+export const listWorkSchedulesResponseBreakDurationMinutesMin = 0;
+export const listWorkSchedulesResponseBreakDurationMinutesMax = 1440;
+
 export const listWorkSchedulesResponseGraceMinutesMin = 0;
 export const listWorkSchedulesResponseGraceMinutesMax = 1440;
+
+export const listWorkSchedulesResponseEarlyCheckoutGraceMinutesMin = 0;
+export const listWorkSchedulesResponseEarlyCheckoutGraceMinutesMax = 1440;
 
 export const listWorkSchedulesResponseOvertimeAfterMinutesMin = 0;
 export const listWorkSchedulesResponseOvertimeAfterMinutesMax = 1440;
@@ -1361,14 +1367,20 @@ export const listWorkSchedulesResponseOvertimeAfterMinutesMax = 1440;
 export const ListWorkSchedulesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(listWorkSchedulesResponseStartTimeRegExp),
   "endTime": zod.string().regex(listWorkSchedulesResponseEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(listWorkSchedulesResponseRequiredHoursMin).max(listWorkSchedulesResponseRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(listWorkSchedulesResponseBreakDurationMinutesMin).max(listWorkSchedulesResponseBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(listWorkSchedulesResponseGraceMinutesMin).max(listWorkSchedulesResponseGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(listWorkSchedulesResponseEarlyCheckoutGraceMinutesMin).max(listWorkSchedulesResponseEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(listWorkSchedulesResponseOvertimeAfterMinutesMin).max(listWorkSchedulesResponseOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean(),
+  "isDefault": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})
 })
@@ -1385,8 +1397,14 @@ export const createWorkScheduleBodyEndTimeRegExp = new RegExp('^[0-2][0-9]:[0-5]
 export const createWorkScheduleBodyRequiredHoursMin = 0;
 export const createWorkScheduleBodyRequiredHoursMax = 24;
 
+export const createWorkScheduleBodyBreakDurationMinutesMin = 0;
+export const createWorkScheduleBodyBreakDurationMinutesMax = 1440;
+
 export const createWorkScheduleBodyGraceMinutesMin = 0;
 export const createWorkScheduleBodyGraceMinutesMax = 1440;
+
+export const createWorkScheduleBodyEarlyCheckoutGraceMinutesMin = 0;
+export const createWorkScheduleBodyEarlyCheckoutGraceMinutesMax = 1440;
 
 export const createWorkScheduleBodyOvertimeAfterMinutesMin = 0;
 export const createWorkScheduleBodyOvertimeAfterMinutesMax = 1440;
@@ -1395,11 +1413,16 @@ export const createWorkScheduleBodyActiveDefault = true;
 
 export const CreateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
   "startTime": zod.string().regex(createWorkScheduleBodyStartTimeRegExp),
   "endTime": zod.string().regex(createWorkScheduleBodyEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(createWorkScheduleBodyRequiredHoursMin).max(createWorkScheduleBodyRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(createWorkScheduleBodyBreakDurationMinutesMin).max(createWorkScheduleBodyBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(createWorkScheduleBodyGraceMinutesMin).max(createWorkScheduleBodyGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(createWorkScheduleBodyEarlyCheckoutGraceMinutesMin).max(createWorkScheduleBodyEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(createWorkScheduleBodyOvertimeAfterMinutesMin).max(createWorkScheduleBodyOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean().default(createWorkScheduleBodyActiveDefault)
@@ -1410,8 +1433,14 @@ export const createWorkScheduleResponseEndTimeRegExp = new RegExp('^[0-2][0-9]:[
 export const createWorkScheduleResponseRequiredHoursMin = 0;
 export const createWorkScheduleResponseRequiredHoursMax = 24;
 
+export const createWorkScheduleResponseBreakDurationMinutesMin = 0;
+export const createWorkScheduleResponseBreakDurationMinutesMax = 1440;
+
 export const createWorkScheduleResponseGraceMinutesMin = 0;
 export const createWorkScheduleResponseGraceMinutesMax = 1440;
+
+export const createWorkScheduleResponseEarlyCheckoutGraceMinutesMin = 0;
+export const createWorkScheduleResponseEarlyCheckoutGraceMinutesMax = 1440;
 
 export const createWorkScheduleResponseOvertimeAfterMinutesMin = 0;
 export const createWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
@@ -1421,14 +1450,20 @@ export const createWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
 export const CreateWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(createWorkScheduleResponseStartTimeRegExp),
   "endTime": zod.string().regex(createWorkScheduleResponseEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(createWorkScheduleResponseRequiredHoursMin).max(createWorkScheduleResponseRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(createWorkScheduleResponseBreakDurationMinutesMin).max(createWorkScheduleResponseBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(createWorkScheduleResponseGraceMinutesMin).max(createWorkScheduleResponseGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(createWorkScheduleResponseEarlyCheckoutGraceMinutesMin).max(createWorkScheduleResponseEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(createWorkScheduleResponseOvertimeAfterMinutesMin).max(createWorkScheduleResponseOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean(),
+  "isDefault": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})
 })
@@ -1448,8 +1483,14 @@ export const updateWorkScheduleBodyEndTimeRegExp = new RegExp('^[0-2][0-9]:[0-5]
 export const updateWorkScheduleBodyRequiredHoursMin = 0;
 export const updateWorkScheduleBodyRequiredHoursMax = 24;
 
+export const updateWorkScheduleBodyBreakDurationMinutesMin = 0;
+export const updateWorkScheduleBodyBreakDurationMinutesMax = 1440;
+
 export const updateWorkScheduleBodyGraceMinutesMin = 0;
 export const updateWorkScheduleBodyGraceMinutesMax = 1440;
+
+export const updateWorkScheduleBodyEarlyCheckoutGraceMinutesMin = 0;
+export const updateWorkScheduleBodyEarlyCheckoutGraceMinutesMax = 1440;
 
 export const updateWorkScheduleBodyOvertimeAfterMinutesMin = 0;
 export const updateWorkScheduleBodyOvertimeAfterMinutesMax = 1440;
@@ -1458,11 +1499,16 @@ export const updateWorkScheduleBodyActiveDefault = true;
 
 export const UpdateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
   "startTime": zod.string().regex(updateWorkScheduleBodyStartTimeRegExp),
   "endTime": zod.string().regex(updateWorkScheduleBodyEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(updateWorkScheduleBodyRequiredHoursMin).max(updateWorkScheduleBodyRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(updateWorkScheduleBodyBreakDurationMinutesMin).max(updateWorkScheduleBodyBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(updateWorkScheduleBodyGraceMinutesMin).max(updateWorkScheduleBodyGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(updateWorkScheduleBodyEarlyCheckoutGraceMinutesMin).max(updateWorkScheduleBodyEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(updateWorkScheduleBodyOvertimeAfterMinutesMin).max(updateWorkScheduleBodyOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean().default(updateWorkScheduleBodyActiveDefault)
@@ -1473,8 +1519,14 @@ export const updateWorkScheduleResponseEndTimeRegExp = new RegExp('^[0-2][0-9]:[
 export const updateWorkScheduleResponseRequiredHoursMin = 0;
 export const updateWorkScheduleResponseRequiredHoursMax = 24;
 
+export const updateWorkScheduleResponseBreakDurationMinutesMin = 0;
+export const updateWorkScheduleResponseBreakDurationMinutesMax = 1440;
+
 export const updateWorkScheduleResponseGraceMinutesMin = 0;
 export const updateWorkScheduleResponseGraceMinutesMax = 1440;
+
+export const updateWorkScheduleResponseEarlyCheckoutGraceMinutesMin = 0;
+export const updateWorkScheduleResponseEarlyCheckoutGraceMinutesMax = 1440;
 
 export const updateWorkScheduleResponseOvertimeAfterMinutesMin = 0;
 export const updateWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
@@ -1484,16 +1536,116 @@ export const updateWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
 export const UpdateWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(updateWorkScheduleResponseStartTimeRegExp),
   "endTime": zod.string().regex(updateWorkScheduleResponseEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(updateWorkScheduleResponseRequiredHoursMin).max(updateWorkScheduleResponseRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(updateWorkScheduleResponseBreakDurationMinutesMin).max(updateWorkScheduleResponseBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(updateWorkScheduleResponseGraceMinutesMin).max(updateWorkScheduleResponseGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(updateWorkScheduleResponseEarlyCheckoutGraceMinutesMin).max(updateWorkScheduleResponseEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(updateWorkScheduleResponseOvertimeAfterMinutesMin).max(updateWorkScheduleResponseOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean(),
+  "isDefault": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Set the company's default work schedule
+ */
+export const SetDefaultWorkScheduleParams = zod.object({
+  "scheduleId": zod.coerce.string()
+})
+
+export const setDefaultWorkScheduleResponseStartTimeRegExp = new RegExp('^[0-2][0-9]:[0-5][0-9]$');
+export const setDefaultWorkScheduleResponseEndTimeRegExp = new RegExp('^[0-2][0-9]:[0-5][0-9]$');
+export const setDefaultWorkScheduleResponseRequiredHoursMin = 0;
+export const setDefaultWorkScheduleResponseRequiredHoursMax = 24;
+
+export const setDefaultWorkScheduleResponseBreakDurationMinutesMin = 0;
+export const setDefaultWorkScheduleResponseBreakDurationMinutesMax = 1440;
+
+export const setDefaultWorkScheduleResponseGraceMinutesMin = 0;
+export const setDefaultWorkScheduleResponseGraceMinutesMax = 1440;
+
+export const setDefaultWorkScheduleResponseEarlyCheckoutGraceMinutesMin = 0;
+export const setDefaultWorkScheduleResponseEarlyCheckoutGraceMinutesMax = 1440;
+
+export const setDefaultWorkScheduleResponseOvertimeAfterMinutesMin = 0;
+export const setDefaultWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
+
+
+
+export const SetDefaultWorkScheduleResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "nameAr": zod.string(),
+  "workingDays": zod.array(zod.string()),
+  "startTime": zod.string().regex(setDefaultWorkScheduleResponseStartTimeRegExp),
+  "endTime": zod.string().regex(setDefaultWorkScheduleResponseEndTimeRegExp),
+  "overnight": zod.boolean(),
+  "requiredHours": zod.int().min(setDefaultWorkScheduleResponseRequiredHoursMin).max(setDefaultWorkScheduleResponseRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(setDefaultWorkScheduleResponseBreakDurationMinutesMin).max(setDefaultWorkScheduleResponseBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
+  "graceMinutes": zod.int().min(setDefaultWorkScheduleResponseGraceMinutesMin).max(setDefaultWorkScheduleResponseGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(setDefaultWorkScheduleResponseEarlyCheckoutGraceMinutesMin).max(setDefaultWorkScheduleResponseEarlyCheckoutGraceMinutesMax),
+  "overtimeAfterMinutes": zod.int().min(setDefaultWorkScheduleResponseOvertimeAfterMinutesMin).max(setDefaultWorkScheduleResponseOvertimeAfterMinutesMax),
+  "overtimeEligible": zod.boolean(),
+  "active": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary List schedule assignment history
+ */
+export const ListScheduleAssignmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "scheduleId": zod.string(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable()
+}).and(zod.object({
+  "employeeId": zod.string(),
+  "employeeName": zod.string(),
+  "scheduleName": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}))
+export const ListScheduleAssignmentsResponse = zod.array(ListScheduleAssignmentsResponseItem)
+
+
+/**
+ * @summary Assign a schedule to multiple employees
+ */
+
+
+
+export const BulkAssignEmployeeSchedulesBody = zod.object({
+  "employeeIds": zod.array(zod.string()).min(1),
+  "scheduleId": zod.string(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullish()
+})
+
+export const BulkAssignEmployeeSchedulesResponse = zod.object({
+  "assigned": zod.int(),
+  "assignments": zod.array(zod.object({
+  "id": zod.string(),
+  "scheduleId": zod.string(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable()
+}).and(zod.object({
+  "employeeId": zod.string(),
+  "employeeName": zod.string(),
+  "scheduleName": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})))
 })
 
 
@@ -1509,8 +1661,14 @@ export const getEmployeeScheduleResponseScheduleOneEndTimeRegExp = new RegExp('^
 export const getEmployeeScheduleResponseScheduleOneRequiredHoursMin = 0;
 export const getEmployeeScheduleResponseScheduleOneRequiredHoursMax = 24;
 
+export const getEmployeeScheduleResponseScheduleOneBreakDurationMinutesMin = 0;
+export const getEmployeeScheduleResponseScheduleOneBreakDurationMinutesMax = 1440;
+
 export const getEmployeeScheduleResponseScheduleOneGraceMinutesMin = 0;
 export const getEmployeeScheduleResponseScheduleOneGraceMinutesMax = 1440;
+
+export const getEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMin = 0;
+export const getEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMax = 1440;
 
 export const getEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMin = 0;
 export const getEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMax = 1440;
@@ -1522,14 +1680,20 @@ export const GetEmployeeScheduleResponse = zod.object({
   "schedule": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(getEmployeeScheduleResponseScheduleOneStartTimeRegExp),
   "endTime": zod.string().regex(getEmployeeScheduleResponseScheduleOneEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(getEmployeeScheduleResponseScheduleOneRequiredHoursMin).max(getEmployeeScheduleResponseScheduleOneRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(getEmployeeScheduleResponseScheduleOneBreakDurationMinutesMin).max(getEmployeeScheduleResponseScheduleOneBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(getEmployeeScheduleResponseScheduleOneGraceMinutesMin).max(getEmployeeScheduleResponseScheduleOneGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(getEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMin).max(getEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(getEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMin).max(getEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean(),
+  "isDefault": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})
 }),zod.null()]),
@@ -1560,8 +1724,14 @@ export const assignEmployeeScheduleResponseScheduleOneEndTimeRegExp = new RegExp
 export const assignEmployeeScheduleResponseScheduleOneRequiredHoursMin = 0;
 export const assignEmployeeScheduleResponseScheduleOneRequiredHoursMax = 24;
 
+export const assignEmployeeScheduleResponseScheduleOneBreakDurationMinutesMin = 0;
+export const assignEmployeeScheduleResponseScheduleOneBreakDurationMinutesMax = 1440;
+
 export const assignEmployeeScheduleResponseScheduleOneGraceMinutesMin = 0;
 export const assignEmployeeScheduleResponseScheduleOneGraceMinutesMax = 1440;
+
+export const assignEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMin = 0;
+export const assignEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMax = 1440;
 
 export const assignEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMin = 0;
 export const assignEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMax = 1440;
@@ -1573,14 +1743,20 @@ export const AssignEmployeeScheduleResponse = zod.object({
   "schedule": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(assignEmployeeScheduleResponseScheduleOneStartTimeRegExp),
   "endTime": zod.string().regex(assignEmployeeScheduleResponseScheduleOneEndTimeRegExp),
+  "overnight": zod.boolean(),
   "requiredHours": zod.int().min(assignEmployeeScheduleResponseScheduleOneRequiredHoursMin).max(assignEmployeeScheduleResponseScheduleOneRequiredHoursMax),
+  "breakDurationMinutes": zod.int().min(assignEmployeeScheduleResponseScheduleOneBreakDurationMinutesMin).max(assignEmployeeScheduleResponseScheduleOneBreakDurationMinutesMax),
+  "breakPaid": zod.boolean(),
   "graceMinutes": zod.int().min(assignEmployeeScheduleResponseScheduleOneGraceMinutesMin).max(assignEmployeeScheduleResponseScheduleOneGraceMinutesMax),
+  "earlyCheckoutGraceMinutes": zod.int().min(assignEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMin).max(assignEmployeeScheduleResponseScheduleOneEarlyCheckoutGraceMinutesMax),
   "overtimeAfterMinutes": zod.int().min(assignEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMin).max(assignEmployeeScheduleResponseScheduleOneOvertimeAfterMinutesMax),
   "overtimeEligible": zod.boolean(),
   "active": zod.boolean(),
+  "isDefault": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})
 }),zod.null()]),

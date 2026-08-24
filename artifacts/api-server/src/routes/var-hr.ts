@@ -116,6 +116,10 @@ import {
   AssignEmployeeScheduleBody,
   AssignEmployeeScheduleParams,
   AssignEmployeeScheduleResponse,
+  BulkAssignEmployeeSchedulesBody,
+  BulkAssignEmployeeSchedulesResponse,
+  ListScheduleAssignmentsResponse,
+  SetDefaultWorkScheduleResponse,
   SyncDeviceParams,
   SyncDeviceResponse,
   TestDeviceConnectionParams,
@@ -427,20 +431,29 @@ async function deviceRows(context: TenantContext) {
   }));
 }
 
-function mapWorkSchedule(schedule: typeof workSchedulesTable.$inferSelect) {
+function mapWorkSchedule(
+  schedule: typeof workSchedulesTable.$inferSelect,
+  isDefault = false,
+) {
   return {
     id: schedule.id,
     name: schedule.name,
+    nameAr: schedule.nameAr,
     workingDays: schedule.workingDays,
     startTime: schedule.startTime,
     endTime: schedule.endTime,
+    overnight: schedule.overnight,
     requiredHours: schedule.requiredHours,
+    breakDurationMinutes: schedule.breakDurationMinutes,
+    breakPaid: schedule.breakPaid,
     graceMinutes: schedule.graceMinutes,
+    earlyCheckoutGraceMinutes: schedule.earlyCheckoutGraceMinutes,
     overtimeAfterMinutes: schedule.overtimeAfterMinutes,
     overtimeEligible: schedule.overtimeEligible,
     active: schedule.active,
     createdAt: schedule.createdAt.toISOString(),
     updatedAt: schedule.updatedAt.toISOString(),
+    isDefault,
   };
 }
 
@@ -873,12 +886,60 @@ async function effectiveScheduleFor(
   date: string,
   rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
 ): Promise<EffectiveSchedule> {
-  return effectiveScheduleFromRows(
-    employeeId,
-    date,
-    rules,
-    await scheduleRowsForCompany(companyId),
-  );
+  const rows = await scheduleRowsForCompany(companyId);
+  const assignment = rows
+    .filter(
+      (row) =>
+        row.assignment.employeeId === employeeId &&
+        row.assignment.effectiveFrom <= date &&
+        (row.assignment.effectiveTo === null ||
+          row.assignment.effectiveTo >= date) &&
+        row.schedule.active,
+    )
+    .sort((a, b) =>
+      b.assignment.effectiveFrom.localeCompare(a.assignment.effectiveFrom),
+    )[0];
+  if (assignment) {
+    return {
+      name: assignment.schedule.name,
+      workingDays: assignment.schedule.workingDays,
+      startTime: assignment.schedule.startTime,
+      endTime: assignment.schedule.endTime,
+      requiredHours: assignment.schedule.requiredHours,
+      graceMinutes: assignment.schedule.graceMinutes,
+      overtimeAfterMinutes: assignment.schedule.overtimeAfterMinutes,
+      overtimeEligible: assignment.schedule.overtimeEligible,
+    };
+  }
+  const [company] = await db
+    .select({ defaultScheduleId: companiesTable.defaultScheduleId })
+    .from(companiesTable)
+    .where(eq(companiesTable.id, companyId))
+    .limit(1);
+  if (!company?.defaultScheduleId) return defaultScheduleFromRules(rules);
+  const [schedule] = await db
+    .select()
+    .from(workSchedulesTable)
+    .where(
+      and(
+        eq(workSchedulesTable.id, company.defaultScheduleId),
+        eq(workSchedulesTable.companyId, companyId),
+        eq(workSchedulesTable.active, true),
+      ),
+    )
+    .limit(1);
+  return schedule
+    ? {
+        name: schedule.name,
+        workingDays: schedule.workingDays,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        requiredHours: schedule.requiredHours,
+        graceMinutes: schedule.graceMinutes,
+        overtimeAfterMinutes: schedule.overtimeAfterMinutes,
+        overtimeEligible: schedule.overtimeEligible,
+      }
+    : defaultScheduleFromRules(rules);
 }
 
 function holidayMatchesDate(
@@ -3151,12 +3212,23 @@ router.get("/schedules", async (req, res): Promise<void> => {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
+  const [company] = await db
+    .select({ defaultScheduleId: companiesTable.defaultScheduleId })
+    .from(companiesTable)
+    .where(eq(companiesTable.id, context.companyId))
+    .limit(1);
   const schedules = await db
     .select()
     .from(workSchedulesTable)
     .where(eq(workSchedulesTable.companyId, context.companyId))
     .orderBy(asc(workSchedulesTable.name));
-  res.json(ListWorkSchedulesResponse.parse(schedules.map(mapWorkSchedule)));
+  res.json(
+    ListWorkSchedulesResponse.parse(
+      schedules.map((schedule) =>
+        mapWorkSchedule(schedule, schedule.id === company?.defaultScheduleId),
+      ),
+    ),
+  );
 });
 
 router.post("/schedules", async (req, res): Promise<void> => {
@@ -3175,11 +3247,16 @@ router.post("/schedules", async (req, res): Promise<void> => {
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
+      nameAr: parsed.data.nameAr,
       workingDays: parsed.data.workingDays,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
+      overnight: parsed.data.overnight,
       requiredHours: parsed.data.requiredHours,
+      breakDurationMinutes: parsed.data.breakDurationMinutes,
+      breakPaid: parsed.data.breakPaid,
       graceMinutes: parsed.data.graceMinutes,
+      earlyCheckoutGraceMinutes: parsed.data.earlyCheckoutGraceMinutes,
       overtimeAfterMinutes: parsed.data.overtimeAfterMinutes,
       overtimeEligible: parsed.data.overtimeEligible,
       active: parsed.data.active,
@@ -3231,11 +3308,16 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     .update(workSchedulesTable)
     .set({
       name: parsed.data.name,
+      nameAr: parsed.data.nameAr,
       workingDays: parsed.data.workingDays,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
+      overnight: parsed.data.overnight,
       requiredHours: parsed.data.requiredHours,
+      breakDurationMinutes: parsed.data.breakDurationMinutes,
+      breakPaid: parsed.data.breakPaid,
       graceMinutes: parsed.data.graceMinutes,
+      earlyCheckoutGraceMinutes: parsed.data.earlyCheckoutGraceMinutes,
       overtimeAfterMinutes: parsed.data.overtimeAfterMinutes,
       overtimeEligible: parsed.data.overtimeEligible,
       active: parsed.data.active,
@@ -3252,6 +3334,126 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     existing,
   );
   res.json(UpdateWorkScheduleResponse.parse(mapWorkSchedule(schedule)));
+});
+
+router.put("/schedules/:scheduleId/default", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "schedules")) {
+    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+    return;
+  }
+  const params = z.object({ scheduleId: z.string() }).safeParse(req.params);
+  if (!params.success || !isUuid(params.data.scheduleId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [schedule] = await db
+    .select()
+    .from(workSchedulesTable)
+    .where(
+      and(
+        eq(workSchedulesTable.id, params.data.scheduleId),
+        eq(workSchedulesTable.companyId, context.companyId),
+        eq(workSchedulesTable.active, true),
+      ),
+    )
+    .limit(1);
+  if (!schedule) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  await db
+    .update(companiesTable)
+    .set({ defaultScheduleId: schedule.id })
+    .where(eq(companiesTable.id, context.companyId));
+  await recordAudit(context.companyId, "updated", "company_default_schedule", schedule.id, {
+    scheduleId: schedule.id,
+  });
+  res.json(SetDefaultWorkScheduleResponse.parse(mapWorkSchedule(schedule, true)));
+});
+
+function historyRow(
+  assignment: typeof employeeScheduleAssignmentsTable.$inferSelect,
+  employee: typeof employeesTable.$inferSelect,
+  schedule: typeof workSchedulesTable.$inferSelect,
+) {
+  return {
+    ...mapScheduleAssignment(assignment),
+    employeeId: employee.id,
+    employeeName: `${employee.firstName} ${employee.lastName}`,
+    scheduleName: schedule.name,
+    createdAt: assignment.createdAt.toISOString(),
+  };
+}
+
+router.get("/schedule-assignments", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "schedules", false)) {
+    res.status(403).json({ error: message(req, "attendanceRulesAccess") });
+    return;
+  }
+  const rows = await db
+    .select({
+      assignment: employeeScheduleAssignmentsTable,
+      employee: employeesTable,
+      schedule: workSchedulesTable,
+    })
+    .from(employeeScheduleAssignmentsTable)
+    .innerJoin(employeesTable, eq(employeeScheduleAssignmentsTable.employeeId, employeesTable.id))
+    .innerJoin(workSchedulesTable, eq(employeeScheduleAssignmentsTable.scheduleId, workSchedulesTable.id))
+    .where(eq(employeeScheduleAssignmentsTable.companyId, context.companyId))
+    .orderBy(desc(employeeScheduleAssignmentsTable.effectiveFrom));
+  res.json(ListScheduleAssignmentsResponse.parse(rows.map((row) => historyRow(row.assignment, row.employee, row.schedule))));
+});
+
+router.post("/schedule-assignments", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "schedules")) {
+    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+    return;
+  }
+  const parsed = BulkAssignEmployeeSchedulesBody.safeParse(req.body ?? {});
+  if (!parsed.success || parsed.data.employeeIds.some((id) => !isUuid(id)) || !isUuid(parsed.data.scheduleId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  if (parsed.data.effectiveTo && parsed.data.effectiveTo < parsed.data.effectiveFrom) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [schedule] = await db
+    .select()
+    .from(workSchedulesTable)
+    .where(and(eq(workSchedulesTable.id, parsed.data.scheduleId), eq(workSchedulesTable.companyId, context.companyId), eq(workSchedulesTable.active, true)))
+    .limit(1);
+  const employees = await db
+    .select()
+    .from(employeesTable)
+    .where(and(eq(employeesTable.companyId, context.companyId), sql`${employeesTable.id} = ANY(${parsed.data.employeeIds})`));
+  if (!schedule || employees.length !== parsed.data.employeeIds.length) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const created = [];
+  for (const employee of employees) {
+    const existing = await db
+      .select()
+      .from(employeeScheduleAssignmentsTable)
+      .where(and(eq(employeeScheduleAssignmentsTable.companyId, context.companyId), eq(employeeScheduleAssignmentsTable.employeeId, employee.id)));
+    const newEnd = parsed.data.effectiveTo ?? "9999-12-31";
+    const overlaps = existing.some((item) => item.effectiveFrom !== parsed.data.effectiveFrom && item.effectiveFrom <= newEnd && (item.effectiveTo ?? "9999-12-31") >= parsed.data.effectiveFrom);
+    if (overlaps) {
+      res.status(409).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const sameStart = existing.find((item) => item.effectiveFrom === parsed.data.effectiveFrom);
+    const assignment = sameStart
+      ? (await db.update(employeeScheduleAssignmentsTable).set({ scheduleId: schedule.id, effectiveTo: parsed.data.effectiveTo ?? null }).where(eq(employeeScheduleAssignmentsTable.id, sameStart.id)).returning())[0]
+      : (await db.insert(employeeScheduleAssignmentsTable).values({ companyId: context.companyId, employeeId: employee.id, scheduleId: schedule.id, effectiveFrom: parsed.data.effectiveFrom, effectiveTo: parsed.data.effectiveTo ?? null }).returning())[0];
+    created.push(historyRow(assignment, employee, schedule));
+    await recordAudit(context.companyId, sameStart ? "updated" : "created", "employee_schedule_assignment", assignment.id, assignment);
+  }
+  res.status(201).json(BulkAssignEmployeeSchedulesResponse.parse({ assigned: created.length, assignments: created }));
 });
 
 router.get(
@@ -3306,12 +3508,35 @@ router.get(
         row.assignment.effectiveTo === null ||
         row.assignment.effectiveTo >= TODAY,
     );
+    let effectiveSchedule = effective?.schedule ?? null;
+    let effectiveAssignment = effective?.assignment ?? null;
+    if (!effectiveSchedule) {
+      const [company] = await db
+        .select({ defaultScheduleId: companiesTable.defaultScheduleId })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, context.companyId))
+        .limit(1);
+      if (company?.defaultScheduleId) {
+        [effectiveSchedule] = await db
+          .select()
+          .from(workSchedulesTable)
+          .where(
+            and(
+              eq(workSchedulesTable.id, company.defaultScheduleId),
+              eq(workSchedulesTable.companyId, context.companyId),
+              eq(workSchedulesTable.active, true),
+            ),
+          )
+          .limit(1);
+        effectiveAssignment = null;
+      }
+    }
     res.json(
       GetEmployeeScheduleResponse.parse(
         effectiveScheduleResponse(
           access.employee.id,
-          effective?.schedule ?? null,
-          effective?.assignment ?? null,
+          effectiveSchedule,
+          effectiveAssignment,
         ),
       ),
     );

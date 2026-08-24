@@ -17,6 +17,7 @@ export const companiesTable = pgTable("var_hr_companies", {
   address: text("address").notNull().default(""),
   timezone: text("timezone").notNull().default("Africa/Cairo"),
   currency: text("currency").notNull().default("EGP"),
+  defaultScheduleId: uuid("default_schedule_id"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

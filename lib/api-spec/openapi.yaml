@@ -756,6 +756,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WorkSchedule"
+  /schedules/{scheduleId}/default:
+    put:
+      operationId: setDefaultWorkSchedule
+      tags: [schedules]
+      summary: Set the company's default work schedule
+      parameters:
+        - $ref: "#/components/parameters/ScheduleId"
+      responses:
+        "200":
+          description: Default work schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedule"
+  /schedule-assignments:
+    get:
+      operationId: listScheduleAssignments
+      tags: [schedules]
+      summary: List schedule assignment history
+      responses:
+        "200":
+          description: Schedule assignment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleAssignmentHistory"
+    post:
+      operationId: bulkAssignEmployeeSchedules
+      tags: [schedules]
+      summary: Assign a schedule to multiple employees
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkScheduleAssignmentInput"
+      responses:
+        "201":
+          description: Bulk assignment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkScheduleAssignmentResponse"
   /employees/{employeeId}/schedule:
     get:
       operationId: getEmployeeSchedule
@@ -2529,30 +2574,42 @@ components:
         [
           id,
           name,
+          nameAr,
           workingDays,
           startTime,
           endTime,
+          overnight,
           requiredHours,
+          breakDurationMinutes,
+          breakPaid,
           graceMinutes,
+          earlyCheckoutGraceMinutes,
           overtimeAfterMinutes,
           overtimeEligible,
           active,
+          isDefault,
           createdAt,
           updatedAt,
         ]
       properties:
         id: { type: string }
         name: { type: string }
+        nameAr: { type: string }
         workingDays:
           type: array
           items: { type: string }
         startTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
         endTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        overnight: { type: boolean }
         requiredHours: { type: integer, minimum: 0, maximum: 24 }
+        breakDurationMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        breakPaid: { type: boolean }
         graceMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        earlyCheckoutGraceMinutes: { type: integer, minimum: 0, maximum: 1440 }
         overtimeAfterMinutes: { type: integer, minimum: 0, maximum: 1440 }
         overtimeEligible: { type: boolean }
         active: { type: boolean }
+        isDefault: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     WorkScheduleInput:
@@ -2560,24 +2617,34 @@ components:
       required:
         [
           name,
+          nameAr,
           workingDays,
           startTime,
           endTime,
+          overnight,
           requiredHours,
+          breakDurationMinutes,
+          breakPaid,
           graceMinutes,
+          earlyCheckoutGraceMinutes,
           overtimeAfterMinutes,
           overtimeEligible,
         ]
       properties:
         name: { type: string, minLength: 1 }
+        nameAr: { type: string }
         workingDays:
           type: array
           minItems: 1
           items: { type: string }
         startTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
         endTime: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+        overnight: { type: boolean }
         requiredHours: { type: integer, minimum: 0, maximum: 24 }
+        breakDurationMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        breakPaid: { type: boolean }
         graceMinutes: { type: integer, minimum: 0, maximum: 1440 }
+        earlyCheckoutGraceMinutes: { type: integer, minimum: 0, maximum: 1440 }
         overtimeAfterMinutes: { type: integer, minimum: 0, maximum: 1440 }
         overtimeEligible: { type: boolean }
         active: { type: boolean, default: true }
@@ -2589,6 +2656,36 @@ components:
         scheduleId: { type: string }
         effectiveFrom: { type: string, format: date }
         effectiveTo: { type: ["string", "null"], format: date }
+    ScheduleAssignmentHistory:
+      allOf:
+        - $ref: "#/components/schemas/ScheduleAssignment"
+        - type: object
+          required: [employeeId, employeeName, scheduleName, createdAt]
+          properties:
+            employeeId: { type: string }
+            employeeName: { type: string }
+            scheduleName: { type: string }
+            createdAt: { type: string, format: date-time }
+    BulkScheduleAssignmentInput:
+      type: object
+      required: [employeeIds, scheduleId, effectiveFrom]
+      properties:
+        employeeIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+        scheduleId: { type: string }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: ["string", "null"], format: date }
+    BulkScheduleAssignmentResponse:
+      type: object
+      required: [assigned, assignments]
+      properties:
+        assigned: { type: integer }
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleAssignmentHistory"
     EmployeeSchedule:
       type: object
       required: [employeeId, schedule, assignment]

@@ -1096,11 +1096,13 @@ export interface PayrollAdjustmentInput {
 export interface WorkSchedule {
   id: string;
   name: string;
+  nameAr: string;
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   startTime: string;
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   endTime: string;
+  overnight: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -1110,7 +1112,18 @@ export interface WorkSchedule {
      * @minimum 0
      * @maximum 1440
      */
+  breakDurationMinutes: number;
+  breakPaid: boolean;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
   graceMinutes: number;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
+  earlyCheckoutGraceMinutes: number;
   /**
      * @minimum 0
      * @maximum 1440
@@ -1118,6 +1131,7 @@ export interface WorkSchedule {
   overtimeAfterMinutes: number;
   overtimeEligible: boolean;
   active: boolean;
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1125,12 +1139,14 @@ export interface WorkSchedule {
 export interface WorkScheduleInput {
   /** @minLength 1 */
   name: string;
+  nameAr: string;
   /** @minItems 1 */
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   startTime: string;
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   endTime: string;
+  overnight: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -1140,7 +1156,18 @@ export interface WorkScheduleInput {
      * @minimum 0
      * @maximum 1440
      */
+  breakDurationMinutes: number;
+  breakPaid: boolean;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
   graceMinutes: number;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
+  earlyCheckoutGraceMinutes: number;
   /**
      * @minimum 0
      * @maximum 1440
@@ -1156,6 +1183,27 @@ export interface ScheduleAssignment {
   effectiveFrom: string;
   /** @nullable */
   effectiveTo: string | null;
+}
+
+export type ScheduleAssignmentHistory = ScheduleAssignment & {
+  employeeId: string;
+  employeeName: string;
+  scheduleName: string;
+  createdAt: string;
+};
+
+export interface BulkScheduleAssignmentInput {
+  /** @minItems 1 */
+  employeeIds: string[];
+  scheduleId: string;
+  effectiveFrom: string;
+  /** @nullable */
+  effectiveTo?: string | null;
+}
+
+export interface BulkScheduleAssignmentResponse {
+  assigned: number;
+  assignments: ScheduleAssignmentHistory[];
 }
 
 export interface EmployeeSchedule {

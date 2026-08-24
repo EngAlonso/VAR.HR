@@ -9,11 +9,13 @@
 export interface WorkSchedule {
   id: string;
   name: string;
+  nameAr: string;
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   startTime: string;
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   endTime: string;
+  overnight: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -23,7 +25,18 @@ export interface WorkSchedule {
      * @minimum 0
      * @maximum 1440
      */
+  breakDurationMinutes: number;
+  breakPaid: boolean;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
   graceMinutes: number;
+  /**
+     * @minimum 0
+     * @maximum 1440
+     */
+  earlyCheckoutGraceMinutes: number;
   /**
      * @minimum 0
      * @maximum 1440
@@ -31,6 +44,7 @@ export interface WorkSchedule {
   overtimeAfterMinutes: number;
   overtimeEligible: boolean;
   active: boolean;
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
