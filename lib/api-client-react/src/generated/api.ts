@@ -27,11 +27,12 @@ import type {
   AttendanceLocationInput,
   AttendanceRecord,
   AttendanceReport,
+  AttendanceRuleVersion,
+  AttendanceRuleVersionInput,
   AttendanceRules,
   AttendanceRulesInput,
   AttendanceToday,
   AuthAccount,
-  AuthAccountCredentials,
   AuthAccountUpdate,
   AuthMeResponse,
   AuthPermission,
@@ -93,6 +94,7 @@ import type {
   Report,
   RequestDecisionInput,
   SetAuthAccountPassword200,
+  StaffAccountCreated,
   StaffAccountInput,
   SubscriptionStatus,
   TemporaryPassword,
@@ -740,9 +742,9 @@ export const getCreateStaffAccountUrl = () => {
 /**
  * @summary Create a company staff account
  */
-export const createStaffAccount = async (staffAccountInput: StaffAccountInput, options?: Parameters<typeof customFetch>[1]): Promise<AuthAccountCredentials> => {
+export const createStaffAccount = async (staffAccountInput: StaffAccountInput, options?: Parameters<typeof customFetch>[1]): Promise<StaffAccountCreated> => {
 
-  return customFetch<AuthAccountCredentials>(getCreateStaffAccountUrl(),
+  return customFetch<StaffAccountCreated>(getCreateStaffAccountUrl(),
   {
     ...options,
     method: 'POST',
@@ -2887,12 +2889,160 @@ export function useGetAttendanceRules<TData = Awaited<ReturnType<typeof getAtten
 
 
 
+export const getListAttendanceRuleVersionsUrl = () => {
+
+
+
+
+  return `/api/rules/versions`
+}
+
+/**
+ * @summary List effective-dated attendance rule versions
+ */
+export const listAttendanceRuleVersions = async ( options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRuleVersion[]> => {
+
+  return customFetch<AttendanceRuleVersion[]>(getListAttendanceRuleVersionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAttendanceRuleVersionsQueryKey = () => {
+    return [
+    `/api/rules/versions`
+    ] as const;
+    }
+
+
+export const getListAttendanceRuleVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendanceRuleVersions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendanceRuleVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttendanceRuleVersionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendanceRuleVersions>>> = ({ signal }) => listAttendanceRuleVersions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttendanceRuleVersions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAttendanceRuleVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAttendanceRuleVersions>>>
+export type ListAttendanceRuleVersionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List effective-dated attendance rule versions
+ */
+
+export function useListAttendanceRuleVersions<TData = Awaited<ReturnType<typeof listAttendanceRuleVersions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendanceRuleVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAttendanceRuleVersionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAttendanceRuleVersionUrl = () => {
+
+
+
+
+  return `/api/rules/versions`
+}
+
+/**
+ * @summary Create a new attendance rule version
+ */
+export const createAttendanceRuleVersion = async (attendanceRuleVersionInput: AttendanceRuleVersionInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRuleVersion> => {
+
+  return customFetch<AttendanceRuleVersion>(getCreateAttendanceRuleVersionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendanceRuleVersionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAttendanceRuleVersionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAttendanceRuleVersion>>, TError,{data: BodyType<AttendanceRuleVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAttendanceRuleVersion>>, TError,{data: BodyType<AttendanceRuleVersionInput>}, TContext> => {
+
+const mutationKey = ['createAttendanceRuleVersion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAttendanceRuleVersion>>, {data: BodyType<AttendanceRuleVersionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAttendanceRuleVersion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAttendanceRuleVersionMutationResult = NonNullable<Awaited<ReturnType<typeof createAttendanceRuleVersion>>>
+    export type CreateAttendanceRuleVersionMutationBody = BodyType<AttendanceRuleVersionInput>
+    export type CreateAttendanceRuleVersionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new attendance rule version
+ */
+export const useCreateAttendanceRuleVersion = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAttendanceRuleVersion>>, TError,{data: BodyType<AttendanceRuleVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAttendanceRuleVersion>>,
+        TError,
+        {data: BodyType<AttendanceRuleVersionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAttendanceRuleVersionMutationOptions(options));
+    }
+
 export const getUpdateAttendanceRulesUrl = () => {
 
 
 
 
-  return `/api/rules`
+  return `/api/rules/versions`
 }
 
 /**

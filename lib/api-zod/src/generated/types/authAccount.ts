@@ -17,5 +17,9 @@ export interface AuthAccount {
   /** @nullable */
   employeeId: string | null;
   active: boolean;
-  permissions: string[];
+  /**
+     * @minLength 6
+     * @maxLength 256
+     */
+  password?: string;
 }

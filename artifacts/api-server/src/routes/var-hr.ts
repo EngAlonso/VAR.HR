@@ -21,6 +21,8 @@ import {
   CheckInResponse,
   CheckOutBody,
   CheckOutResponse,
+  CreateAttendanceRuleVersionBody,
+  CreateAttendanceRuleVersionResponse,
   CorrectAttendanceBody,
   CorrectAttendanceParams,
   CorrectAttendanceResponse,
@@ -77,6 +79,7 @@ import {
   IngestBiometricEventResponse,
   ListAttendanceHistoryQueryParams,
   ListAttendanceHistoryResponse,
+  ListAttendanceRuleVersionsResponse,
   ListAttendanceLocationsResponse,
   ListBiometricProvidersResponse,
   ListDeviceMappingsParams,
@@ -136,6 +139,7 @@ import {
   UpdateWorkScheduleResponse,
 } from "@workspace/api-zod";
 import {
+  attendanceRuleVersionsTable,
   attendanceRulesTable,
   attendanceLocationsTable,
   attendanceTable,
@@ -658,13 +662,131 @@ const defaultAttendanceRules = {
   effectiveFrom: TODAY,
 };
 
-async function attendanceRulesFor(companyId: string) {
-  const [rules] = await db
+type ResolvedAttendanceRules = typeof defaultAttendanceRules & {
+  id: string | null;
+  companyId: string;
+  effectiveTo: string | null;
+  status: string;
+  createdBy: string;
+  createdAt: Date | null;
+};
+
+function rulesConfiguration(
+  rules: typeof attendanceRulesTable.$inferSelect | typeof defaultAttendanceRules,
+) {
+  return {
+    workStart: rules.workStart,
+    workEnd: rules.workEnd,
+    scheduleName: rules.scheduleName,
+    requiredHours: rules.requiredHours,
+    graceMinutes: rules.graceMinutes,
+    earlyCheckoutGraceMinutes: rules.earlyCheckoutGraceMinutes,
+    overtimeAfterMinutes: rules.overtimeAfterMinutes,
+    overtimeEligible: rules.overtimeEligible,
+    overtimeMethod: rules.overtimeMethod,
+    overtimeMultiplier: rules.overtimeMultiplier,
+    hourlyRateDivisor: rules.hourlyRateDivisor,
+    lateDeductionMethod: rules.lateDeductionMethod,
+    lateDeductionFactor: rules.lateDeductionFactor,
+    earlyCheckoutDeductionFactor: rules.earlyCheckoutDeductionFactor,
+    absenceDeductionMethod: rules.absenceDeductionMethod,
+    absenceDeductionFactor: rules.absenceDeductionFactor,
+    holidayDates: rules.holidayDates,
+    workingDays: rules.workingDays,
+    gpsPolicy: rules.gpsPolicy,
+    locationRadiusMeters: rules.locationRadiusMeters,
+  };
+}
+
+async function ensureInitialRuleVersion(companyId: string) {
+  const [existingVersion] = await db
+    .select()
+    .from(attendanceRuleVersionsTable)
+    .where(eq(attendanceRuleVersionsTable.companyId, companyId))
+    .orderBy(desc(attendanceRuleVersionsTable.version))
+    .limit(1);
+  if (existingVersion) return existingVersion;
+  const [legacy] = await db
     .select()
     .from(attendanceRulesTable)
     .where(eq(attendanceRulesTable.companyId, companyId))
     .limit(1);
-  return rules ?? defaultAttendanceRules;
+  const source = legacy ?? defaultAttendanceRules;
+  const [created] = await db
+    .insert(attendanceRuleVersionsTable)
+    .values({
+      companyId,
+      version: source.version || 1,
+      effectiveFrom: source.effectiveFrom || TODAY,
+      status: "active",
+      createdBy: legacy ? "migration" : "system",
+      configuration: {
+        ...rulesConfiguration(source),
+        version: source.version || 1,
+        effectiveFrom: source.effectiveFrom || TODAY,
+      },
+    })
+    .returning();
+  return created;
+}
+
+async function attendanceRulesFor(
+  companyId: string,
+  attendanceDate = TODAY,
+): Promise<ResolvedAttendanceRules> {
+  await ensureInitialRuleVersion(companyId);
+  const [version] = await db
+    .select()
+    .from(attendanceRuleVersionsTable)
+    .where(
+      and(
+        eq(attendanceRuleVersionsTable.companyId, companyId),
+        lte(attendanceRuleVersionsTable.effectiveFrom, attendanceDate),
+        or(
+          sql`${attendanceRuleVersionsTable.effectiveTo} is null`,
+          gte(attendanceRuleVersionsTable.effectiveTo, attendanceDate),
+        ),
+        eq(attendanceRuleVersionsTable.status, "active"),
+      ),
+    )
+    .orderBy(
+      desc(attendanceRuleVersionsTable.effectiveFrom),
+      desc(attendanceRuleVersionsTable.version),
+    )
+    .limit(1);
+  const selected =
+    version ??
+    (
+      await db
+        .select()
+        .from(attendanceRuleVersionsTable)
+        .where(eq(attendanceRuleVersionsTable.companyId, companyId))
+        .orderBy(asc(attendanceRuleVersionsTable.effectiveFrom))
+        .limit(1)
+    )[0];
+  if (!selected) {
+    return {
+      ...defaultAttendanceRules,
+      id: null,
+      companyId,
+      effectiveTo: null,
+      status: "active",
+      createdBy: "system",
+      createdAt: null,
+    };
+  }
+  return {
+    ...defaultAttendanceRules,
+    ...(selected.configuration as Record<string, unknown>),
+    id: selected.id,
+    companyId: selected.companyId,
+    version: selected.version,
+    effectiveFrom: selected.effectiveFrom,
+    effectiveTo: selected.effectiveTo,
+    status: selected.status,
+    createdBy: selected.createdBy,
+    createdAt: selected.createdAt,
+  } as ResolvedAttendanceRules;
 }
 
 type EffectiveSchedule = {
@@ -934,7 +1056,7 @@ async function applyProviderAttendanceEvent(
     event.occurredAt,
     context.company.timezone,
   );
-  const rules = await attendanceRulesFor(context.companyId);
+  const rules = await attendanceRulesFor(context.companyId, eventDate);
   const holidays = await holidaysForCompany(context.companyId);
   let attendanceDate = eventDate;
   let existing: typeof attendanceTable.$inferSelect | undefined;
@@ -2030,7 +2152,7 @@ async function recordCurrentAttendance(
     res.status(400).json({ error: message(req, "gpsTimestampInvalid") });
     return;
   }
-  const rules = await attendanceRulesFor(context.companyId);
+  const rules = await attendanceRulesFor(context.companyId, eventDate || TODAY);
   const holidays = await holidaysForCompany(context.companyId);
   const location: AttendanceLocationInput | null =
     hasLatitude && hasLongitude
@@ -2040,7 +2162,7 @@ async function recordCurrentAttendance(
           accuracyMeters: parsed.data.accuracyMeters,
         }
       : null;
-  if (rules.gpsPolicy === "required" && !location) {
+  if ((rules.gpsPolicy as string) === "required" && !location) {
     res.status(400).json({ error: message(req, "gpsValidationRequired") });
     return;
   }
@@ -2323,7 +2445,10 @@ router.patch(
         .json({ error: message(req, "attendanceCorrectionInvalid") });
       return;
     }
-    const rules = await attendanceRulesFor(context.companyId);
+    const rules = await attendanceRulesFor(
+      context.companyId,
+      scopedRecord.attendance.date,
+    );
     const schedule = await effectiveScheduleFor(
       context.companyId,
       scopedRecord.attendance.employeeId,
@@ -2865,13 +2990,111 @@ router.get("/rules", async (req, res): Promise<void> => {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
-  const [rules] = await db
-    .select()
-    .from(attendanceRulesTable)
-    .where(eq(attendanceRulesTable.companyId, context.companyId))
-    .limit(1);
-  const response = rules ?? defaultAttendanceRules;
+  const response = await attendanceRulesFor(context.companyId, TODAY);
   res.json(GetAttendanceRulesResponse.parse(response));
+});
+
+function ruleVersionResponse(
+  row: typeof attendanceRuleVersionsTable.$inferSelect,
+) {
+  return {
+    id: row.id,
+    version: row.version,
+    effectiveFrom: row.effectiveFrom,
+    effectiveTo: row.effectiveTo,
+    status: row.status,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt.toISOString(),
+    configuration: row.configuration,
+  };
+}
+
+router.get("/rules/versions", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.correct")) {
+    res.status(403).json({ error: message(req, "attendanceRulesAccess") });
+    return;
+  }
+  await ensureInitialRuleVersion(context.companyId);
+  const versions = await db
+    .select()
+    .from(attendanceRuleVersionsTable)
+    .where(eq(attendanceRuleVersionsTable.companyId, context.companyId))
+    .orderBy(desc(attendanceRuleVersionsTable.version));
+  res.json(
+    ListAttendanceRuleVersionsResponse.parse(versions.map(ruleVersionResponse)),
+  );
+});
+
+router.post("/rules/versions", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.correct")) {
+    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+    return;
+  }
+  const parsed = CreateAttendanceRuleVersionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  await ensureInitialRuleVersion(context.companyId);
+  const { effectiveFrom, ...configurationInput } = parsed.data;
+  const existing = await db
+    .select()
+    .from(attendanceRuleVersionsTable)
+    .where(
+      and(
+        eq(attendanceRuleVersionsTable.companyId, context.companyId),
+        eq(attendanceRuleVersionsTable.status, "active"),
+      ),
+    );
+  const prior = existing
+    .filter((row) => row.effectiveFrom < effectiveFrom && row.effectiveTo === null)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  const overlaps = existing.some(
+    (row) =>
+      row.id !== prior?.id &&
+      row.effectiveFrom <= effectiveFrom &&
+      (row.effectiveTo === null || row.effectiveTo >= effectiveFrom),
+  );
+  if (overlaps) {
+    res
+      .status(409)
+      .json({ error: "The effective date overlaps an existing attendance rule version." });
+    return;
+  }
+  const nextVersion = Math.max(0, ...existing.map((row) => row.version)) + 1;
+  if (prior) {
+    await db
+      .update(attendanceRuleVersionsTable)
+      .set({ effectiveTo: dateOffset(effectiveFrom, -1) })
+      .where(eq(attendanceRuleVersionsTable.id, prior.id));
+  }
+  const [created] = await db
+    .insert(attendanceRuleVersionsTable)
+    .values({
+      companyId: context.companyId,
+      version: nextVersion,
+      effectiveFrom,
+      status: "active",
+      createdBy: context.accountId,
+      configuration: {
+        ...configurationInput,
+        version: nextVersion,
+        effectiveFrom,
+      },
+    })
+    .returning();
+  await recordAudit(
+    context.companyId,
+    "created",
+    "attendance_rule_version",
+    created.id,
+    created,
+  );
+  res
+    .status(201)
+    .json(CreateAttendanceRuleVersionResponse.parse(ruleVersionResponse(created)));
 });
 
 router.put("/rules", async (req, res): Promise<void> => {
@@ -2885,38 +3108,41 @@ router.put("/rules", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const [existing] = await db
-    .select()
-    .from(attendanceRulesTable)
-    .where(eq(attendanceRulesTable.companyId, context.companyId))
-    .limit(1);
-  const [rules] = existing
-    ? await db
-        .update(attendanceRulesTable)
-        .set({
-          ...parsed.data,
-          version: existing.version + 1,
-          updatedAt: new Date(),
-        })
-        .where(eq(attendanceRulesTable.id, existing.id))
-        .returning()
-    : await db
-        .insert(attendanceRulesTable)
-        .values({
-          companyId: context.companyId,
-          ...parsed.data,
-          version: 1,
-          effectiveFrom: TODAY,
-        })
-        .returning();
+  const current = await attendanceRulesFor(context.companyId, TODAY);
+  const [rules] = await db
+    .insert(attendanceRuleVersionsTable)
+    .values({
+      companyId: context.companyId,
+      version: current.version + 1,
+      effectiveFrom: TODAY,
+      status: "active",
+      createdBy: context.accountId,
+      configuration: {
+        ...parsed.data,
+        version: current.version + 1,
+        effectiveFrom: TODAY,
+      },
+    })
+    .returning();
+  if (current.id) {
+    await db
+      .update(attendanceRuleVersionsTable)
+      .set({ effectiveTo: dateOffset(TODAY, -1) })
+      .where(eq(attendanceRuleVersionsTable.id, current.id));
+  }
   await recordAudit(
     context.companyId,
-    "updated",
-    "attendance_rules",
+    "created",
+    "attendance_rule_version",
     rules.id,
-    parsed.data,
+    rules,
+    current,
   );
-  res.json(UpdateAttendanceRulesResponse.parse(rules));
+  res.json(
+    UpdateAttendanceRulesResponse.parse(
+      await attendanceRulesFor(context.companyId, TODAY),
+    ),
+  );
 });
 
 router.get("/schedules", async (req, res): Promise<void> => {
@@ -4465,7 +4691,7 @@ async function calculatePayrollPeriod(
   const existing = await storedPayrollCalculation(context, req, period);
   if (period.status === "finalized" || period.status === "locked")
     return existing;
-  const rules = await attendanceRulesFor(context.companyId);
+  const rules = await attendanceRulesFor(context.companyId, period.from);
   const rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
@@ -4601,9 +4827,9 @@ async function calculatePayrollPeriod(
         )
       : 0;
     const lateDeduction =
-      rules.lateDeductionMethod === "none"
+      (rules.lateDeductionMethod as string) === "none"
         ? 0
-        : rules.lateDeductionMethod === "fixed_per_minute"
+        : (rules.lateDeductionMethod as string) === "fixed_per_minute"
           ? moneyValue(lateMinutes * rules.lateDeductionFactor)
           : moneyValue(
               (lateMinutes / 60) * hourlyRate * rules.lateDeductionFactor,
@@ -4615,9 +4841,9 @@ async function calculatePayrollPeriod(
     );
     const dailyRate = row.employee.salary / scheduledDayCount;
     const absenceDeduction =
-      rules.absenceDeductionMethod === "none"
+      (rules.absenceDeductionMethod as string) === "none"
         ? 0
-        : rules.absenceDeductionMethod === "fixed_per_day"
+        : (rules.absenceDeductionMethod as string) === "fixed_per_day"
           ? moneyValue(absentDays * rules.absenceDeductionFactor)
           : moneyValue(absentDays * dailyRate * rules.absenceDeductionFactor);
     const employeeAdjustments = adjustments.filter(
@@ -4767,6 +4993,7 @@ async function calculatePayrollPeriod(
           netSalary,
         },
       },
+      attendanceRuleVersionId: rules.id,
       calculationVersion,
     });
   }

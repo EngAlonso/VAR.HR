@@ -28,6 +28,11 @@ export const LoginBody = zod.object({
   "password": zod.string().min(1)
 })
 
+export const loginResponseUserPasswordMin = 6;
+export const loginResponseUserPasswordMax = 256;
+
+
+
 export const LoginResponse = zod.object({
   "user": zod.object({
   "id": zod.string(),
@@ -37,7 +42,7 @@ export const LoginResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(loginResponseUserPasswordMin).max(loginResponseUserPasswordMax).optional()
 }),
   "redirectTo": zod.string()
 })
@@ -59,6 +64,11 @@ export const ProvisionInitialPlatformOwnerBody = zod.object({
   "password": zod.string().min(provisionInitialPlatformOwnerBodyPasswordMin)
 })
 
+export const provisionInitialPlatformOwnerResponseAccountPasswordMin = 6;
+export const provisionInitialPlatformOwnerResponseAccountPasswordMax = 256;
+
+
+
 export const ProvisionInitialPlatformOwnerResponse = zod.object({
   "account": zod.object({
   "id": zod.string(),
@@ -68,7 +78,7 @@ export const ProvisionInitialPlatformOwnerResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(provisionInitialPlatformOwnerResponseAccountPasswordMin).max(provisionInitialPlatformOwnerResponseAccountPasswordMax).optional()
 })
 })
 
@@ -76,6 +86,11 @@ export const ProvisionInitialPlatformOwnerResponse = zod.object({
 /**
  * @summary Get the current signed-in account
  */
+export const getAuthMeResponseUserPasswordMin = 6;
+export const getAuthMeResponseUserPasswordMax = 256;
+
+
+
 export const GetAuthMeResponse = zod.object({
   "user": zod.object({
   "id": zod.string(),
@@ -85,7 +100,7 @@ export const GetAuthMeResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(getAuthMeResponseUserPasswordMin).max(getAuthMeResponseUserPasswordMax).optional()
 })
 })
 
@@ -118,6 +133,11 @@ export const ListAuthPermissionsResponse = zod.array(ListAuthPermissionsResponse
 /**
  * @summary List accounts in the active company
  */
+export const listAuthAccountsResponsePasswordMin = 6;
+export const listAuthAccountsResponsePasswordMax = 256;
+
+
+
 export const ListAuthAccountsResponseItem = zod.object({
   "id": zod.string(),
   "username": zod.string(),
@@ -126,7 +146,7 @@ export const ListAuthAccountsResponseItem = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(listAuthAccountsResponsePasswordMin).max(listAuthAccountsResponsePasswordMax).optional()
 })
 export const ListAuthAccountsResponse = zod.array(ListAuthAccountsResponseItem)
 
@@ -151,6 +171,14 @@ export const CreateStaffAccountBody = zod.object({
   "active": zod.boolean().default(createStaffAccountBodyActiveDefault)
 })
 
+export const createStaffAccountResponseAccountPasswordMin = 6;
+export const createStaffAccountResponseAccountPasswordMax = 256;
+
+export const createStaffAccountResponsePasswordMin = 6;
+export const createStaffAccountResponsePasswordMax = 256;
+
+
+
 export const CreateStaffAccountResponse = zod.object({
   "account": zod.object({
   "id": zod.string(),
@@ -160,9 +188,10 @@ export const CreateStaffAccountResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(createStaffAccountResponseAccountPasswordMin).max(createStaffAccountResponseAccountPasswordMax).optional()
 }),
-  "temporaryPassword": zod.string()
+  "password": zod.string().min(createStaffAccountResponsePasswordMin).max(createStaffAccountResponsePasswordMax).optional(),
+  "permissions": zod.array(zod.string()).optional()
 })
 
 
@@ -173,6 +202,11 @@ export const ListPlatformCompanyOwnersParams = zod.object({
   "companyId": zod.uuid()
 })
 
+export const listPlatformCompanyOwnersResponsePasswordMin = 6;
+export const listPlatformCompanyOwnersResponsePasswordMax = 256;
+
+
+
 export const ListPlatformCompanyOwnersResponseItem = zod.object({
   "id": zod.string(),
   "username": zod.string(),
@@ -181,7 +215,7 @@ export const ListPlatformCompanyOwnersResponseItem = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(listPlatformCompanyOwnersResponsePasswordMin).max(listPlatformCompanyOwnersResponsePasswordMax).optional()
 })
 export const ListPlatformCompanyOwnersResponse = zod.array(ListPlatformCompanyOwnersResponseItem)
 
@@ -218,6 +252,11 @@ export const UpdatePlatformCompanyOwnersBody = zod.object({
 })).max(updatePlatformCompanyOwnersBodyOwnersMax)
 })
 
+export const updatePlatformCompanyOwnersResponseOwnersItemPasswordMin = 6;
+export const updatePlatformCompanyOwnersResponseOwnersItemPasswordMax = 256;
+
+
+
 export const UpdatePlatformCompanyOwnersResponse = zod.object({
   "owners": zod.array(zod.object({
   "id": zod.string(),
@@ -227,7 +266,7 @@ export const UpdatePlatformCompanyOwnersResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(updatePlatformCompanyOwnersResponseOwnersItemPasswordMin).max(updatePlatformCompanyOwnersResponseOwnersItemPasswordMax).optional()
 })),
   "updated": zod.int().optional()
 })
@@ -256,6 +295,11 @@ export const UpdateAuthAccountBody = zod.object({
   "active": zod.boolean().optional()
 })
 
+export const updateAuthAccountResponseAccountPasswordMin = 6;
+export const updateAuthAccountResponseAccountPasswordMax = 256;
+
+
+
 export const UpdateAuthAccountResponse = zod.object({
   "account": zod.object({
   "id": zod.string(),
@@ -265,7 +309,7 @@ export const UpdateAuthAccountResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(updateAuthAccountResponseAccountPasswordMin).max(updateAuthAccountResponseAccountPasswordMax).optional()
 })
 })
 
@@ -298,6 +342,11 @@ export const SetAuthAccountPasswordBody = zod.object({
   "password": zod.string().min(setAuthAccountPasswordBodyPasswordMin)
 })
 
+export const setAuthAccountPasswordResponseAccountPasswordMin = 6;
+export const setAuthAccountPasswordResponseAccountPasswordMax = 256;
+
+
+
 export const SetAuthAccountPasswordResponse = zod.object({
   "account": zod.object({
   "id": zod.string(),
@@ -307,7 +356,7 @@ export const SetAuthAccountPasswordResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(setAuthAccountPasswordResponseAccountPasswordMin).max(setAuthAccountPasswordResponseAccountPasswordMax).optional()
 })
 })
 
@@ -1029,6 +1078,172 @@ export const GetAttendanceRulesResponse = zod.object({
   "locationRadiusMeters": zod.int().min(getAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
   "effectiveFrom": zod.iso.date().optional()
+})
+
+
+/**
+ * @summary List effective-dated attendance rule versions
+ */
+export const listAttendanceRuleVersionsResponseConfigurationRequiredHoursMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationGraceMinutesMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutGraceMinutesMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationOvertimeAfterMinutesMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationOvertimeMultiplierMin = 0;
+
+
+export const listAttendanceRuleVersionsResponseConfigurationLateDeductionFactorMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutDeductionFactorMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationAbsenceDeductionFactorMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin = 0;
+
+
+
+export const ListAttendanceRuleVersionsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "version": zod.int(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "createdBy": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "configuration": zod.object({
+  "workStart": zod.string(),
+  "workEnd": zod.string(),
+  "scheduleName": zod.string(),
+  "requiredHours": zod.number().min(listAttendanceRuleVersionsResponseConfigurationRequiredHoursMin),
+  "graceMinutes": zod.int().min(listAttendanceRuleVersionsResponseConfigurationGraceMinutesMin),
+  "earlyCheckoutGraceMinutes": zod.int().min(listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutGraceMinutesMin),
+  "overtimeAfterMinutes": zod.int().min(listAttendanceRuleVersionsResponseConfigurationOvertimeAfterMinutesMin),
+  "overtimeEligible": zod.boolean(),
+  "overtimeMethod": zod.enum(['multiplier', 'hourly_rate']),
+  "overtimeMultiplier": zod.number().min(listAttendanceRuleVersionsResponseConfigurationOvertimeMultiplierMin),
+  "hourlyRateDivisor": zod.int().min(1),
+  "lateDeductionMethod": zod.enum(['hourly_rate', 'fixed_per_minute', 'none']),
+  "lateDeductionFactor": zod.number().min(listAttendanceRuleVersionsResponseConfigurationLateDeductionFactorMin),
+  "earlyCheckoutDeductionFactor": zod.number().min(listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutDeductionFactorMin),
+  "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
+  "absenceDeductionFactor": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAbsenceDeductionFactorMin),
+  "workingDays": zod.array(zod.string()),
+  "holidayDates": zod.array(zod.iso.date()),
+  "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
+  "locationRadiusMeters": zod.int().min(listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin).optional(),
+  "version": zod.int().optional(),
+  "effectiveFrom": zod.iso.date().optional()
+})
+})
+export const ListAttendanceRuleVersionsResponse = zod.array(ListAttendanceRuleVersionsResponseItem)
+
+
+/**
+ * @summary Create a new attendance rule version
+ */
+
+export const createAttendanceRuleVersionBodyOneRequiredHoursMin = 0;
+
+export const createAttendanceRuleVersionBodyOneGraceMinutesMin = 0;
+
+export const createAttendanceRuleVersionBodyOneEarlyCheckoutGraceMinutesMin = 0;
+
+export const createAttendanceRuleVersionBodyOneOvertimeAfterMinutesMin = 0;
+
+export const createAttendanceRuleVersionBodyOneOvertimeMultiplierMin = 0;
+
+
+export const createAttendanceRuleVersionBodyOneLateDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionBodyOneEarlyCheckoutDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionBodyOneAbsenceDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionBodyOneLocationRadiusMetersMin = 0;
+
+
+
+export const CreateAttendanceRuleVersionBody = zod.object({
+  "workStart": zod.string(),
+  "workEnd": zod.string(),
+  "scheduleName": zod.string().min(1),
+  "requiredHours": zod.number().min(createAttendanceRuleVersionBodyOneRequiredHoursMin),
+  "graceMinutes": zod.int().min(createAttendanceRuleVersionBodyOneGraceMinutesMin),
+  "earlyCheckoutGraceMinutes": zod.int().min(createAttendanceRuleVersionBodyOneEarlyCheckoutGraceMinutesMin),
+  "overtimeAfterMinutes": zod.int().min(createAttendanceRuleVersionBodyOneOvertimeAfterMinutesMin),
+  "overtimeEligible": zod.boolean(),
+  "overtimeMethod": zod.enum(['multiplier', 'hourly_rate']),
+  "overtimeMultiplier": zod.number().min(createAttendanceRuleVersionBodyOneOvertimeMultiplierMin),
+  "hourlyRateDivisor": zod.int().min(1),
+  "lateDeductionMethod": zod.enum(['hourly_rate', 'fixed_per_minute', 'none']),
+  "lateDeductionFactor": zod.number().min(createAttendanceRuleVersionBodyOneLateDeductionFactorMin),
+  "earlyCheckoutDeductionFactor": zod.number().min(createAttendanceRuleVersionBodyOneEarlyCheckoutDeductionFactorMin),
+  "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
+  "absenceDeductionFactor": zod.number().min(createAttendanceRuleVersionBodyOneAbsenceDeductionFactorMin),
+  "workingDays": zod.array(zod.string()),
+  "holidayDates": zod.array(zod.iso.date()),
+  "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
+  "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionBodyOneLocationRadiusMetersMin)
+}).and(zod.object({
+  "effectiveFrom": zod.iso.date()
+}))
+
+export const createAttendanceRuleVersionResponseConfigurationRequiredHoursMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationGraceMinutesMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationEarlyCheckoutGraceMinutesMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationOvertimeAfterMinutesMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationOvertimeMultiplierMin = 0;
+
+
+export const createAttendanceRuleVersionResponseConfigurationLateDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationEarlyCheckoutDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationAbsenceDeductionFactorMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin = 0;
+
+
+
+export const CreateAttendanceRuleVersionResponse = zod.object({
+  "id": zod.uuid(),
+  "version": zod.int(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable(),
+  "status": zod.enum(['active', 'archived']),
+  "createdBy": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "configuration": zod.object({
+  "workStart": zod.string(),
+  "workEnd": zod.string(),
+  "scheduleName": zod.string(),
+  "requiredHours": zod.number().min(createAttendanceRuleVersionResponseConfigurationRequiredHoursMin),
+  "graceMinutes": zod.int().min(createAttendanceRuleVersionResponseConfigurationGraceMinutesMin),
+  "earlyCheckoutGraceMinutes": zod.int().min(createAttendanceRuleVersionResponseConfigurationEarlyCheckoutGraceMinutesMin),
+  "overtimeAfterMinutes": zod.int().min(createAttendanceRuleVersionResponseConfigurationOvertimeAfterMinutesMin),
+  "overtimeEligible": zod.boolean(),
+  "overtimeMethod": zod.enum(['multiplier', 'hourly_rate']),
+  "overtimeMultiplier": zod.number().min(createAttendanceRuleVersionResponseConfigurationOvertimeMultiplierMin),
+  "hourlyRateDivisor": zod.int().min(1),
+  "lateDeductionMethod": zod.enum(['hourly_rate', 'fixed_per_minute', 'none']),
+  "lateDeductionFactor": zod.number().min(createAttendanceRuleVersionResponseConfigurationLateDeductionFactorMin),
+  "earlyCheckoutDeductionFactor": zod.number().min(createAttendanceRuleVersionResponseConfigurationEarlyCheckoutDeductionFactorMin),
+  "absenceDeductionMethod": zod.enum(['daily_rate', 'fixed_per_day', 'none']),
+  "absenceDeductionFactor": zod.number().min(createAttendanceRuleVersionResponseConfigurationAbsenceDeductionFactorMin),
+  "workingDays": zod.array(zod.string()),
+  "holidayDates": zod.array(zod.iso.date()),
+  "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
+  "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin).optional(),
+  "version": zod.int().optional(),
+  "effectiveFrom": zod.iso.date().optional()
+})
 })
 
 
@@ -2409,6 +2624,11 @@ export const CreatePlatformCompanyBody = zod.object({
   "active": zod.boolean().default(createPlatformCompanyBodyActiveDefault)
 })
 
+export const createPlatformCompanyResponseOwnersItemPasswordMin = 6;
+export const createPlatformCompanyResponseOwnersItemPasswordMax = 256;
+
+
+
 export const CreatePlatformCompanyResponse = zod.object({
   "company": zod.object({
   "id": zod.string(),
@@ -2428,7 +2648,7 @@ export const CreatePlatformCompanyResponse = zod.object({
   "companyId": zod.string().nullable(),
   "employeeId": zod.string().nullable(),
   "active": zod.boolean(),
-  "permissions": zod.array(zod.string())
+  "password": zod.string().min(createPlatformCompanyResponseOwnersItemPasswordMin).max(createPlatformCompanyResponseOwnersItemPasswordMax).optional()
 }))
 })
 

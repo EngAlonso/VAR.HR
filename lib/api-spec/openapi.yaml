@@ -161,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UpdateAuthAccountResponse"
+                $ref: "#/components/schemas/StaffAccountCreated"
   /platform/companies/{companyId}/owners:
     get:
       operationId: listPlatformCompanyOwners
@@ -657,6 +657,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRules"
+  /rules/versions:
+    get:
+      operationId: listAttendanceRuleVersions
+      tags: [rules]
+      summary: List effective-dated attendance rule versions
+      responses:
+        "200":
+          description: Attendance rule versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRuleVersion"
+    post:
+      operationId: createAttendanceRuleVersion
+      tags: [rules]
+      summary: Create a new attendance rule version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceRuleVersionInput"
+      responses:
+        "201":
+          description: Created attendance rule version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRuleVersion"
     put:
       operationId: updateAttendanceRules
       tags: [rules]
@@ -1537,7 +1568,7 @@ components:
       properties:
         account:
           $ref: "#/components/schemas/AuthAccount"
-         password: { type: string, minLength: 6, maxLength: 256 }
+        password: { type: string, minLength: 6, maxLength: 256 }
         permissions:
           type: array
           items: { type: string }
@@ -2165,6 +2196,26 @@ components:
           type: string
           enum: [disabled, optional, required]
         locationRadiusMeters: { type: integer, minimum: 0 }
+    AttendanceRuleVersion:
+      type: object
+      required: [id, version, effectiveFrom, effectiveTo, status, createdBy, createdAt, configuration]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: ["string", "null"], format: date }
+        status: { type: string, enum: [active, archived] }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        configuration:
+          $ref: "#/components/schemas/AttendanceRules"
+    AttendanceRuleVersionInput:
+      allOf:
+        - $ref: "#/components/schemas/AttendanceRulesInput"
+        - type: object
+          required: [effectiveFrom]
+          properties:
+            effectiveFrom: { type: string, format: date }
     AttendanceReport:
       type: object
       required: [from, to, totals, rows]

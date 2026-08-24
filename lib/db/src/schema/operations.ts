@@ -96,6 +96,24 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Immutable, effective-dated snapshots of attendanceRulesTable.
+ *
+ * The legacy table remains for compatibility with existing clients and is
+ * maintained as the current-version mirror. All new edits are stored here.
+ */
+export const attendanceRuleVersionsTable = pgTable("var_hr_attendance_rule_versions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  version: integer("version").notNull(),
+  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+  effectiveTo: date("effective_to", { mode: "string" }),
+  status: text("status").notNull().default("active"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  configuration: jsonb("configuration").notNull(),
+});
+
 export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
@@ -129,6 +147,7 @@ export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;
 export type AttendanceRules = typeof attendanceRulesTable.$inferSelect;
+export type AttendanceRuleVersion = typeof attendanceRuleVersionsTable.$inferSelect;
 export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;
 

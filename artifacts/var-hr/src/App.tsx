@@ -103,6 +103,9 @@ import {
   useDecidePermissionRequest,
   useGetAttendanceRules,
   useUpdateAttendanceRules,
+  useListAttendanceRuleVersions,
+  useCreateAttendanceRuleVersion,
+  getListAttendanceRuleVersionsQueryKey,
   useGetAttendanceReport,
   useGetReport,
   useImportEmployees,
@@ -7326,17 +7329,57 @@ function Requests() {
 }
 
 function Rules() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
+  const versions = useListAttendanceRuleVersions();
+  const createVersion = useCreateAttendanceRuleVersion();
   const [form, setForm] = useState<any>(null);
+  const [reviewVersion, setReviewVersion] = useState(false);
+  const [effectiveFrom, setEffectiveFrom] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   useEffect(() => {
     if (q.data && !form) setForm({ ...q.data });
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
   function save(e: FormEvent) {
+    e.preventDefault();
+    setReviewVersion(true);
+  }
+  function saveVersion() {
+    createVersion.mutate(
+      {
+        data: {
+          ...form,
+          effectiveFrom,
+          requiredHours: Number(form.requiredHours),
+          graceMinutes: Number(form.graceMinutes),
+          earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
+          overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
+          overtimeMultiplier: Number(form.overtimeMultiplier),
+          hourlyRateDivisor: Number(form.hourlyRateDivisor),
+          lateDeductionFactor: Number(form.lateDeductionFactor),
+          earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
+          absenceDeductionFactor: Number(form.absenceDeductionFactor),
+          locationRadiusMeters: Number(form.locationRadiusMeters),
+        } as any,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("attendancePolicyUpdated"));
+          setReviewVersion(false);
+          qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
+          qc.invalidateQueries({ queryKey: getListAttendanceRuleVersionsQueryKey() });
+        },
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
+      },
+    );
+  }
+  function saveLegacy(e: FormEvent) {
     e.preventDefault();
     update.mutate(
       {
@@ -7365,6 +7408,16 @@ function Rules() {
     { value: "Sat", key: "saturday" },
     { value: "Sun", key: "sunday" },
   ];
+  const localized = {
+    current: locale === "ar" ? "الإصدار الحالي" : "Current version",
+    historical: locale === "ar" ? "الإصدارات السابقة" : "Historical versions",
+    create: locale === "ar" ? "إنشاء إصدار جديد" : "Create New Version",
+    effectiveFrom: locale === "ar" ? "ساري من" : "Effective from",
+    effectiveTo: locale === "ar" ? "ساري حتى" : "Effective to",
+    createdBy: locale === "ar" ? "أنشأه" : "Created by",
+    review: locale === "ar" ? "مراجعة قبل الحفظ" : "Review before saving",
+    confirm: locale === "ar" ? "حفظ الإصدار" : "Save version",
+  };
   return (
     <div className="animate-in">
       <SectionTitle
@@ -7481,6 +7534,53 @@ function Rules() {
           </Button>
         </div>
       </form>
+      <Card className="mt-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">{localized.historical}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{localized.current}: {rules.version || 1}</p>
+          </div>
+          <Button type="button" onClick={() => setReviewVersion(true)}>
+            {localized.create}
+          </Button>
+        </div>
+        <div className="mt-5 grid gap-3">
+          {(versions.data || []).map((version) => (
+            <div key={version.id} className="grid gap-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-4">
+              <strong>{t("version")} {version.version}</strong>
+              <span>{localized.effectiveFrom}: {version.effectiveFrom}</span>
+              <span>{localized.effectiveTo}: {version.effectiveTo || "—"}</span>
+              <span>{localized.createdBy}: {version.createdBy}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+      {reviewVersion && (
+        <Modal title={localized.review} onClose={() => setReviewVersion(false)}>
+          <p className="text-sm text-muted-foreground">{t("rulesEffectiveNote")}</p>
+          <label className="mt-5 block text-sm font-semibold">
+            {localized.effectiveFrom}
+            <input
+              type="date"
+              value={effectiveFrom}
+              onChange={(event) => setEffectiveFrom(event.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+            />
+          </label>
+          <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 p-4 text-sm">
+            <span>{t("workStarts")}: {form.workStart}</span>
+            <span>{t("workEnds")}: {form.workEnd}</span>
+            <span>{t("gracePeriod")}: {form.graceMinutes}</span>
+            <span>{t("overtimeAfter")}: {form.overtimeAfterMinutes}</span>
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button type="button" variant="quiet" onClick={() => setReviewVersion(false)}>{t("cancel")}</Button>
+            <Button type="button" disabled={createVersion.isPending || !effectiveFrom} onClick={saveVersion}>
+              {localized.confirm}
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

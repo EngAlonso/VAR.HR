@@ -53,7 +53,21 @@ export interface AuthAccount {
   /** @nullable */
   employeeId: string | null;
   active: boolean;
-  permissions: string[];
+  /**
+     * @minLength 6
+     * @maxLength 256
+     */
+  password?: string;
+}
+
+export interface StaffAccountCreated {
+  account: AuthAccount;
+  /**
+     * @minLength 6
+     * @maxLength 256
+     */
+  password?: string;
+  permissions?: string[];
 }
 
 export interface AuthSessionResponse {
@@ -790,6 +804,30 @@ export interface AttendanceRulesInput {
   /** @minimum 0 */
   locationRadiusMeters: number;
 }
+
+export type AttendanceRuleVersionStatus = typeof AttendanceRuleVersionStatus[keyof typeof AttendanceRuleVersionStatus];
+
+
+export const AttendanceRuleVersionStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface AttendanceRuleVersion {
+  id: string;
+  version: number;
+  effectiveFrom: string;
+  /** @nullable */
+  effectiveTo: string | null;
+  status: AttendanceRuleVersionStatus;
+  createdBy: string;
+  createdAt: string;
+  configuration: AttendanceRules;
+}
+
+export type AttendanceRuleVersionInput = AttendanceRulesInput & {
+  effectiveFrom: string;
+};
 
 export interface AttendanceReportRow {
   employee: EmployeeReference;
