@@ -371,12 +371,6 @@ const nav: NavItem[] = [
     capability: "payroll.view",
   },
   {
-    href: "/schedules",
-    key: "schedules",
-    icon: Clock3,
-    roles: ["platform_owner", "company_owner", "manager", "employee"],
-  },
-  {
     href: "/holidays",
     key: "holidays",
     icon: CalendarDays,
@@ -458,11 +452,11 @@ const copy = {
     employees: "Employees",
     attendance: "Attendance",
     requests: "Requests",
-    rules: "Rules",
+    rules: "Attendance Rules",
     reports: "Reports",
     payroll: "Payroll",
     devices: "Devices",
-    schedules: "Schedules",
+    schedules: "Shift organization",
     holidays: "Holidays",
     syncHistory: "Sync history",
     backupRestore: "Backup & restore",
@@ -815,11 +809,11 @@ const copy = {
     employees: "الموظفون",
     attendance: "الحضور",
     requests: "الطلبات",
-    rules: "القواعد",
+    rules: "قواعد الحضور",
     reports: "التقارير",
     payroll: "الرواتب",
     devices: "الأجهزة",
-    schedules: "الجداول",
+    schedules: "تنظيم الشيفتات",
     holidays: "العطلات",
     syncHistory: "سجل المزامنة",
     backupRestore: "النسخ الاحتياطي والاستعادة",
@@ -3392,12 +3386,12 @@ const importCopy = {
 } as const;
 const task5Copy = {
   en: {
-    scheduleManagement: "Schedule management",
+    scheduleManagement: "Shift organization",
     scheduleManagementDetail:
-      "Build reusable work patterns and assign the effective schedule to each employee.",
-    createSchedule: "Create schedule",
-    editSchedule: "Edit schedule",
-    scheduleName: "Schedule name",
+      "Build reusable shifts and assign the effective shift to each employee.",
+    createSchedule: "Create shift",
+    editSchedule: "Edit shift",
+    scheduleName: "Shift name",
     scheduleNameAr: "Arabic name",
     workingDays: "Working days",
     startTime: "Start time",
@@ -3407,15 +3401,15 @@ const task5Copy = {
     earlyCheckoutGraceMinutes: "Early checkout grace (minutes)",
     breakDurationMinutes: "Break duration (minutes)",
     breakPaid: "Paid break",
-    defaultSchedule: "Company default",
-    setDefaultSchedule: "Set as default",
+    defaultSchedule: "Company default shift",
+    setDefaultSchedule: "Set as default shift",
     assignmentHistory: "Assignment history",
-    bulkAssignment: "Bulk assignment",
+    bulkAssignment: "Bulk assign shifts",
     selectEmployees: "Select employees",
     bulkAssigned: "Employees assigned",
     overtimeAfterMinutes: "Overtime after (minutes)",
     overtimeEligible: "Overtime eligible",
-    activeSchedule: "Active schedule",
+    activeSchedule: "Active shift",
     daySun: "Sun",
     dayMon: "Mon",
     dayTue: "Tue",
@@ -3423,28 +3417,41 @@ const task5Copy = {
     dayThu: "Thu",
     dayFri: "Fri",
     daySat: "Sat",
-    overnightSchedule: "Overnight schedule",
+    overnightSchedule: "Overnight shift",
     overnightScheduleDetail: "The end time is on the following day.",
-    noSchedules: "No schedules configured",
+    noSchedules: "No shifts configured",
     noSchedulesDetail:
-      "Create a work pattern before assigning it to employees.",
-    scheduleCreated: "Schedule created",
-    scheduleUpdated: "Schedule updated",
-    scheduleSaveFailed: "The schedule could not be saved.",
+      "Create a shift before assigning it to employees.",
+    scheduleCreated: "Shift created",
+    scheduleUpdated: "Shift updated",
+    scheduleSaveFailed: "The shift could not be saved.",
     scheduleValidation:
       "Choose at least one working day and provide a valid time range.",
-    employeeSchedule: "Employee schedule",
-    assignSchedule: "Assign schedule",
-    effectiveSchedule: "Effective schedule",
+    employeeSchedule: "Employee shift assignment",
+    assignSchedule: "Assign shift",
+    effectiveSchedule: "Effective shift",
     selectEmployee: "Select employee",
-    selectSchedule: "Select schedule",
+    selectSchedule: "Select shift",
     effectiveFrom: "Effective from",
     effectiveTo: "Effective to",
-    scheduleAssigned: "Schedule assigned",
-    scheduleAssignmentFailed: "The schedule assignment could not be saved.",
-    noEffectiveSchedule: "No effective schedule",
+    scheduleAssigned: "Shift assigned",
+    scheduleAssignmentFailed: "The shift assignment could not be saved.",
+    noEffectiveSchedule: "No effective shift",
     noEffectiveScheduleDetail:
-      "This employee does not have an active schedule assignment.",
+      "This employee does not have an active shift assignment.",
+    shiftOrganization: "Shift organization",
+    shiftOrganizationDetail:
+      "Create and manage reusable shifts, working days, breaks, grace periods, overtime, and the company default shift.",
+    employeeShiftAssignment: "Employee shift assignment",
+    employeeShiftAssignmentDetail:
+      "Assign shifts to employees, set effective dates, bulk assign, and review assignment history.",
+    automaticOvertimeCalculation: "Automatic Overtime Calculation",
+    automaticOvertimeCalculationDetail:
+      "When disabled, extra worked minutes do not automatically become overtime.",
+    automaticOvertime: "Automatic Overtime",
+    useCompanyDefault: "Use company default",
+    enabled: "Enabled",
+    disabledSetting: "Disabled",
     holidaysTitle: "Company holidays",
     holidaysDetail:
       "Keep tenant-scoped non-working dates in one place for attendance calculations.",
@@ -3502,12 +3509,12 @@ const task5Copy = {
     connectionTestResult: "Connection test result",
   },
   ar: {
-    scheduleManagement: "إدارة الجداول",
+    scheduleManagement: "تنظيم الشيفتات",
     scheduleManagementDetail:
-      "أنشئ أنماط عمل قابلة لإعادة الاستخدام وعيّن الجدول الفعّال لكل موظف.",
-    createSchedule: "إنشاء جدول",
-    editSchedule: "تعديل الجدول",
-    scheduleName: "اسم الجدول",
+      "أنشئ شيفتات قابلة لإعادة الاستخدام واربط الشيفت الفعّال بكل موظف.",
+    createSchedule: "إنشاء شيفت",
+    editSchedule: "تعديل الشيفت",
+    scheduleName: "اسم الشيفت",
     scheduleNameAr: "الاسم بالعربية",
     workingDays: "أيام العمل",
     startTime: "وقت البدء",
@@ -3517,15 +3524,15 @@ const task5Copy = {
     earlyCheckoutGraceMinutes: "سماح الانصراف المبكر (بالدقائق)",
     breakDurationMinutes: "مدة الاستراحة (بالدقائق)",
     breakPaid: "استراحة مدفوعة",
-    defaultSchedule: "الافتراضي للشركة",
-    setDefaultSchedule: "تعيين كافتراضي",
+    defaultSchedule: "الشيفت الافتراضي للشركة",
+    setDefaultSchedule: "تعيين كشيفت افتراضي",
     assignmentHistory: "سجل التعيينات",
     bulkAssignment: "تعيين جماعي",
     selectEmployees: "اختر الموظفين",
     bulkAssigned: "تم تعيين الموظفين",
     overtimeAfterMinutes: "العمل الإضافي بعد (دقائق)",
     overtimeEligible: "مؤهل للعمل الإضافي",
-    activeSchedule: "جدول نشط",
+    activeSchedule: "شيفت نشط",
     daySun: "الأحد",
     dayMon: "الاثنين",
     dayTue: "الثلاثاء",
@@ -3533,25 +3540,38 @@ const task5Copy = {
     dayThu: "الخميس",
     dayFri: "الجمعة",
     daySat: "السبت",
-    overnightSchedule: "جدول ليلي",
+    overnightSchedule: "شيفت ليلي",
     overnightScheduleDetail: "وقت الانتهاء في اليوم التالي.",
-    noSchedules: "لا توجد جداول",
-    noSchedulesDetail: "أنشئ نمط عمل قبل تعيينه للموظفين.",
-    scheduleCreated: "تم إنشاء الجدول",
-    scheduleUpdated: "تم تحديث الجدول",
-    scheduleSaveFailed: "تعذر حفظ الجدول.",
+    noSchedules: "لا توجد شيفتات",
+    noSchedulesDetail: "أنشئ شيفتاً قبل ربطه بالموظفين.",
+    scheduleCreated: "تم إنشاء الشيفت",
+    scheduleUpdated: "تم تحديث الشيفت",
+    scheduleSaveFailed: "تعذر حفظ الشيفت.",
     scheduleValidation: "اختر يوم عمل واحداً على الأقل وأدخل نطاق وقت صالحاً.",
-    employeeSchedule: "جدول الموظف",
-    assignSchedule: "تعيين جدول",
-    effectiveSchedule: "الجدول الفعّال",
+    employeeSchedule: "ربط الموظف بالشيفت",
+    assignSchedule: "ربط الشيفت",
+    effectiveSchedule: "الشيفت الفعّال",
     selectEmployee: "اختر موظفاً",
-    selectSchedule: "اختر جدولاً",
+    selectSchedule: "اختر شيفتاً",
     effectiveFrom: "ساري من",
     effectiveTo: "ساري حتى",
-    scheduleAssigned: "تم تعيين الجدول",
-    scheduleAssignmentFailed: "تعذر حفظ تعيين الجدول.",
-    noEffectiveSchedule: "لا يوجد جدول فعّال",
-    noEffectiveScheduleDetail: "لا يوجد تعيين جدول نشط لهذا الموظف.",
+    scheduleAssigned: "تم ربط الشيفت",
+    scheduleAssignmentFailed: "تعذر حفظ ربط الشيفت.",
+    noEffectiveSchedule: "لا يوجد شيفت فعّال",
+    noEffectiveScheduleDetail: "لا يوجد ربط شيفت نشط لهذا الموظف.",
+    shiftOrganization: "تنظيم الشيفتات",
+    shiftOrganizationDetail:
+      "أنشئ وأدر الشيفتات وأيام العمل والاستراحات وفترات السماح والإضافي والشيفت الافتراضي للشركة.",
+    employeeShiftAssignment: "ربط الموظفين بالشيفتات",
+    employeeShiftAssignmentDetail:
+      "اربط الشيفتات بالموظفين وحدد تواريخ السريان والربط الجماعي وراجع سجل التعيينات.",
+    automaticOvertimeCalculation: "احتساب الإضافي تلقائيًا",
+    automaticOvertimeCalculationDetail:
+      "عند التعطيل، لا تتحول الدقائق الإضافية تلقائيًا إلى إضافي.",
+    automaticOvertime: "الإضافي تلقائيًا",
+    useCompanyDefault: "استخدام إعداد الشركة",
+    enabled: "مفعّل",
+    disabledSetting: "معطّل",
     holidaysTitle: "عطلات الشركة",
     holidaysDetail:
       "أدر تواريخ عدم العمل الخاصة بالمستأجر في مكان واحد لاستخدامها في حسابات الحضور.",
@@ -4324,7 +4344,7 @@ function permissionLabel(
     "reports.export": "تصدير التقارير",
     devices: "الأجهزة",
     "sync-history": "سجل المزامنة",
-    schedules: "الجداول",
+     schedules: "تنظيم الشيفتات",
     holidays: "العطلات",
     "organization.manage": "إدارة الهيكل التنظيمي",
   };
@@ -4351,7 +4371,7 @@ function permissionDescription(
     "reports.export": "تصدير التقارير.",
     devices: "إدارة إعدادات الأجهزة.",
     "sync-history": "عرض سجل المزامنة.",
-    schedules: "إدارة جداول العمل.",
+    schedules: "إدارة تنظيم الشيفتات.",
     holidays: "إدارة عطلات الشركة.",
     "organization.manage": "إدارة الأقسام والفروع والهيكل التنظيمي.",
   };
@@ -5612,6 +5632,9 @@ function EmployeeHrPanel({
   const managers = useListEmployees({ status: "active" });
   const update = useUpdateEmployeeHrRecord();
   const [form, setForm] = useState<HrRecordForm>(emptyHrRecordForm);
+  const [automaticOvertime, setAutomaticOvertime] = useState<
+    "default" | "enabled" | "disabled"
+  >("default");
 
   useEffect(() => {
     if (!hr.data) return;
@@ -5768,6 +5791,22 @@ function EmployeeHrPanel({
               setForm({ ...form, emergencyContactPhone: value })
             }
           />
+          <label className="block text-sm font-semibold">
+            {t("automaticOvertime")}
+            <select
+              value={automaticOvertime}
+              onChange={(event) =>
+                setAutomaticOvertime(
+                  event.target.value as "default" | "enabled" | "disabled",
+                )
+              }
+              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+            >
+              <option value="default">{t("useCompanyDefault")}</option>
+              <option value="enabled">{t("enabled")}</option>
+              <option value="disabled">{t("disabledSetting")}</option>
+            </select>
+          </label>
           <label className="block text-sm font-semibold">
             {t("notes")}
             <textarea
@@ -8241,6 +8280,22 @@ function Rules() {
               value={form.overtimeAfterMinutes}
               onChange={(v) => setForm({ ...form, overtimeAfterMinutes: v })}
             />
+            <label className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={Boolean(form.overtimeEligible)}
+                onChange={(event) =>
+                  setForm({ ...form, overtimeEligible: event.target.checked })
+                }
+                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+              />
+              <span>
+                {t("automaticOvertimeCalculation")}
+                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                  {t("automaticOvertimeCalculationDetail")}
+                </span>
+              </span>
+            </label>
           </div>
           <div className="mt-7 flex flex-wrap gap-2">
             {weekdays.map(({ value, key }) => (
@@ -8404,6 +8459,9 @@ function Rules() {
           </Button>
         </div>
       </form>
+      <div className="mt-6">
+        <Schedules embedded />
+      </div>
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -10092,7 +10150,7 @@ const scheduleDayOptions: Array<[string, AppCopyKey]> = [
   ["Sat", "daySat"],
 ];
 
-function Schedules() {
+function Schedules({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
@@ -10307,19 +10365,37 @@ function Schedules() {
   const effectiveSchedule = effective.data?.schedule;
   return (
     <div className="animate-in">
-      <SectionTitle
-        eyebrow={t("scheduleManagement")}
-        title={t("schedules")}
-        detail={t("scheduleManagementDetail")}
-        action={
-          canAdminister ? (
-            <Button onClick={() => openEditor()}>
-              <Plus size={16} />
-              {t("createSchedule")}
-            </Button>
-          ) : undefined
-        }
-      />
+      {!embedded && (
+        <SectionTitle
+          eyebrow={t("rules")}
+          title={t("shiftOrganization")}
+          detail={t("shiftOrganizationDetail")}
+          action={
+            canAdminister ? (
+              <Button onClick={() => openEditor()}>
+                <Plus size={16} />
+                {t("createSchedule")}
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
+      {embedded && canAdminister && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold">
+              {t("shiftOrganization")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("shiftOrganizationDetail")}
+            </p>
+          </div>
+          <Button onClick={() => openEditor()}>
+            <Plus size={16} />
+            {t("createSchedule")}
+          </Button>
+        </div>
+      )}
       {canAdminister || role === "manager" ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
           <Card>
@@ -10415,10 +10491,10 @@ function Schedules() {
           <Card>
             <div className="border-b border-border p-5">
               <h2 className="font-display text-lg font-semibold">
-                {t("employeeSchedule")}
+                {t("employeeShiftAssignment")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {t("effectiveSchedule")}
+                {t("employeeShiftAssignmentDetail")}
               </p>
             </div>
             <div className="space-y-4 p-5">
@@ -10861,6 +10937,10 @@ function Schedules() {
       )}
     </div>
   );
+}
+
+function SchedulesRoute() {
+  return <Schedules />;
 }
 
 function Holidays() {
@@ -14893,7 +14973,7 @@ function PlatformCompanyDetailsPage() {
       ],
     ],
     [
-      "Rules & schedules",
+      "Attendance rules & shift organization",
       [
         "var_hr_attendance_rules",
         "var_hr_work_schedules",
@@ -14918,7 +14998,7 @@ function PlatformCompanyDetailsPage() {
     var_hr_employee_hr_records: "سجلات الموارد البشرية للموظفين",
     var_hr_employee_identities: "هويات الموظفين",
     var_hr_attendance_rules: "قواعد الحضور والانصراف",
-    var_hr_work_schedules: "جداول العمل",
+    var_hr_work_schedules: "تنظيم الشيفتات",
     var_hr_holidays: "العطلات",
     var_hr_leave_balances: "أرصدة الإجازات",
     var_hr_leave_requests: "طلبات الإجازات",
@@ -16224,7 +16304,7 @@ function Router() {
         <Route path="/rules" component={Rules} />
         <Route path="/reports" component={Reports} />
         <Route path="/payroll" component={Payroll} />
-        <Route path="/schedules" component={Schedules} />
+        <Route path="/schedules" component={SchedulesRoute} />
         <Route path="/holidays" component={Holidays} />
         <Route path="/devices" component={Devices} />
         <Route path="/sync-history" component={SyncHistory} />
