@@ -276,6 +276,10 @@ function clockMinutes(value: string): number {
   return hours * 60 + minutes;
 }
 
+function isValidClockTime(value: string): boolean {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 function dateOffset(value: string, days: number): string {
   const date = new Date(`${value}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -1034,6 +1038,23 @@ function permissionWindowMinutes(
   return { start, end: Math.max(start, end) };
 }
 
+function mergePermissionWindows(
+  windows: Array<{ start: number; end: number }>,
+): Array<{ start: number; end: number }> {
+  return windows
+    .filter((window) => window.end > window.start)
+    .sort((a, b) => a.start - b.start)
+    .reduce<Array<{ start: number; end: number }>>((merged, window) => {
+      const previous = merged[merged.length - 1];
+      if (previous && window.start <= previous.end) {
+        previous.end = Math.max(previous.end, window.end);
+      } else {
+        merged.push({ ...window });
+      }
+      return merged;
+    }, []);
+}
+
 function overlapMinutes(
   firstStart: number,
   firstEnd: number,
@@ -1181,7 +1202,7 @@ async function attendanceCalculationFor(
       ),
     )
     .limit(1);
-  const approvedPermissions = await db
+  const permissionRequests = await db
     .select()
     .from(permissionRequestsTable)
     .where(
@@ -1189,9 +1210,22 @@ async function attendanceCalculationFor(
         eq(permissionRequestsTable.companyId, context.companyId),
         eq(permissionRequestsTable.employeeId, attendance.employeeId),
         eq(permissionRequestsTable.date, attendance.date),
-        eq(permissionRequestsTable.status, "approved"),
       ),
     );
+  const approvedPermissions = permissionRequests.filter(
+    (permission) => permission.status === "approved",
+  );
+  const pendingPermissionCount = permissionRequests.filter(
+    (permission) => permission.status === "pending",
+  ).length;
+  const rejectedPermissionCount = permissionRequests.filter(
+    (permission) => permission.status === "rejected",
+  ).length;
+  const approvedPermissionWindows = mergePermissionWindows(
+    approvedPermissions.map((permission) =>
+      permissionWindowMinutes(permission.startTime, permission.endTime, schedule),
+    ),
+  );
   const metrics = attendanceMetrics({
     checkIn: attendance.checkIn,
     checkOut: attendance.checkOut,
@@ -1202,22 +1236,30 @@ async function attendanceCalculationFor(
     holiday,
   });
   const scheduledMinutes = scheduleDurationMinutes(schedule.startTime, schedule.endTime);
-  const fullDayPermission = approvedPermissions.some((permission) => {
-    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
-    return window.end - window.start >= scheduledMinutes;
-  });
-  const approvedPermissionMinutes = approvedPermissions.reduce((total, permission) => {
-    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
-    return total + overlapMinutes(0, scheduledMinutes, window.start, window.end);
-  }, 0);
-  const latePermissionMinutes = approvedPermissions.reduce((total, permission) => {
-    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
-    return total + overlapMinutes(0, metrics.rawLateMinutes, window.start, window.end);
-  }, 0);
-  const earlyPermissionMinutes = approvedPermissions.reduce((total, permission) => {
-    const window = permissionWindowMinutes(permission.startTime, permission.endTime, schedule);
-    return total + overlapMinutes(scheduledMinutes - metrics.rawEarlyDepartureMinutes, scheduledMinutes, window.start, window.end);
-  }, 0);
+  const fullDayPermission = approvedPermissionWindows.some(
+    (window) => window.start <= 0 && window.end >= scheduledMinutes,
+  );
+  const approvedPermissionMinutes = approvedPermissionWindows.reduce(
+    (total, window) =>
+      total + overlapMinutes(0, scheduledMinutes, window.start, window.end),
+    0,
+  );
+  const latePermissionMinutes = approvedPermissionWindows.reduce(
+    (total, window) =>
+      total + overlapMinutes(0, metrics.rawLateMinutes, window.start, window.end),
+    0,
+  );
+  const earlyPermissionMinutes = approvedPermissionWindows.reduce(
+    (total, window) =>
+      total +
+      overlapMinutes(
+        scheduledMinutes - metrics.rawEarlyDepartureMinutes,
+        scheduledMinutes,
+        window.start,
+        window.end,
+      ),
+    0,
+  );
   const permissionCoveredLateMinutes = rules.permissionCoversLate
     ? Math.min(metrics.lateMinutes, latePermissionMinutes)
     : 0;
@@ -1261,8 +1303,8 @@ async function attendanceCalculationFor(
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
-    `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; approved permissions: ${approvedPermissions.length}.`,
-    `Permission coverage: ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes.`,
+    `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
+    `Permission coverage uses merged approved windows (overlaps counted once): ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes${fullDayPermission ? "; full-day policy applies" : ""}.`,
     `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
   ];
   const values = {
@@ -3249,7 +3291,11 @@ router.post("/permissions/requests", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  if (parsed.data.startTime >= parsed.data.endTime) {
+  if (
+    !isValidClockTime(parsed.data.startTime) ||
+    !isValidClockTime(parsed.data.endTime) ||
+    parsed.data.startTime >= parsed.data.endTime
+  ) {
     res.status(400).json({ error: message(req, "permissionTimeInvalid") });
     return;
   }
