@@ -200,6 +200,11 @@ export const STANDARD_PERMISSIONS = [
     "Correct attendance records and rules.",
   ],
   [
+    "attendance.adjust",
+    "Adjust attendance calculations",
+    "Create, approve, reverse, and audit manual attendance adjustments.",
+  ],
+  [
     "leave.create",
     "Create leave requests",
     "Submit leave requests for the signed-in employee.",

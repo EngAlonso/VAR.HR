@@ -94,6 +94,11 @@ import {
   useCheckIn,
   useCheckOut,
   useCorrectAttendance,
+  usePreviewAttendanceCalculation,
+  useListAttendanceTimeAdjustments,
+  useCreateAttendanceTimeAdjustment,
+  useDecideAttendanceTimeAdjustment,
+  useReverseAttendanceTimeAdjustment,
   useListLeaveBalances,
   useListLeavePolicies,
   useCreateLeavePolicy,
@@ -158,6 +163,8 @@ import {
   getGetEmployeeQueryKey,
   getGetAttendanceTodayQueryKey,
   getListAttendanceHistoryQueryKey,
+  getPreviewAttendanceCalculationQueryKey,
+  getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
   getListLeavePoliciesQueryKey,
   getListLeaveBalanceTransactionsQueryKey,
@@ -6442,6 +6449,13 @@ function Attendance() {
   const [tab, setTab] = useState<"today" | "history">("today");
   const [filters, setFilters] = useState({ from: "", to: "", employeeId: "" });
   const [correction, setCorrection] = useState<any | null>(null);
+  const [selectedAttendanceId, setSelectedAttendanceId] = useState("");
+  const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    minutes: "",
+    adjustmentType: "time",
+    reason: "",
+  });
   const [gpsState, setGpsState] = useState("not_required");
   const today = useGetAttendanceToday();
   const employees = useListEmployees({ status: "active" });
@@ -6453,10 +6467,27 @@ function Attendance() {
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const correct = useCorrectAttendance();
+  const calculation = usePreviewAttendanceCalculation(selectedAttendanceId, {
+    query: {
+      enabled: Boolean(selectedAttendanceId),
+      queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId),
+    },
+  });
+  const timeAdjustments = useListAttendanceTimeAdjustments(selectedAttendanceId, {
+    query: {
+      enabled: Boolean(selectedAttendanceId),
+      queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
+    },
+  });
+  const createAdjustment = useCreateAttendanceTimeAdjustment();
+  const decideAdjustment = useDecideAttendanceTimeAdjustment();
+  const reverseAdjustment = useReverseAttendanceTimeAdjustment();
   const isScoped =
     workspace.data?.role === "employee" || workspace.data?.role === "manager";
   const canCorrect =
     workspace.data?.capabilities?.includes("attendance.correct") ?? false;
+  const canAdjust =
+    workspace.data?.capabilities?.includes("attendance.adjust") ?? false;
   const record = today.data?.records?.find(
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
@@ -6571,6 +6602,62 @@ function Attendance() {
           });
         },
         onError: () => toast.error(t("attendanceCorrectionFailed")),
+      },
+    );
+  }
+  function submitAdjustment(event: FormEvent) {
+    event.preventDefault();
+    const minutes = Number(adjustmentForm.minutes);
+    if (!selectedAttendanceId || !Number.isInteger(minutes) || minutes === 0 || !adjustmentForm.reason.trim()) {
+      return;
+    }
+    if (adjustmentForm.adjustmentType === "overtime" && minutes < 1) return;
+    createAdjustment.mutate(
+      {
+        attendanceId: selectedAttendanceId,
+        data: {
+          minutes,
+          adjustmentType: adjustmentForm.adjustmentType as "time" | "overtime" | "permission",
+          reason: adjustmentForm.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Attendance adjustment submitted for approval.");
+          setShowAdjustmentForm(false);
+          setAdjustmentForm({ minutes: "", adjustmentType: "time", reason: "" });
+          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
+          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+        },
+        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not submit adjustment.")),
+      },
+    );
+  }
+  function decideAdjustmentById(id: string, decision: "approved" | "rejected") {
+    decideAdjustment.mutate(
+      { adjustmentId: id, data: { decision } },
+      {
+        onSuccess: () => {
+          toast.success(`Adjustment ${decision}.`);
+          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
+          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+        },
+        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not update adjustment.")),
+      },
+    );
+  }
+  function reverseAdjustmentById(id: string) {
+    const reason = window.prompt("Reason for reversing this adjustment:");
+    if (!reason?.trim()) return;
+    reverseAdjustment.mutate(
+      { adjustmentId: id, data: { reason: reason.trim() } },
+      {
+        onSuccess: () => {
+          toast.success("Adjustment reversed.");
+          qc.invalidateQueries({ queryKey: getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId) });
+          qc.invalidateQueries({ queryKey: getPreviewAttendanceCalculationQueryKey(selectedAttendanceId) });
+        },
+        onError: (error: unknown) => toast.error(apiErrorMessage(error, "Could not reverse adjustment.")),
       },
     );
   }
@@ -6802,9 +6889,9 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      {canCorrect && (
+                      {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">
-                          {t("correctAttendance")}
+                          Actions
                         </th>
                       )}
                     </tr>
@@ -6822,15 +6909,38 @@ function Attendance() {
                         <td className="px-5 py-4">
                           <Status value={x.status} />
                         </td>
-                        {canCorrect && (
+                        {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
-                            <Button
-                              variant="outline"
-                              className="text-xs"
-                              onClick={() => openCorrection(x)}
-                            >
-                              {t("correctAttendance")}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => setSelectedAttendanceId(x.id)}
+                              >
+                                Calculation
+                              </Button>
+                              {canAdjust && (
+                                <Button
+                                  variant="outline"
+                                  className="text-xs"
+                                  onClick={() => {
+                                    setSelectedAttendanceId(x.id);
+                                    setShowAdjustmentForm(true);
+                                  }}
+                                >
+                                  Adjust
+                                </Button>
+                              )}
+                              {canCorrect && (
+                                <Button
+                                  variant="outline"
+                                  className="text-xs"
+                                  onClick={() => openCorrection(x)}
+                                >
+                                  {t("correctAttendance")}
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -6917,6 +7027,126 @@ function Attendance() {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+      {selectedAttendanceId && (
+        <Modal
+          title="Attendance calculation and adjustments"
+          onClose={() => {
+            setSelectedAttendanceId("");
+            setShowAdjustmentForm(false);
+          }}
+        >
+          {calculation.isLoading ? (
+            <Skeleton className="h-32" />
+          ) : calculation.isError ? (
+            <ErrorState retry={() => calculation.refetch()} />
+          ) : calculation.data ? (
+            <div className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Card className="bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Original</p>
+                  <p className="mt-1 font-mono">{calculation.data.originalWorkedMinutes}m worked</p>
+                  <p className="font-mono">{calculation.data.originalOvertimeMinutes}m overtime</p>
+                </Card>
+                <Card className="bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Manual approved</p>
+                  <p className="mt-1 font-mono">{calculation.data.manualMinutes}m time</p>
+                  <p className="font-mono">{calculation.data.manualOvertimeMinutes}m overtime</p>
+                </Card>
+                <Card className="bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground">Final</p>
+                  <p className="mt-1 font-mono">{calculation.data.finalWorkedMinutes}m worked</p>
+                  <p className="font-mono">{calculation.data.finalOvertimeMinutes}m overtime</p>
+                  <p className="font-mono">{calculation.data.finalPenaltyMinutes}m penalties</p>
+                </Card>
+              </div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Adjustment history</h3>
+                {canAdjust && (
+                  <Button variant="outline" onClick={() => setShowAdjustmentForm((value) => !value)}>
+                    {showAdjustmentForm ? "Close form" : "Add adjustment"}
+                  </Button>
+                )}
+              </div>
+              {showAdjustmentForm && (
+                <form onSubmit={submitAdjustment} className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field
+                      label="Minutes (negative reduces time)"
+                      type="number"
+                      value={adjustmentForm.minutes}
+                      onChange={(value) => setAdjustmentForm({ ...adjustmentForm, minutes: value })}
+                    />
+                    <label className="block text-sm font-semibold">
+                      Type
+                      <select
+                        value={adjustmentForm.adjustmentType}
+                        onChange={(event) => setAdjustmentForm({ ...adjustmentForm, adjustmentType: event.target.value })}
+                        className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                      >
+                        <option value="time">Worked time</option>
+                        <option value="overtime">Manual overtime</option>
+                        <option value="permission">Emergency permission</option>
+                      </select>
+                    </label>
+                  </div>
+                  <textarea
+                    required
+                    minLength={1}
+                    value={adjustmentForm.reason}
+                    onChange={(event) => setAdjustmentForm({ ...adjustmentForm, reason: event.target.value })}
+                    placeholder="Mandatory reason"
+                    className="min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm"
+                  />
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={createAdjustment.isPending}>
+                      {createAdjustment.isPending ? "Submitting…" : "Submit for approval"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+              {timeAdjustments.isLoading ? (
+                <Skeleton className="h-24" />
+              ) : timeAdjustments.data?.length ? (
+                <div className="space-y-2">
+                  {timeAdjustments.data.map((item) => (
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
+                      <div>
+                        <p className="font-semibold">
+                          {item.adjustmentType} · {item.minutes > 0 ? "+" : ""}{item.minutes} minutes
+                        </p>
+                        <p className="text-muted-foreground">{item.reason}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.status} · created by {item.createdBy} · {date(item.createdAt)}
+                          {item.approvedAt ? ` · approved ${date(item.approvedAt)}` : ""}
+                          {item.rejectedAt ? ` · rejected ${date(item.rejectedAt)}` : ""}
+                          {item.reversedAt ? ` · reversed ${date(item.reversedAt)}` : ""}
+                        </p>
+                      </div>
+                      {canAdjust && item.status === "pending" && (
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="text-xs" onClick={() => decideAdjustmentById(item.id, "approved")}>Approve</Button>
+                          <Button variant="outline" className="text-xs" onClick={() => decideAdjustmentById(item.id, "rejected")}>Reject</Button>
+                        </div>
+                      )}
+                      {canAdjust && item.status === "approved" && (
+                        <Button variant="outline" className="text-xs" onClick={() => reverseAdjustmentById(item.id)}>Reverse</Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No attendance adjustments.</p>
+              )}
+              <details>
+                <summary className="cursor-pointer text-sm font-semibold">Calculation explanation</summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {calculation.data.explanation.map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              </details>
+            </div>
+          ) : null}
         </Modal>
       )}
     </div>

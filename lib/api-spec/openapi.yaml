@@ -487,6 +487,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceCalculation"
+    post:
+      operationId: recalculateAttendance
+      tags: [attendance]
+      summary: Recalculate and store derived attendance results
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      responses:
+        "200":
+          description: Stored attendance calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCalculation"
   /attendance/{attendanceId}/time-adjustments:
     get:
       operationId: listAttendanceTimeAdjustments
@@ -568,19 +581,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceTimeAdjustment"
-    post:
-      operationId: recalculateAttendance
-      tags: [attendance]
-      summary: Recalculate and store derived attendance results
-      parameters:
-        - $ref: "#/components/parameters/AttendanceId"
-      responses:
-        "200":
-          description: Stored attendance calculation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttendanceCalculation"
   /attendance/check-in:
     post:
       operationId: checkIn
@@ -2260,6 +2260,15 @@ components:
           earlyDeparturePenaltyMinutes,
           absencePenaltyMinutes,
           totalPenaltyMinutes,
+           originalWorkedMinutes,
+           originalOvertimeMinutes,
+           manualMinutes,
+           manualOvertimeMinutes,
+           manualPermissionMinutes,
+           finalWorkedMinutes,
+           finalOvertimeMinutes,
+           finalPenaltyMinutes,
+           adjustments,
           explanation,
           calculatedAt,
         ]
@@ -2294,10 +2303,67 @@ components:
         earlyDeparturePenaltyMinutes: { type: integer, minimum: 0 }
         absencePenaltyMinutes: { type: integer, minimum: 0 }
         totalPenaltyMinutes: { type: integer, minimum: 0 }
+        originalWorkedMinutes: { type: integer, minimum: 0 }
+        originalOvertimeMinutes: { type: integer, minimum: 0 }
+        manualMinutes: { type: integer }
+        manualOvertimeMinutes: { type: integer, minimum: 0 }
+        manualPermissionMinutes: { type: integer, minimum: 0 }
+        finalWorkedMinutes: { type: integer, minimum: 0 }
+        finalOvertimeMinutes: { type: integer, minimum: 0 }
+        finalPenaltyMinutes: { type: integer, minimum: 0 }
+        adjustments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceTimeAdjustment"
         explanation:
           type: array
           items: { type: string }
         calculatedAt: { type: string, format: date-time }
+    AttendanceTimeAdjustment:
+      type: object
+      required:
+        [id, attendanceId, employeeId, adjustmentDate, minutes, adjustmentType, reason, status, createdBy, createdAt]
+      properties:
+        id: { type: string }
+        attendanceId: { type: string }
+        employeeId: { type: string }
+        adjustmentDate: { type: string, format: date }
+        minutes: { type: integer }
+        adjustmentType:
+          type: string
+          enum: [time, overtime, permission]
+        reason: { type: string, minLength: 1 }
+        status:
+          type: string
+          enum: [pending, approved, rejected, reversed]
+        createdBy: { type: string }
+        approvedBy: { type: ["string", "null"] }
+        rejectedBy: { type: ["string", "null"] }
+        reversedBy: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        approvedAt: { type: ["string", "null"], format: date-time }
+        rejectedAt: { type: ["string", "null"], format: date-time }
+        reversedAt: { type: ["string", "null"], format: date-time }
+    AttendanceTimeAdjustmentInput:
+      type: object
+      required: [minutes, adjustmentType, reason]
+      properties:
+        minutes: { type: integer }
+        adjustmentType:
+          type: string
+          enum: [time, overtime, permission]
+        reason: { type: string, minLength: 1 }
+    AttendanceTimeAdjustmentDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        reason: { type: string }
+    AttendanceTimeAdjustmentReverseInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
     EmployeeReference:
       type: object
       required: [id, name, initials, department]

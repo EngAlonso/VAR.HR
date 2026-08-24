@@ -65,6 +65,15 @@ import {
   PreviewAttendanceCalculationResponse,
   RecalculateAttendanceParams,
   RecalculateAttendanceResponse,
+  CreateAttendanceTimeAdjustmentBody,
+  CreateAttendanceTimeAdjustmentResponse,
+  DecideAttendanceTimeAdjustmentBody,
+  DecideAttendanceTimeAdjustmentParams,
+  DecideAttendanceTimeAdjustmentResponse,
+  ListAttendanceTimeAdjustmentsResponse,
+  ReverseAttendanceTimeAdjustmentBody,
+  ReverseAttendanceTimeAdjustmentParams,
+  ReverseAttendanceTimeAdjustmentResponse,
   GetMyPayrollQueryParams,
   GetMyPayrollResponse,
   GetPayrollCalculationParams,
@@ -161,6 +170,7 @@ import {
   attendanceLocationsTable,
   attendanceTable,
   attendanceCalculationsTable,
+  attendanceTimeAdjustmentsTable,
   auditLogsTable,
   authAuditEventsTable,
   biometricEventsTable,
@@ -1232,6 +1242,19 @@ async function attendanceCalculationFor(
   const rejectedPermissionCount = permissionRequests.filter(
     (permission) => permission.status === "rejected",
   ).length;
+  const adjustmentRows = await db
+    .select()
+    .from(attendanceTimeAdjustmentsTable)
+    .where(
+      and(
+        eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
+        eq(attendanceTimeAdjustmentsTable.attendanceId, attendance.id),
+      ),
+    )
+    .orderBy(desc(attendanceTimeAdjustmentsTable.createdAt));
+  const approvedAdjustments = adjustmentRows.filter(
+    (adjustment) => adjustment.status === "approved",
+  );
   const approvedPermissionWindows = mergePermissionWindows(
     approvedPermissions.map((permission) =>
       permissionWindowMinutes(permission.startTime, permission.endTime, schedule),
@@ -1246,6 +1269,16 @@ async function attendanceCalculationFor(
     timeZone: context.company.timezone,
     holiday,
   });
+  const manualMinutes = approvedAdjustments
+    .filter((adjustment) => adjustment.adjustmentType === "time")
+    .reduce((total, adjustment) => total + adjustment.minutes, 0);
+  const manualOvertimeMinutes = approvedAdjustments
+    .filter((adjustment) => adjustment.adjustmentType === "overtime")
+    .reduce((total, adjustment) => total + Math.max(0, adjustment.minutes), 0);
+  const manualPermissionMinutes = approvedAdjustments
+    .filter((adjustment) => adjustment.adjustmentType === "permission")
+    .reduce((total, adjustment) => total + Math.max(0, adjustment.minutes), 0);
+  const finalWorkedMinutes = Math.max(0, metrics.netWorkedMinutes + manualMinutes);
   const scheduledMinutes = scheduleDurationMinutes(schedule.startTime, schedule.endTime);
   const fullDayPermission = approvedPermissionWindows.some(
     (window) => window.start <= 0 && window.end >= scheduledMinutes,
@@ -1306,6 +1339,23 @@ async function attendanceCalculationFor(
       : 0;
   const totalPenaltyMinutes =
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
+  const finalOvertimeMinutes = Math.max(
+    0,
+    Math.max(
+      0,
+      finalWorkedMinutes -
+        Math.max(
+          0,
+          scheduledMinutes -
+            (schedule.breakPaid ? 0 : schedule.breakDurationMinutes),
+        ) -
+        rules.overtimeAfterMinutes,
+    ) + manualOvertimeMinutes,
+  );
+  const finalPenaltyMinutes = Math.max(
+    0,
+    totalPenaltyMinutes - manualPermissionMinutes,
+  );
   const explanation = [
     `Rule version ${rules.version} effective from ${rules.effectiveFrom}.`,
     `Schedule source: ${schedule.source}; ${schedule.startTime}–${schedule.endTime}${schedule.overnight ? " (overnight)" : ""}.`,
@@ -1347,6 +1397,15 @@ async function attendanceCalculationFor(
     earlyDeparturePenaltyMinutes,
     absencePenaltyMinutes,
     totalPenaltyMinutes,
+    originalWorkedMinutes: metrics.netWorkedMinutes,
+    originalOvertimeMinutes: metrics.overtimeMinutes,
+    manualMinutes,
+    manualOvertimeMinutes,
+    manualPermissionMinutes,
+    finalWorkedMinutes,
+    finalOvertimeMinutes,
+    finalPenaltyMinutes,
+    adjustments: adjustmentRows,
     explanation,
     calculatedAt: new Date(),
     updatedAt: new Date(),
@@ -2552,6 +2611,241 @@ router.post(
       true,
     );
     res.json(RecalculateAttendanceResponse.parse(calculation));
+  },
+);
+
+router.get(
+  "/attendance/:attendanceId/time-adjustments",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.view", true)) {
+      denyCapability(res, req, "attendance.view");
+      return;
+    }
+    const attendanceId = String(req.params.attendanceId);
+    if (!isUuid(attendanceId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const row = await attendanceForCalculation(context, attendanceId);
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    const adjustments = await db
+      .select()
+      .from(attendanceTimeAdjustmentsTable)
+      .where(
+        and(
+          eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
+          eq(attendanceTimeAdjustmentsTable.attendanceId, attendanceId),
+        ),
+      )
+      .orderBy(desc(attendanceTimeAdjustmentsTable.createdAt));
+    res.json(ListAttendanceTimeAdjustmentsResponse.parse(adjustments));
+  },
+);
+
+router.post(
+  "/attendance/:attendanceId/time-adjustments",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.adjust")) {
+      denyCapability(res, req, "attendance.adjust");
+      return;
+    }
+    const attendanceId = String(req.params.attendanceId);
+    const parsed = CreateAttendanceTimeAdjustmentBody.safeParse(req.body);
+    if (!isUuid(attendanceId) || !parsed.success) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    if (parsed.data.minutes === 0) {
+      res.status(400).json({ error: "Adjustment minutes must be non-zero." });
+      return;
+    }
+    if (
+      parsed.data.adjustmentType === "overtime" &&
+      parsed.data.minutes <= 0
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const row = await attendanceForCalculation(context, attendanceId);
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    const existing = await db
+      .select()
+      .from(attendanceTimeAdjustmentsTable)
+      .where(
+        and(
+          eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
+          eq(attendanceTimeAdjustmentsTable.employeeId, row.attendance.employeeId),
+          eq(attendanceTimeAdjustmentsTable.adjustmentDate, row.attendance.date),
+          eq(attendanceTimeAdjustmentsTable.adjustmentType, parsed.data.adjustmentType),
+        ),
+      );
+    const active = existing.filter((item) =>
+      item.status === "pending" || item.status === "approved",
+    );
+    if (
+      active.some(
+        (item) =>
+          item.minutes === parsed.data.minutes &&
+          item.reason.trim().toLowerCase() === parsed.data.reason.trim().toLowerCase(),
+      )
+    ) {
+      res.status(409).json({ error: "A duplicate attendance adjustment already exists." });
+      return;
+    }
+    if (
+      parsed.data.adjustmentType === "time" &&
+      active.some((item) => Math.sign(item.minutes) !== Math.sign(parsed.data.minutes))
+    ) {
+      res.status(409).json({ error: "A conflicting time adjustment is already pending or approved." });
+      return;
+    }
+    const [created] = await db
+      .insert(attendanceTimeAdjustmentsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: row.attendance.employeeId,
+        attendanceId,
+        adjustmentDate: row.attendance.date,
+        minutes: parsed.data.minutes,
+        adjustmentType: parsed.data.adjustmentType,
+        reason: parsed.data.reason.trim(),
+        status: "pending",
+        createdBy: context.accountId,
+      })
+      .returning();
+    await recordAudit(
+      context.companyId,
+      "created",
+      "attendance_time_adjustment",
+      created.id,
+      created,
+    );
+    res.status(201).json(CreateAttendanceTimeAdjustmentResponse.parse(created));
+  },
+);
+
+router.post(
+  "/attendance/time-adjustments/:adjustmentId/decision",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.adjust")) {
+      denyCapability(res, req, "attendance.adjust");
+      return;
+    }
+    const params = DecideAttendanceTimeAdjustmentParams.safeParse(req.params);
+    const parsed = DecideAttendanceTimeAdjustmentBody.safeParse(req.body);
+    if (!params.success || !parsed.success || !isUuid(params.data.adjustmentId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [current] = await db
+      .select()
+      .from(attendanceTimeAdjustmentsTable)
+      .where(
+        and(
+          eq(attendanceTimeAdjustmentsTable.id, params.data.adjustmentId),
+          eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
+        ),
+      );
+    if (!current) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    if (current.status !== "pending") {
+      res.status(409).json({ error: "Only pending adjustments can be decided." });
+      return;
+    }
+    const now = new Date();
+    const [updated] = await db
+      .update(attendanceTimeAdjustmentsTable)
+      .set(
+        parsed.data.decision === "approved"
+          ? { status: "approved", approvedBy: context.accountId, approvedAt: now }
+          : {
+              status: "rejected",
+              rejectedBy: context.accountId,
+              rejectedAt: now,
+            },
+      )
+      .where(eq(attendanceTimeAdjustmentsTable.id, current.id))
+      .returning();
+    await recordAudit(
+      context.companyId,
+      parsed.data.decision,
+      "attendance_time_adjustment",
+      updated.id,
+      updated,
+      current,
+    );
+    if (updated.status === "approved") {
+      const [attendance] = await db
+        .select()
+        .from(attendanceTable)
+        .where(eq(attendanceTable.id, updated.attendanceId));
+      if (attendance) await attendanceCalculationFor(context, attendance, true);
+    }
+    res.json(DecideAttendanceTimeAdjustmentResponse.parse(updated));
+  },
+);
+
+router.post(
+  "/attendance/time-adjustments/:adjustmentId/reverse",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.adjust")) {
+      denyCapability(res, req, "attendance.adjust");
+      return;
+    }
+    const params = ReverseAttendanceTimeAdjustmentParams.safeParse(req.params);
+    const parsed = ReverseAttendanceTimeAdjustmentBody.safeParse(req.body);
+    if (!params.success || !parsed.success || !isUuid(params.data.adjustmentId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [current] = await db
+      .select()
+      .from(attendanceTimeAdjustmentsTable)
+      .where(
+        and(
+          eq(attendanceTimeAdjustmentsTable.id, params.data.adjustmentId),
+          eq(attendanceTimeAdjustmentsTable.companyId, context.companyId),
+        ),
+      );
+    if (!current) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    if (current.status !== "approved") {
+      res.status(409).json({ error: "Only approved adjustments can be reversed." });
+      return;
+    }
+    const [updated] = await db
+      .update(attendanceTimeAdjustmentsTable)
+      .set({ status: "reversed", reversedBy: context.accountId, reversedAt: new Date() })
+      .where(eq(attendanceTimeAdjustmentsTable.id, current.id))
+      .returning();
+    await recordAudit(
+      context.companyId,
+      "reversed",
+      "attendance_time_adjustment",
+      updated.id,
+      { ...updated, reversalReason: parsed.data.reason.trim() },
+      current,
+    );
+    const [attendance] = await db
+      .select()
+      .from(attendanceTable)
+      .where(eq(attendanceTable.id, updated.attendanceId));
+    if (attendance) await attendanceCalculationFor(context, attendance, true);
+    res.json(ReverseAttendanceTimeAdjustmentResponse.parse(updated));
   },
 );
 

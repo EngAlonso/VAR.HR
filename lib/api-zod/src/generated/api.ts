@@ -767,6 +767,21 @@ export const previewAttendanceCalculationResponseAbsencePenaltyMinutesMin = 0;
 
 export const previewAttendanceCalculationResponseTotalPenaltyMinutesMin = 0;
 
+export const previewAttendanceCalculationResponseOriginalWorkedMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseOriginalOvertimeMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseManualOvertimeMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseManualPermissionMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseFinalWorkedMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseFinalOvertimeMinutesMin = 0;
+
+export const previewAttendanceCalculationResponseFinalPenaltyMinutesMin = 0;
+
+
 
 
 export const PreviewAttendanceCalculationResponse = zod.object({
@@ -798,6 +813,32 @@ export const PreviewAttendanceCalculationResponse = zod.object({
   "earlyDeparturePenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseEarlyDeparturePenaltyMinutesMin),
   "absencePenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseAbsencePenaltyMinutesMin),
   "totalPenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseTotalPenaltyMinutesMin),
+  "originalWorkedMinutes": zod.int().min(previewAttendanceCalculationResponseOriginalWorkedMinutesMin),
+  "originalOvertimeMinutes": zod.int().min(previewAttendanceCalculationResponseOriginalOvertimeMinutesMin),
+  "manualMinutes": zod.int(),
+  "manualOvertimeMinutes": zod.int().min(previewAttendanceCalculationResponseManualOvertimeMinutesMin),
+  "manualPermissionMinutes": zod.int().min(previewAttendanceCalculationResponseManualPermissionMinutesMin),
+  "finalWorkedMinutes": zod.int().min(previewAttendanceCalculationResponseFinalWorkedMinutesMin),
+  "finalOvertimeMinutes": zod.int().min(previewAttendanceCalculationResponseFinalOvertimeMinutesMin),
+  "finalPenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseFinalPenaltyMinutesMin),
+  "adjustments": zod.array(zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
+})),
   "explanation": zod.array(zod.string()),
   "calculatedAt": zod.iso.datetime({"offset":true})
 })
@@ -844,6 +885,21 @@ export const recalculateAttendanceResponseAbsencePenaltyMinutesMin = 0;
 
 export const recalculateAttendanceResponseTotalPenaltyMinutesMin = 0;
 
+export const recalculateAttendanceResponseOriginalWorkedMinutesMin = 0;
+
+export const recalculateAttendanceResponseOriginalOvertimeMinutesMin = 0;
+
+export const recalculateAttendanceResponseManualOvertimeMinutesMin = 0;
+
+export const recalculateAttendanceResponseManualPermissionMinutesMin = 0;
+
+export const recalculateAttendanceResponseFinalWorkedMinutesMin = 0;
+
+export const recalculateAttendanceResponseFinalOvertimeMinutesMin = 0;
+
+export const recalculateAttendanceResponseFinalPenaltyMinutesMin = 0;
+
+
 
 
 export const RecalculateAttendanceResponse = zod.object({
@@ -875,8 +931,176 @@ export const RecalculateAttendanceResponse = zod.object({
   "earlyDeparturePenaltyMinutes": zod.int().min(recalculateAttendanceResponseEarlyDeparturePenaltyMinutesMin),
   "absencePenaltyMinutes": zod.int().min(recalculateAttendanceResponseAbsencePenaltyMinutesMin),
   "totalPenaltyMinutes": zod.int().min(recalculateAttendanceResponseTotalPenaltyMinutesMin),
+  "originalWorkedMinutes": zod.int().min(recalculateAttendanceResponseOriginalWorkedMinutesMin),
+  "originalOvertimeMinutes": zod.int().min(recalculateAttendanceResponseOriginalOvertimeMinutesMin),
+  "manualMinutes": zod.int(),
+  "manualOvertimeMinutes": zod.int().min(recalculateAttendanceResponseManualOvertimeMinutesMin),
+  "manualPermissionMinutes": zod.int().min(recalculateAttendanceResponseManualPermissionMinutesMin),
+  "finalWorkedMinutes": zod.int().min(recalculateAttendanceResponseFinalWorkedMinutesMin),
+  "finalOvertimeMinutes": zod.int().min(recalculateAttendanceResponseFinalOvertimeMinutesMin),
+  "finalPenaltyMinutes": zod.int().min(recalculateAttendanceResponseFinalPenaltyMinutesMin),
+  "adjustments": zod.array(zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
+})),
   "explanation": zod.array(zod.string()),
   "calculatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary List manual attendance time adjustments
+ */
+export const ListAttendanceTimeAdjustmentsParams = zod.object({
+  "attendanceId": zod.coerce.string()
+})
+
+
+
+
+export const ListAttendanceTimeAdjustmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
+})
+export const ListAttendanceTimeAdjustmentsResponse = zod.array(ListAttendanceTimeAdjustmentsResponseItem)
+
+
+/**
+ * @summary Create a manual attendance time adjustment
+ */
+export const CreateAttendanceTimeAdjustmentParams = zod.object({
+  "attendanceId": zod.coerce.string()
+})
+
+
+
+
+export const CreateAttendanceTimeAdjustmentBody = zod.object({
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1)
+})
+
+
+
+
+export const CreateAttendanceTimeAdjustmentResponse = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
+})
+
+
+/**
+ * @summary Approve or reject a manual attendance time adjustment
+ */
+export const DecideAttendanceTimeAdjustmentParams = zod.object({
+  "adjustmentId": zod.coerce.string()
+})
+
+export const DecideAttendanceTimeAdjustmentBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "reason": zod.string().optional()
+})
+
+
+
+
+export const DecideAttendanceTimeAdjustmentResponse = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
+})
+
+
+/**
+ * @summary Reverse an approved attendance time adjustment
+ */
+export const ReverseAttendanceTimeAdjustmentParams = zod.object({
+  "adjustmentId": zod.coerce.string()
+})
+
+
+
+
+export const ReverseAttendanceTimeAdjustmentBody = zod.object({
+  "reason": zod.string().min(1)
+})
+
+
+
+
+export const ReverseAttendanceTimeAdjustmentResponse = zod.object({
+  "id": zod.string(),
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "adjustmentDate": zod.iso.date(),
+  "minutes": zod.int(),
+  "adjustmentType": zod.enum(['time', 'overtime', 'permission']),
+  "reason": zod.string().min(1),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'reversed']),
+  "createdBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "rejectedBy": zod.string().nullish(),
+  "reversedBy": zod.string().nullish(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rejectedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "reversedAt": zod.iso.datetime({"offset":true}).nullish()
 })
 
 

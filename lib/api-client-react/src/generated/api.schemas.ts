@@ -598,6 +598,51 @@ export const AttendanceCalculationAttendanceState = {
   unexcused_absence: 'unexcused_absence',
 } as const;
 
+export type AttendanceTimeAdjustmentAdjustmentType = typeof AttendanceTimeAdjustmentAdjustmentType[keyof typeof AttendanceTimeAdjustmentAdjustmentType];
+
+
+export const AttendanceTimeAdjustmentAdjustmentType = {
+  time: 'time',
+  overtime: 'overtime',
+  permission: 'permission',
+} as const;
+
+export type AttendanceTimeAdjustmentStatus = typeof AttendanceTimeAdjustmentStatus[keyof typeof AttendanceTimeAdjustmentStatus];
+
+
+export const AttendanceTimeAdjustmentStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  reversed: 'reversed',
+} as const;
+
+export interface AttendanceTimeAdjustment {
+  id: string;
+  attendanceId: string;
+  employeeId: string;
+  adjustmentDate: string;
+  minutes: number;
+  adjustmentType: AttendanceTimeAdjustmentAdjustmentType;
+  /** @minLength 1 */
+  reason: string;
+  status: AttendanceTimeAdjustmentStatus;
+  createdBy: string;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  rejectedBy?: string | null;
+  /** @nullable */
+  reversedBy?: string | null;
+  createdAt: string;
+  /** @nullable */
+  approvedAt?: string | null;
+  /** @nullable */
+  rejectedAt?: string | null;
+  /** @nullable */
+  reversedAt?: string | null;
+}
+
 export interface AttendanceCalculation {
   id: string;
   attendanceId: string;
@@ -644,8 +689,58 @@ export interface AttendanceCalculation {
   absencePenaltyMinutes: number;
   /** @minimum 0 */
   totalPenaltyMinutes: number;
+  /** @minimum 0 */
+  originalWorkedMinutes: number;
+  /** @minimum 0 */
+  originalOvertimeMinutes: number;
+  manualMinutes: number;
+  /** @minimum 0 */
+  manualOvertimeMinutes: number;
+  /** @minimum 0 */
+  manualPermissionMinutes: number;
+  /** @minimum 0 */
+  finalWorkedMinutes: number;
+  /** @minimum 0 */
+  finalOvertimeMinutes: number;
+  /** @minimum 0 */
+  finalPenaltyMinutes: number;
+  adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;
+}
+
+export type AttendanceTimeAdjustmentInputAdjustmentType = typeof AttendanceTimeAdjustmentInputAdjustmentType[keyof typeof AttendanceTimeAdjustmentInputAdjustmentType];
+
+
+export const AttendanceTimeAdjustmentInputAdjustmentType = {
+  time: 'time',
+  overtime: 'overtime',
+  permission: 'permission',
+} as const;
+
+export interface AttendanceTimeAdjustmentInput {
+  minutes: number;
+  adjustmentType: AttendanceTimeAdjustmentInputAdjustmentType;
+  /** @minLength 1 */
+  reason: string;
+}
+
+export type AttendanceTimeAdjustmentDecisionInputDecision = typeof AttendanceTimeAdjustmentDecisionInputDecision[keyof typeof AttendanceTimeAdjustmentDecisionInputDecision];
+
+
+export const AttendanceTimeAdjustmentDecisionInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface AttendanceTimeAdjustmentDecisionInput {
+  decision: AttendanceTimeAdjustmentDecisionInputDecision;
+  reason?: string;
+}
+
+export interface AttendanceTimeAdjustmentReverseInput {
+  /** @minLength 1 */
+  reason: string;
 }
 
 export interface LeaveBalance {

@@ -7,6 +7,7 @@
  */
 import type { AttendanceCalculationAttendanceState } from './attendanceCalculationAttendanceState';
 import type { AttendanceCalculationScheduleSource } from './attendanceCalculationScheduleSource';
+import type { AttendanceTimeAdjustment } from './attendanceTimeAdjustment';
 
 export interface AttendanceCalculation {
   id: string;
@@ -54,6 +55,22 @@ export interface AttendanceCalculation {
   absencePenaltyMinutes: number;
   /** @minimum 0 */
   totalPenaltyMinutes: number;
+  /** @minimum 0 */
+  originalWorkedMinutes: number;
+  /** @minimum 0 */
+  originalOvertimeMinutes: number;
+  manualMinutes: number;
+  /** @minimum 0 */
+  manualOvertimeMinutes: number;
+  /** @minimum 0 */
+  manualPermissionMinutes: number;
+  /** @minimum 0 */
+  finalWorkedMinutes: number;
+  /** @minimum 0 */
+  finalOvertimeMinutes: number;
+  /** @minimum 0 */
+  finalPenaltyMinutes: number;
+  adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;
 }

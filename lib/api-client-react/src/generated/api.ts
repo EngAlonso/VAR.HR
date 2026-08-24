@@ -32,6 +32,10 @@ import type {
   AttendanceRuleVersionInput,
   AttendanceRules,
   AttendanceRulesInput,
+  AttendanceTimeAdjustment,
+  AttendanceTimeAdjustmentDecisionInput,
+  AttendanceTimeAdjustmentInput,
+  AttendanceTimeAdjustmentReverseInput,
   AttendanceToday,
   AuthAccount,
   AuthAccountUpdate,
@@ -2236,6 +2240,299 @@ export const useRecalculateAttendance = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRecalculateAttendanceMutationOptions(options));
+    }
+
+export const getListAttendanceTimeAdjustmentsUrl = (attendanceId: string,) => {
+
+
+
+
+  return `/api/attendance/${attendanceId}/time-adjustments`
+}
+
+/**
+ * @summary List manual attendance time adjustments
+ */
+export const listAttendanceTimeAdjustments = async (attendanceId: string, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceTimeAdjustment[]> => {
+
+  return customFetch<AttendanceTimeAdjustment[]>(getListAttendanceTimeAdjustmentsUrl(attendanceId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAttendanceTimeAdjustmentsQueryKey = (attendanceId: string,) => {
+    return [
+    `/api/attendance/${attendanceId}/time-adjustments`
+    ] as const;
+    }
+
+
+export const getListAttendanceTimeAdjustmentsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>, TError = ErrorType<unknown>>(attendanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttendanceTimeAdjustmentsQueryKey(attendanceId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>> = ({ signal }) => listAttendanceTimeAdjustments(attendanceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: attendanceId !== null && attendanceId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAttendanceTimeAdjustmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>>
+export type ListAttendanceTimeAdjustmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List manual attendance time adjustments
+ */
+
+export function useListAttendanceTimeAdjustments<TData = Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>, TError = ErrorType<unknown>>(
+ attendanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendanceTimeAdjustments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAttendanceTimeAdjustmentsQueryOptions(attendanceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAttendanceTimeAdjustmentUrl = (attendanceId: string,) => {
+
+
+
+
+  return `/api/attendance/${attendanceId}/time-adjustments`
+}
+
+/**
+ * @summary Create a manual attendance time adjustment
+ */
+export const createAttendanceTimeAdjustment = async (attendanceId: string,
+    attendanceTimeAdjustmentInput: AttendanceTimeAdjustmentInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceTimeAdjustment> => {
+
+  return customFetch<AttendanceTimeAdjustment>(getCreateAttendanceTimeAdjustmentUrl(attendanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendanceTimeAdjustmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAttendanceTimeAdjustmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>, TError,{attendanceId: string;data: BodyType<AttendanceTimeAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>, TError,{attendanceId: string;data: BodyType<AttendanceTimeAdjustmentInput>}, TContext> => {
+
+const mutationKey = ['createAttendanceTimeAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>, {attendanceId: string;data: BodyType<AttendanceTimeAdjustmentInput>}> = (props) => {
+          const {attendanceId,data} = props ?? {};
+
+          return  createAttendanceTimeAdjustment(attendanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAttendanceTimeAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>>
+    export type CreateAttendanceTimeAdjustmentMutationBody = BodyType<AttendanceTimeAdjustmentInput>
+    export type CreateAttendanceTimeAdjustmentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a manual attendance time adjustment
+ */
+export const useCreateAttendanceTimeAdjustment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>, TError,{attendanceId: string;data: BodyType<AttendanceTimeAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAttendanceTimeAdjustment>>,
+        TError,
+        {attendanceId: string;data: BodyType<AttendanceTimeAdjustmentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAttendanceTimeAdjustmentMutationOptions(options));
+    }
+
+export const getDecideAttendanceTimeAdjustmentUrl = (adjustmentId: string,) => {
+
+
+
+
+  return `/api/attendance/time-adjustments/${adjustmentId}/decision`
+}
+
+/**
+ * @summary Approve or reject a manual attendance time adjustment
+ */
+export const decideAttendanceTimeAdjustment = async (adjustmentId: string,
+    attendanceTimeAdjustmentDecisionInput: AttendanceTimeAdjustmentDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceTimeAdjustment> => {
+
+  return customFetch<AttendanceTimeAdjustment>(getDecideAttendanceTimeAdjustmentUrl(adjustmentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendanceTimeAdjustmentDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getDecideAttendanceTimeAdjustmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentDecisionInput>}, TContext> => {
+
+const mutationKey = ['decideAttendanceTimeAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>, {adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentDecisionInput>}> = (props) => {
+          const {adjustmentId,data} = props ?? {};
+
+          return  decideAttendanceTimeAdjustment(adjustmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideAttendanceTimeAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>>
+    export type DecideAttendanceTimeAdjustmentMutationBody = BodyType<AttendanceTimeAdjustmentDecisionInput>
+    export type DecideAttendanceTimeAdjustmentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve or reject a manual attendance time adjustment
+ */
+export const useDecideAttendanceTimeAdjustment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideAttendanceTimeAdjustment>>,
+        TError,
+        {adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getDecideAttendanceTimeAdjustmentMutationOptions(options));
+    }
+
+export const getReverseAttendanceTimeAdjustmentUrl = (adjustmentId: string,) => {
+
+
+
+
+  return `/api/attendance/time-adjustments/${adjustmentId}/reverse`
+}
+
+/**
+ * @summary Reverse an approved attendance time adjustment
+ */
+export const reverseAttendanceTimeAdjustment = async (adjustmentId: string,
+    attendanceTimeAdjustmentReverseInput: AttendanceTimeAdjustmentReverseInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceTimeAdjustment> => {
+
+  return customFetch<AttendanceTimeAdjustment>(getReverseAttendanceTimeAdjustmentUrl(adjustmentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendanceTimeAdjustmentReverseInput)
+  }
+);}
+
+
+
+
+
+export const getReverseAttendanceTimeAdjustmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentReverseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentReverseInput>}, TContext> => {
+
+const mutationKey = ['reverseAttendanceTimeAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>, {adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentReverseInput>}> = (props) => {
+          const {adjustmentId,data} = props ?? {};
+
+          return  reverseAttendanceTimeAdjustment(adjustmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReverseAttendanceTimeAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>>
+    export type ReverseAttendanceTimeAdjustmentMutationBody = BodyType<AttendanceTimeAdjustmentReverseInput>
+    export type ReverseAttendanceTimeAdjustmentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reverse an approved attendance time adjustment
+ */
+export const useReverseAttendanceTimeAdjustment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>, TError,{adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentReverseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reverseAttendanceTimeAdjustment>>,
+        TError,
+        {adjustmentId: string;data: BodyType<AttendanceTimeAdjustmentReverseInput>},
+        TContext
+      > => {
+      return useMutation(getReverseAttendanceTimeAdjustmentMutationOptions(options));
     }
 
 export const getCheckInUrl = () => {

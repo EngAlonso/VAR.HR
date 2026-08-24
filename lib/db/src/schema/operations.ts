@@ -69,6 +69,14 @@ export const attendanceCalculationsTable = pgTable("var_hr_attendance_calculatio
   earlyDeparturePenaltyMinutes: integer("early_departure_penalty_minutes").notNull().default(0),
   absencePenaltyMinutes: integer("absence_penalty_minutes").notNull().default(0),
   totalPenaltyMinutes: integer("total_penalty_minutes").notNull().default(0),
+  originalWorkedMinutes: integer("original_worked_minutes").notNull().default(0),
+  originalOvertimeMinutes: integer("original_overtime_minutes").notNull().default(0),
+  manualMinutes: integer("manual_minutes").notNull().default(0),
+  manualOvertimeMinutes: integer("manual_overtime_minutes").notNull().default(0),
+  manualPermissionMinutes: integer("manual_permission_minutes").notNull().default(0),
+  finalWorkedMinutes: integer("final_worked_minutes").notNull().default(0),
+  finalOvertimeMinutes: integer("final_overtime_minutes").notNull().default(0),
+  finalPenaltyMinutes: integer("final_penalty_minutes").notNull().default(0),
   explanation: jsonb("explanation").notNull(),
   calculatedAt: timestamp("calculated_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -163,7 +171,7 @@ export const attendanceTimeAdjustmentsTable = pgTable("var_hr_attendance_time_ad
   reversedAt: timestamp("reversed_at", { withTimezone: true }),
 }, (table) => ({
   duplicateKey: uniqueIndex("var_hr_attendance_time_adjustments_duplicate_uidx")
-    .on(table.companyId, table.employeeId, table.adjustmentDate, table.minutes, table.adjustmentType, table.reason),
+    .on(table.companyId, table.employeeId, table.adjustmentDate, table.minutes, table.adjustmentType, table.reason, table.status),
   companyDateIndex: index("var_hr_attendance_time_adjustments_company_date_idx")
     .on(table.companyId, table.adjustmentDate, table.employeeId),
 }));
