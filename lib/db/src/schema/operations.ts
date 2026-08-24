@@ -143,6 +143,31 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const attendanceTimeAdjustmentsTable = pgTable("var_hr_attendance_time_adjustments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
+  attendanceId: uuid("attendance_id").notNull().references(() => attendanceTable.id),
+  adjustmentDate: date("adjustment_date", { mode: "string" }).notNull(),
+  minutes: integer("minutes").notNull(),
+  adjustmentType: text("adjustment_type").notNull(),
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdBy: text("created_by").notNull(),
+  approvedBy: text("approved_by"),
+  rejectedBy: text("rejected_by"),
+  reversedBy: text("reversed_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+  reversedAt: timestamp("reversed_at", { withTimezone: true }),
+}, (table) => ({
+  duplicateKey: uniqueIndex("var_hr_attendance_time_adjustments_duplicate_uidx")
+    .on(table.companyId, table.employeeId, table.adjustmentDate, table.minutes, table.adjustmentType, table.reason),
+  companyDateIndex: index("var_hr_attendance_time_adjustments_company_date_idx")
+    .on(table.companyId, table.adjustmentDate, table.employeeId),
+}));
+
 /**
  * Immutable, effective-dated snapshots of attendanceRulesTable.
  *
@@ -239,6 +264,7 @@ export const insertAttendanceSchema = createInsertSchema(attendanceTable).omit({
 });
 export type Attendance = typeof attendanceTable.$inferSelect;
 export type AttendanceCalculation = typeof attendanceCalculationsTable.$inferSelect;
+export type AttendanceTimeAdjustment = typeof attendanceTimeAdjustmentsTable.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;

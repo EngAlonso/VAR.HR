@@ -487,6 +487,87 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceCalculation"
+  /attendance/{attendanceId}/time-adjustments:
+    get:
+      operationId: listAttendanceTimeAdjustments
+      tags: [attendance]
+      summary: List manual attendance time adjustments
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      responses:
+        "200":
+          description: Attendance time adjustments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceTimeAdjustment"
+    post:
+      operationId: createAttendanceTimeAdjustment
+      tags: [attendance]
+      summary: Create a manual attendance time adjustment
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceTimeAdjustmentInput"
+      responses:
+        "201":
+          description: Created attendance time adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceTimeAdjustment"
+  /attendance/time-adjustments/{adjustmentId}/decision:
+    post:
+      operationId: decideAttendanceTimeAdjustment
+      tags: [attendance]
+      summary: Approve or reject a manual attendance time adjustment
+      parameters:
+        - name: adjustmentId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceTimeAdjustmentDecisionInput"
+      responses:
+        "200":
+          description: Updated attendance time adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceTimeAdjustment"
+  /attendance/time-adjustments/{adjustmentId}/reverse:
+    post:
+      operationId: reverseAttendanceTimeAdjustment
+      tags: [attendance]
+      summary: Reverse an approved attendance time adjustment
+      parameters:
+        - name: adjustmentId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceTimeAdjustmentReverseInput"
+      responses:
+        "200":
+          description: Reversed attendance time adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceTimeAdjustment"
     post:
       operationId: recalculateAttendance
       tags: [attendance]
