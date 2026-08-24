@@ -614,6 +614,13 @@ const copy = {
     createEmployee: "Create employee",
     employeeProfile: "Employee profile",
     hrProfile: "My HR profile",
+    profileCompanyOwner: "My account & company profile",
+    profileStaff: "My account & HR profile",
+    profileEmployee: "My HR profile",
+    companyProfileDetail:
+      "Review your account, company workspace, role, and account status.",
+    staffProfileDetail:
+      "Review your account information and linked employee HR information.",
     hrProfileDetail:
       "Review the employee and HR information available to your signed-in workspace identity.",
     hrRecord: "HR record",
@@ -925,6 +932,12 @@ const copy = {
     gpsPolicy: "سياسة GPS",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
+    profileCompanyOwner: "حسابي وبيانات الشركة",
+    profileStaff: "حسابي والملف الوظيفي",
+    profileEmployee: "ملفي الوظيفي",
+    companyProfileDetail: "راجع بيانات حسابك ومساحة الشركة ودورك وحالة الحساب.",
+    staffProfileDetail:
+      "راجع معلومات حسابك وبياناتك الوظيفية المرتبطة عند توفرها.",
     hrProfileDetail:
       "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
     hrRecord: "سجل الموارد البشرية",
@@ -3771,7 +3784,7 @@ function Empty({
   );
 }
 function ErrorState({ retry }: { retry: () => void }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return (
     <div className="flex min-h-36 flex-col items-center justify-center gap-2 p-6 text-center">
       <AlertCircle className="text-destructive" size={22} />
@@ -4942,7 +4955,15 @@ function Shell({ children }: { children: ReactNode }) {
                 )}
               >
                 <Icon size={17} strokeWidth={1.8} />
-                <span>{t(key)}</span>
+                <span>
+                  {key === "hrProfile"
+                    ? auth.account.accountType === "company_owner"
+                      ? t("profileCompanyOwner")
+                      : auth.account.accountType === "staff"
+                        ? t("profileStaff")
+                        : t("profileEmployee")
+                    : t(key)}
+                </span>
                 {href === "/requests" && pendingRequests > 0 && (
                   <span className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary">
                     {pendingRequests}
@@ -5761,10 +5782,14 @@ function EmployeeHrPanel({
   );
 }
 
-function EmployeeProfile() {
+function EmployeeHrProfile({
+  employeeIdOverride,
+}: {
+  employeeIdOverride?: string | null;
+} = {}) {
   const { t } = useI18n();
   const workspace = useGetWorkspace();
-  const employeeId = workspace.data?.employeeId ?? "";
+  const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
   const employee = useGetEmployee(employeeId, {
     query: {
       enabled: Boolean(employeeId),
@@ -5837,6 +5862,73 @@ function EmployeeProfile() {
         />
       )}
     </div>
+  );
+}
+
+function AccountProfileSummary({
+  includeEmployeeProfile,
+}: {
+  includeEmployeeProfile: boolean;
+}) {
+  const { locale, t } = useI18n();
+  const auth = useAuth();
+  const workspace = useGetWorkspace();
+  const isCompanyOwner = auth.account.accountType === "company_owner";
+  const detail = isCompanyOwner
+    ? t("companyProfileDetail")
+    : t("staffProfileDetail");
+  const role = isCompanyOwner
+    ? t("roleCompanyOwner")
+    : auth.account.displayRole ||
+      roleLabel(workspace.data?.role ?? "manager", t);
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("account")}
+        title={isCompanyOwner ? t("profileCompanyOwner") : t("profileStaff")}
+        detail={detail}
+      />
+      <Card className="p-6">
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <Info label={t("fullName")} value={auth.account.fullName} />
+          <Info
+            label={t("phoneLoginUsername")}
+            value={auth.account.primaryPhone || auth.account.username}
+          />
+          <Info
+            label={t("company")}
+            value={workspace.data?.company?.name || t("notAvailable")}
+          />
+          <Info label={t("role")} value={role} />
+          <Info
+            label={authLabel(locale, "accountStatus")}
+            value={
+              auth.account.active ? t("statusActive") : t("statusInactive")
+            }
+          />
+        </div>
+        {includeEmployeeProfile && auth.account.employeeId ? (
+          <div className="mt-6 border-t border-border pt-6">
+            <EmployeeHrProfile employeeIdOverride={auth.account.employeeId} />
+          </div>
+        ) : null}
+      </Card>
+    </div>
+  );
+}
+
+function Profile() {
+  const auth = useAuth();
+  if (auth.account.accountType === "platform_owner") {
+    return <PlatformAccountSettings />;
+  }
+  if (auth.account.accountType === "employee") {
+    return <EmployeeHrProfile />;
+  }
+  return (
+    <AccountProfileSummary
+      includeEmployeeProfile={auth.account.accountType === "staff"}
+    />
   );
 }
 
@@ -14847,7 +14939,7 @@ function Router() {
     <Shell>
       <Switch>
         <Route path="/" component={Overview} />
-        <Route path="/profile" component={EmployeeProfile} />
+        <Route path="/profile" component={Profile} />
         <Route path="/employees" component={Employees} />
         <Route path="/attendance" component={Attendance} />
         <Route path="/requests" component={Requests} />
