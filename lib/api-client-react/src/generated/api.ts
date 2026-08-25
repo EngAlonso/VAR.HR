@@ -49,6 +49,7 @@ import type {
   BiometricProvider,
   Branch,
   BranchInput,
+  BranchUpdate,
   BulkScheduleAssignmentInput,
   BulkScheduleAssignmentResponse,
   DashboardSummary,
@@ -61,6 +62,7 @@ import type {
   DeviceInput,
   DeviceSyncHistory,
   DeviceSyncStatus,
+  DeviceUpdate,
   Employee,
   EmployeeHrRecord,
   EmployeeHrRecordInput,
@@ -71,6 +73,7 @@ import type {
   EmployeeScheduleInput,
   EmployeeUpdate,
   GetAttendanceReportParams,
+  GetBranchParams,
   GetDepartmentParams,
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
@@ -115,6 +118,7 @@ import type {
   SubscriptionStatus,
   TemporaryPassword,
   UpdateAuthAccount200,
+  UpdateBranchParams,
   UpdateDepartmentParams,
   UpdatePlatformCompanyOwners200,
   WorkSchedule,
@@ -2245,6 +2249,176 @@ export const useCreateBranch = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateBranchMutationOptions(options));
+    }
+
+export const getGetBranchUrl = (branchId: string,
+    params?: GetBranchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/branches/${branchId}?${stringifiedParams}` : `/api/branches/${branchId}`
+}
+
+/**
+ * @summary Get a company branch and its structure
+ */
+export const getBranch = async (branchId: string,
+    params?: GetBranchParams, options?: Parameters<typeof customFetch>[1]): Promise<Branch> => {
+
+  return customFetch<Branch>(getGetBranchUrl(branchId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBranchQueryKey = (branchId: string,
+    params?: GetBranchParams,) => {
+    return [
+    `/api/branches/${branchId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBranchQueryOptions = <TData = Awaited<ReturnType<typeof getBranch>>, TError = ErrorType<unknown>>(branchId: string,
+    params?: GetBranchParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBranch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBranchQueryKey(branchId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBranch>>> = ({ signal }) => getBranch(branchId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: branchId !== null && branchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBranch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBranchQueryResult = NonNullable<Awaited<ReturnType<typeof getBranch>>>
+export type GetBranchQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a company branch and its structure
+ */
+
+export function useGetBranch<TData = Awaited<ReturnType<typeof getBranch>>, TError = ErrorType<unknown>>(
+ branchId: string,
+    params?: GetBranchParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBranch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBranchQueryOptions(branchId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateBranchUrl = (branchId: string,
+    params?: UpdateBranchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/branches/${branchId}?${stringifiedParams}` : `/api/branches/${branchId}`
+}
+
+/**
+ * @summary Update or deactivate a company branch
+ */
+export const updateBranch = async (branchId: string,
+    branchUpdate: BranchUpdate,
+    params?: UpdateBranchParams, options?: Parameters<typeof customFetch>[1]): Promise<Branch> => {
+
+  return customFetch<Branch>(getUpdateBranchUrl(branchId,params),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(branchUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,{branchId: string;data: BodyType<BranchUpdate>;params?: UpdateBranchParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,{branchId: string;data: BodyType<BranchUpdate>;params?: UpdateBranchParams}, TContext> => {
+
+const mutationKey = ['updateBranch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBranch>>, {branchId: string;data: BodyType<BranchUpdate>;params?: UpdateBranchParams}> = (props) => {
+          const {branchId,data,params} = props ?? {};
+
+          return  updateBranch(branchId,data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBranchMutationResult = NonNullable<Awaited<ReturnType<typeof updateBranch>>>
+    export type UpdateBranchMutationBody = BodyType<BranchUpdate>
+    export type UpdateBranchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update or deactivate a company branch
+ */
+export const useUpdateBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,{branchId: string;data: BodyType<BranchUpdate>;params?: UpdateBranchParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBranch>>,
+        TError,
+        {branchId: string;data: BodyType<BranchUpdate>;params?: UpdateBranchParams},
+        TContext
+      > => {
+      return useMutation(getUpdateBranchMutationOptions(options));
     }
 
 export const getListEmployeesUrl = (params?: ListEmployeesParams,) => {
@@ -6639,6 +6813,78 @@ export const useCreateDevice = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateDeviceMutationOptions(options));
+    }
+
+export const getUpdateDeviceUrl = (deviceId: string,) => {
+
+
+
+
+  return `/api/devices/${deviceId}`
+}
+
+/**
+ * @summary Update a biometric device assignment
+ */
+export const updateDevice = async (deviceId: string,
+    deviceUpdate: DeviceUpdate, options?: Parameters<typeof customFetch>[1]): Promise<BiometricDevice> => {
+
+  return customFetch<BiometricDevice>(getUpdateDeviceUrl(deviceId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deviceUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateDeviceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDevice>>, TError,{deviceId: string;data: BodyType<DeviceUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDevice>>, TError,{deviceId: string;data: BodyType<DeviceUpdate>}, TContext> => {
+
+const mutationKey = ['updateDevice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDevice>>, {deviceId: string;data: BodyType<DeviceUpdate>}> = (props) => {
+          const {deviceId,data} = props ?? {};
+
+          return  updateDevice(deviceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDeviceMutationResult = NonNullable<Awaited<ReturnType<typeof updateDevice>>>
+    export type UpdateDeviceMutationBody = BodyType<DeviceUpdate>
+    export type UpdateDeviceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a biometric device assignment
+ */
+export const useUpdateDevice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDevice>>, TError,{deviceId: string;data: BodyType<DeviceUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDevice>>,
+        TError,
+        {deviceId: string;data: BodyType<DeviceUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateDeviceMutationOptions(options));
     }
 
 export const getListBiometricProvidersUrl = () => {

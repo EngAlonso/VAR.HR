@@ -416,7 +416,11 @@ export interface Branch {
   name: string;
   city: string;
   employeeCount: number;
+  deviceCount: number;
   gpsEnabled: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BranchInput {
@@ -434,6 +438,24 @@ export interface BranchInput {
      * @nullable
      */
   radiusMeters?: number | null;
+}
+
+export interface BranchUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  city?: string;
+  gpsEnabled?: boolean;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  radiusMeters?: number | null;
+  active?: boolean;
 }
 
 export type EmployeeStatus = typeof EmployeeStatus[keyof typeof EmployeeStatus];
@@ -1796,6 +1818,7 @@ export interface BiometricDevice {
   name: string;
   manufacturer: string;
   model: string;
+  branchId: string;
   branch: string;
   adapterKey: string;
   connectionType: BiometricDeviceConnectionType;
@@ -1848,6 +1871,10 @@ export interface DeviceInput {
      */
   port?: number;
   deviceIdentifier?: string;
+}
+
+export interface DeviceUpdate {
+  branchId: string;
 }
 
 export type DeviceSyncStatusStatus = typeof DeviceSyncStatusStatus[keyof typeof DeviceSyncStatusStatus];
@@ -2236,6 +2263,8 @@ export const PayrollStatusParameter = {
 
 export type DepartmentIdParameter = string;
 
+export type BranchIdParameter = string;
+
 export type EmployeeIdQueryParameter = string;
 
 export type DateFromParameter = string;
@@ -2267,6 +2296,14 @@ departmentId?: DepartmentIdParameter;
 
 export type UpdateDepartmentParams = {
 departmentId?: DepartmentIdParameter;
+};
+
+export type GetBranchParams = {
+branchId?: BranchIdParameter;
+};
+
+export type UpdateBranchParams = {
+branchId?: BranchIdParameter;
 };
 
 export type ListEmployeesParams = {

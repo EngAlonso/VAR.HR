@@ -617,7 +617,11 @@ export const ListBranchesResponseItem = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 })
 export const ListBranchesResponse = zod.array(ListBranchesResponseItem)
 
@@ -646,7 +650,75 @@ export const CreateBranchResponse = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Get a company branch and its structure
+ */
+export const GetBranchParams = zod.object({
+  "branchId": zod.coerce.string()
+})
+
+export const GetBranchQueryParams = zod.object({
+  "branchId": zod.coerce.string().optional()
+})
+
+export const GetBranchResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "city": zod.string(),
+  "employeeCount": zod.int(),
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Update or deactivate a company branch
+ */
+export const UpdateBranchParams = zod.object({
+  "branchId": zod.coerce.string()
+})
+
+export const UpdateBranchQueryParams = zod.object({
+  "branchId": zod.coerce.string().optional()
+})
+
+
+
+export const updateBranchBodyRadiusMetersMin = 0;
+
+
+
+export const UpdateBranchBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "city": zod.string().min(1).optional(),
+  "gpsEnabled": zod.boolean().optional(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "radiusMeters": zod.int().min(updateBranchBodyRadiusMetersMin).nullish(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdateBranchResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "city": zod.string(),
+  "employeeCount": zod.int(),
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 })
 
 
@@ -678,7 +750,11 @@ export const ListEmployeesResponseItem = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
@@ -730,7 +806,11 @@ export const CreateEmployeeResponse = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
@@ -767,7 +847,11 @@ export const GetEmployeeResponse = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
@@ -821,7 +905,11 @@ export const UpdateEmployeeResponse = zod.object({
   "name": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
-  "gpsEnabled": zod.boolean()
+  "deviceCount": zod.int(),
+  "gpsEnabled": zod.boolean(),
+  "active": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
 }),
   "status": zod.enum(['active', 'inactive']),
   "role": zod.enum(['employee', 'manager']),
@@ -3174,6 +3262,7 @@ export const ListDevicesResponseItem = zod.object({
   "name": zod.string(),
   "manufacturer": zod.string(),
   "model": zod.string(),
+  "branchId": zod.string(),
   "branch": zod.string(),
   "adapterKey": zod.string(),
   "connectionType": zod.enum(['unknown', 'lan', 'http', 'cloud']),
@@ -3225,6 +3314,7 @@ export const CreateDeviceResponse = zod.object({
   "name": zod.string(),
   "manufacturer": zod.string(),
   "model": zod.string(),
+  "branchId": zod.string(),
   "branch": zod.string(),
   "adapterKey": zod.string(),
   "connectionType": zod.enum(['unknown', 'lan', 'http', 'cloud']),
@@ -3237,6 +3327,46 @@ export const CreateDeviceResponse = zod.object({
   "connectionState": zod.enum(['connected', 'unreachable', 'authentication_failure', 'unsupported', 'configuration_error', 'unknown']),
   "lastHealthCheck": zod.iso.datetime({"offset":true}).nullable(),
   "mappedEmployeeCount": zod.int().min(createDeviceResponseMappedEmployeeCountMin),
+  "note": zod.string().optional(),
+  "registrationKey": zod.string().optional().describe('One-time ADMS registration key, returned only when registering a ZKTeco ADMS device')
+})
+
+
+/**
+ * @summary Update a biometric device assignment
+ */
+export const UpdateDeviceParams = zod.object({
+  "deviceId": zod.coerce.string()
+})
+
+export const UpdateDeviceBody = zod.object({
+  "branchId": zod.string()
+})
+
+export const updateDeviceResponsePortMax = 65535;
+
+export const updateDeviceResponseMappedEmployeeCountMin = 0;
+
+
+
+export const UpdateDeviceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "manufacturer": zod.string(),
+  "model": zod.string(),
+  "branchId": zod.string(),
+  "branch": zod.string(),
+  "adapterKey": zod.string(),
+  "connectionType": zod.enum(['unknown', 'lan', 'http', 'cloud']),
+  "host": zod.string().nullable(),
+  "port": zod.int().min(1).max(updateDeviceResponsePortMax).nullable(),
+  "deviceIdentifier": zod.string().nullable(),
+  "status": zod.enum(['connected', 'attention', 'offline', 'not_configured']),
+  "lastSync": zod.iso.datetime({"offset":true}).nullable(),
+  "integrationState": zod.enum(['adapter_pending', 'configured', 'syncing', 'unavailable']),
+  "connectionState": zod.enum(['connected', 'unreachable', 'authentication_failure', 'unsupported', 'configuration_error', 'unknown']),
+  "lastHealthCheck": zod.iso.datetime({"offset":true}).nullable(),
+  "mappedEmployeeCount": zod.int().min(updateDeviceResponseMappedEmployeeCountMin),
   "note": zod.string().optional(),
   "registrationKey": zod.string().optional().describe('One-time ADMS registration key, returned only when registering a ZKTeco ADMS device')
 })

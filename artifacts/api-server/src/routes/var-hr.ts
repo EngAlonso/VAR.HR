@@ -30,12 +30,18 @@ import {
   CorrectAttendanceResponse,
   CreateBranchBody,
   CreateBranchResponse,
+  GetBranchParams,
+  GetBranchResponse,
+  UpdateBranchBody,
+  UpdateBranchResponse,
   CreateDepartmentBody,
   CreateDepartmentResponse,
   GetDepartmentParams,
   GetDepartmentResponse,
   CreateDeviceBody,
   CreateDeviceResponse,
+  UpdateDeviceBody,
+  UpdateDeviceResponse,
   CreateDeviceMappingBody,
   CreateDeviceMappingParams,
   CreateDeviceMappingResponse,
@@ -429,6 +435,7 @@ function mapDeviceRow(row: {
     name: row.device.name,
     manufacturer: row.device.manufacturer,
     model: row.device.model,
+    branchId: row.device.branchId,
     branch: row.branch.name,
     adapterKey: row.device.adapterKey,
     connectionType: row.device.connectionType as
@@ -2669,6 +2676,10 @@ router.get("/branches", async (req, res): Promise<void> => {
         employeeScopeCondition(context),
       ),
     );
+  const devices = await db
+    .select({ branchId: devicesTable.branchId })
+    .from(devicesTable)
+    .where(eq(devicesTable.companyId, context.companyId));
   res.json(
     ListBranchesResponse.parse(
       branches.map((branch) => ({
@@ -2678,7 +2689,11 @@ router.get("/branches", async (req, res): Promise<void> => {
         employeeCount: employees.filter(
           (employee) => employee.branchId === branch.id,
         ).length,
+        deviceCount: devices.filter((device) => device.branchId === branch.id).length,
         gpsEnabled: branch.gpsEnabled,
+        active: branch.active,
+        createdAt: branch.createdAt.toISOString(),
+        updatedAt: branch.updatedAt.toISOString(),
       })),
     ),
   );
@@ -2714,9 +2729,125 @@ router.post("/branches", async (req, res): Promise<void> => {
       name: branch.name,
       city: branch.city,
       employeeCount: 0,
+      deviceCount: 0,
       gpsEnabled: branch.gpsEnabled,
+      active: branch.active,
+      createdAt: branch.createdAt.toISOString(),
+      updatedAt: branch.updatedAt.toISOString(),
     }),
   );
+});
+
+async function branchResponse(context: TenantContext, branchId: string) {
+  const [branch] = await db
+    .select()
+    .from(branchesTable)
+    .where(
+      and(
+        eq(branchesTable.id, branchId),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!branch) return null;
+  const [employeeRows, deviceRowsForBranch] = await Promise.all([
+    db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.companyId, context.companyId),
+          eq(employeesTable.branchId, branch.id),
+        ),
+      ),
+    db
+      .select({ id: devicesTable.id })
+      .from(devicesTable)
+      .where(
+        and(
+          eq(devicesTable.companyId, context.companyId),
+          eq(devicesTable.branchId, branch.id),
+        ),
+      ),
+  ]);
+  return {
+    id: branch.id,
+    name: branch.name,
+    city: branch.city,
+    employeeCount: employeeRows.length,
+    deviceCount: deviceRowsForBranch.length,
+    gpsEnabled: branch.gpsEnabled,
+    active: branch.active,
+    createdAt: branch.createdAt.toISOString(),
+    updatedAt: branch.updatedAt.toISOString(),
+  };
+}
+
+router.get("/branches/:branchId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "branches.view", true)) {
+    denyCapability(res, req, "branches.view");
+    return;
+  }
+  const params = GetBranchParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.branchId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const response = await branchResponse(context, params.data.branchId);
+  if (!response) {
+    res.status(404).json({ error: message(req, "branchNotFound") });
+    return;
+  }
+  res.json(GetBranchResponse.parse(response));
+});
+
+router.patch("/branches/:branchId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "branches.manage")) {
+    res.status(403).json({ error: message(req, "noPermissionCreateBranches") });
+    return;
+  }
+  const params = GetBranchParams.safeParse(req.params);
+  const parsed = UpdateBranchBody.safeParse(req.body);
+  if (!params.success || !isUuid(params.data.branchId) || !parsed.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [before] = await db
+    .select()
+    .from(branchesTable)
+    .where(
+      and(
+        eq(branchesTable.id, params.data.branchId),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!before) {
+    res.status(404).json({ error: message(req, "branchNotFound") });
+    return;
+  }
+  const [branch] = await db
+    .update(branchesTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(
+      and(
+        eq(branchesTable.id, before.id),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    )
+    .returning();
+  await recordAudit(
+    context.companyId,
+    "updated",
+    "branch",
+    branch.id,
+    branch,
+    before,
+  );
+  const response = await branchResponse(context, branch.id);
+  res.json(UpdateBranchResponse.parse(response));
 });
 
 router.get("/employees", async (req, res): Promise<void> => {
@@ -7887,6 +8018,61 @@ router.post("/devices", async (req, res): Promise<void> => {
       ...(registrationKey ? { registrationKey } : {}),
     }),
   );
+});
+
+router.patch("/devices/:deviceId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "devices.manage")) {
+    denyCapability(res, req, "devices.manage");
+    return;
+  }
+  const deviceId = String(req.params.deviceId);
+  const parsed = UpdateDeviceBody.safeParse(req.body);
+  if (!isUuid(deviceId) || !parsed.success || !isUuid(parsed.data.branchId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [branch] = await db
+    .select({ id: branchesTable.id })
+    .from(branchesTable)
+    .where(
+      and(
+        eq(branchesTable.id, parsed.data.branchId),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!branch) {
+    res.status(400).json({ error: message(req, "branchNotFound") });
+    return;
+  }
+  const [before] = await db
+    .select()
+    .from(devicesTable)
+    .where(
+      and(
+        eq(devicesTable.id, deviceId),
+        eq(devicesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!before) {
+    res.status(404).json({ error: message(req, "deviceNotFound") });
+    return;
+  }
+  const [device] = await db
+    .update(devicesTable)
+    .set({ branchId: branch.id })
+    .where(
+      and(
+        eq(devicesTable.id, before.id),
+        eq(devicesTable.companyId, context.companyId),
+      ),
+    )
+    .returning();
+  await recordAudit(context.companyId, "updated", "device", device.id, device, before);
+  const row = (await deviceRows(context)).find((item) => item.device.id === device.id);
+  res.json(UpdateDeviceResponse.parse(mapDeviceRow(row!)));
 });
 
 router.get("/devices/providers", async (req, res): Promise<void> => {

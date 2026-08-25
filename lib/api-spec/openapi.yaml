@@ -456,6 +456,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Branch"
+  /branches/{branchId}:
+    parameters:
+      - $ref: "#/components/parameters/BranchPathId"
+    get:
+      operationId: getBranch
+      tags: [organization]
+      summary: Get a company branch and its structure
+      parameters:
+        - $ref: "#/components/parameters/BranchId"
+      responses:
+        "200":
+          description: Branch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Branch"
+    patch:
+      operationId: updateBranch
+      tags: [organization]
+      summary: Update or deactivate a company branch
+      parameters:
+        - $ref: "#/components/parameters/BranchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BranchUpdate"
+      responses:
+        "200":
+          description: Branch updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Branch"
   /employees:
     get:
       operationId: listEmployees
@@ -1466,6 +1501,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BiometricDevice"
+  /devices/{deviceId}:
+    patch:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update a biometric device assignment
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: Device updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricDevice"
   /devices/providers:
     get:
       operationId: listBiometricProviders
@@ -1780,6 +1838,17 @@ components:
         type: string
     DepartmentPathId:
       name: departmentId
+      in: path
+      required: true
+      schema:
+        type: string
+    BranchId:
+      name: branchId
+      in: query
+      schema:
+        type: string
+    BranchPathId:
+      name: branchId
       in: path
       required: true
       schema:
@@ -2222,13 +2291,17 @@ components:
         active: { type: boolean }
     Branch:
       type: object
-      required: [id, name, city, employeeCount, gpsEnabled]
+      required: [id, name, city, employeeCount, deviceCount, gpsEnabled, active, createdAt, updatedAt]
       properties:
         id: { type: string }
         name: { type: string }
         city: { type: string }
         employeeCount: { type: integer }
+        deviceCount: { type: integer }
         gpsEnabled: { type: boolean }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     BranchInput:
       type: object
       required: [name, city]
@@ -2239,6 +2312,17 @@ components:
         latitude: { type: ["number", "null"] }
         longitude: { type: ["number", "null"] }
         radiusMeters: { type: ["integer", "null"], minimum: 0 }
+    BranchUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        gpsEnabled: { type: boolean }
+        latitude: { type: ["number", "null"] }
+        longitude: { type: ["number", "null"] }
+        radiusMeters: { type: ["integer", "null"], minimum: 0 }
+        active: { type: boolean }
     Employee:
       type: object
       required:
@@ -3445,6 +3529,7 @@ components:
           name,
           manufacturer,
           model,
+          branchId,
           branch,
           adapterKey,
           connectionType,
@@ -3463,6 +3548,7 @@ components:
         name: { type: string }
         manufacturer: { type: string }
         model: { type: string }
+        branchId: { type: string }
         branch: { type: string }
         adapterKey: { type: string }
         connectionType:
@@ -3511,6 +3597,11 @@ components:
         host: { type: string }
         port: { type: integer, minimum: 1, maximum: 65535 }
         deviceIdentifier: { type: string }
+    DeviceUpdate:
+      type: object
+      required: [branchId]
+      properties:
+        branchId: { type: string }
     DeviceSyncStatus:
       type: object
       required: [deviceId, status, message]

@@ -11,5 +11,9 @@ export interface Branch {
   name: string;
   city: string;
   employeeCount: number;
+  deviceCount: number;
   gpsEnabled: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

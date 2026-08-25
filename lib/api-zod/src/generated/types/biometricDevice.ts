@@ -15,6 +15,7 @@ export interface BiometricDevice {
   name: string;
   manufacturer: string;
   model: string;
+  branchId: string;
   branch: string;
   adapterKey: string;
   connectionType: BiometricDeviceConnectionType;

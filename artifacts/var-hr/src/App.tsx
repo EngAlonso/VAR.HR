@@ -88,6 +88,7 @@ import {
   useDeleteDepartment,
   useListBranches,
   useCreateBranch,
+  useUpdateBranch,
   useListEmployees,
   useCreateEmployee,
   useGetEmployee,
@@ -132,6 +133,7 @@ import {
   useDeletePayrollAdjustment,
   useListDevices,
   useCreateDevice,
+  useUpdateDevice,
   useSyncDevice,
   useTestDeviceConnection,
   useListWorkSchedules,
@@ -164,6 +166,7 @@ import {
   getListDepartmentsQueryKey,
   getGetDepartmentQueryKey,
   getListBranchesQueryKey,
+  getGetBranchQueryKey,
   getListEmployeesQueryKey,
   getGetEmployeeQueryKey,
   getGetAttendanceTodayQueryKey,
@@ -376,6 +379,13 @@ const nav: NavItem[] = [
     capability: "departments.view",
   },
   {
+    href: "/branches",
+    key: "branches",
+    icon: Network,
+    roles: ["company_owner"],
+    capability: "branches.view",
+  },
+  {
     href: "/attendance",
     key: "attendance",
     icon: Clock3,
@@ -494,6 +504,7 @@ const copy = {
     overview: "Overview",
     employees: "Employees",
     departments: "Departments",
+    branches: "Branches",
     attendance: "Attendance",
     requests: "Requests",
     rules: "Attendance Rules",
@@ -764,6 +775,8 @@ const copy = {
     createBranch: "Create branch",
     branchName: "Branch name",
     branchCity: "Branch city",
+    noBranches: "No branches yet",
+    gpsEnabled: "GPS attendance enabled",
     cancel: "Cancel",
     saving: "Saving…",
     createEmployee: "Create employee",
@@ -818,6 +831,21 @@ const copy = {
     noDepartmentsDetail: "Create the first department for this company.",
     departmentEmployees: "Department employees",
     departmentSaved: "Department saved",
+    branchesEyebrow: "Organization",
+    branchesTitle: "Branches",
+    branchesDetail: "Manage your company locations and their biometric devices.",
+    addBranch: "Add branch",
+    branchSaved: "Branch saved",
+    branchDetails: "Branch details",
+    branchDevices: "Biometric devices",
+    branchEmployees: "Employees",
+    branchStatus: "Branch status",
+    branchActive: "Active",
+    branchInactive: "Inactive",
+    deactivateBranch: "Deactivate branch",
+    activateBranch: "Activate branch",
+    couldNotSaveBranch: "Could not save the branch.",
+    editBranch: "Change branch",
     departmentDeactivated: "Department status updated",
     branchCreated: "Branch created",
     employeeStatusUpdated: "Employee status updated",
@@ -962,6 +990,7 @@ const copy = {
     overview: "نظرة عامة",
     employees: "الموظفون",
     departments: "الأقسام",
+    branches: "الفروع",
     attendance: "الحضور",
     requests: "الطلبات",
     rules: "قواعد الحضور",
@@ -1097,6 +1126,21 @@ const copy = {
     noDepartmentsDetail: "أنشئ أول قسم لهذه الشركة.",
     departmentEmployees: "موظفو القسم",
     departmentSaved: "تم حفظ القسم",
+    branchesEyebrow: "التنظيم",
+    branchesTitle: "الفروع",
+    branchesDetail: "إدارة مواقع شركتك وأجهزة البصمة المرتبطة بها.",
+    addBranch: "إضافة فرع",
+    branchSaved: "تم حفظ الفرع",
+    branchDetails: "تفاصيل الفرع",
+    branchDevices: "أجهزة البصمة",
+    branchEmployees: "الموظفون",
+    branchStatus: "حالة الفرع",
+    branchActive: "نشط",
+    branchInactive: "غير نشط",
+    deactivateBranch: "تعطيل الفرع",
+    activateBranch: "تفعيل الفرع",
+    couldNotSaveBranch: "تعذر حفظ الفرع.",
+    editBranch: "تغيير الفرع",
     departmentDeactivated: "تم تحديث حالة القسم",
     disabled: "معطل",
     email: "البريد الإلكتروني",
@@ -1937,6 +1981,8 @@ const pageCopy = {
     branchName: "اسم الفرع",
     createBranch: "إنشاء فرع",
     branchCity: "مدينة الفرع",
+    noBranches: "لا توجد فروع بعد",
+    gpsEnabled: "تم تفعيل الحضور عبر GPS",
     employeeAddedToWorkspace: "تمت إضافة الموظف إلى مساحة العمل",
     apiWillIdentifySignedInEmployee: "ستحدد واجهة API الموظف الذي سجّل الدخول.",
     webEventLocationPolicy: "حدث ويب · تقيّم واجهة API سياسة الموقع",
@@ -6375,6 +6421,157 @@ function Profile() {
     <AccountProfileSummary
       includeEmployeeProfile={auth.account.accountType === "staff"}
     />
+  );
+}
+
+function Branches() {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const workspace = useGetWorkspace();
+  const canManage =
+    workspace.data?.role === "company_owner" &&
+    (workspace.data?.capabilities?.includes("branches.manage") ?? false);
+  const branches = useListBranches();
+  const create = useCreateBranch();
+  const update = useUpdateBranch();
+  const [selected, setSelected] = useState<any | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    city: "",
+    gpsEnabled: false,
+    active: true,
+  });
+  function openCreate() {
+    setSelected(null);
+    setForm({ name: "", city: "", gpsEnabled: false, active: true });
+    setEditing(true);
+  }
+  function openEdit(branch: any) {
+    setSelected(branch);
+    setForm({
+      name: branch.name ?? "",
+      city: branch.city ?? "",
+      gpsEnabled: branch.gpsEnabled === true,
+      active: branch.active !== false,
+    });
+    setEditing(true);
+  }
+  function save(event: FormEvent) {
+    event.preventDefault();
+    const data = {
+      name: form.name.trim(),
+      city: form.city.trim(),
+      gpsEnabled: form.gpsEnabled,
+      ...(selected ? { active: form.active } : {}),
+    };
+    if (!data.name || !data.city) {
+      toast.error(t("couldNotSaveBranch"));
+      return;
+    }
+    const options = {
+      onSuccess: (result: any) => {
+        toast.success(t("branchSaved"));
+        setEditing(false);
+        setSelected(result);
+        qc.invalidateQueries({ queryKey: getListBranchesQueryKey() });
+      },
+      onError: (error: any) =>
+        toast.error(apiErrorMessage(error, t("couldNotSaveBranch"))),
+    };
+    if (selected) {
+      update.mutate({ branchId: selected.id, data } as any, options);
+    } else {
+      create.mutate({ data } as any, options);
+    }
+  }
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("branchesEyebrow")}
+        title={t("branchesTitle")}
+        detail={t("branchesDetail")}
+        action={canManage ? <Button onClick={openCreate}><Plus size={16} />{t("addBranch")}</Button> : undefined}
+      />
+      {branches.isLoading ? (
+        <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
+      ) : branches.isError ? (
+        <ErrorState retry={() => branches.refetch()} />
+      ) : branches.data?.length ? (
+        <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
+          <div className="space-y-3">
+            {branches.data.map((branch: any) => (
+              <Card
+                key={branch.id}
+                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
+                onClick={() => setSelected(branch)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-display text-lg font-semibold">
+                      {branch.name}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">{branch.city}</div>
+                  </div>
+                  <Status value={branch.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <Info label={t("branchEmployees")} value={branch.employeeCount} />
+                  <Info label={t("branchDevices")} value={branch.deviceCount} />
+                </div>
+              </Card>
+            ))}
+          </div>
+          {selected ? (
+            <Card className="p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("branchDetails")}</p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold">{selected.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{selected.city}</p>
+                </div>
+                {canManage && <Button variant="outline" onClick={() => openEdit(selected)}>{t("edit")}</Button>}
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Info label={t("branchStatus")} value={selected.active ? t("branchActive") : t("branchInactive")} />
+                <Info label={t("branchEmployees")} value={selected.employeeCount} />
+                <Info label={t("branchDevices")} value={selected.deviceCount} />
+                <Info label={t("databaseCreatedAt")} value={date(selected.createdAt)} />
+              </div>
+              {selected.gpsEnabled && (
+                <p className="mt-5 rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">{t("gpsEnabled")}</p>
+              )}
+            </Card>
+          ) : (
+            <Empty title={t("branchDetails")} detail={t("selectOption")} />
+          )}
+        </div>
+      ) : (
+        <Empty title={t("noBranches")} detail={t("branchesDetail")} action={canManage ? <Button onClick={openCreate}><Plus size={15} />{t("addBranch")}</Button> : undefined} />
+      )}
+      {editing && (
+        <Modal title={selected ? t("edit") : t("addBranch")} onClose={() => setEditing(false)}>
+          <form onSubmit={save} className="space-y-4">
+            <Field label={t("branchName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+            <Field label={t("branchCity")} required value={form.city} onChange={(value) => setForm({ ...form, city: value })} />
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={form.gpsEnabled} onChange={(event) => setForm({ ...form, gpsEnabled: event.target.checked })} />
+              {t("gpsEnabled")}
+            </label>
+            {selected && (
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />
+                {form.active ? t("activateBranch") : t("deactivateBranch")}
+              </label>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>{t("cancel")}</Button>
+              <Button type="submit" disabled={create.isPending || update.isPending}>{t("saveChanges")}</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
   );
 }
 
@@ -13766,6 +13963,7 @@ function Devices() {
   const employees = useListEmployees({ status: "active" });
   const locations = useListAttendanceLocations();
   const create = useCreateDevice();
+  const updateDevice = useUpdateDevice();
   const sync = useSyncDevice();
   const testConnection = useTestDeviceConnection();
   const createMapping = useCreateDeviceMapping();
@@ -13773,6 +13971,7 @@ function Devices() {
   const createLocation = useCreateAttendanceLocation();
   const updateLocation = useUpdateAttendanceLocation();
   const [show, setShow] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<any | null>(null);
   const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [form, setForm] = useState({
@@ -14012,6 +14211,12 @@ function Devices() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Status value={d.integrationState} />
+                      <Button
+                        variant="outline"
+                        onClick={() => setEditingBranch(d)}
+                      >
+                        {t("editBranch")}
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -14451,6 +14656,54 @@ function Devices() {
               <Button disabled={create.isPending} type="submit">
                 {create.isPending ? t("saving") : t("addConfiguration")}
               </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {editingBranch && (
+        <Modal title={t("editBranch")} onClose={() => setEditingBranch(null)}>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateDevice.mutate(
+                {
+                  deviceId: editingBranch.id,
+                  data: { branchId: editingBranch.branchId },
+                },
+                {
+                  onSuccess: () => {
+                    toast.success(t("branchSaved"));
+                    setEditingBranch(null);
+                    qc.invalidateQueries({ queryKey: getListDevicesQueryKey() });
+                  },
+                  onError: (error: any) =>
+                    toast.error(apiErrorMessage(error, t("couldNotSaveBranch"))),
+                },
+              );
+            }}
+          >
+            <label className="block text-sm font-semibold">
+              {t("branch")}
+              <select
+                required
+                defaultValue={editingBranch.branchId}
+                onChange={(event) =>
+                  setEditingBranch({ ...editingBranch, branchId: event.target.value })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
+              >
+                <option value="">{t("selectBranch")}</option>
+                {branches.data?.map((branch: any) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branchLabel(branch.name, t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setEditingBranch(null)}>{t("cancel")}</Button>
+              <Button type="submit" disabled={updateDevice.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
         </Modal>
@@ -17642,6 +17895,7 @@ function Router() {
         <Route path="/profile" component={Profile} />
         <Route path="/employees" component={Employees} />
         <Route path="/departments" component={Departments} />
+        <Route path="/branches" component={Branches} />
         <Route path="/attendance" component={Attendance} />
         <Route path="/requests" component={Requests} />
         <Route path="/rules" component={Rules} />

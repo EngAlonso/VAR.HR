@@ -44,6 +44,8 @@ export const branchesTable = pgTable("var_hr_branches", {
   longitude: numeric("longitude", { precision: 10, scale: 7, mode: "number" }),
   radiusMeters: numeric("radius_meters", { precision: 8, scale: 0, mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  active: boolean("active").notNull().default(true),
 });
 
 export const employeesTable = pgTable("var_hr_employees", {
@@ -82,6 +84,7 @@ export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export const insertBranchSchema = createInsertSchema(branchesTable).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 export type Branch = typeof branchesTable.$inferSelect;
 export type InsertBranch = z.infer<typeof insertBranchSchema>;
