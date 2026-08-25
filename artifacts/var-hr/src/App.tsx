@@ -8675,8 +8675,12 @@ function Rules() {
     createdAt: locale === "ar" ? "تاريخ الإنشاء" : "Created date",
     historicalNote:
       locale === "ar"
-        ? "يتم الاحتفاظ بالإصدارات السابقة لاستخدامها في حسابات الحضور والرواتب التاريخية، ولا يتم تعديلها مباشرة."
-        : "Previous versions are preserved for historical attendance and payroll calculations and are not edited directly.",
+        ? "يتم الاحتفاظ بالإصدارات السابقة لأغراض سجل الحضور والرواتب والتدقيق، ولا يمكن تعديلها أو حذفها بعد انتهاء الفترة الخاصة بها."
+        : "Historical versions are preserved for attendance and payroll history. They cannot be edited or deleted after their period has ended.",
+    retroactiveNote:
+      locale === "ar"
+        ? "سيؤدي هذا التغيير إلى استبدال قاعدة الحضور السارية من التاريخ المحدد. قد تحتاج حسابات الحضور للفترة المتأثرة إلى إعادة حساب. لن يتم تغيير الرواتب النهائية أو المقفلة تلقائياً."
+        : "This change will replace the attendance rule applicable from the selected date. Existing attendance calculations for the affected period may need to be recalculated. Finalized or locked payroll will not be changed automatically.",
     review: locale === "ar" ? "مراجعة قبل الحفظ" : "Review before saving",
     confirm: locale === "ar" ? "حفظ الإصدار" : "Save version",
   };
@@ -8937,6 +8941,11 @@ function Rules() {
               className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
             />
           </label>
+          {effectiveFrom < new Date().toISOString().slice(0, 10) && (
+            <div className="mt-4 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
+              {localized.retroactiveNote}
+            </div>
+          )}
           <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 p-4 text-sm">
             <span>
               {t("gracePeriod")}: {form.graceMinutes}

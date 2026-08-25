@@ -5047,15 +5047,16 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
   const next = existing
     .filter((row) => row.effectiveFrom > effectiveFrom)
     .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))[0];
-  if (
-    covering.length > 1 ||
-    existing.some((row) => row.effectiveFrom === effectiveFrom)
-  ) {
+  if (covering.length > 1) {
     res.status(409).json({
-      error: "The effective date overlaps an existing attendance rule version.",
+      error:
+        "The effective date is covered by multiple attendance rule versions; resolve the existing conflict first.",
     });
     return;
   }
+  const superseded = covering.find(
+    (row) => row.effectiveFrom === effectiveFrom,
+  );
   const nextVersion = Math.max(0, ...existing.map((row) => row.version)) + 1;
   const created = await db.transaction(async (tx) => {
     if (prior) {
@@ -5063,6 +5064,12 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
         .update(attendanceRuleVersionsTable)
         .set({ effectiveTo: dateOffset(effectiveFrom, -1) })
         .where(eq(attendanceRuleVersionsTable.id, prior.id));
+    }
+    if (superseded) {
+      await tx
+        .update(attendanceRuleVersionsTable)
+        .set({ status: "archived" })
+        .where(eq(attendanceRuleVersionsTable.id, superseded.id));
     }
     const [inserted] = await tx
       .insert(attendanceRuleVersionsTable)
@@ -5088,7 +5095,32 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
     "attendance_rule_version",
     created.id,
     created,
+    superseded
+      ? {
+          action: "retroactive_replacement",
+          replacedVersionId: superseded.id,
+          replacedVersion: superseded.version,
+          effectiveFrom,
+          retroactive: effectiveFrom < TODAY,
+        }
+      : null,
   );
+  if (superseded) {
+    await recordAudit(
+      context.companyId,
+      "superseded",
+      "attendance_rule_version",
+      superseded.id,
+      {
+        status: "archived",
+        replacedByVersionId: created.id,
+        replacedByVersion: created.version,
+        effectiveFrom,
+        retroactive: effectiveFrom < TODAY,
+      },
+      superseded,
+    );
+  }
   res
     .status(201)
     .json(
