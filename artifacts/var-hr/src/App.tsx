@@ -12123,6 +12123,7 @@ type AdminEntity = {
   canArchive?: boolean;
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
+type AdminDataResponse = AdminData & { entity?: string };
 type DatabaseCompany = { id: string; name: string; slug: string; active: boolean };
 type AdminHistoryEntry = {
   id: string;
@@ -12277,9 +12278,19 @@ function DatabaseAdministration() {
     setError("");
     try {
       setData(
-        await authRequest<AdminData>(
+        await (() => {
+          const entityDefinition = entities.find((item) => item.key === entity);
+          return authRequest<AdminDataResponse>(
           `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}`,
-        ),
+          ).then((result) => ({
+            ...result,
+            key: result.key ?? result.entity ?? entity,
+            supportEditable:
+              result.supportEditable ?? entityDefinition?.supportEditable ?? [],
+            canArchive:
+              result.canArchive ?? entityDefinition?.canArchive ?? false,
+          }));
+        })(),
       );
     } catch (cause) {
       setError(t("couldNotLoadData"));
