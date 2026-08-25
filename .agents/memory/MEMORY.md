@@ -9,3 +9,4 @@
 - [OpenAPI codegen hygiene](openapi-codegen-hygiene.md) — contract regeneration can expose stale malformed YAML and unresolved references that must be corrected before generated clients update.
 - [Imported workspace dependencies](imported-workspace-dependencies.md) — imported workspaces may require a lockfile install before code generation or builds can run.
 - [Database admin entity schemas](database-admin-entity-schemas.md) — administration entity configs must use each table’s actual timestamp columns, not assumed created_at/updated_at fields.
+- [Database admin SQL identifiers](database-admin-sql-identifiers.md) — raw support queries must quote configured table/column names because entity fields can include reserved words such as from/to.

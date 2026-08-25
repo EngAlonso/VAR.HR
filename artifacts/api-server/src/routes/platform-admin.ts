@@ -196,6 +196,7 @@ const entities: Record<string, EntityConfig> = {
       "integration_state",
       "connection_state",
     ],
+    orderColumn: "last_sync",
   },
   holidays: {
     table: "var_hr_holidays",
@@ -222,6 +223,7 @@ const entities: Record<string, EntityConfig> = {
     ],
     companyColumn: "company_id",
     editable: ["label", "from", "to", "status"],
+    orderColumn: "to",
   },
   users: {
     table: "var_hr_user_accounts",
@@ -475,6 +477,10 @@ function configFor(name: string): EntityConfig {
   return config;
 }
 
+function sqlIdentifier(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
 function safeRow(row: Record<string, unknown>) {
   const copy = { ...row };
   delete copy.password_hash;
@@ -644,20 +650,22 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
     res.status(400).json({ error: "A valid company filter is required." });
     return;
   }
-  const columns = config.columns.join(", ");
+  const columns = config.columns.map(sqlIdentifier).join(", ");
   const predicates = [
     ...(companyId && config.companyColumn
-      ? [`${config.companyColumn} = ${JSON.stringify(companyId)}`]
+      ? [
+          `${sqlIdentifier(config.companyColumn)} = ${JSON.stringify(companyId)}`,
+        ]
       : []),
     ...(search
       ? [
-          `to_jsonb(${config.table})::text ILIKE ${JSON.stringify(`%${search}%`)}`,
+          `to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${JSON.stringify(`%${search}%`)}`,
         ]
       : []),
   ];
   const where = predicates.length ? ` WHERE ${predicates.join(" AND ")}` : "";
   const query = sql.raw(
-    `SELECT ${columns} FROM ${config.table}${where} ORDER BY ${config.orderColumn ?? "created_at"} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
+    `SELECT ${columns} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${sqlIdentifier(config.orderColumn ?? "created_at")} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
   );
   const result = await db.execute(query);
   const companies = await db
@@ -709,7 +717,7 @@ router.get(
         : "";
     const result = await db.execute(
       sql.raw(
-        `SELECT ${config.columns.join(", ")} FROM ${config.table}${where} ORDER BY ${config.orderColumn ?? "created_at"} DESC NULLS LAST LIMIT 5000`,
+        `SELECT ${config.columns.map(sqlIdentifier).join(", ")} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${sqlIdentifier(config.orderColumn ?? "created_at")} DESC NULLS LAST LIMIT 5000`,
       ),
     );
     const rows = (result.rows as Record<string, unknown>[]).map(safeRow);

@@ -2333,7 +2333,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         .orderBy(desc(payrollPeriodsTable.to))
         .limit(1)
     : [];
-  const devices = canManageCompany(context)
+  const devices = canUseCapability(context, "devices.view")
     ? await db
         .select()
         .from(devicesTable)
@@ -4052,8 +4052,8 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
 
 router.get("/leave/policies", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve")) {
-    denyCapability(res, req, "leave.approve");
+  if (!canUseCapability(context, "leave.view")) {
+    denyCapability(res, req, "leave.view");
     return;
   }
   await ensureLeaveAccruals(context.companyId);
@@ -4084,8 +4084,8 @@ router.get("/leave/policies", async (req, res): Promise<void> => {
 
 router.post("/leave/policies", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve")) {
-    denyCapability(res, req, "leave.approve");
+  if (!canUseCapability(context, "leave.manage")) {
+    denyCapability(res, req, "leave.manage");
     return;
   }
   const parsed = CreateLeavePolicyBody.safeParse(req.body ?? {});
@@ -4171,8 +4171,8 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
 
 router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve", true)) {
-    denyCapability(res, req, "leave.approve");
+  if (!canUseCapability(context, "leave.view", true)) {
+    denyCapability(res, req, "leave.view");
     return;
   }
   await ensureLeaveAccruals(context.companyId);
@@ -4221,8 +4221,8 @@ router.post(
   "/leave/balances/:balanceId/adjust",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "leave.approve")) {
-      denyCapability(res, req, "leave.approve");
+    if (!canUseCapability(context, "leave.manage")) {
+      denyCapability(res, req, "leave.manage");
       return;
     }
     const params = AdjustLeaveBalanceParams.safeParse(req.params);
@@ -4319,8 +4319,8 @@ router.post(
 
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve", true)) {
-    denyCapability(res, req, "leave.approve");
+  if (!canUseCapability(context, "leave.view", true)) {
+    denyCapability(res, req, "leave.view");
     return;
   }
   await ensureLeaveAccruals(context.companyId);
@@ -4362,8 +4362,8 @@ router.get("/leave/balances", async (req, res): Promise<void> => {
 
 router.get("/leave/requests", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.approve", true)) {
-    denyCapability(res, req, "leave.approve");
+  if (!canUseCapability(context, "leave.view", true)) {
+    denyCapability(res, req, "leave.view");
     return;
   }
   await ensureLeaveAccruals(context.companyId);
@@ -5193,7 +5193,7 @@ router.put("/rules", async (req, res): Promise<void> => {
 
 router.get("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules", false)) {
+  if (!canUseCapability(context, "schedules.view", false)) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -5218,7 +5218,7 @@ router.get("/schedules", async (req, res): Promise<void> => {
 
 router.post("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules")) {
+  if (!canUseCapability(context, "schedules.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5261,7 +5261,7 @@ router.post("/schedules", async (req, res): Promise<void> => {
 
 router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules")) {
+  if (!canUseCapability(context, "schedules.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5325,7 +5325,7 @@ router.put(
   "/schedules/:scheduleId/default",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "schedules")) {
+    if (!canUseCapability(context, "schedules.manage")) {
       res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
       return;
     }
@@ -5384,7 +5384,7 @@ function historyRow(
 
 router.get("/schedule-assignments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules", false)) {
+  if (!canUseCapability(context, "schedules.view", false)) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -5414,7 +5414,7 @@ router.get("/schedule-assignments", async (req, res): Promise<void> => {
 
 router.post("/schedule-assignments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "schedules")) {
+  if (!canUseCapability(context, "schedules.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5537,7 +5537,7 @@ router.get(
       return;
     }
     if (
-      !canUseCapability(context, "schedules", true) &&
+      !canUseCapability(context, "schedules.view", true) &&
       params.data.employeeId !== context.employeeId
     ) {
       denyCapability(res, req, "schedules");
@@ -5614,7 +5614,7 @@ router.put(
   "/employees/:employeeId/schedule",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "schedules")) {
+    if (!canUseCapability(context, "schedules.manage")) {
       res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
       return;
     }
@@ -5933,10 +5933,8 @@ router.put(
   "/employees/:employeeId/hr-record",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
-      res
-        .status(403)
-        .json({ error: message(req, "noPermissionManageEmployees") });
+    if (!canUseCapability(context, "employees.edit")) {
+      denyCapability(res, req, "employees.edit");
       return;
     }
     const params = UpdateEmployeeHrRecordParams.safeParse(req.params);
@@ -6516,8 +6514,8 @@ router.get("/reports/data", async (req, res): Promise<void> => {
 
 router.post("/employees/import", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "reportImportAccess") });
+  if (!canUseCapability(context, "employees.create")) {
+    denyCapability(res, req, "employees.create");
     return;
   }
   const parsed = employeeImportInputSchema.safeParse(req.body);
@@ -6832,8 +6830,8 @@ router.post("/employees/import", async (req, res): Promise<void> => {
 
 router.get("/payroll/periods", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canViewPayroll(context)) {
-    res.status(403).json({ error: message(req, "payrollAccess") });
+  if (!canUseCapability(context, "payroll.view")) {
+    denyCapability(res, req, "payroll.view");
     return;
   }
   const periods = await db
@@ -6848,8 +6846,8 @@ router.get("/payroll/periods", async (req, res): Promise<void> => {
 
 router.post("/payroll/periods", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "payrollManage") });
+  if (!canUseCapability(context, "payroll.manage")) {
+    denyCapability(res, req, "payroll.manage");
     return;
   }
   const parsed = CreatePayrollPeriodBody.safeParse(req.body);
@@ -7408,8 +7406,8 @@ router.post(
   "/payroll/periods/:periodId/calculate",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
-      res.status(403).json({ error: message(req, "payrollCalculate") });
+    if (!canUseCapability(context, "payroll.manage")) {
+      denyCapability(res, req, "payroll.manage");
       return;
     }
     const params = CalculatePayrollParams.safeParse(req.params);
@@ -7446,8 +7444,8 @@ router.get(
   "/payroll/periods/:periodId/calculation",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canViewPayroll(context) && !context.employeeId) {
-      res.status(403).json({ error: message(req, "payrollAccess") });
+    if (!canUseCapability(context, "payroll.view") && !context.employeeId) {
+      denyCapability(res, req, "payroll.view");
       return;
     }
     const params = GetPayrollCalculationParams.safeParse(req.params);
@@ -7484,8 +7482,8 @@ router.post(
   "/payroll/periods/:periodId/finalize",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
-      res.status(403).json({ error: message(req, "payrollFinalize") });
+    if (!canUseCapability(context, "payroll.manage")) {
+      denyCapability(res, req, "payroll.manage");
       return;
     }
     const params = FinalizePayrollParams.safeParse(req.params);
@@ -7545,8 +7543,8 @@ router.post(
 
 router.get("/payroll/adjustments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "payrollAdjustmentAccess") });
+  if (!canUseCapability(context, "payroll.view")) {
+    denyCapability(res, req, "payroll.view");
     return;
   }
   const query = ListPayrollAdjustmentsQueryParams.safeParse({
@@ -7602,8 +7600,8 @@ router.get("/payroll/adjustments", async (req, res): Promise<void> => {
 
 router.post("/payroll/adjustments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "payrollAdjustmentAccess") });
+  if (!canUseCapability(context, "payroll.manage")) {
+    denyCapability(res, req, "payroll.manage");
     return;
   }
   const parsed = CreatePayrollAdjustmentBody.safeParse(req.body);
@@ -7683,8 +7681,8 @@ router.delete(
   "/payroll/adjustments/:adjustmentId",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
-      res.status(403).json({ error: message(req, "payrollAdjustmentAccess") });
+    if (!canUseCapability(context, "payroll.manage")) {
+      denyCapability(res, req, "payroll.manage");
       return;
     }
     const params = DeletePayrollAdjustmentParams.safeParse(req.params);
@@ -7870,8 +7868,8 @@ router.post("/devices", async (req, res): Promise<void> => {
 
 router.get("/devices/providers", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
-    res.status(403).json({ error: message(req, "deviceAdmin") });
+  if (!canUseCapability(context, "devices.view")) {
+    denyCapability(res, req, "devices.view");
     return;
   }
   res.json(
@@ -7890,8 +7888,8 @@ router.get(
   "/devices/:deviceId/sync-history",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "sync-history")) {
-      res.status(403).json({ error: message(req, "deviceAdmin") });
+    if (!canUseCapability(context, "sync-history.view")) {
+      denyCapability(res, req, "sync-history.view");
       return;
     }
     const params = ListDeviceSyncHistoryParams.safeParse(req.params);
@@ -7953,8 +7951,8 @@ router.get(
 
 router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
-    res.status(403).json({ error: message(req, "deviceSyncAccess") });
+  if (!canUseCapability(context, "devices.manage")) {
+    denyCapability(res, req, "devices.manage");
     return;
   }
   const params = SyncDeviceParams.safeParse(req.params);
@@ -8280,8 +8278,8 @@ router.post(
   "/devices/:deviceId/connection-test",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "devices")) {
-      res.status(403).json({ error: message(req, "deviceSyncAccess") });
+    if (!canUseCapability(context, "devices.manage")) {
+      denyCapability(res, req, "devices.manage");
       return;
     }
     const parsed = TestDeviceConnectionParams.safeParse(req.params);
@@ -8345,8 +8343,8 @@ router.post(
 
 router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
-    res.status(403).json({ error: message(req, "deviceManage") });
+  if (!canUseCapability(context, "devices.view")) {
+    denyCapability(res, req, "devices.view");
     return;
   }
   const parsed = ListDeviceMappingsParams.safeParse(req.params);
@@ -8417,8 +8415,8 @@ router.get("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
 
 router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
-    res.status(403).json({ error: message(req, "deviceManage") });
+  if (!canUseCapability(context, "devices.manage")) {
+    denyCapability(res, req, "devices.manage");
     return;
   }
   const params = CreateDeviceMappingParams.safeParse(req.params);
@@ -8615,8 +8613,8 @@ router.delete(
   "/devices/:deviceId/mappings/:mappingId",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canUseCapability(context, "devices")) {
-      res.status(403).json({ error: message(req, "deviceManage") });
+    if (!canUseCapability(context, "devices.manage")) {
+      denyCapability(res, req, "devices.manage");
       return;
     }
     const params = DeleteDeviceMappingParams.safeParse(req.params);
@@ -8649,8 +8647,8 @@ router.delete(
 
 router.post("/devices/:deviceId/events", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
-    res.status(403).json({ error: message(req, "deviceManage") });
+  if (!canUseCapability(context, "devices.manage")) {
+    denyCapability(res, req, "devices.manage");
     return;
   }
   const params = IngestBiometricEventParams.safeParse(req.params);
@@ -8742,6 +8740,10 @@ router.post("/devices/:deviceId/events", async (req, res): Promise<void> => {
 
 router.get("/attendance/locations", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "locations.view", true)) {
+    denyCapability(res, req, "locations.view");
+    return;
+  }
   const rows = await db
     .select()
     .from(attendanceLocationsTable)
@@ -8763,8 +8765,8 @@ router.get("/attendance/locations", async (req, res): Promise<void> => {
 
 router.post("/attendance/locations", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "attendanceLocationAdmin") });
+  if (!canUseCapability(context, "locations.manage")) {
+    denyCapability(res, req, "locations.manage");
     return;
   }
   const parsed = CreateAttendanceLocationBody.safeParse(req.body ?? {});
@@ -8806,8 +8808,8 @@ router.patch(
   "/attendance/locations/:locationId",
   async (req, res): Promise<void> => {
     const context = await getTenantContext(req);
-    if (!canManageCompany(context)) {
-      res.status(403).json({ error: message(req, "attendanceLocationAdmin") });
+    if (!canUseCapability(context, "locations.manage")) {
+      denyCapability(res, req, "locations.manage");
       return;
     }
     const params = UpdateAttendanceLocationParams.safeParse(req.params);
@@ -8859,8 +8861,8 @@ router.patch(
 
 router.get("/subscription", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
-    res.status(403).json({ error: message(req, "subscriptionAccess") });
+  if (!canUseCapability(context, "company.settings")) {
+    denyCapability(res, req, "company.settings");
     return;
   }
   const [row] = await db
