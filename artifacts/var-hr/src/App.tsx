@@ -507,6 +507,12 @@ const copy = {
     databaseAdminDetail:
       "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
     databaseEntity: "Data entity",
+    databaseCoreOrganization: "Core organization",
+    databaseSchedulingAttendance: "Scheduling and attendance",
+    databaseLeavePayrollSupport: "Leave, payroll and platform support",
+    dataExplorer: "Data explorer",
+    companyContext: "Company context",
+    allCompanies: "All companies",
     filterRecords: "Filter records",
     searchValues: "Search values",
     refresh: "Refresh",
@@ -514,6 +520,96 @@ const copy = {
     deleteSelected: "Delete selected",
     clearEntityData: "Clear filtered/entity data",
     actions: "Actions",
+    viewDetails: "View Details",
+    history: "History",
+    archive: "Archive",
+    recordDetails: "Record details",
+    supportEdit: "Support edit",
+    supportEditHint:
+      "Only approved operational fields are editable. Company ownership and authentication fields are locked.",
+    inspectionOnly: "Inspection only — no records are edited or deleted from this view.",
+    beforeValue: "Before value",
+    afterValue: "After value",
+    changedFields: "Changed fields",
+    noHistoryDetail: "This record has no recorded changes yet.",
+    unknownCompany: "Unknown company",
+    archiveConfirmation: "Archive this record?",
+    couldNotSaveSupportedChanges: "Could not save the supported changes.",
+    recordCouldNotBeArchived: "This record could not be archived.",
+    couldNotLoadRecordHistory: "Could not load record history.",
+    databaseCompanies: "Companies",
+    databaseActiveCompanies: "Active companies",
+    databaseVisibleRecords: "Visible records",
+    databaseUsers: "Users and accounts",
+    databaseEmployees: "Employees",
+    databaseDepartments: "Departments",
+    databaseBranches: "Branches",
+    databaseShifts: "Work schedules",
+    databaseShiftAssignments: "Employee schedule assignments",
+    databaseAttendanceRules: "Attendance rules",
+    databaseAttendanceRuleVersions: "Attendance rule versions",
+    databaseAttendanceCalculations: "Attendance calculations",
+    databaseAttendance: "Attendance",
+    databaseHolidays: "Holidays",
+    databaseLeaveRequests: "Leave requests",
+    databasePermissionRequests: "Permission requests",
+    databasePayrollPeriods: "Payroll periods",
+    databasePayrollCalculations: "Payroll calculations",
+    databaseDevices: "Devices",
+    databaseSubscriptions: "Subscriptions",
+    databasePermissions: "Permissions",
+    databaseAuditLogs: "Audit logs",
+    databaseBackups: "Backups",
+    databaseId: "ID",
+    databaseCompanyId: "Company ID",
+    databaseCompanyName: "Company name",
+    databaseName: "Name",
+    databaseArabicName: "Arabic name",
+    databaseDescription: "Description",
+    databaseManager: "Manager",
+    databaseDefaultSchedule: "Default schedule",
+    databaseCreatedAt: "Created at",
+    databaseUpdatedAt: "Updated at",
+    databaseEmployeeNumber: "Employee number",
+    databaseFirstName: "First name",
+    databaseLastName: "Last name",
+    databaseEmail: "Email",
+    databasePhone: "Phone",
+    databaseDepartment: "Department",
+    databaseBranch: "Branch",
+    databaseStatus: "Status",
+    databaseRole: "Role",
+    databaseJoinedOn: "Joined on",
+    databaseCity: "City",
+    databaseGpsEnabled: "GPS enabled",
+    databaseLatitude: "Latitude",
+    databaseLongitude: "Longitude",
+    databaseRadiusMeters: "Radius (meters)",
+    databaseAction: "Action",
+    databaseActor: "Actor",
+    databaseActorRole: "Actor role",
+    databaseSystem: "System",
+    databasePlatformOwner: "Platform Owner",
+    databaseUnknownAction: "Recorded action",
+    databaseDataField: "Data field",
+    databaseRolePlatformOwner: "Platform Owner",
+    databaseYes: "Yes",
+    databaseNo: "No",
+    databaseStatusActive: "Active",
+    databaseStatusInactive: "Inactive",
+    databaseStatusArchived: "Archived",
+    databaseStatusPending: "Pending",
+    databaseStatusFinalized: "Finalized",
+    databaseStatusDraft: "Draft",
+    databaseStatusConnected: "Connected",
+    databaseStatusDisconnected: "Disconnected",
+    databaseActionCreated: "Created",
+    databaseActionUpdated: "Updated",
+    databaseActionSupport_updated: "Support updated",
+    databaseActionArchived: "Archived",
+    databaseActionDatabase_view: "Viewed",
+    databaseActionDatabase_export: "Exported",
+    databaseActionDatabase_support_updated: "Support update",
     edit: "Edit",
     noRecordsFound: "No records found",
     tryAnotherEntityOrFilter: "Try another entity or filter.",
@@ -1600,7 +1696,6 @@ const pageCopy = {
     checkOutNow: "تسجيل الانصراف الآن",
     webEventPolicy: "حدث ويب · يقيّم API سياسة الموقع",
     today: "اليوم",
-    history: "السجل",
     todayRegister: "سجل اليوم",
     loadingOperationalDate: "جارٍ تحميل تاريخ التشغيل",
     noAttendanceRecords: "لا توجد سجلات حضور بعد",
@@ -1841,7 +1936,6 @@ const pageCopy = {
     webEventLocationPolicy: "حدث ويب · تقيّم واجهة API سياسة الموقع",
     noAttendanceRecordsYet: "لا توجد سجلات حضور بعد",
     whenDayStartsEventsAppearHere: "ستظهر الأحداث هنا عند بدء اليوم.",
-    noHistoryFound: "لا يوجد سجل",
     attendanceHistoryWillPopulate: "سيظهر سجل الحضور بعد تسجيل الأحداث.",
     newLeaveAndPermissionRequestsWillAppearHere:
       "ستظهر طلبات الإجازة والاستئذان الجديدة هنا.",
@@ -1904,6 +1998,12 @@ const pageCopy = {
     databaseAdminDetail:
       "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
     databaseEntity: "كيان البيانات",
+    databaseCoreOrganization: "الهيكل الأساسي",
+    databaseSchedulingAttendance: "الجدولة والحضور",
+    databaseLeavePayrollSupport: "الإجازات والرواتب ودعم المنصة",
+    dataExplorer: "مستكشف البيانات",
+    companyContext: "سياق الشركة",
+    allCompanies: "كل الشركات",
     filterRecords: "تصفية السجلات",
     searchValues: "ابحث في القيم",
     refresh: "تحديث",
@@ -1911,6 +2011,97 @@ const pageCopy = {
     deleteSelected: "حذف المحدد",
     clearEntityData: "تنظيف البيانات المصفاة/الكيان",
     actions: "الإجراءات",
+    viewDetails: "عرض التفاصيل",
+    history: "السجل",
+    archive: "أرشفة",
+    recordDetails: "تفاصيل السجل",
+    supportEdit: "تعديل الدعم",
+    supportEditHint:
+      "يمكن تعديل الحقول التشغيلية المعتمدة فقط. ملكية الشركة وحقول المصادقة مقفلة.",
+    inspectionOnly: "للاطلاع فقط — لا يتم تعديل السجلات أو حذفها من هذا العرض.",
+    beforeValue: "القيمة قبل التغيير",
+    afterValue: "القيمة بعد التغيير",
+    changedFields: "الحقول التي تغيرت",
+    noHistoryFound: "لا يوجد سجل",
+    noHistoryDetail: "لا توجد تغييرات مسجلة لهذا السجل بعد.",
+    unknownCompany: "شركة غير معروفة",
+    archiveConfirmation: "هل تريد أرشفة هذا السجل؟",
+    couldNotSaveSupportedChanges: "تعذر حفظ التغييرات المدعومة.",
+    recordCouldNotBeArchived: "تعذر أرشفة هذا السجل.",
+    couldNotLoadRecordHistory: "تعذر تحميل سجل التغييرات.",
+    databaseCompanies: "الشركات",
+    databaseActiveCompanies: "الشركات النشطة",
+    databaseVisibleRecords: "السجلات الظاهرة",
+    databaseUsers: "المستخدمون والحسابات",
+    databaseEmployees: "الموظفون",
+    databaseDepartments: "الأقسام",
+    databaseBranches: "الفروع",
+    databaseShifts: "جداول العمل",
+    databaseShiftAssignments: "ربط الموظفين بالجداول",
+    databaseAttendanceRules: "قواعد الحضور",
+    databaseAttendanceRuleVersions: "إصدارات قواعد الحضور",
+    databaseAttendanceCalculations: "حسابات الحضور",
+    databaseAttendance: "الحضور",
+    databaseHolidays: "العطلات",
+    databaseLeaveRequests: "طلبات الإجازات",
+    databasePermissionRequests: "طلبات الأذونات",
+    databasePayrollPeriods: "فترات الرواتب",
+    databasePayrollCalculations: "حسابات الرواتب",
+    databaseDevices: "الأجهزة",
+    databaseSubscriptions: "الاشتراكات",
+    databasePermissions: "الصلاحيات",
+    databaseAuditLogs: "سجلات التدقيق",
+    databaseBackups: "النسخ الاحتياطية",
+    databaseId: "المعرّف",
+    databaseCompanyId: "معرّف الشركة",
+    databaseCompanyName: "اسم الشركة",
+    databaseName: "الاسم",
+    databaseArabicName: "الاسم بالعربية",
+    databaseDescription: "الوصف",
+    databaseManager: "المدير",
+    databaseDefaultSchedule: "جدول العمل الافتراضي",
+    databaseCreatedAt: "تاريخ الإنشاء",
+    databaseUpdatedAt: "تاريخ التحديث",
+    databaseEmployeeNumber: "الرقم الوظيفي",
+    databaseFirstName: "الاسم الأول",
+    databaseLastName: "اسم العائلة",
+    databaseEmail: "البريد الإلكتروني",
+    databasePhone: "الهاتف",
+    databaseDepartment: "القسم",
+    databaseBranch: "الفرع",
+    databaseStatus: "الحالة",
+    databaseRole: "الدور",
+    databaseJoinedOn: "تاريخ الانضمام",
+    databaseCity: "المدينة",
+    databaseGpsEnabled: "تفعيل GPS",
+    databaseLatitude: "خط العرض",
+    databaseLongitude: "خط الطول",
+    databaseRadiusMeters: "النطاق (بالمتر)",
+    databaseAction: "الإجراء",
+    databaseActor: "المنفّذ",
+    databaseActorRole: "دور المنفّذ",
+    databaseSystem: "النظام",
+    databasePlatformOwner: "مالك المنصة",
+    databaseUnknownAction: "إجراء مسجل",
+    databaseDataField: "حقل بيانات",
+    databaseRolePlatformOwner: "مالك المنصة",
+    databaseYes: "نعم",
+    databaseNo: "لا",
+    databaseStatusActive: "نشط",
+    databaseStatusInactive: "غير نشط",
+    databaseStatusArchived: "مؤرشف",
+    databaseStatusPending: "معلّق",
+    databaseStatusFinalized: "نهائي",
+    databaseStatusDraft: "مسودة",
+    databaseStatusConnected: "متصل",
+    databaseStatusDisconnected: "غير متصل",
+    databaseActionCreated: "إنشاء",
+    databaseActionUpdated: "تحديث",
+    databaseActionSupport_updated: "تحديث دعم",
+    databaseActionArchived: "أرشفة",
+    databaseActionDatabase_view: "عرض",
+    databaseActionDatabase_export: "تصدير",
+    databaseActionDatabase_support_updated: "تحديث دعم",
     edit: "تعديل",
     noRecordsFound: "لا توجد سجلات",
     tryAnotherEntityOrFilter: "جرّب كياناً أو تصفية أخرى.",
@@ -12202,6 +12393,100 @@ const entityLabelsArabic: Record<string, string> = {
   audit_logs: "سجلات التدقيق",
   backups: "النسخ الاحتياطية",
 };
+const databaseEntityTranslationKeys: Record<string, AppCopyKey> = {
+  companies: "databaseCompanies",
+  users: "databaseUsers",
+  employees: "databaseEmployees",
+  departments: "databaseDepartments",
+  branches: "databaseBranches",
+  shifts: "databaseShifts",
+  shift_assignments: "databaseShiftAssignments",
+  attendance_rules: "databaseAttendanceRules",
+  attendance_rule_versions: "databaseAttendanceRuleVersions",
+  attendance_calculations: "databaseAttendanceCalculations",
+  attendance: "databaseAttendance",
+  holidays: "databaseHolidays",
+  leave_requests: "databaseLeaveRequests",
+  permission_requests: "databasePermissionRequests",
+  payroll_periods: "databasePayrollPeriods",
+  payroll_calculations: "databasePayrollCalculations",
+  devices: "databaseDevices",
+  subscriptions: "databaseSubscriptions",
+  permissions: "databasePermissions",
+  audit_logs: "databaseAuditLogs",
+  backups: "databaseBackups",
+};
+const databaseGroupTranslationKeys: Record<string, AppCopyKey> = {
+  "Core organization": "databaseCoreOrganization",
+  "Scheduling and attendance": "databaseSchedulingAttendance",
+  "Leave, payroll and platform support": "databaseLeavePayrollSupport",
+};
+const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
+  id: "databaseId",
+  company_id: "databaseCompanyId",
+  company_name: "databaseCompanyName",
+  name: "databaseName",
+  name_ar: "databaseArabicName",
+  description: "databaseDescription",
+  manager_id: "databaseManager",
+  default_schedule_id: "databaseDefaultSchedule",
+  active: "databaseStatus",
+  created_at: "databaseCreatedAt",
+  updated_at: "databaseUpdatedAt",
+  employee_number: "databaseEmployeeNumber",
+  first_name: "databaseFirstName",
+  last_name: "databaseLastName",
+  email: "databaseEmail",
+  phone: "databasePhone",
+  department_id: "databaseDepartment",
+  branch_id: "databaseBranch",
+  status: "databaseStatus",
+  role: "databaseRole",
+  joined_on: "databaseJoinedOn",
+  city: "databaseCity",
+  gps_enabled: "databaseGpsEnabled",
+  latitude: "databaseLatitude",
+  longitude: "databaseLongitude",
+  radius_meters: "databaseRadiusMeters",
+};
+const databaseStatusValues = new Set([
+  "active",
+  "inactive",
+  "archived",
+  "pending",
+  "finalized",
+  "draft",
+  "connected",
+  "disconnected",
+]);
+const databaseActionValues = new Set([
+  "created",
+  "updated",
+  "support_updated",
+  "archived",
+  "database_view",
+  "database_export",
+  "database_support_updated",
+]);
+const databaseStatusTranslationKeys: Record<string, AppCopyKey> = {
+  active: "databaseStatusActive",
+  inactive: "databaseStatusInactive",
+  archived: "databaseStatusArchived",
+  pending: "databaseStatusPending",
+  finalized: "databaseStatusFinalized",
+  draft: "databaseStatusDraft",
+  connected: "databaseStatusConnected",
+  disconnected: "databaseStatusDisconnected",
+};
+const databaseActionTranslationKeys: Record<string, AppCopyKey> = {
+  created: "databaseActionCreated",
+  updated: "databaseActionUpdated",
+  support_updated: "databaseActionSupport_updated",
+  archived: "databaseActionArchived",
+  database_view: "databaseActionDatabase_view",
+  database_export: "databaseActionDatabase_export",
+  database_support_updated: "databaseActionDatabase_support_updated",
+};
 const databaseGroups = [
   {
     label: "Core organization",
@@ -12347,13 +12632,13 @@ function DatabaseAdministration() {
       setEditing(null);
       await load();
     } catch (cause) {
-      setError("Could not save the supported changes.");
+      setError(t("couldNotSaveSupportedChanges"));
     } finally {
       setPending("");
     }
   };
   const archive = async (row: Record<string, unknown>) => {
-    if (!data || !window.confirm(`Archive this ${data.label.toLowerCase().slice(0, -1)}?`)) {
+    if (!data || !window.confirm(t("archiveConfirmation"))) {
       return;
     }
     setPending("archive");
@@ -12363,7 +12648,7 @@ function DatabaseAdministration() {
       });
       await load();
     } catch (cause) {
-      setError("This record could not be archived.");
+      setError(t("recordCouldNotBeArchived"));
     } finally {
       setPending("");
     }
@@ -12376,9 +12661,11 @@ function DatabaseAdministration() {
         `/api/platform/database/${data.key}/${row.id}/history`,
       );
       setHistory(result.history);
-      setHistoryTitle(`${data.label} · ${String(row.name ?? row.first_name ?? row.id)}`);
+      setHistoryTitle(
+        `${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")} · ${String(row.name ?? row.first_name ?? row.id)}`,
+      );
     } catch (cause) {
-      setError("Could not load record history.");
+      setError(t("couldNotLoadRecordHistory"));
     } finally {
       setPending("");
     }
@@ -12387,18 +12674,25 @@ function DatabaseAdministration() {
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
+  const databaseValue = (key: string, value: unknown) => {
+    if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
+    if (typeof value === "string" && databaseStatusTranslationKeys[value]) {
+      return t(databaseStatusTranslationKeys[value]);
+    }
+    return String(value ?? "—");
+  };
   return (
     <div className="animate-in">
       <SectionTitle
         eyebrow={t("platformOwnerOnly")}
         title={t("databaseAdministration")}
-        detail="Read-only support view across the platform. Every company-scoped record includes its owning company."
+         detail={t("databaseAdminDetail")}
       />
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        {[
-          ["Companies", companies.length],
-          ["Active companies", companies.filter((company) => company.active).length],
-          ["Visible records", data?.rows.length ?? 0],
+          {[
+           [t("databaseCompanies"), companies.length],
+           [t("databaseActiveCompanies"), companies.filter((company) => company.active).length],
+           [t("databaseVisibleRecords"), data?.rows.length ?? 0],
         ].map(([label, value]) => (
           <Card className="p-4" key={String(label)}>
             <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
@@ -12410,13 +12704,15 @@ function DatabaseAdministration() {
       </div>
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         {databaseGroups.map((group) => {
-          const available = group.keys.filter((key) =>
+           const available = group.keys.filter((key) =>
             entities.some((item) => item.key === key),
           );
           if (!available.length) return null;
           return (
-            <Card className="p-4" key={group.label}>
-              <p className="text-sm font-semibold">{group.label}</p>
+             <Card className="p-4" key={group.label}>
+               <p className="text-sm font-semibold">
+                 {t(databaseGroupTranslationKeys[group.label])}
+               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {available.map((key) => (
                   <button
@@ -12429,9 +12725,9 @@ function DatabaseAdministration() {
                     key={key}
                     onClick={() => setEntity(key)}
                   >
-                    {locale === "ar"
-                      ? (entityLabelsArabic[key] ?? key)
-                      : (entityLabels[key] ?? entities.find((item) => item.key === key)?.label ?? key)}
+                     {databaseEntityTranslationKeys[key]
+                       ? t(databaseEntityTranslationKeys[key])
+                       : entities.find((item) => item.key === key)?.label ?? key}
                   </button>
                 ))}
               </div>
@@ -12441,8 +12737,8 @@ function DatabaseAdministration() {
       </div>
       <Card className="overflow-hidden">
         <div className="border-b border-border p-5">
-          <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
-            Data explorer
+           <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+             {t("dataExplorer")}
           </p>
           <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto] lg:items-end">
             <label className="text-sm font-semibold">
@@ -12454,21 +12750,21 @@ function DatabaseAdministration() {
               >
                 {entities.map((item) => (
                   <option key={item.key} value={item.key}>
-                    {locale === "ar"
-                      ? (entityLabelsArabic[item.key] ?? item.label)
-                      : (entityLabels[item.key] ?? item.label)}
+                     {databaseEntityTranslationKeys[item.key]
+                       ? t(databaseEntityTranslationKeys[item.key])
+                       : item.label}
                   </option>
                 ))}
               </select>
             </label>
             <label className="text-sm font-semibold">
-              Company context
+               {t("companyContext")}
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={companyFilter}
                 onChange={(event) => setCompanyFilter(event.target.value)}
               >
-                <option value="">All companies</option>
+                 <option value="">{t("allCompanies")}</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}
@@ -12515,7 +12811,7 @@ function DatabaseAdministration() {
         )}
         <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground">
           <Eye size={14} />
-          Inspection only — no records are edited or deleted from this view.
+          {t("inspectionOnly")}
         </div>
         {loading ? (
           <div className="p-5">
@@ -12530,8 +12826,12 @@ function DatabaseAdministration() {
               <thead className="bg-muted/60">
                 <tr>
                    {visibleColumns.map((column) => (
-                    <th className="p-3 font-semibold" key={column}>
-                      {column.replaceAll("_", " ")}
+                     <th className="p-3 font-semibold" key={column}>
+                       {databaseColumnTranslationKeys[column]
+                         ? t(databaseColumnTranslationKeys[column])
+                         : locale === "ar"
+                           ? t("databaseDataField")
+                           : column.replaceAll("_", " ")}
                     </th>
                   ))}
                    {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
@@ -12556,11 +12856,11 @@ function DatabaseAdministration() {
                               )
                             }
                           >
-                            {String(row[column] ?? "Unknown company")}
+                           {String(row[column] ?? t("unknownCompany"))}
                           </button>
                         ) : typeof row[column] === "object"
                           ? JSON.stringify(row[column])
-                          : String(row[column] ?? "—")}
+                          : databaseValue(column, row[column])}
                       </td>
                     ))}
                      {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
@@ -12569,10 +12869,10 @@ function DatabaseAdministration() {
                            {supportsDatabaseActions ? (
                              <>
                                <Button variant="outline" onClick={() => setDetails(row)}>
-                                 View Details
+                                  {t("viewDetails")}
                                </Button>
                                <Button variant="outline" onClick={() => void openHistory(row)}>
-                                 History
+                                 {t("history")}
                                </Button>
                              </>
                            ) : null}
@@ -12587,7 +12887,7 @@ function DatabaseAdministration() {
                               disabled={pending !== ""}
                               onClick={() => void archive(row)}
                             >
-                              Archive
+                               {t("archive")}
                             </Button>
                           ) : null}
                         </div>
@@ -12607,18 +12907,18 @@ function DatabaseAdministration() {
       </Card>
       {editing && data && (
         <Modal
-          title={`Support edit · ${data.label}`}
+           title={`${t("supportEdit")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
           onClose={() => setEditing(null)}
           className="max-w-2xl"
         >
           <p className="mb-4 text-sm text-muted-foreground">
-            Only approved operational fields are editable. Company ownership and authentication fields are locked.
+             {t("supportEditHint")}
           </p>
           <div className="space-y-3">
             {(data.supportEditable ?? []).map((key) => (
               <Field
                 key={key}
-                label={key.replaceAll("_", " ")}
+                 label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
                 value={String(editValues[key] ?? "")}
                 onChange={(value) =>
                   setEditValues((current) => ({ ...current, [key]: value }))
@@ -12638,7 +12938,7 @@ function DatabaseAdministration() {
       )}
       {details && data && (
         <Modal
-          title={`Record details · ${data.label}`}
+           title={`${t("recordDetails")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
           onClose={() => setDetails(null)}
           className="max-w-2xl"
         >
@@ -12646,19 +12946,23 @@ function DatabaseAdministration() {
             {visibleColumns.map((key) => (
               <div className="rounded-lg border border-border p-3" key={key}>
                 <p className="text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
-                  {key.replaceAll("_", " ")}
+                {databaseColumnTranslationKeys[key]
+                  ? t(databaseColumnTranslationKeys[key])
+                  : locale === "ar"
+                    ? t("databaseDataField")
+                    : key.replaceAll("_", " ")}
                 </p>
                 <p className="mt-1 break-words text-sm">
                   {details[key] && typeof details[key] === "object"
                     ? JSON.stringify(details[key])
-                    : String(details[key] ?? "—")}
+                    : databaseValue(key, details[key])}
                 </p>
               </div>
             ))}
           </div>
           <div className="mt-5 flex justify-end">
             <Button variant="quiet" onClick={() => setDetails(null)}>
-              Close
+              {t("closeDialog")}
             </Button>
           </div>
         </Modal>
@@ -12670,9 +12974,20 @@ function DatabaseAdministration() {
               <div className="rounded-lg border border-border p-4" key={entry.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{entry.action.replaceAll("_", " ")}</p>
+                    <p className="font-semibold">
+                      {databaseActionTranslationKeys[entry.action]
+                        ? t(databaseActionTranslationKeys[entry.action])
+                        : t("databaseUnknownAction")}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {entry.actor?.fullName ?? entry.actorType} · {entry.actor?.displayRole ?? "System"}
+                      {entry.actor?.fullName ??
+                        (entry.actorType === "platform_owner"
+                          ? t("databasePlatformOwner")
+                          : t("databaseSystem"))}
+                      {" · "}
+                      {entry.actor?.displayRole === "platform_owner"
+                        ? t("databaseRolePlatformOwner")
+                        : entry.actor?.displayRole ?? t("databaseSystem")}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">{date(entry.createdAt)}</p>
@@ -12680,22 +12995,22 @@ function DatabaseAdministration() {
                 {(entry.before || entry.after) && (
                   <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
                      <div>
-                       <p className="mb-1 font-semibold text-muted-foreground">Before value</p>
+                       <p className="mb-1 font-semibold text-muted-foreground">{t("beforeValue")}</p>
                        <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(safeHistoryDisplayValue(entry.before), null, 2)}</pre>
                      </div>
                      <div>
-                       <p className="mb-1 font-semibold text-muted-foreground">After value</p>
+                       <p className="mb-1 font-semibold text-muted-foreground">{t("afterValue")}</p>
                        <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(safeHistoryDisplayValue(entry.after), null, 2)}</pre>
                      </div>
                   </div>
                 )}
                 {entry.metadata && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Changed fields: {String(entry.metadata.fields ?? "—")}
+                     {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
                   </p>
                 )}
               </div>
-            )) : <Empty title="No history found" detail="This record has no recorded changes yet." />}
+            )) : <Empty title={t("noHistoryFound")} detail={t("noHistoryDetail")} />}
           </div>
         </Modal>
       )}
