@@ -1,0 +1,156 @@
+The latest report says the Database Management Support & Audit Center is complete, but the actual Database Management UI does NOT show the new support capabilities.
+
+I checked the application manually, and the following additions are still missing from the visible Database Management interface.
+
+Do NOT assume the feature is complete based on backend code.
+
+Required UI work
+
+Open the actual Platform Owner → Database Management page and make sure these capabilities are visibly and functionally available in the UI.
+
+For supported entities, I need to see:
+
+- View Details
+- Edit
+- Record History
+- Archive / safe delete when supported
+
+Entities
+
+At minimum, connect the UI actions to:
+
+- Employees
+- Departments
+- Branches
+
+Do NOT expose editing for protected entities such as:
+
+- Payroll
+- Attendance calculations
+- Backups
+- Authentication/security records
+- Audit Logs
+
+Record History
+
+Every supported record should have a visible History action.
+
+When opened, it should show:
+
+- Created by
+- Created date/time
+- Updated by
+- Updated date/time
+- Archived/deleted by when applicable
+- Action type
+- Actor name
+- Actor role
+- Before value
+- After value
+- Timestamp
+
+Use the existing audit system. Do NOT create a duplicate audit-log system.
+
+Edit
+
+For Employees, Departments, and Branches, show a visible Edit action where the backend already supports controlled editing.
+
+The edit UI must use the existing API/business validation.
+
+Do not create a generic database editor.
+
+Archive
+
+Show Archive only for entities where the backend supports it.
+
+For example:
+
+Employee → Deactivate/Archive
+
+Department → Set inactive/Archive
+
+Do not expose a generic Delete button for every database row.
+
+Company Context
+
+Every record shown in Database Management must clearly display:
+
+- Company name
+- Company ID when useful
+
+For example:
+
+Employee
+
+«Ahmed Ali
+ABC Company
+HR Department
+Mansoura Branch»
+
+Department
+
+«Human Resources
+ABC Company
+Manager: Ahmed Ali»
+
+Branch
+
+«Mansoura Branch
+ABC Company»
+
+Company Filter
+
+The existing company filter must remain visible and functional.
+
+Selecting a company must update the API request and return only that company's records.
+
+Do NOT implement this as frontend-only filtering.
+
+Important: Verify the actual UI
+
+Do not just inspect the backend and report that the feature exists.
+
+Actually verify:
+
+1. Open Platform Owner → Database Management.
+2. Open Employees.
+3. Confirm Edit and History are visible.
+4. Open a department.
+5. Confirm Edit, Archive, and History are visible where supported.
+6. Open a branch.
+7. Confirm its supported actions are visible.
+8. Open History and confirm the audit information renders.
+9. Confirm company name/context appears on records.
+10. Confirm protected entities do not expose destructive/edit controls.
+
+If the API already has these capabilities but the UI does not, wire the existing API into the UI instead of creating duplicate endpoints.
+
+Do NOT change
+
+Do not modify:
+
+- Payroll logic
+- Attendance calculation
+- Leave logic
+- Backup/restore
+- Authentication
+- Department business logic
+- Shift calculation
+
+unless strictly required to connect the existing Database Management UI.
+
+Do not delete or modify any real production data during verification.
+
+Final verification
+
+After fixing the UI:
+
+- Frontend typecheck
+- API typecheck if backend changes are needed
+- Frontend production build
+- API build if backend changes are needed
+- git diff --check
+- Start/restart the existing workflows
+- Actually verify the Database Management UI in the running app
+
+Do not report "complete" until the controls are actually visible and usable in the Database Management screen.
