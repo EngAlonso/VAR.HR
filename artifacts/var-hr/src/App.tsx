@@ -12154,9 +12154,36 @@ const entityLabelsArabic: Record<string, string> = {
   backups: "النسخ الاحتياطية",
 };
 const databaseGroups = [
-  { label: "Core organization", keys: ["companies", "users", "employees", "departments", "branches"] },
-  { label: "Scheduling and attendance", keys: ["shifts", "shift_assignments", "attendance_rules", "attendance_calculations", "attendance", "holidays"] },
-  { label: "Leave, payroll and support", keys: ["leave_requests", "permission_requests", "payroll_periods", "payroll_calculations", "devices", "subscriptions", "audit_logs", "backups"] },
+  {
+    label: "Core organization",
+    keys: ["companies", "users", "employees", "departments", "branches"],
+  },
+  {
+    label: "Scheduling and attendance",
+    keys: [
+      "shifts",
+      "shift_assignments",
+      "attendance_rules",
+      "attendance_rule_versions",
+      "attendance_calculations",
+      "attendance",
+      "holidays",
+    ],
+  },
+  {
+    label: "Leave, payroll and platform support",
+    keys: [
+      "leave_requests",
+      "permission_requests",
+      "payroll_periods",
+      "payroll_calculations",
+      "devices",
+      "subscriptions",
+      "permissions",
+      "audit_logs",
+      "backups",
+    ],
+  },
 ];
 
 function DatabaseAdministration() {
@@ -12168,11 +12195,9 @@ function DatabaseAdministration() {
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [, setLocation] = useLocation();
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
@@ -12200,11 +12225,9 @@ function DatabaseAdministration() {
     try {
       setData(
         await authRequest<AdminData>(
-          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}`,
-          // companyId is enforced by the API, not just filtered in the browser.
+          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}`,
         ),
       );
-      setSelected([]);
     } catch (cause) {
       setError(t("couldNotLoadData"));
     } finally {
@@ -12218,77 +12241,16 @@ function DatabaseAdministration() {
   }, []);
   useEffect(() => {
     if (entity) void load();
-  }, [entity]);
-  const save = async () => {
-    if (!editing || !data) return;
-    setPending("save");
-    try {
-      const values = Object.fromEntries(
-        data.editable
-          .filter((key) => key in editing)
-          .map((key) => [key, editing[key]]),
-      );
-      await authRequest(`/api/platform/database/${data.key}/${editing.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ values }),
-      });
-      setEditing(null);
-      await load();
-    } catch (cause) {
-      setError(t("couldNotSaveRecord"));
-    } finally {
-      setPending("");
-    }
-  };
-  const remove = async (ids: string[]) => {
-    const phrase = ids.length > 1 ? "DELETE SELECTED" : "DELETE RECORD";
-    const typed = window.prompt(
-      t("deleteRecordsConfirmation")
-        .replace("{count}", String(ids.length))
-        .replace("{phrase}", phrase),
-    );
-    if (typed !== phrase) return;
-    setPending("delete");
-    try {
-      await authRequest(`/api/platform/database/${entity}`, {
-        method: "DELETE",
-        body: JSON.stringify({
-          ids,
-          confirmation: ids.length > 1 ? phrase : undefined,
-        }),
-      });
-      await load();
-    } catch (cause) {
-      setError(t("deleteFailed"));
-    } finally {
-      setPending("");
-    }
-  };
-  const clear = async () => {
-    const phrase = `CLEAR ${entity.toUpperCase()}`;
-    const typed = window.prompt(
-      t("clearEntityConfirmation").replace("{phrase}", phrase),
-    );
-    if (typed !== phrase) return;
-    setPending("clear");
-    try {
-      await authRequest(`/api/platform/database/${entity}/clear`, {
-        method: "POST",
-        body: JSON.stringify({ confirmation: phrase, search }),
-      });
-      await load();
-    } catch (cause) {
-      setError(t("clearFailed"));
-    } finally {
-      setPending("");
-    }
-  };
+  }, [entity, companyFilter]);
   const exportData = async () => {
     setPending("export");
     try {
-      const response = await fetch(`/api/platform/database/${entity}/export`, {
+      const response = await fetch(
+        `/api/platform/database/${entity}/export?companyId=${encodeURIComponent(companyFilter)}`,
+        {
         credentials: "include",
-      });
+        },
+      );
       if (!response.ok) throw new Error(t("exportFailed"));
       const url = URL.createObjectURL(await response.blob());
       const anchor = document.createElement("a");
@@ -12307,39 +12269,109 @@ function DatabaseAdministration() {
       <SectionTitle
         eyebrow={t("platformOwnerOnly")}
         title={t("databaseAdministration")}
-        detail={t("databaseAdminDetail")}
+        detail="Read-only support view across the platform. Every company-scoped record includes its owning company."
       />
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        {[
+          ["Companies", companies.length],
+          ["Active companies", companies.filter((company) => company.active).length],
+          ["Visible records", data?.rows.length ?? 0],
+        ].map(([label, value]) => (
+          <Card className="p-4" key={String(label)}>
+            <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+              {label}
+            </p>
+            <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+          </Card>
+        ))}
+      </div>
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        {databaseGroups.map((group) => {
+          const available = group.keys.filter((key) =>
+            entities.some((item) => item.key === key),
+          );
+          if (!available.length) return null;
+          return (
+            <Card className="p-4" key={group.label}>
+              <p className="text-sm font-semibold">{group.label}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {available.map((key) => (
+                  <button
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors hover:border-primary hover:text-primary",
+                      entity === key
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground",
+                    )}
+                    key={key}
+                    onClick={() => setEntity(key)}
+                  >
+                    {locale === "ar"
+                      ? (entityLabelsArabic[key] ?? key)
+                      : (entityLabels[key] ?? entities.find((item) => item.key === key)?.label ?? key)}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
       <Card className="overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-border p-5 lg:flex-row lg:items-end">
-          <label className="flex-1 text-sm font-semibold">
-            {t("databaseEntity")}
-            <select
-              className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
-              value={entity}
-              onChange={(event) => setEntity(event.target.value)}
-            >
-              {entities.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {locale === "ar"
-                    ? (entityLabelsArabic[item.key] ?? item.label)
-                    : (entityLabels[item.key] ?? item.label)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex-1 text-sm font-semibold">
-            {t("filterRecords")}
-            <input
-              className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={t("searchValues")}
-            />
-          </label>
+        <div className="border-b border-border p-5">
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+            Data explorer
+          </p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto] lg:items-end">
+            <label className="text-sm font-semibold">
+              {t("databaseEntity")}
+              <select
+                className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                value={entity}
+                onChange={(event) => setEntity(event.target.value)}
+              >
+                {entities.map((item) => (
+                  <option key={item.key} value={item.key}>
+                    {locale === "ar"
+                      ? (entityLabelsArabic[item.key] ?? item.label)
+                      : (entityLabels[item.key] ?? item.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold">
+              Company context
+              <select
+                className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                value={companyFilter}
+                onChange={(event) => setCompanyFilter(event.target.value)}
+              >
+                <option value="">All companies</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold">
+              {t("filterRecords")}
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-3 text-muted-foreground rtl:left-auto rtl:right-3" size={16} />
+                <input
+                  className="h-11 w-full rounded-lg border border-input bg-background px-9 font-normal"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void load();
+                  }}
+                  placeholder={t("searchValues")}
+                />
+              </div>
+            </label>
           <Button
             variant="outline"
             onClick={() => void load()}
-            disabled={pending !== ""}
+            disabled={pending !== "" || loading}
           >
             {t("refresh")}
           </Button>
@@ -12351,32 +12383,16 @@ function DatabaseAdministration() {
             <Download size={14} />
             {pending === "export" ? "…" : t("exportExcel")}
           </Button>
+          </div>
         </div>
         {error && (
           <div className="m-5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-destructive/5 p-4 text-sm">
-          <span className="font-semibold text-destructive">
-            {t("emergencyDestructiveOperations")}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="danger"
-              disabled={pending !== "" || selected.length === 0}
-              onClick={() => void remove(selected)}
-            >
-              {t("deleteSelected")}
-            </Button>
-            <Button
-              variant="danger"
-              disabled={pending !== "" || !data}
-              onClick={() => void clear()}
-            >
-              {pending === "clear" ? "…" : t("clearEntityData")}
-            </Button>
-          </div>
+        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground">
+          <Eye size={14} />
+          Inspection only — no records are edited or deleted from this view.
         </div>
         {loading ? (
           <div className="p-5">
@@ -12390,69 +12406,37 @@ function DatabaseAdministration() {
             <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
               <thead className="bg-muted/60">
                 <tr>
-                  <th className="p-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.length === data.rows.length}
-                      onChange={(event) =>
-                        setSelected(
-                          event.target.checked
-                            ? data.rows.map((row) => String(row.id))
-                            : [],
-                        )
-                      }
-                    />
-                  </th>
                   {data.columns.map((column) => (
                     <th className="p-3 font-semibold" key={column}>
-                      {column}
+                      {column.replaceAll("_", " ")}
                     </th>
                   ))}
-                  <th className="p-3">{t("actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {data.rows.map((row) => (
                   <tr key={String(row.id)}>
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(String(row.id))}
-                        onChange={(event) =>
-                          setSelected((current) =>
-                            event.target.checked
-                              ? [...current, String(row.id)]
-                              : current.filter((id) => id !== String(row.id)),
-                          )
-                        }
-                      />
-                    </td>
                     {data.columns.map((column) => (
                       <td
                         className="max-w-[240px] truncate p-3 align-top"
                         key={column}
                       >
-                        {typeof row[column] === "object"
+                        {column === "company_name" && row.company_id ? (
+                          <button
+                            className="font-semibold text-primary hover:underline"
+                            onClick={() =>
+                              setLocation(
+                                `/platform/companies/${encodeURIComponent(String(row.company_id))}`,
+                              )
+                            }
+                          >
+                            {String(row[column] ?? "Unknown company")}
+                          </button>
+                        ) : typeof row[column] === "object"
                           ? JSON.stringify(row[column])
                           : String(row[column] ?? "—")}
                       </td>
                     ))}
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setEditing({ ...row })}
-                        >
-                          {t("edit")}
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => void remove([String(row.id)])}
-                        >
-                          <X size={14} />
-                        </Button>
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -12465,32 +12449,6 @@ function DatabaseAdministration() {
           />
         )}
       </Card>
-      {editing && data && (
-        <Modal
-          title={t("editRecord")}
-          onClose={() => setEditing(null)}
-          className="max-w-2xl"
-        >
-          <div className="space-y-3">
-            {data.editable.map((key) => (
-              <Field
-                key={key}
-                label={key}
-                value={String(editing[key] ?? "")}
-                onChange={(value) => setEditing({ ...editing, [key]: value })}
-              />
-            ))}
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => setEditing(null)}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={() => void save()} disabled={pending !== ""}>
-              {pending === "save" ? "…" : t("saveChanges")}
-            </Button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

@@ -17,6 +17,7 @@ type EntityConfig = {
   editable: string[];
   hasUpdatedAt?: boolean;
   companyColumn?: string;
+  orderColumn?: string;
 };
 
 const entities: Record<string, EntityConfig> = {
@@ -163,7 +164,7 @@ const entities: Record<string, EntityConfig> = {
   holidays: {
     table: "var_hr_holidays",
     label: "Holidays",
-    columns: ["id", "company_id", "name", "date", "created_at", "updated_at"],
+    columns: ["id", "company_id", "name", "date", "recurring", "created_at"],
     editable: ["name", "date"],
     hasUpdatedAt: true,
     companyColumn: "company_id",
@@ -237,7 +238,34 @@ const entities: Record<string, EntityConfig> = {
   attendance_rules: {
     table: "var_hr_attendance_rules",
     label: "Attendance rules",
-    columns: ["id", "company_id", "active", "created_at", "updated_at"],
+    columns: [
+      "id",
+      "company_id",
+      "schedule_name",
+      "work_start",
+      "work_end",
+      "required_hours",
+      "grace_minutes",
+      "overtime_eligible",
+      "version",
+      "effective_from",
+      "updated_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  attendance_rule_versions: {
+    table: "var_hr_attendance_rule_versions",
+    label: "Attendance rule versions",
+    columns: [
+      "id",
+      "company_id",
+      "version",
+      "effective_from",
+      "effective_to",
+      "status",
+      "created_at",
+    ],
     editable: [],
     companyColumn: "company_id",
   },
@@ -254,6 +282,7 @@ const entities: Record<string, EntityConfig> = {
     ],
     editable: [],
     companyColumn: "company_id",
+    orderColumn: "calculated_at",
   },
   leave_requests: {
     table: "var_hr_leave_requests",
@@ -262,7 +291,7 @@ const entities: Record<string, EntityConfig> = {
       "id",
       "company_id",
       "employee_id",
-      "leave_type",
+      "type",
       "from",
       "to",
       "status",
@@ -287,6 +316,12 @@ const entities: Record<string, EntityConfig> = {
     editable: [],
     companyColumn: "company_id",
   },
+  permissions: {
+    table: "var_hr_permissions",
+    label: "Permissions",
+    columns: ["key", "label", "description", "created_at"],
+    editable: [],
+  },
   payroll_calculations: {
     table: "var_hr_payroll_calculations",
     label: "Payroll calculations",
@@ -300,6 +335,7 @@ const entities: Record<string, EntityConfig> = {
     ],
     editable: [],
     companyColumn: "company_id",
+    orderColumn: "calculated_at",
   },
   subscriptions: {
     table: "var_hr_subscriptions",
@@ -315,6 +351,7 @@ const entities: Record<string, EntityConfig> = {
     ],
     editable: [],
     companyColumn: "company_id",
+    orderColumn: "started_at",
   },
   audit_logs: {
     table: "var_hr_audit_logs",
@@ -350,15 +387,6 @@ const entities: Record<string, EntityConfig> = {
 };
 
 const idSchema = z.string().uuid();
-const mutationSchema = z.object({ values: z.record(z.string(), z.unknown()) });
-const deleteSchema = z.object({
-  ids: z.array(idSchema).min(1).max(500),
-  confirmation: z.string().optional(),
-});
-const clearSchema = z.object({
-  confirmation: z.string().min(1),
-  search: z.string().trim().max(120).optional(),
-});
 const selfAccountSchema = z.object({
   fullName: z.string().trim().min(1).max(160).optional(),
   username: z
@@ -558,7 +586,7 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   ];
   const where = predicates.length ? ` WHERE ${predicates.join(" AND ")}` : "";
   const query = sql.raw(
-    `SELECT ${columns} FROM ${config.table}${where} ORDER BY created_at DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
+    `SELECT ${columns} FROM ${config.table}${where} ORDER BY ${config.orderColumn ?? "created_at"} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
   );
   const result = await db.execute(query);
   const companies = await db
@@ -598,9 +626,19 @@ router.get(
   async (req, res): Promise<void> => {
     const config = configFor(req.params.entity);
     await requirePlatformOwner(req);
+    const companyId =
+      typeof req.query.companyId === "string" ? req.query.companyId.trim() : "";
+    if (companyId && !idSchema.safeParse(companyId).success) {
+      res.status(400).json({ error: "A valid company filter is required." });
+      return;
+    }
+    const where =
+      companyId && config.companyColumn
+        ? ` WHERE ${config.companyColumn} = ${JSON.stringify(companyId)}`
+        : "";
     const result = await db.execute(
       sql.raw(
-        `SELECT ${config.columns.join(", ")} FROM ${config.table} ORDER BY created_at DESC NULLS LAST LIMIT 5000`,
+        `SELECT ${config.columns.join(", ")} FROM ${config.table}${where} ORDER BY ${config.orderColumn ?? "created_at"} DESC NULLS LAST LIMIT 5000`,
       ),
     );
     const rows = (result.rows as Record<string, unknown>[]).map(safeRow);
@@ -614,6 +652,7 @@ router.get(
     await audit(req, "database_export", req.params.entity, null, {
       count: rows.length,
       format: "xlsx",
+      companyId: companyId || undefined,
     });
     res.setHeader(
       "Content-Type",
@@ -624,96 +663,6 @@ router.get(
       `attachment; filename="${req.params.entity}.xlsx"`,
     );
     res.send(workbook);
-  },
-);
-
-router.patch(
-  "/platform/database/:entity/:id",
-  async (req, res): Promise<void> => {
-    const config = configFor(req.params.entity);
-    await requirePlatformOwner(req);
-    const parsed = mutationSchema.safeParse(req.body);
-    if (!parsed.success || !idSchema.safeParse(req.params.id).success) {
-      res.status(400).json({ error: "Invalid record update." });
-      return;
-    }
-    const keys = Object.keys(parsed.data.values);
-    if (!keys.length || keys.some((key) => !config.editable.includes(key))) {
-      res.status(400).json({ error: "One or more fields are not editable." });
-      return;
-    }
-    const setParts = keys.map(
-      (key) => sql`${sql.raw(key)} = ${parsed.data.values[key]}`,
-    );
-    if (config.hasUpdatedAt) setParts.push(sql`updated_at = now()`);
-    const result = await db.execute(
-      sql`UPDATE ${sql.raw(config.table)} SET ${sql.join(setParts, sql`, `)} WHERE id = ${req.params.id} RETURNING ${sql.raw(config.columns.join(", "))}`,
-    );
-    const row = safeRow((result.rows[0] ?? {}) as Record<string, unknown>);
-    await audit(req, "database_edit", req.params.entity, req.params.id, {
-      fields: keys,
-    });
-    res.json({ row });
-  },
-);
-
-router.delete("/platform/database/:entity", async (req, res): Promise<void> => {
-  const config = configFor(req.params.entity);
-  await requirePlatformOwner(req);
-  const parsed = deleteSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Select at least one valid record." });
-    return;
-  }
-  if (
-    parsed.data.ids.length > 1 &&
-    parsed.data.confirmation !== "DELETE SELECTED"
-  ) {
-    res
-      .status(400)
-      .json({ error: "Type DELETE SELECTED to delete multiple records." });
-    return;
-  }
-  const result = await db.execute(
-    sql`DELETE FROM ${sql.raw(config.table)} WHERE id IN (${sql.join(
-      parsed.data.ids.map((id) => sql`${id}`),
-      sql`, `,
-    )}) RETURNING id`,
-  );
-  await audit(req, "database_delete", req.params.entity, null, {
-    ids: parsed.data.ids,
-    affected: result.rows.length,
-  });
-  res.json({ affected: result.rows.length });
-});
-
-router.post(
-  "/platform/database/:entity/clear",
-  async (req, res): Promise<void> => {
-    const config = configFor(req.params.entity);
-    await requirePlatformOwner(req);
-    const parsed = clearSchema.safeParse(req.body);
-    if (
-      !parsed.success ||
-      parsed.data.confirmation !== `CLEAR ${req.params.entity.toUpperCase()}`
-    ) {
-      res.status(400).json({
-        error: `Type CLEAR ${req.params.entity.toUpperCase()} to clear this entity.`,
-      });
-      return;
-    }
-    const search = parsed.data.search?.trim();
-    const query = search
-      ? sql.raw(
-          `DELETE FROM ${config.table} WHERE to_jsonb(${config.table})::text ILIKE '%' || ${JSON.stringify(`%${search}%`)} RETURNING id`,
-        )
-      : sql.raw(`DELETE FROM ${config.table} RETURNING id`);
-    const result = await db.execute(query);
-    await audit(req, "database_clear", req.params.entity, null, {
-      affected: result.rows.length,
-      filtered: Boolean(search),
-    });
-    res.json({ affected: result.rows.length });
   },
 );
 
