@@ -12137,6 +12137,39 @@ type AdminHistoryEntry = {
   metadata?: Record<string, unknown>;
   createdAt: string;
 };
+const supportedDatabaseActions = new Set(["employees", "departments", "branches"]);
+const sensitiveDatabaseFields = new Set([
+  "password",
+  "password_hash",
+  "token",
+  "secret",
+  "credential",
+  "credentials",
+  "salary",
+  "bank_account",
+  "national_id",
+  "ssn",
+]);
+const isSensitiveDatabaseField = (key: string) =>
+  sensitiveDatabaseFields.has(key.toLowerCase()) ||
+  /(password|token|secret|credential|salary|national.?id|ssn)/i.test(key);
+const safeDatabaseColumns = (columns: string[]) =>
+  columns.filter((column) => !isSensitiveDatabaseField(column));
+const safeHistoryDisplayValue = (
+  value: Record<string, unknown> | null | undefined,
+): Record<string, unknown> =>
+  value
+    ? Object.fromEntries(
+        Object.entries(value)
+          .filter(([key]) => !isSensitiveDatabaseField(key))
+          .map(([key, entry]) => [
+            key,
+            entry && typeof entry === "object" && !Array.isArray(entry)
+              ? safeHistoryDisplayValue(entry as Record<string, unknown>)
+              : entry,
+          ]),
+      )
+    : {};
 const entityLabels: Record<string, string> = {
   companies: "Companies",
   departments: "Departments",
@@ -12215,6 +12248,7 @@ function DatabaseAdministration() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
+  const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
   const [, setLocation] = useLocation();
@@ -12338,6 +12372,10 @@ function DatabaseAdministration() {
       setPending("");
     }
   };
+  const visibleColumns = data ? safeDatabaseColumns(data.columns) : [];
+  const supportsDatabaseActions = data
+    ? supportedDatabaseActions.has(data.key)
+    : false;
   return (
     <div className="animate-in">
       <SectionTitle
@@ -12480,12 +12518,12 @@ function DatabaseAdministration() {
             <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
               <thead className="bg-muted/60">
                 <tr>
-                  {data.columns.map((column) => (
+                   {visibleColumns.map((column) => (
                     <th className="p-3 font-semibold" key={column}>
                       {column.replaceAll("_", " ")}
                     </th>
                   ))}
-                  {(data.supportEditable?.length || data.canArchive) && (
+                   {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
                     <th className="p-3 font-semibold">{t("actions")}</th>
                   )}
                 </tr>
@@ -12493,7 +12531,7 @@ function DatabaseAdministration() {
               <tbody className="divide-y divide-border">
                 {data.rows.map((row) => (
                   <tr key={String(row.id)}>
-                    {data.columns.map((column) => (
+                     {visibleColumns.map((column) => (
                       <td
                         className="max-w-[240px] truncate p-3 align-top"
                         key={column}
@@ -12514,12 +12552,19 @@ function DatabaseAdministration() {
                           : String(row[column] ?? "—")}
                       </td>
                     ))}
-                    {(data.supportEditable?.length || data.canArchive) && (
+                     {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" onClick={() => void openHistory(row)}>
-                            History
-                          </Button>
+                           {supportsDatabaseActions ? (
+                             <>
+                               <Button variant="outline" onClick={() => setDetails(row)}>
+                                 View Details
+                               </Button>
+                               <Button variant="outline" onClick={() => void openHistory(row)}>
+                                 History
+                               </Button>
+                             </>
+                           ) : null}
                           {data.supportEditable?.length ? (
                             <Button variant="outline" onClick={() => openEdit(row)}>
                               {t("edit")}
@@ -12580,6 +12625,33 @@ function DatabaseAdministration() {
           </div>
         </Modal>
       )}
+      {details && data && (
+        <Modal
+          title={`Record details · ${data.label}`}
+          onClose={() => setDetails(null)}
+          className="max-w-2xl"
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            {visibleColumns.map((key) => (
+              <div className="rounded-lg border border-border p-3" key={key}>
+                <p className="text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
+                  {key.replaceAll("_", " ")}
+                </p>
+                <p className="mt-1 break-words text-sm">
+                  {details[key] && typeof details[key] === "object"
+                    ? JSON.stringify(details[key])
+                    : String(details[key] ?? "—")}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button variant="quiet" onClick={() => setDetails(null)}>
+              Close
+            </Button>
+          </div>
+        </Modal>
+      )}
       {history && (
         <Modal title={historyTitle} onClose={() => setHistory(null)} className="max-w-3xl">
           <div className="space-y-4">
@@ -12596,8 +12668,14 @@ function DatabaseAdministration() {
                 </div>
                 {(entry.before || entry.after) && (
                   <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
-                    <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(entry.before ?? {}, null, 2)}</pre>
-                    <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(entry.after ?? {}, null, 2)}</pre>
+                     <div>
+                       <p className="mb-1 font-semibold text-muted-foreground">Before value</p>
+                       <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(safeHistoryDisplayValue(entry.before), null, 2)}</pre>
+                     </div>
+                     <div>
+                       <p className="mb-1 font-semibold text-muted-foreground">After value</p>
+                       <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(safeHistoryDisplayValue(entry.after), null, 2)}</pre>
+                     </div>
                   </div>
                 )}
                 {entry.metadata && (
