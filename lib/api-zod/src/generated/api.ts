@@ -427,7 +427,23 @@ export const GetDashboardSummaryResponse = zod.object({
 export const ListDepartmentsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "employeeCount": zod.int()
+  "nameAr": zod.string(),
+  "description": zod.string().nullish(),
+  "active": zod.boolean(),
+  "manager": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),zod.null()]).optional(),
+  "defaultScheduleId": zod.string().nullish(),
+  "employeeCount": zod.int(),
+  "employees": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}))
 })
 export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
 
@@ -438,14 +454,116 @@ export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
 
 
 
+
 export const CreateDepartmentBody = zod.object({
-  "name": zod.string().min(1)
+  "name": zod.string().min(1),
+  "nameAr": zod.string().min(1),
+  "description": zod.string().nullish(),
+  "managerId": zod.string().nullish(),
+  "defaultScheduleId": zod.string().nullish()
 })
 
 export const CreateDepartmentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "employeeCount": zod.int()
+  "nameAr": zod.string(),
+  "description": zod.string().nullish(),
+  "active": zod.boolean(),
+  "manager": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),zod.null()]).optional(),
+  "defaultScheduleId": zod.string().nullish(),
+  "employeeCount": zod.int(),
+  "employees": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}))
+})
+
+
+/**
+ * @summary Get a department and its employees
+ */
+export const GetDepartmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const GetDepartmentQueryParams = zod.object({
+  "departmentId": zod.coerce.string().optional()
+})
+
+export const GetDepartmentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "nameAr": zod.string(),
+  "description": zod.string().nullish(),
+  "active": zod.boolean(),
+  "manager": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),zod.null()]).optional(),
+  "defaultScheduleId": zod.string().nullish(),
+  "employeeCount": zod.int(),
+  "employees": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}))
+})
+
+
+/**
+ * @summary Update a department
+ */
+export const UpdateDepartmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const UpdateDepartmentQueryParams = zod.object({
+  "departmentId": zod.coerce.string().optional()
+})
+
+
+
+
+
+export const UpdateDepartmentBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "nameAr": zod.string().min(1).optional(),
+  "description": zod.string().nullish(),
+  "managerId": zod.string().nullish(),
+  "defaultScheduleId": zod.string().nullish(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdateDepartmentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "nameAr": zod.string(),
+  "description": zod.string().nullish(),
+  "active": zod.boolean(),
+  "manager": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),zod.null()]).optional(),
+  "defaultScheduleId": zod.string().nullish(),
+  "employeeCount": zod.int(),
+  "employees": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}))
 })
 
 
@@ -506,11 +624,13 @@ export const ListEmployeesResponseItem = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
-  "department": zod.object({
+  "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
+  "active": zod.boolean(),
   "employeeCount": zod.int()
-}),
+}),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -542,7 +662,7 @@ export const CreateEmployeeBody = zod.object({
   "lastName": zod.string().min(1),
   "email": zod.email(),
   "phone": zod.string().optional(),
-  "departmentId": zod.string(),
+  "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number().min(createEmployeeBodySalaryMin),
@@ -556,11 +676,13 @@ export const CreateEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
-  "department": zod.object({
+  "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
+  "active": zod.boolean(),
   "employeeCount": zod.int()
-}),
+}),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -591,11 +713,13 @@ export const GetEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
-  "department": zod.object({
+  "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
+  "active": zod.boolean(),
   "employeeCount": zod.int()
-}),
+}),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -629,7 +753,7 @@ export const UpdateEmployeeBody = zod.object({
   "firstName": zod.string().min(1).optional(),
   "lastName": zod.string().min(1).optional(),
   "phone": zod.string().optional(),
-  "departmentId": zod.string().optional(),
+  "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
   "salary": zod.number().min(updateEmployeeBodySalaryMin).optional(),
   "status": zod.enum(['active', 'inactive']).optional(),
@@ -643,11 +767,13 @@ export const UpdateEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
-  "department": zod.object({
+  "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameAr": zod.string(),
+  "active": zod.boolean(),
   "employeeCount": zod.int()
-}),
+}),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),

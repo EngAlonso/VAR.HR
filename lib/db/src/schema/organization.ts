@@ -26,6 +26,11 @@ export const departmentsTable = pgTable("var_hr_departments", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
   name: text("name").notNull(),
+  nameAr: text("name_ar").notNull().default(""),
+  description: text("description"),
+  managerId: uuid("manager_id"),
+  defaultScheduleId: uuid("default_schedule_id"),
+  active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -49,7 +54,7 @@ export const employeesTable = pgTable("var_hr_employees", {
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
-  departmentId: uuid("department_id").notNull().references(() => departmentsTable.id),
+  departmentId: uuid("department_id").references(() => departmentsTable.id),
   branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
   status: text("status").notNull().default("active"),
   role: text("role").notNull().default("employee"),

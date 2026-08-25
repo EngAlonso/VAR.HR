@@ -355,15 +355,60 @@ export interface DashboardSummary {
   alerts: Alert[];
 }
 
+export interface EmployeeReference {
+  id: string;
+  name: string;
+  initials: string;
+  department: string;
+}
+
 export interface Department {
   id: string;
   name: string;
+  nameAr: string;
+  /** @nullable */
+  description?: string | null;
+  active: boolean;
+  manager?: EmployeeReference | null;
+  /** @nullable */
+  defaultScheduleId?: string | null;
+  employeeCount: number;
+  employees: EmployeeReference[];
+}
+
+export interface DepartmentSummary {
+  id: string;
+  name: string;
+  nameAr: string;
+  active: boolean;
   employeeCount: number;
 }
 
 export interface DepartmentInput {
   /** @minLength 1 */
   name: string;
+  /** @minLength 1 */
+  nameAr: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  managerId?: string | null;
+  /** @nullable */
+  defaultScheduleId?: string | null;
+}
+
+export interface DepartmentUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  nameAr?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  managerId?: string | null;
+  /** @nullable */
+  defaultScheduleId?: string | null;
+  active?: boolean;
 }
 
 export interface Branch {
@@ -427,7 +472,7 @@ export interface Employee {
   email: string;
   /** @nullable */
   phone?: string | null;
-  department: Department;
+  department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;
   role: EmployeeRole;
@@ -453,7 +498,8 @@ export interface EmployeeInput {
   lastName: string;
   email: string;
   phone?: string;
-  departmentId: string;
+  /** @nullable */
+  departmentId?: string | null;
   branchId: string;
   joinedOn: string;
   /** @minimum 0 */
@@ -484,7 +530,8 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   lastName?: string;
   phone?: string;
-  departmentId?: string;
+  /** @nullable */
+  departmentId?: string | null;
   branchId?: string;
   /** @minimum 0 */
   salary?: number;
@@ -534,13 +581,6 @@ export interface AttendanceCorrectionInput {
   status?: AttendanceCorrectionInputStatus;
   /** @minLength 1 */
   reason: string;
-}
-
-export interface EmployeeReference {
-  id: string;
-  name: string;
-  initials: string;
-  department: string;
 }
 
 export type AttendanceRecordStatus = typeof AttendanceRecordStatus[keyof typeof AttendanceRecordStatus];
@@ -2192,6 +2232,14 @@ export type UpdateAuthAccount200 = {
 
 export type SetAuthAccountPassword200 = {
   account: AuthAccount;
+};
+
+export type GetDepartmentParams = {
+departmentId?: DepartmentIdParameter;
+};
+
+export type UpdateDepartmentParams = {
+departmentId?: DepartmentIdParameter;
 };
 
 export type ListEmployeesParams = {

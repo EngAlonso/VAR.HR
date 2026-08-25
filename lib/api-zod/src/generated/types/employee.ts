@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Branch } from './branch';
-import type { Department } from './department';
+import type { DepartmentSummary } from './departmentSummary';
 import type { EmployeeAutomaticOvertime } from './employeeAutomaticOvertime';
 import type { EmployeeRole } from './employeeRole';
 import type { EmployeeStatus } from './employeeStatus';
@@ -19,7 +19,7 @@ export interface Employee {
   email: string;
   /** @nullable */
   phone?: string | null;
-  department: Department;
+  department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;
   role: EmployeeRole;

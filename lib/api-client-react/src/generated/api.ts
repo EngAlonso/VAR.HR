@@ -53,6 +53,7 @@ import type {
   DashboardSummary,
   Department,
   DepartmentInput,
+  DepartmentUpdate,
   DeviceConnectionTest,
   DeviceEmployeeMapping,
   DeviceEmployeeMappingInput,
@@ -69,6 +70,7 @@ import type {
   EmployeeScheduleInput,
   EmployeeUpdate,
   GetAttendanceReportParams,
+  GetDepartmentParams,
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
   GetReportParams,
@@ -112,6 +114,7 @@ import type {
   SubscriptionStatus,
   TemporaryPassword,
   UpdateAuthAccount200,
+  UpdateDepartmentParams,
   UpdatePlatformCompanyOwners200,
   WorkSchedule,
   WorkScheduleInput,
@@ -1479,6 +1482,176 @@ export const useCreateDepartment = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateDepartmentMutationOptions(options));
+    }
+
+export const getGetDepartmentUrl = (departmentId: string,
+    params?: GetDepartmentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/departments/${departmentId}?${stringifiedParams}` : `/api/departments/${departmentId}`
+}
+
+/**
+ * @summary Get a department and its employees
+ */
+export const getDepartment = async (departmentId: string,
+    params?: GetDepartmentParams, options?: Parameters<typeof customFetch>[1]): Promise<Department> => {
+
+  return customFetch<Department>(getGetDepartmentUrl(departmentId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDepartmentQueryKey = (departmentId: string,
+    params?: GetDepartmentParams,) => {
+    return [
+    `/api/departments/${departmentId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDepartmentQueryOptions = <TData = Awaited<ReturnType<typeof getDepartment>>, TError = ErrorType<unknown>>(departmentId: string,
+    params?: GetDepartmentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDepartment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDepartmentQueryKey(departmentId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDepartment>>> = ({ signal }) => getDepartment(departmentId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: departmentId !== null && departmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDepartment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDepartmentQueryResult = NonNullable<Awaited<ReturnType<typeof getDepartment>>>
+export type GetDepartmentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a department and its employees
+ */
+
+export function useGetDepartment<TData = Awaited<ReturnType<typeof getDepartment>>, TError = ErrorType<unknown>>(
+ departmentId: string,
+    params?: GetDepartmentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDepartment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDepartmentQueryOptions(departmentId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateDepartmentUrl = (departmentId: string,
+    params?: UpdateDepartmentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/departments/${departmentId}?${stringifiedParams}` : `/api/departments/${departmentId}`
+}
+
+/**
+ * @summary Update a department
+ */
+export const updateDepartment = async (departmentId: string,
+    departmentUpdate: DepartmentUpdate,
+    params?: UpdateDepartmentParams, options?: Parameters<typeof customFetch>[1]): Promise<Department> => {
+
+  return customFetch<Department>(getUpdateDepartmentUrl(departmentId,params),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(departmentUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateDepartmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>;params?: UpdateDepartmentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>;params?: UpdateDepartmentParams}, TContext> => {
+
+const mutationKey = ['updateDepartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDepartment>>, {departmentId: string;data: BodyType<DepartmentUpdate>;params?: UpdateDepartmentParams}> = (props) => {
+          const {departmentId,data,params} = props ?? {};
+
+          return  updateDepartment(departmentId,data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDepartmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateDepartment>>>
+    export type UpdateDepartmentMutationBody = BodyType<DepartmentUpdate>
+    export type UpdateDepartmentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a department
+ */
+export const useUpdateDepartment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>;params?: UpdateDepartmentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDepartment>>,
+        TError,
+        {departmentId: string;data: BodyType<DepartmentUpdate>;params?: UpdateDepartmentParams},
+        TContext
+      > => {
+      return useMutation(getUpdateDepartmentMutationOptions(options));
     }
 
 export const getListBranchesUrl = () => {

@@ -6,15 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface DepartmentInput {
+export interface DepartmentUpdate {
   /** @minLength 1 */
-  name: string;
+  name?: string;
   /** @minLength 1 */
-  nameAr: string;
+  nameAr?: string;
   /** @nullable */
   description?: string | null;
   /** @nullable */
   managerId?: string | null;
   /** @nullable */
   defaultScheduleId?: string | null;
+  active?: boolean;
 }

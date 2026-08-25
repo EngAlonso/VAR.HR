@@ -14,7 +14,8 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   lastName?: string;
   phone?: string;
-  departmentId?: string;
+  /** @nullable */
+  departmentId?: string | null;
   branchId?: string;
   /** @minimum 0 */
   salary?: number;

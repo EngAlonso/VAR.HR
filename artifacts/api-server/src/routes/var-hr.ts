@@ -11,6 +11,7 @@ import {
   lte,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -30,6 +31,8 @@ import {
   CreateBranchResponse,
   CreateDepartmentBody,
   CreateDepartmentResponse,
+  GetDepartmentParams,
+  GetDepartmentResponse,
   CreateDeviceBody,
   CreateDeviceResponse,
   CreateDeviceMappingBody,
@@ -154,6 +157,9 @@ import {
   UpdateEmployeeBody,
   UpdateEmployeeParams,
   UpdateEmployeeResponse,
+  UpdateDepartmentBody,
+  UpdateDepartmentParams,
+  UpdateDepartmentResponse,
   UpdateEmployeeHrRecordBody,
   UpdateEmployeeHrRecordParams,
   UpdateEmployeeHrRecordResponse,
@@ -213,7 +219,6 @@ import {
   type TenantContext,
 } from "../lib/tenant-context";
 import { translateApiMessage } from "../lib/i18n";
-import type { SQL } from "drizzle-orm";
 import {
   ensureEmployeeCapacity,
   allocateDeviceLetter,
@@ -864,7 +869,11 @@ type EffectiveSchedule = {
   breakDurationMinutes: number;
   breakPaid: boolean;
   earlyCheckoutGraceMinutes: number;
-  source: "employee_assignment" | "company_default" | "legacy_rules";
+  source:
+    | "employee_assignment"
+    | "department_default"
+    | "company_default"
+    | "legacy_rules";
 };
 
 type ScheduleAssignmentRow = {
@@ -979,6 +988,59 @@ async function effectiveScheduleFor(
       earlyCheckoutGraceMinutes: assignment.schedule.earlyCheckoutGraceMinutes,
       source: "employee_assignment",
     };
+  }
+  const [employee] = await db
+    .select({ departmentId: employeesTable.departmentId })
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.id, employeeId),
+        eq(employeesTable.companyId, companyId),
+      ),
+    )
+    .limit(1);
+  const [department] = employee?.departmentId
+    ? await db
+        .select({ defaultScheduleId: departmentsTable.defaultScheduleId })
+        .from(departmentsTable)
+        .where(
+          and(
+            eq(departmentsTable.id, employee.departmentId),
+            eq(departmentsTable.companyId, companyId),
+            eq(departmentsTable.active, true),
+          ),
+        )
+        .limit(1)
+    : [];
+  if (department?.defaultScheduleId) {
+    const [schedule] = await db
+      .select()
+      .from(workSchedulesTable)
+      .where(
+        and(
+          eq(workSchedulesTable.id, department.defaultScheduleId),
+          eq(workSchedulesTable.companyId, companyId),
+          eq(workSchedulesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (schedule) {
+      return {
+        name: schedule.name,
+        workingDays: schedule.workingDays,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        requiredHours: schedule.requiredHours,
+        graceMinutes: schedule.graceMinutes,
+        overtimeAfterMinutes: schedule.overtimeAfterMinutes,
+        overtimeEligible: schedule.overtimeEligible,
+        overnight: schedule.overnight,
+        breakDurationMinutes: schedule.breakDurationMinutes,
+        breakPaid: schedule.breakPaid,
+        earlyCheckoutGraceMinutes: schedule.earlyCheckoutGraceMinutes,
+        source: "department_default",
+      };
+    }
   }
   const [company] = await db
     .select({ defaultScheduleId: companiesTable.defaultScheduleId })
@@ -1775,7 +1837,7 @@ async function employeeRows(context: TenantContext) {
       branch: branchesTable,
     })
     .from(employeesTable)
-    .innerJoin(
+    .leftJoin(
       departmentsTable,
       eq(employeesTable.departmentId, departmentsTable.id),
     )
@@ -1799,11 +1861,15 @@ function employeeResponse(
     lastName: row.employee.lastName,
     email: row.employee.email,
     phone: row.employee.phone,
-    department: {
-      id: row.department.id,
-      name: row.department.name,
-      employeeCount: 0,
-    },
+    department: row.department
+      ? {
+          id: row.department.id,
+          name: row.department.name,
+          nameAr: row.department.nameAr,
+          active: row.department.active,
+          employeeCount: 0,
+        }
+      : null,
     branch: {
       id: row.branch.id,
       name: row.branch.name,
@@ -1832,6 +1898,99 @@ function employeeReference(
     name: `${employee.firstName} ${employee.lastName}`,
     initials: initials(employee.firstName, employee.lastName),
     department: departmentName,
+  };
+}
+
+async function validateDepartmentReferences(
+  companyId: string,
+  managerId: string | null | undefined,
+  defaultScheduleId: string | null | undefined,
+) {
+  const [manager, schedule] = await Promise.all([
+    managerId
+      ? db
+          .select({ id: employeesTable.id })
+          .from(employeesTable)
+          .where(
+            and(
+              eq(employeesTable.id, managerId),
+              eq(employeesTable.companyId, companyId),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([{ id: null }]),
+    defaultScheduleId
+      ? db
+          .select({ id: workSchedulesTable.id })
+          .from(workSchedulesTable)
+          .where(
+            and(
+              eq(workSchedulesTable.id, defaultScheduleId),
+              eq(workSchedulesTable.companyId, companyId),
+              eq(workSchedulesTable.active, true),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([{ id: null }]),
+  ]);
+  return (!managerId || manager.length > 0) &&
+    (!defaultScheduleId || schedule.length > 0);
+}
+
+async function departmentResponse(
+  context: TenantContext,
+  departmentId: string,
+) {
+  const [department] = await db
+    .select()
+    .from(departmentsTable)
+    .where(
+      and(
+        eq(departmentsTable.id, departmentId),
+        eq(departmentsTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!department) return null;
+  const members = await db
+    .select()
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.companyId, context.companyId),
+        eq(employeesTable.departmentId, department.id),
+        employeeScopeCondition(context),
+      ),
+    )
+    .orderBy(asc(employeesTable.firstName));
+  const manager = department.managerId
+    ? (
+        await db
+          .select()
+          .from(employeesTable)
+          .where(
+            and(
+              eq(employeesTable.id, department.managerId),
+              eq(employeesTable.companyId, context.companyId),
+            ),
+          )
+          .limit(1)
+      )[0]
+    : null;
+  return {
+    id: department.id,
+    name: department.name,
+    nameAr: department.nameAr,
+    description: department.description,
+    active: department.active,
+    manager: manager
+      ? employeeReference(manager, department.name)
+      : null,
+    defaultScheduleId: department.defaultScheduleId,
+    employeeCount: members.length,
+    employees: members.map((employee) =>
+      employeeReference(employee, department.name),
+    ),
   };
 }
 
@@ -2142,7 +2301,11 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       activeManagers: employees.filter(
         (item) => item.status === "active" && item.role === "manager",
       ).length,
-      departments: new Set(employees.map((item) => item.department.id)).size,
+      departments: new Set(
+        employees
+          .map((item) => item.department?.id)
+          .filter((id): id is string => Boolean(id)),
+      ).size,
       branches: new Set(employees.map((item) => item.branch.id)).size,
     },
     attendance: {
@@ -2227,22 +2390,15 @@ router.get("/departments", async (req, res): Promise<void> => {
       ),
     )
     .orderBy(asc(departmentsTable.name));
-  const employees = await db
-    .select({ departmentId: employeesTable.departmentId })
-    .from(employeesTable)
-    .where(
-      and(
-        eq(employeesTable.companyId, context.companyId),
-        employeeScopeCondition(context),
+  const response = (
+    await Promise.all(
+      departments.map((department) =>
+        departmentResponse(context, department.id),
       ),
-    );
-  const response = departments.map((department) => ({
-    id: department.id,
-    name: department.name,
-    employeeCount: employees.filter(
-      (employee) => employee.departmentId === department.id,
-    ).length,
-  }));
+    )
+  ).filter((department): department is NonNullable<typeof department> =>
+    Boolean(department),
+  );
   res.json(ListDepartmentsResponse.parse(response));
 });
 
@@ -2259,9 +2415,25 @@ router.post("/departments", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  const referencesValid = await validateDepartmentReferences(
+    context.companyId,
+    parsed.data.managerId,
+    parsed.data.defaultScheduleId,
+  );
+  if (!referencesValid) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const [department] = await db
     .insert(departmentsTable)
-    .values({ companyId: context.companyId, name: parsed.data.name })
+    .values({
+      companyId: context.companyId,
+      name: parsed.data.name,
+      nameAr: parsed.data.nameAr,
+      description: parsed.data.description ?? null,
+      managerId: parsed.data.managerId ?? null,
+      defaultScheduleId: parsed.data.defaultScheduleId ?? null,
+    })
     .returning();
   await recordAudit(
     context.companyId,
@@ -2270,13 +2442,89 @@ router.post("/departments", async (req, res): Promise<void> => {
     department.id,
     department,
   );
-  res.status(201).json(
-    CreateDepartmentResponse.parse({
-      id: department.id,
-      name: department.name,
-      employeeCount: 0,
-    }),
+  const response = await departmentResponse(context, department.id);
+  res.status(201).json(CreateDepartmentResponse.parse(response));
+});
+
+router.get("/departments/:departmentId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  const params = GetDepartmentParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  if (
+    (context.role === "employee" || context.role === "manager") &&
+    params.data.departmentId !== context.departmentId
+  ) {
+    res.status(403).json({ error: message(req, "workspaceAccessDenied") });
+    return;
+  }
+  const response = await departmentResponse(context, params.data.departmentId);
+  if (!response) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  res.json(GetDepartmentResponse.parse(response));
+});
+
+router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canManageCompany(context)) {
+    res
+      .status(403)
+      .json({ error: message(req, "noPermissionCreateDepartments") });
+    return;
+  }
+  const params = UpdateDepartmentParams.safeParse(req.params);
+  const parsed = UpdateDepartmentBody.safeParse(req.body);
+  if (!params.success || !parsed.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const referencesValid = await validateDepartmentReferences(
+    context.companyId,
+    parsed.data.managerId,
+    parsed.data.defaultScheduleId,
   );
+  if (!referencesValid) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [before] = await db
+    .select()
+    .from(departmentsTable)
+    .where(
+      and(
+        eq(departmentsTable.id, params.data.departmentId),
+        eq(departmentsTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!before) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [department] = await db
+    .update(departmentsTable)
+    .set(parsed.data)
+    .where(
+      and(
+        eq(departmentsTable.id, before.id),
+        eq(departmentsTable.companyId, context.companyId),
+      ),
+    )
+    .returning();
+  await recordAudit(
+    context.companyId,
+    "updated",
+    "department",
+    department.id,
+    department,
+    before,
+  );
+  const response = await departmentResponse(context, department.id);
+  res.json(UpdateDepartmentResponse.parse(response));
 });
 
 router.get("/branches", async (req, res): Promise<void> => {

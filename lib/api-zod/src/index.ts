@@ -1,2 +1,8 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  ApiError,
+  AttendanceReport,
+  DashboardSummary,
+  Department,
+  RequestDecisionInput,
+} from "./generated/types";

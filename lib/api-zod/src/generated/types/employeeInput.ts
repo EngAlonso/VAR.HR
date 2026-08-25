@@ -14,7 +14,8 @@ export interface EmployeeInput {
   lastName: string;
   email: string;
   phone?: string;
-  departmentId: string;
+  /** @nullable */
+  departmentId?: string | null;
   branchId: string;
   joinedOn: string;
   /** @minimum 0 */

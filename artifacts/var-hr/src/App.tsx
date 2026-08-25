@@ -83,6 +83,8 @@ import {
   useGetDashboardSummary,
   useListDepartments,
   useCreateDepartment,
+  useGetDepartment,
+  useUpdateDepartment,
   useListBranches,
   useCreateBranch,
   useListEmployees,
@@ -158,6 +160,7 @@ import {
   getGetWorkspaceQueryKey,
   getGetDashboardSummaryQueryKey,
   getListDepartmentsQueryKey,
+  getGetDepartmentQueryKey,
   getListBranchesQueryKey,
   getListEmployeesQueryKey,
   getGetEmployeeQueryKey,
@@ -337,6 +340,13 @@ const nav: NavItem[] = [
     capability: "employees.view",
   },
   {
+    href: "/departments",
+    key: "departments",
+    icon: Building2,
+    roles: ["company_owner", "manager"],
+    capability: "organization.manage",
+  },
+  {
     href: "/attendance",
     key: "attendance",
     icon: Clock3,
@@ -450,6 +460,7 @@ const copy = {
   en: {
     overview: "Overview",
     employees: "Employees",
+    departments: "Departments",
     attendance: "Attendance",
     requests: "Requests",
     rules: "Attendance Rules",
@@ -665,6 +676,20 @@ const copy = {
     employeeAddedToWorkspace: "Employee added to the workspace",
     couldNotCreateEmployee: "Could not create employee",
     departmentCreated: "Department created",
+    departmentsEyebrow: "Organization",
+    departmentsTitle: "Departments",
+    departmentsDetail:
+      "Create departments, assign managers, and keep employee membership current.",
+    addDepartment: "Add department",
+    englishName: "English name",
+    arabicName: "Arabic name",
+    departmentDescription: "Description",
+    selectManager: "Select manager",
+    noDepartments: "No departments yet",
+    noDepartmentsDetail: "Create the first department for this company.",
+    departmentEmployees: "Department employees",
+    departmentSaved: "Department saved",
+    departmentDeactivated: "Department status updated",
     branchCreated: "Branch created",
     employeeStatusUpdated: "Employee status updated",
     currentEmployeeContext: "Current employee context",
@@ -807,6 +832,7 @@ const copy = {
   ar: {
     overview: "نظرة عامة",
     employees: "الموظفون",
+    departments: "الأقسام",
     attendance: "الحضور",
     requests: "الطلبات",
     rules: "قواعد الحضور",
@@ -930,6 +956,19 @@ const copy = {
     daysRemaining: "الأيام المتبقية",
     department: "القسم",
     departmentCreated: "تم إنشاء القسم",
+    departmentsEyebrow: "الهيكل التنظيمي",
+    departmentsTitle: "الأقسام",
+    departmentsDetail: "أنشئ الأقسام وعيّن المديرين وحافظ على عضوية الموظفين.",
+    addDepartment: "إضافة قسم",
+    englishName: "الاسم بالإنجليزية",
+    arabicName: "الاسم بالعربية",
+    departmentDescription: "الوصف",
+    selectManager: "اختر المدير",
+    noDepartments: "لا توجد أقسام بعد",
+    noDepartmentsDetail: "أنشئ أول قسم لهذه الشركة.",
+    departmentEmployees: "موظفو القسم",
+    departmentSaved: "تم حفظ القسم",
+    departmentDeactivated: "تم تحديث حالة القسم",
     disabled: "معطل",
     email: "البريد الإلكتروني",
     emergencyContactName: "اسم جهة اتصال الطوارئ",
@@ -5993,6 +6032,351 @@ function Profile() {
   );
 }
 
+function Departments() {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const workspace = useGetWorkspace();
+  const canManage = workspace.data?.capabilities?.includes("organization.manage") ?? false;
+  const departments = useListDepartments();
+  const employees = useListEmployees({ status: "active" });
+  const schedules = useListWorkSchedules({ active: true } as any);
+  const create = useCreateDepartment();
+  const update = useUpdateDepartment();
+  const updateEmployee = useUpdateEmployee();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    nameAr: "",
+    description: "",
+    managerId: "",
+    defaultScheduleId: "",
+    active: true,
+  });
+  const detail = useGetDepartment(selected || "", undefined, {
+    query: {
+      enabled: Boolean(selected),
+      queryKey: getGetDepartmentQueryKey(selected || ""),
+    },
+  });
+  function resetForm() {
+    setForm({
+      name: "",
+      nameAr: "",
+      description: "",
+      managerId: "",
+      defaultScheduleId: "",
+      active: true,
+    });
+  }
+  function openCreate() {
+    resetForm();
+    setSelected(null);
+    setShowCreate(true);
+  }
+  function openEdit(item: any) {
+    setSelected(item.id);
+    setForm({
+      name: item.name ?? "",
+      nameAr: item.nameAr ?? "",
+      description: item.description ?? "",
+      managerId: item.manager?.id ?? "",
+      defaultScheduleId: item.defaultScheduleId ?? "",
+      active: item.active !== false,
+    });
+    setShowCreate(true);
+  }
+  function save(event: FormEvent) {
+    event.preventDefault();
+    const data = {
+      name: form.name.trim(),
+      nameAr: form.nameAr.trim(),
+      description: form.description.trim() || null,
+      managerId: form.managerId || null,
+      defaultScheduleId: form.defaultScheduleId || null,
+      ...(selected ? { active: form.active } : {}),
+    };
+    const options = {
+      onSuccess: () => {
+        toast.success(t("departmentSaved"));
+        setShowCreate(false);
+        setSelected(null);
+        qc.invalidateQueries({ queryKey: getListDepartmentsQueryKey() });
+      },
+      onError: () => toast.error(t("couldNotSaveRecord")),
+    };
+    if (selected) {
+      update.mutate({ departmentId: selected, data } as any, options);
+    } else {
+      create.mutate({ data }, options);
+    }
+  }
+  function setMembership(employeeId: string, departmentId: string) {
+    updateEmployee.mutate(
+      { employeeId, data: { departmentId: departmentId || null } } as any,
+      {
+        onSuccess: () => {
+          toast.success(t("departmentSaved"));
+          qc.invalidateQueries({ queryKey: getListDepartmentsQueryKey() });
+          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          if (selected) {
+            qc.invalidateQueries({ queryKey: getGetDepartmentQueryKey(selected) });
+          }
+        },
+        onError: () => toast.error(t("couldNotSaveRecord")),
+      },
+    );
+  }
+  const activeDetail = detail.data as any;
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("departmentsEyebrow")}
+        title={t("departmentsTitle")}
+        detail={t("departmentsDetail")}
+        action={
+          canManage ? (
+            <Button onClick={openCreate}>
+              <Plus size={16} />
+              {t("addDepartment")}
+            </Button>
+          ) : undefined
+        }
+      />
+      {departments.isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      ) : departments.isError ? (
+        <ErrorState retry={() => departments.refetch()} />
+      ) : departments.data?.length ? (
+        <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
+          <div className="space-y-3">
+            {departments.data.map((item: any) => (
+              <Card
+                key={item.id}
+                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
+                  selected === item.id ? "border-primary bg-primary/5" : ""
+                }`}
+                onClick={() => setSelected(item.id)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-display text-lg font-semibold">
+                      {locale === "ar" ? item.nameAr : item.name}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {locale === "ar" ? item.name : item.nameAr}
+                    </div>
+                  </div>
+                  <Status value={item.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{item.employeeCount} {t("employees").toLowerCase()}</span>
+                  {canManage && (
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEdit(item);
+                      }}
+                    >
+                      {t("edit")}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+          <Card className="min-h-[360px] p-6">
+            {activeDetail ? (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                      {t("department")}
+                    </div>
+                    <h2 className="mt-1 font-display text-2xl font-semibold">
+                      {locale === "ar" ? activeDetail.nameAr : activeDetail.name}
+                    </h2>
+                    {activeDetail.description && (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {activeDetail.description}
+                      </p>
+                    )}
+                  </div>
+                  <Status value={activeDetail.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-6 rounded-xl border border-border p-4">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {t("manager")}
+                  </div>
+                  <div className="mt-1 font-medium">
+                    {activeDetail.manager?.name ?? "—"}
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <h3 className="font-display text-lg font-semibold">
+                    {t("departmentEmployees")}
+                  </h3>
+                  <div className="mt-3 space-y-2">
+                    {employees.data?.map((employee: any) => (
+                      <div
+                        key={employee.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">
+                            {employee.firstName} {employee.lastName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {employee.employeeNumber}
+                          </div>
+                        </div>
+                        {canManage && (
+                          <select
+                            value={employee.department?.id ?? ""}
+                            onChange={(event) =>
+                              setMembership(employee.id, event.target.value)
+                            }
+                            className="h-9 max-w-[180px] rounded-lg border border-input bg-background px-2 text-xs"
+                          >
+                            <option value="">{t("selectOption")}</option>
+                            {departments.data.map((department: any) => (
+                              <option key={department.id} value={department.id}>
+                                {locale === "ar"
+                                  ? department.nameAr
+                                  : department.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    ))}
+                    {!employees.data?.length && (
+                      <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                        {t("noEmployeesMatch")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Empty
+                title={t("departmentEmployees")}
+                detail={t("noDepartmentsDetail")}
+                action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
+              />
+            )}
+          </Card>
+        </div>
+      ) : (
+        <Empty
+          title={t("noDepartments")}
+          detail={t("noDepartmentsDetail")}
+          action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
+        />
+      )}
+      {showCreate && (
+        <Modal
+          title={selected ? t("edit") : t("addDepartment")}
+          onClose={() => {
+            setShowCreate(false);
+            setSelected(null);
+          }}
+        >
+          <form onSubmit={save} className="space-y-4">
+            {[
+              ["name", "englishName"],
+              ["nameAr", "arabicName"],
+            ].map(([key, label]) => (
+              <label key={key} className="block text-sm font-semibold">
+                {t(label as AppCopyKey)}
+                <input
+                  required
+                  value={(form as any)[key]}
+                  onChange={(event) =>
+                    setForm({ ...form, [key]: event.target.value })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                />
+              </label>
+            ))}
+            <label className="block text-sm font-semibold">
+              {t("departmentDescription")}
+              <textarea
+                value={form.description}
+                onChange={(event) =>
+                  setForm({ ...form, description: event.target.value })
+                }
+                className="mt-1 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              {t("manager")}
+              <select
+                value={form.managerId}
+                onChange={(event) =>
+                  setForm({ ...form, managerId: event.target.value })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="">{t("selectManager")}</option>
+                {employees.data?.map((employee: any) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.firstName} {employee.lastName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              {t("schedules")}
+              <select
+                value={form.defaultScheduleId}
+                onChange={(event) =>
+                  setForm({ ...form, defaultScheduleId: event.target.value })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="">{t("selectOption")}</option>
+                {schedules.data?.map((schedule: any) => (
+                  <option key={schedule.id} value={schedule.id}>
+                    {locale === "ar" ? schedule.nameAr || schedule.name : schedule.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selected && (
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(event) =>
+                    setForm({ ...form, active: event.target.checked })
+                  }
+                />
+                {form.active ? t("active") : t("inactive")}
+              </label>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreate(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button type="submit">{t("saveChanges")}</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function Employees() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
@@ -6301,7 +6685,7 @@ function Employees() {
                       const name = window.prompt(t("createDepartmentPrompt"));
                       if (name)
                         createDepartment.mutate(
-                          { data: { name } },
+                          { data: { name, nameAr: name } },
                           {
                             onSuccess: () => {
                               toast.success(t("departmentCreated"));
@@ -16255,6 +16639,7 @@ function Router() {
         <Route path="/" component={Overview} />
         <Route path="/profile" component={Profile} />
         <Route path="/employees" component={Employees} />
+        <Route path="/departments" component={Departments} />
         <Route path="/attendance" component={Attendance} />
         <Route path="/requests" component={Requests} />
         <Route path="/rules" component={Rules} />
