@@ -1,0 +1,107 @@
+Continue the existing VAR HR project from the exact current implementation state. Do NOT restart the project, redo previous investigations, or redesign anything.
+
+Current task:
+We are localizing the entire Platform Owner → Database Administration section.
+
+The user requested:
+
+- When the application language is Arabic, the entire Database Administration section must appear in Arabic.
+- When the language is English, it must appear in English.
+- This includes all visible UI text, not just the main headings.
+
+The previous agent already:
+
+- Added Arabic/English translation entries for Database Administration navigation, records, fields, actions, audit labels, statuses, errors, modal titles, confirmations, etc.
+- Connected the Arabic rendering paths to the shared i18n translation function.
+- Connected dynamic statuses, audit actions, group names, column names, modal labels, and error messages to i18n keys.
+- Was scanning the section for remaining hardcoded English strings.
+
+IMPORTANT: The latest task stopped because the translation dictionary contained duplicate translation keys introduced during this localization change.
+
+The last agent's exact state:
+"The localization scan found duplicate translation keys in the existing dictionary, so TypeScript correctly stopped before runtime verification. I’m removing only the duplicate entries created by this change, keeping the existing translations intact."
+
+Continue from there.
+
+Required next steps:
+
+1. Inspect the current git diff and the translation files.
+2. Identify only the duplicate translation keys introduced by the current Database Administration localization work.
+3. Remove/fix only those duplicates without changing unrelated translations.
+4. Run frontend typecheck.
+5. Run frontend production build using the project's required managed PORT and BASE_PATH variables.
+6. Run git diff --check.
+7. Restart the existing web workflow if available.
+8. Verify the Database Administration section for both Arabic and English paths.
+9. Specifically verify that no user-visible English strings remain when Arabic is selected.
+10. Verify dynamic content is translated too:
+
+- Entity names
+- Group names
+- Column names
+- Statuses
+- Actions
+- View Details
+- History
+- Edit
+- Archive
+- Record History
+- Before Value / After Value
+- Actor / Role / Timestamp
+- Company context/filter
+- Empty states
+- Loading states
+- Error messages
+- Confirmation messages
+- Export-related text
+- Any table-related messages
+
+11. Pay special attention to the current user-reported error:
+    When using the Company Filter or selecting entities under Attendance & Scheduling or Leave, the UI sometimes displays:
+    "تعذر تحميل البيانات"
+
+Investigate whether this is:
+
+- an actual API/data-loading failure,
+- a translation-only issue,
+- an entity-name/endpoint mismatch,
+- or a frontend contract mismatch.
+
+Do not hide or mask a real API error just by changing the displayed message.
+
+Do NOT:
+
+- Change database data.
+- Change backup data.
+- Modify attendance/payroll business logic.
+- Remove the existing Database Administration support features.
+- Remove Company filtering or tenant isolation.
+- Redesign the Database Administration screen.
+- Create a second translation system.
+- Change unrelated translations.
+
+The current Database Administration functionality that must remain intact:
+
+- Company filter with server-side company filtering.
+- Company name/context on company-scoped records.
+- Employees:
+  View Details, History, Edit, Archive.
+- Departments:
+  View Details, History, Edit, Archive.
+- Branches:
+  View Details, History, Edit.
+- Record History showing:
+  action, actor name, actor role, timestamp, Before value, After value.
+- Sensitive fields must remain protected.
+- Protected entities remain protected from generic destructive operations.
+- Audit logs remain immutable.
+
+At the end, report:
+
+- What was fixed.
+- Whether the Arabic localization is complete.
+- Whether the "تعذر تحميل البيانات" issue was translation-only or an actual API/data issue.
+- Exact checks that passed.
+- Any remaining limitation.
+
+Do not ask me what to do next. Continue the implementation from the exact state above.

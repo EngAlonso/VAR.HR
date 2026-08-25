@@ -8,3 +8,4 @@
 - [Vite React hook imports](vite-react-hook-imports.md) — keep shared hooks on direct React named imports when Vite prebundling reports dispatcher/null hook failures.
 - [OpenAPI codegen hygiene](openapi-codegen-hygiene.md) — contract regeneration can expose stale malformed YAML and unresolved references that must be corrected before generated clients update.
 - [Imported workspace dependencies](imported-workspace-dependencies.md) — imported workspaces may require a lockfile install before code generation or builds can run.
+- [Database admin entity schemas](database-admin-entity-schemas.md) — administration entity configs must use each table’s actual timestamp columns, not assumed created_at/updated_at fields.
