@@ -228,6 +228,7 @@ export function workspaceCapabilities(
       "holidays",
       "organization.manage",
       "platform.view",
+      ...STANDARD_COMPANY_CAPABILITIES,
     ];
   }
   if (role === "company_owner") {
@@ -248,6 +249,7 @@ export function workspaceCapabilities(
       "schedules",
       "holidays",
       "organization.manage",
+      ...STANDARD_COMPANY_CAPABILITIES,
     ];
   }
   if (role === "manager") {
@@ -260,6 +262,35 @@ export function workspaceCapabilities(
     "reports.view",
   ];
 }
+
+const STANDARD_COMPANY_CAPABILITIES = [
+  "dashboard.view",
+  "employees.create",
+  "employees.edit",
+  "employees.archive",
+  "departments.view",
+  "departments.manage",
+  "branches.view",
+  "branches.manage",
+  "attendance.rules.view",
+  "attendance.rules.manage",
+  "schedules.view",
+  "schedules.manage",
+  "holidays.view",
+  "holidays.manage",
+  "leave.view",
+  "leave.manage",
+  "payroll.manage",
+  "devices.view",
+  "devices.manage",
+  "sync-history.view",
+  "locations.view",
+  "locations.manage",
+  "backups.view",
+  "backups.manage",
+  "company.settings",
+  "audit.view",
+];
 
 export function canManageCompany(
   value: WorkspaceRole | TenantContext,

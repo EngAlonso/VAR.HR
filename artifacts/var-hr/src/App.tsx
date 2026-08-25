@@ -371,7 +371,7 @@ const nav: NavItem[] = [
     key: "departments",
     icon: Building2,
     roles: ["company_owner", "manager"],
-    capability: "organization.manage",
+    capability: "departments.view",
   },
   {
     href: "/attendance",
@@ -391,7 +391,7 @@ const nav: NavItem[] = [
     key: "rules",
     icon: SlidersHorizontal,
     roles: ["platform_owner", "company_owner"],
-    capability: "attendance.correct",
+    capability: "attendance.rules.view",
   },
   {
     href: "/reports",
@@ -412,24 +412,28 @@ const nav: NavItem[] = [
     key: "holidays",
     icon: CalendarDays,
     roles: ["platform_owner", "company_owner", "manager"],
+    capability: "holidays.view",
   },
   {
     href: "/devices",
     key: "devices",
     icon: Fingerprint,
-    roles: ["platform_owner", "company_owner"],
+    roles: ["platform_owner", "company_owner", "manager"],
+    capability: "devices.view",
   },
   {
     href: "/sync-history",
     key: "syncHistory",
     icon: RefreshCw,
-    roles: ["platform_owner", "company_owner"],
+    roles: ["platform_owner", "company_owner", "manager"],
+    capability: "sync-history.view",
   },
   {
     href: "/backups",
     key: "backupRestore",
     icon: Database,
-    roles: ["platform_owner", "company_owner"],
+    roles: ["platform_owner", "company_owner", "manager"],
+    capability: "backups.view",
   },
   {
     href: "/accounts",
@@ -4604,6 +4608,32 @@ function permissionLabel(
      schedules: "تنظيم الشيفتات",
     holidays: "العطلات",
     "organization.manage": "إدارة الهيكل التنظيمي",
+    "dashboard.view": "عرض لوحة المعلومات",
+    "employees.create": "إنشاء الموظفين",
+    "employees.edit": "تعديل الموظفين",
+    "employees.archive": "أرشفة الموظفين",
+    "departments.view": "عرض الأقسام",
+    "departments.manage": "إدارة الأقسام",
+    "branches.view": "عرض الفروع",
+    "branches.manage": "إدارة الفروع",
+    "attendance.rules.view": "عرض قواعد الحضور",
+    "attendance.rules.manage": "إدارة قواعد الحضور",
+    "schedules.view": "عرض تنظيم الشيفتات",
+    "schedules.manage": "إدارة تنظيم الشيفتات",
+    "holidays.view": "عرض العطلات",
+    "holidays.manage": "إدارة العطلات",
+    "leave.view": "عرض الإجازات",
+    "leave.manage": "إدارة إعدادات الإجازات",
+    "payroll.manage": "إدارة الرواتب",
+    "devices.view": "عرض الأجهزة",
+    "devices.manage": "إدارة الأجهزة",
+    "sync-history.view": "عرض سجل المزامنة",
+    "locations.view": "عرض المواقع",
+    "locations.manage": "إدارة المواقع",
+    "backups.view": "عرض النسخ الاحتياطية",
+    "backups.manage": "إدارة النسخ الاحتياطية",
+    "company.settings": "إعدادات الشركة",
+    "audit.view": "عرض سجل التدقيق",
   };
   return labels[permission.key] ?? permission.label;
 }
@@ -4631,8 +4661,104 @@ function permissionDescription(
     schedules: "إدارة تنظيم الشيفتات.",
     holidays: "إدارة عطلات الشركة.",
     "organization.manage": "إدارة الأقسام والفروع والهيكل التنظيمي.",
+    "dashboard.view": "عرض لوحة معلومات الشركة.",
+    "employees.create": "إنشاء سجلات الموظفين.",
+    "employees.edit": "تعديل سجلات الموظفين.",
+    "employees.archive": "أرشفة سجلات الموظفين.",
+    "departments.view": "عرض الأقسام وسجلاتها.",
+    "departments.manage": "إنشاء الأقسام وتعديلها وأرشفتها.",
+    "branches.view": "عرض الفروع وسجلاتها.",
+    "branches.manage": "إنشاء الفروع وتعديلها وأرشفتها.",
+    "attendance.rules.view": "عرض قواعد الحضور وسجل الإصدارات.",
+    "attendance.rules.manage": "إنشاء قواعد الحضور وتعديلها.",
+    "schedules.view": "عرض تنظيم الشيفتات والتعيينات.",
+    "schedules.manage": "إنشاء الجداول والتعيينات وتعديلها.",
+    "holidays.view": "عرض عطلات الشركة.",
+    "holidays.manage": "إنشاء عطلات الشركة وتعديلها وحذفها.",
+    "leave.view": "عرض طلبات وأرصدة الإجازات.",
+    "leave.manage": "إدارة سياسات وإعدادات الإجازات.",
+    "payroll.manage": "إجراء وإدارة سجلات الرواتب.",
+    "devices.view": "عرض الأجهزة وحالتها.",
+    "devices.manage": "إدارة الأجهزة والربط الحيوي.",
+    "sync-history.view": "عرض سجل مزامنة الأجهزة.",
+    "locations.view": "عرض مواقع الحضور عبر GPS.",
+    "locations.manage": "إنشاء مواقع الحضور وتعديلها.",
+    "backups.view": "عرض سجلات النسخ الاحتياطية.",
+    "backups.manage": "إنشاء النسخ الاحتياطية واستعادتها.",
+    "company.settings": "إدارة إعدادات الشركة.",
+    "audit.view": "عرض سجل التدقيق وتاريخ الحسابات.",
   };
   return descriptions[permission.key] ?? permission.description ?? "";
+}
+
+function PermissionChecklist({
+  permissions,
+  selected,
+  locale,
+  onChange,
+  idPrefix = "",
+}: {
+  permissions: Array<{ key: string; label: string; description?: string }>;
+  selected: string[];
+  locale: Locale;
+  onChange: (key: string, enabled: boolean) => void;
+  idPrefix?: string;
+}) {
+  const grouped = permissions.reduce<Record<string, typeof permissions>>(
+    (groups, permission) => {
+      const group = permission.key.split(".")[0];
+      (groups[group] ??= []).push(permission);
+      return groups;
+    },
+    {},
+  );
+  const groupLabels: Record<string, [string, string]> = {
+    employees: ["Employees", "الموظفون"],
+    attendance: ["Attendance", "الحضور"],
+    schedules: ["Schedules & assignments", "الجداول والتعيينات"],
+    organization: ["Organization", "الهيكل التنظيمي"],
+    company: ["Company", "الشركة"],
+    sync: ["Synchronization", "المزامنة"],
+  };
+  return (
+    <div className="mt-2 max-h-72 space-y-4 overflow-auto rounded-lg border border-border p-3">
+      {Object.entries(grouped).map(([group, items]) => (
+        <div key={group}>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
+            {groupLabels[group]?.[locale === "ar" ? 1 : 0] ??
+              group.charAt(0).toUpperCase() + group.slice(1)}
+          </p>
+          <div className="space-y-2">
+            {items.map((permission) => (
+              <label
+                className="flex items-start gap-2 text-sm"
+                key={`${idPrefix}${permission.key}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(permission.key)}
+                  onChange={(event) =>
+                    onChange(permission.key, event.target.checked)
+                  }
+                />
+                <span>
+                  {permissionLabel(locale, permission)}
+                  {permissionDescription(locale, permission) && (
+                    <span className="block text-xs text-muted-foreground">
+                      {permissionDescription(locale, permission)}
+                    </span>
+                  )}
+                  <span className="block text-xs text-muted-foreground">
+                    {permission.key}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function accountValidationError(

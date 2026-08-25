@@ -267,11 +267,18 @@ function canUseCapability(
   capability: string,
   employeeMayUseOwn = false,
 ): boolean {
+  const aliases: Record<string, string[]> = {
+    schedules: ["schedules.view", "schedules.manage"],
+    holidays: ["holidays.view", "holidays.manage"],
+    devices: ["devices.view", "devices.manage"],
+    "sync-history": ["sync-history.view"],
+  };
+  const granted = [capability, ...(aliases[capability] ?? [])];
   return (
     context.role === "platform_owner" ||
     context.role === "company_owner" ||
     (context.role === "employee" && employeeMayUseOwn) ||
-    hasCapability(context, capability)
+    granted.some((value) => hasCapability(context, value))
   );
 }
 
@@ -2416,6 +2423,10 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
 
 router.get("/departments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "departments.view", true)) {
+    res.status(403).json({ error: message(req, "noPermissionCreateDepartments") });
+    return;
+  }
   const departments = await db
     .select()
     .from(departmentsTable)
@@ -2444,7 +2455,7 @@ router.get("/departments", async (req, res): Promise<void> => {
 
 router.post("/departments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "departments.manage")) {
     res
       .status(403)
       .json({ error: message(req, "noPermissionCreateDepartments") });
@@ -2510,7 +2521,7 @@ router.get("/departments/:departmentId", async (req, res): Promise<void> => {
 
 router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "departments.manage")) {
     res
       .status(403)
       .json({ error: message(req, "noPermissionCreateDepartments") });
@@ -2569,7 +2580,7 @@ router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
 
 router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "departments.manage")) {
     res
       .status(403)
       .json({ error: message(req, "noPermissionCreateDepartments") });
@@ -2629,6 +2640,10 @@ router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
 
 router.get("/branches", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
+  if (!canUseCapability(context, "branches.view", true)) {
+    res.status(403).json({ error: message(req, "noPermissionCreateBranches") });
+    return;
+  }
   const branches = await db
     .select()
     .from(branchesTable)
@@ -2669,7 +2684,7 @@ router.get("/branches", async (req, res): Promise<void> => {
 
 router.post("/branches", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "branches.manage")) {
     res.status(403).json({ error: message(req, "noPermissionCreateBranches") });
     return;
   }
@@ -2732,7 +2747,7 @@ router.get("/employees", async (req, res): Promise<void> => {
 
 router.post("/employees", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "employees.create")) {
     res
       .status(403)
       .json({ error: message(req, "noPermissionManageEmployees") });
@@ -2832,7 +2847,7 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
 
 router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "employees.edit")) {
     res
       .status(403)
       .json({ error: message(req, "noPermissionManageEmployees") });
@@ -4974,7 +4989,7 @@ router.post(
 
 router.get("/rules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.correct")) {
+  if (!canUseCapability(context, "attendance.rules.view")) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -4999,7 +5014,7 @@ function ruleVersionResponse(
 
 router.get("/rules/versions", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.correct")) {
+  if (!canUseCapability(context, "attendance.rules.view")) {
     res.status(403).json({ error: message(req, "attendanceRulesAccess") });
     return;
   }
@@ -5016,7 +5031,7 @@ router.get("/rules/versions", async (req, res): Promise<void> => {
 
 router.post("/rules/versions", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.correct")) {
+  if (!canUseCapability(context, "attendance.rules.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5130,7 +5145,7 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
 
 router.put("/rules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.correct")) {
+  if (!canUseCapability(context, "attendance.rules.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5712,7 +5727,7 @@ router.put(
 
 router.get("/holidays", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "holidays", true)) {
+  if (!canUseCapability(context, "holidays.view", true)) {
     denyCapability(res, req, "holidays");
     return;
   }
@@ -5726,7 +5741,7 @@ router.get("/holidays", async (req, res): Promise<void> => {
 
 router.post("/holidays", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "holidays")) {
+  if (!canUseCapability(context, "holidays.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5770,7 +5785,7 @@ router.post("/holidays", async (req, res): Promise<void> => {
 
 router.patch("/holidays/:holidayId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "holidays")) {
+  if (!canUseCapability(context, "holidays.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -5835,7 +5850,7 @@ router.patch("/holidays/:holidayId", async (req, res): Promise<void> => {
 
 router.delete("/holidays/:holidayId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canManageCompany(context)) {
+  if (!canUseCapability(context, "holidays.manage")) {
     res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
     return;
   }
@@ -7777,7 +7792,7 @@ router.get("/payroll/my", async (req, res): Promise<void> => {
 
 router.get("/devices", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
+  if (!canUseCapability(context, "devices.view")) {
     res.status(403).json({ error: message(req, "deviceAdmin") });
     return;
   }
@@ -7788,7 +7803,7 @@ router.get("/devices", async (req, res): Promise<void> => {
 
 router.post("/devices", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "devices")) {
+  if (!canUseCapability(context, "devices.manage")) {
     res.status(403).json({ error: message(req, "deviceManage") });
     return;
   }
