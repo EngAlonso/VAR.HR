@@ -1,8 +1,9 @@
 import { Router, type IRouter, type Request } from "express";
-import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   accountPermissionsTable,
+  auditLogsTable,
   authAuditEventsTable,
   authSessionsTable,
   companiesTable,
@@ -624,8 +625,61 @@ router.get(
       (account) =>
         account.accountType === "staff" || account.accountType === "manager",
     );
+    const administrativeAccounts = accounts.filter(
+      (account) =>
+        account.accountType !== "company_owner" &&
+        account.accountType !== "employee",
+    );
+    const roleText = (account: (typeof accounts)[number]) =>
+      `${account.accountType} ${account.displayRole}`.toLowerCase();
+    const managers = administrativeAccounts.filter((account) => {
+      const role = roleText(account);
+      return role.includes("manager") && !role.includes("supervisor");
+    });
+    const supervisors = administrativeAccounts.filter((account) =>
+      roleText(account).includes("supervisor"),
+    );
+    const hr = administrativeAccounts.filter((account) => {
+      const role = roleText(account);
+      return role.includes("hr") || role.includes("human resource");
+    });
     const employees = backup.payload.data.var_hr_employees ?? [];
     const devices = backup.payload.data.var_hr_devices ?? [];
+    const departments = backup.payload.data.var_hr_departments ?? [];
+    const branches = backup.payload.data.var_hr_branches ?? [];
+    const [auditLogs, authAuditEvents] = await Promise.all([
+      db
+        .select({
+          id: auditLogsTable.id,
+          action: auditLogsTable.action,
+          entityType: auditLogsTable.entityType,
+          entityId: auditLogsTable.entityId,
+          actorType: auditLogsTable.actorType,
+          actorId: auditLogsTable.actorId,
+          createdAt: auditLogsTable.createdAt,
+        })
+        .from(auditLogsTable)
+        .where(eq(auditLogsTable.companyId, company.id))
+        .orderBy(desc(auditLogsTable.createdAt))
+        .limit(100),
+      db
+        .select({
+          id: authAuditEventsTable.id,
+          action: authAuditEventsTable.action,
+          entityType: authAuditEventsTable.entityType,
+          entityId: authAuditEventsTable.entityId,
+          actorType: sql<string>`'account'`,
+          actorId: authAuditEventsTable.accountId,
+          createdAt: authAuditEventsTable.createdAt,
+        })
+        .from(authAuditEventsTable)
+        .where(eq(authAuditEventsTable.companyId, company.id))
+        .orderBy(desc(authAuditEventsTable.createdAt))
+        .limit(100),
+    ]);
+    const activity = [...auditLogs, ...authAuditEvents]
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+      .slice(0, 100);
     const operationalData = Object.fromEntries(
       Object.entries(backup.payload.data)
         .filter(
@@ -654,8 +708,38 @@ router.get(
         : null,
       owners,
       staff,
+      administrativeAccounts,
+      roleGroups: { managers, supervisors, hr },
       employees,
       devices,
+      organization: {
+        departments: departments.map((department) => ({
+          id: String(department.id ?? ""),
+          name: String(department.name ?? ""),
+          nameAr: String(department.name_ar ?? ""),
+          active: Boolean(department.active),
+          managerId:
+            department.manager_id == null
+              ? null
+              : String(department.manager_id),
+          employeeCount: employees.filter(
+            (employee) => employee.department_id === department.id,
+          ).length,
+        })),
+        branchCount: branches.length,
+      },
+      configuration: {
+        defaultScheduleId: company.defaultScheduleId,
+        attendanceRules:
+          backup.payload.data.var_hr_attendance_rules?.length ?? 0,
+        workSchedules: backup.payload.data.var_hr_work_schedules?.length ?? 0,
+        leavePolicies: backup.payload.data.var_hr_leave_balances?.length ?? 0,
+        payrollPeriods: backup.payload.data.var_hr_payroll_periods?.length ?? 0,
+        integrations:
+          (backup.payload.data.var_hr_devices?.length ?? 0) +
+          (backup.payload.data.var_hr_attendance_locations?.length ?? 0),
+      },
+      activity,
       operationalData,
       tableCounts: Object.fromEntries(
         Object.entries(backup.payload.data).map(([table, rows]) => [

@@ -258,8 +258,34 @@ type PlatformCompanyDetails = {
   } | null;
   owners: AuthAccount[];
   staff: AuthAccount[];
+  administrativeAccounts: AuthAccount[];
+  roleGroups: {
+    managers: AuthAccount[];
+    supervisors: AuthAccount[];
+    hr: AuthAccount[];
+  };
   employees: Array<Record<string, unknown>>;
   devices: Array<Record<string, unknown>>;
+  organization: {
+    departments: Array<{
+      id: string;
+      name: string;
+      nameAr: string;
+      active: boolean;
+      managerId: string | null;
+      employeeCount: number;
+    }>;
+    branchCount: number;
+  };
+  configuration: {
+    defaultScheduleId: string | null;
+    attendanceRules: number;
+    workSchedules: number;
+    leavePolicies: number;
+    payrollPeriods: number;
+    integrations: number;
+  };
+  activity: PlatformActivity[];
   operationalData: Record<string, Array<Record<string, unknown>>>;
   tableCounts: Record<string, number>;
   integrity: { algorithm: string; checksum: string };
@@ -15901,13 +15927,14 @@ function PlatformCompanyDetailsPage() {
               label={text("Employees", "الموظفون")}
               value={details.employees.length}
             />
-            <Info
-              label={text(
-                "HR/Admin/Manager accounts",
-                "حسابات HR/Admin/Manager",
-              )}
-              value={details.staff.length}
-            />
+             <Info
+               label={text("Administrative accounts", "الحسابات الإدارية")}
+               value={details.administrativeAccounts.length}
+             />
+             <Info
+               label={text("Managers / Supervisors / HR", "مديرون / مشرفون / HR")}
+               value={`${details.roleGroups.managers.length} / ${details.roleGroups.supervisors.length} / ${details.roleGroups.hr.length}`}
+             />
             <Info
               label={text("Biometric devices", "أجهزة البصمة")}
               value={details.devices.length}
@@ -16009,6 +16036,109 @@ function PlatformCompanyDetailsPage() {
               )}
             </div>
           </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {text("Administrative accounts by role", "الحسابات الإدارية حسب الدور")}
+            </h2>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {[
+              { label: text("Managers", "المديرون"), accounts: details.roleGroups.managers },
+              { label: text("Supervisors", "المشرفون"), accounts: details.roleGroups.supervisors },
+              { label: text("HR", "الموارد البشرية"), accounts: details.roleGroups.hr },
+            ].map(({ label, accounts }) => (
+              <div className="rounded-lg border border-border p-3" key={String(label)}>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </div>
+                <div className="mt-2 space-y-1 text-sm">
+                  {accounts.length ? (
+                    accounts.map((account) => (
+                      <div key={account.id}>
+                        {account.fullName || account.username}
+                        <span className="text-muted-foreground">
+                          {" "}· {account.displayRole} ·{" "}
+                          {account.active
+                            ? text("Active", "نشط")
+                            : text("Inactive", "غير نشط")}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center gap-2">
+            <Network size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {text("Organization and configuration", "التنظيم والإعدادات")}
+            </h2>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Info label={text("Branches", "الفروع")} value={details.organization.branchCount} />
+            <Info label={text("Departments", "الأقسام")} value={details.organization.departments.length} />
+            <Info label={text("Attendance rules", "قواعد الحضور")} value={details.configuration.attendanceRules} />
+            <Info label={text("Work schedules", "جداول العمل")} value={details.configuration.workSchedules} />
+            <Info label={text("Leave records", "سجلات الإجازات")} value={details.configuration.leavePolicies} />
+            <Info label={text("Payroll periods", "فترات الرواتب")} value={details.configuration.payrollPeriods} />
+          </div>
+          <div className="mt-4 space-y-2">
+            {details.organization.departments.length ? (
+              details.organization.departments.map((department) => (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={department.id}>
+                  <span>{locale === "ar" && department.nameAr ? department.nameAr : department.name}</span>
+                  <span className="text-muted-foreground">
+                    {department.employeeCount} {text("employees", "موظف")}
+                    {department.managerId ? ` · ${text("manager assigned", "يوجد مدير")}` : ""}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <span className="text-sm text-muted-foreground">—</span>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-5">
+        <div className="flex items-center gap-2">
+          <Activity size={18} className="text-primary" />
+          <h2 className="font-display text-lg font-semibold">
+            {text("Recent company activity", "أحدث نشاط للشركة")}
+          </h2>
+        </div>
+        <div className="mt-4 space-y-2">
+          {details.activity.length ? (
+            details.activity.slice(0, 20).map((event) => (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={event.id}>
+                <span>
+                  <strong>{event.action}</strong>{" "}
+                  <span className="text-muted-foreground">
+                    · {event.entityType}{event.entityId ? ` · ${event.entityId}` : ""}
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {date(event.createdAt)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {text("No company activity recorded.", "لا يوجد نشاط مسجل للشركة.")}
+            </span>
+          )}
         </div>
       </Card>
 

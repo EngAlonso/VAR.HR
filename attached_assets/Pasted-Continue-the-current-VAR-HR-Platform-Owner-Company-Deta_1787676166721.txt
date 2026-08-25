@@ -1,0 +1,51 @@
+Continue the current VAR HR Platform Owner Company Details implementation from the exact imported state.
+
+The previous agent had already inspected the existing Platform Owner Company Details page and "/details" endpoint and was auditing what is currently exposed.
+
+Do NOT restart the investigation or redo previous work. Continue from the exact point where the previous agent stopped.
+
+Finish the read-only audit of the backend response and frontend rendered sections, specifically checking what is missing for:
+
+- Company-created Manager accounts
+- Supervisor accounts
+- HR accounts
+- Employee and department organization
+- Company configuration summaries
+- Safe tenant-scoped activity/audit information
+
+Preserve the existing architecture and extend the existing Company Details endpoint/UI. Do NOT create a duplicate company-details system.
+
+Maintain strict tenant isolation:
+
+- Platform Owner may inspect company data for support and administration.
+- Company users must never access another company's data.
+- Never expose passwords, password hashes, tokens, sessions, API keys, or authentication secrets.
+- Do not allow company users to manipulate company IDs to access another tenant.
+
+The Company Details page should help the Platform Owner understand the complete state of a company for technical support, including its administrative accounts, organization, employees, departments, attendance/scheduling configuration, leave/payroll status, devices/integrations where already available, and relevant audit/activity information.
+
+Reuse existing APIs, database tables, permissions, tenant relationships, and generated contracts. Do not create duplicate tables or parallel systems.
+
+Do NOT touch unrelated HR business logic, including attendance calculations, payroll formulas, leave calculations, shift calculations, backup/restore, or authentication behavior, unless a minimal change is strictly required for safe company-details visibility.
+
+First complete the read-only audit and tell me exactly what is currently missing.
+
+Only after identifying the gaps, implement the smallest required changes.
+
+Then verify:
+
+- Platform Owner can open a company and see its administrative accounts.
+- Manager, Supervisor, and HR accounts are clearly identified by role.
+- Passwords and authentication secrets are never returned.
+- Company data is strictly tenant-scoped.
+- Company A cannot access Company B data.
+- Existing permissions remain enforced.
+- Existing company data is not modified unexpectedly.
+- API typecheck passes.
+- Frontend typecheck passes.
+- API build passes.
+- Frontend production build passes.
+- OpenAPI/client generation passes if contracts changed.
+- "git diff --check" passes.
+
+Do not start another phase. Do not redesign the system. Continue from the exact current implementation state.
