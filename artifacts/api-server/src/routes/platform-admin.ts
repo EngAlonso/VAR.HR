@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, userAccountsTable } from "@workspace/db";
+import { companiesTable, db, userAccountsTable } from "@workspace/db";
 import {
   hashPassword,
   loadAuthenticatedAccount,
@@ -16,6 +16,7 @@ type EntityConfig = {
   columns: string[];
   editable: string[];
   hasUpdatedAt?: boolean;
+  companyColumn?: string;
 };
 
 const entities: Record<string, EntityConfig> = {
@@ -33,12 +34,14 @@ const entities: Record<string, EntityConfig> = {
       "created_at",
     ],
     editable: ["name", "slug", "address", "timezone", "currency", "active"],
+    companyColumn: "id",
   },
   departments: {
     table: "var_hr_departments",
     label: "Departments",
     columns: ["id", "company_id", "name", "created_at"],
     editable: ["name"],
+    companyColumn: "company_id",
   },
   branches: {
     table: "var_hr_branches",
@@ -62,6 +65,7 @@ const entities: Record<string, EntityConfig> = {
       "longitude",
       "radius_meters",
     ],
+    companyColumn: "company_id",
   },
   employees: {
     table: "var_hr_employees",
@@ -97,6 +101,7 @@ const entities: Record<string, EntityConfig> = {
       "salary",
     ],
     hasUpdatedAt: true,
+    companyColumn: "company_id",
   },
   attendance: {
     table: "var_hr_attendance",
@@ -123,6 +128,7 @@ const entities: Record<string, EntityConfig> = {
       "overtime_hours",
     ],
     hasUpdatedAt: true,
+    companyColumn: "company_id",
   },
   devices: {
     table: "var_hr_devices",
@@ -141,6 +147,7 @@ const entities: Record<string, EntityConfig> = {
       "connection_state",
       "created_at",
     ],
+    companyColumn: "company_id",
     editable: [
       "name",
       "manufacturer",
@@ -159,6 +166,7 @@ const entities: Record<string, EntityConfig> = {
     columns: ["id", "company_id", "name", "date", "created_at", "updated_at"],
     editable: ["name", "date"],
     hasUpdatedAt: true,
+    companyColumn: "company_id",
   },
   payroll_periods: {
     table: "var_hr_payroll_periods",
@@ -175,7 +183,169 @@ const entities: Record<string, EntityConfig> = {
       "calculated_at",
       "finalized_at",
     ],
+    companyColumn: "company_id",
     editable: ["label", "from", "to", "status"],
+  },
+  users: {
+    table: "var_hr_user_accounts",
+    label: "Users and accounts",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "username",
+      "full_name",
+      "display_role",
+      "active",
+      "created_at",
+      "last_login_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  shifts: {
+    table: "var_hr_work_schedules",
+    label: "Work schedules",
+    columns: [
+      "id",
+      "company_id",
+      "name",
+      "name_ar",
+      "start_time",
+      "end_time",
+      "active",
+      "created_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  shift_assignments: {
+    table: "var_hr_employee_schedule_assignments",
+    label: "Employee shift assignments",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "schedule_id",
+      "effective_from",
+      "effective_to",
+      "created_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  attendance_rules: {
+    table: "var_hr_attendance_rules",
+    label: "Attendance rules",
+    columns: ["id", "company_id", "active", "created_at", "updated_at"],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  attendance_calculations: {
+    table: "var_hr_attendance_calculations",
+    label: "Attendance calculations",
+    columns: [
+      "id",
+      "company_id",
+      "attendance_id",
+      "employee_id",
+      "attendance_date",
+      "attendance_state",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  leave_requests: {
+    table: "var_hr_leave_requests",
+    label: "Leave requests",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "leave_type",
+      "from",
+      "to",
+      "status",
+      "created_at",
+      "updated_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  permission_requests: {
+    table: "var_hr_permission_requests",
+    label: "Permission requests",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "date",
+      "status",
+      "created_at",
+      "updated_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  payroll_calculations: {
+    table: "var_hr_payroll_calculations",
+    label: "Payroll calculations",
+    columns: [
+      "id",
+      "company_id",
+      "period_id",
+      "employee_id",
+      "net_salary",
+      "calculated_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  subscriptions: {
+    table: "var_hr_subscriptions",
+    label: "Subscriptions",
+    columns: [
+      "id",
+      "company_id",
+      "plan_id",
+      "status",
+      "employee_limit",
+      "monthly_price",
+      "annual_price",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  audit_logs: {
+    table: "var_hr_audit_logs",
+    label: "Audit logs",
+    columns: [
+      "id",
+      "company_id",
+      "actor_type",
+      "actor_id",
+      "action",
+      "entity_type",
+      "entity_id",
+      "created_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
+  },
+  backups: {
+    table: "var_hr_backup_records",
+    label: "Backups",
+    columns: [
+      "id",
+      "company_id",
+      "scope",
+      "status",
+      "size_bytes",
+      "checksum",
+      "created_at",
+    ],
+    editable: [],
+    companyColumn: "company_id",
   },
 };
 
@@ -369,24 +539,55 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const search =
     typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const companyId =
+    typeof req.query.companyId === "string" ? req.query.companyId.trim() : "";
+  if (companyId && !idSchema.safeParse(companyId).success) {
+    res.status(400).json({ error: "A valid company filter is required." });
+    return;
+  }
   const columns = config.columns.join(", ");
-  const query = search
-    ? sql.raw(
-        `SELECT ${columns} FROM ${config.table} WHERE to_jsonb(${config.table})::text ILIKE '%' || ${JSON.stringify(`%${search}%`)} LIMIT ${limit} OFFSET ${offset}`,
-      )
-    : sql.raw(
-        `SELECT ${columns} FROM ${config.table} ORDER BY created_at DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
-      );
+  const predicates = [
+    ...(companyId && config.companyColumn
+      ? [`${config.companyColumn} = ${JSON.stringify(companyId)}`]
+      : []),
+    ...(search
+      ? [
+          `to_jsonb(${config.table})::text ILIKE ${JSON.stringify(`%${search}%`)}`,
+        ]
+      : []),
+  ];
+  const where = predicates.length ? ` WHERE ${predicates.join(" AND ")}` : "";
+  const query = sql.raw(
+    `SELECT ${columns} FROM ${config.table}${where} ORDER BY created_at DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
+  );
   const result = await db.execute(query);
-  const rows = (result.rows as Record<string, unknown>[]).map(safeRow);
+  const companies = await db
+    .select({ id: companiesTable.id, name: companiesTable.name })
+    .from(companiesTable);
+  const companyNames = new Map(
+    companies.map((company) => [company.id, company.name]),
+  );
+  const rows = (result.rows as Record<string, unknown>[]).map((row) => ({
+    ...safeRow(row),
+    ...(req.params.entity !== "companies"
+      ? {
+          company_name:
+            companyNames.get(String(row.company_id ?? "")) ?? "Unknown company",
+        }
+      : {}),
+  }));
   await audit(req, "database_view", req.params.entity, null, {
     count: rows.length,
     search: search || undefined,
+    companyId: companyId || undefined,
   });
   res.json({
     entity: req.params.entity,
     label: config.label,
-    columns: config.columns,
+    columns:
+      req.params.entity === "companies"
+        ? config.columns
+        : [...config.columns, "company_name"],
     editable: config.editable,
     rows,
   });

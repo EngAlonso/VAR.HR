@@ -12121,6 +12121,7 @@ type AdminEntity = {
   editable: string[];
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
+type DatabaseCompany = { id: string; name: string; slug: string; active: boolean };
 const entityLabels: Record<string, string> = {
   companies: "Companies",
   departments: "Departments",
@@ -12140,13 +12141,31 @@ const entityLabelsArabic: Record<string, string> = {
   devices: "الأجهزة",
   holidays: "العطلات",
   payrollPeriods: "فترات الرواتب",
+  users: "المستخدمون والحسابات",
+  shifts: "الشيفتات",
+  shift_assignments: "ربط الموظفين بالشيفتات",
+  attendance_rules: "قواعد الحضور وإصداراتها",
+  attendance_calculations: "حسابات الحضور",
+  leave_requests: "طلبات الإجازات",
+  permission_requests: "طلبات الأذونات",
+  payroll_calculations: "حسابات الرواتب",
+  subscriptions: "الاشتراكات",
+  audit_logs: "سجلات التدقيق",
+  backups: "النسخ الاحتياطية",
 };
+const databaseGroups = [
+  { label: "Core organization", keys: ["companies", "users", "employees", "departments", "branches"] },
+  { label: "Scheduling and attendance", keys: ["shifts", "shift_assignments", "attendance_rules", "attendance_calculations", "attendance", "holidays"] },
+  { label: "Leave, payroll and support", keys: ["leave_requests", "permission_requests", "payroll_periods", "payroll_calculations", "devices", "subscriptions", "audit_logs", "backups"] },
+];
 
 function DatabaseAdministration() {
   const { locale, t } = useI18n();
   const auth = useAuth();
   const [entities, setEntities] = useState<AdminEntity[]>([]);
   const [entity, setEntity] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -12154,14 +12173,24 @@ function DatabaseAdministration() {
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [, setLocation] = useLocation();
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
   const loadEntities = async () => {
-    const result = await authRequest<AdminEntity[]>(
-      "/api/platform/database/entities",
-    );
+    const [result, summary] = await Promise.all([
+      authRequest<AdminEntity[]>("/api/platform/database/entities"),
+      authRequest<PlatformSummary>("/api/platform/summary"),
+    ]);
     setEntities(result);
+    setCompanies(
+      summary.companies.map((company) => ({
+        id: company.id,
+        name: company.name,
+        slug: company.slug,
+        active: company.active,
+      })),
+    );
     if (!entity && result[0]) setEntity(result[0].key);
   };
   const load = async () => {
@@ -12172,6 +12201,7 @@ function DatabaseAdministration() {
       setData(
         await authRequest<AdminData>(
           `/api/platform/database/${entity}?search=${encodeURIComponent(search)}`,
+          // companyId is enforced by the API, not just filtered in the browser.
         ),
       );
       setSelected([]);

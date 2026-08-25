@@ -1,0 +1,265 @@
+عايز نعيد تنظيم قسم إدارة قاعدة البيانات في VAR HR ليكون واضح ومفيد جدًا للـ Platform Owner في الدعم الفني والإدارة، بدون تغيير منطق الـ HR نفسه.
+
+مهم جدًا:
+لا تبدأ من الصفر ولا تعمل نظام قاعدة بيانات جديد.
+افحص النظام الحالي ونظّم الـ Database Management الموجود بالفعل، وأكمل عليه.
+لا تعدّل أو تحذف أي بيانات حقيقية أثناء التنفيذ.
+
+الهدف الرئيسي
+
+أنا كـ Platform Owner لازم أقدر أفتح إدارة قاعدة البيانات وأعرف كل record في النظام تابع لأنهي شركة، وأقدر أتتبع العلاقات بين البيانات بسهولة.
+
+لا أريد أن أرى جداول منفصلة بأسماء تقنية فقط بدون معرفة العلاقة بينها.
+
+مثال:
+بدل ما أشوف:
+"departments"
+
+أريد أن أرى:
+الأقسام
+
+- الشركة
+- اسم القسم
+- المدير
+- عدد الموظفين
+- الحالة
+- تاريخ الإنشاء
+
+ونفس الفكرة لكل أنواع البيانات.
+
+تنظيم البيانات
+
+اعمل Database Management منظمة حسب الـ entities الرئيسية، مثل:
+
+- الشركات
+- المستخدمون والحسابات
+- الموظفون
+- الأقسام
+- الفروع
+- الشيفتات
+- ربط الموظفين بالشيفتات
+- قواعد الحضور وإصداراتها
+- الحضور والحسابات
+- الإجازات
+- الأذونات
+- الرواتب
+- الأجهزة
+- الاشتراكات
+- الإشعارات
+- سجلات التدقيق
+- النسخ الاحتياطية
+
+استخدم فقط الـ entities والجداول الموجودة فعليًا في المشروع.
+لا تنشئ جداول مكررة لمجرد تحسين العرض.
+
+أهم شيء: Company Context
+
+كل entity في Database Management يجب أن يظهر بوضوح:
+
+Company
+
+- Company ID
+- Company Name
+
+بحيث أقدر أعرف فورًا:
+
+- القسم ده تابع لأنهي شركة؟
+- الموظف ده تابع لأنهي شركة؟
+- الفرع ده تابع لأنهي شركة؟
+- الشيفت ده تابع لأنهي شركة؟
+- قاعدة الحضور دي تخص أنهي شركة؟
+- سجل الحضور ده يخص أنهي شركة؟
+- طلب الإجازة ده يخص أنهي شركة؟
+- الرواتب دي تخص أنهي شركة؟
+
+إذا كان الـ record مرتبطًا بالشركة بشكل مباشر أو غير مباشر، اعرض العلاقة بوضوح.
+
+العلاقات
+
+أريد أن تكون العلاقات قابلة للتتبع.
+
+مثلاً عند فتح موظف:
+
+Company → Branch → Department → Employee → Shift Assignment
+
+وعند فتح Department:
+
+Company → Branch/Organization → Department → Manager → Employees
+
+وعند فتح Branch:
+
+Company → Branch → Departments → Employees
+
+وعند فتح Shift:
+
+Company → Shift → Assigned Employees
+
+وهكذا.
+
+لا نحتاج إلى عرض كل database foreign key بشكل تقني، لكن يجب أن تكون العلاقات المهمة مفهومة للـ Platform Owner.
+
+البحث والفلاتر
+
+أضف بحث وفلاتر مناسبة بحيث أقدر أبحث عن:
+
+- Company
+- Employee
+- Department
+- Branch
+- User
+- Shift
+
+ويكون هناك فلتر أساسي:
+
+Company
+
+مثلاً:
+"Company = ABC Company"
+
+فتظهر لي فقط البيانات الخاصة بالشركة.
+
+ويجب أن يكون هناك خيار:
+
+All Companies
+
+للـ Platform Owner فقط.
+
+Company Details
+
+لو ضغطت على اسم الشركة من أي مكان في Database Management، أقدر أفتح تفاصيل الشركة مباشرة.
+
+مثلاً من Department:
+
+Department → ABC Company → Company Details
+
+ومن Employee:
+
+Employee → ABC Company → Company Details
+
+وهكذا.
+
+عرض الـ IDs
+
+اعرض الـ IDs المهمة بطريقة مناسبة للـ Platform Owner، خصوصًا UUIDs، مع إمكانية نسخها.
+
+لكن لا تجعل الـ UUID هو المعلومة الأساسية.
+الاسم والعلاقة يجب أن يكونوا واضحين أولًا.
+
+الحالات
+
+اعرض status لكل record عندما يكون موجودًا، مثل:
+
+Active
+Inactive
+Archived
+Pending
+Approved
+Rejected
+Locked
+
+بحسب الـ entity.
+
+البيانات الحساسة
+
+ممنوع تمامًا إظهار:
+
+- Passwords
+- Password hashes
+- Session tokens
+- API keys
+- Authentication secrets
+- Refresh tokens
+- أي credentials أو secrets
+
+حتى لو كانت موجودة في قاعدة البيانات.
+
+Tenant Isolation
+
+هذه نقطة حرجة جدًا.
+
+Platform Owner فقط يستطيع رؤية بيانات كل الشركات.
+
+لكن حتى داخل Database Management:
+كل query لازم تكون واضحة في نطاقها، ولا تعتمد على frontend filtering فقط.
+
+أي endpoint يعرض بيانات شركة يجب أن يتحقق من:
+
+Company ID / tenant ownership
+
+ولا يسمح أبدًا بتسريب بيانات شركة إلى شركة أخرى.
+
+التصميم
+
+لا أريد شاشة ضخمة مليئة بأسماء الجداول التقنية.
+
+اعملها كـ Database Management Dashboard منظمة:
+
+Database Management
+
+[Search]
+
+[Company Filter]
+
+ثم أقسام/Entities واضحة.
+
+مثلاً:
+
+Companies
+عدد الشركات
+
+Employees
+عدد الموظفين
+
+Departments
+عدد الأقسام
+
+Branches
+عدد الفروع
+
+Users
+عدد الحسابات
+
+ثم عند الدخول لأي entity تظهر البيانات بشكل منظم مع Company Context واضح.
+
+مهم جدًا
+
+لا تحول Database Management إلى مكان لتعديل بيانات HR عشوائيًا.
+
+في المرحلة الحالية أريدها أساسًا:
+
+Inspection + Support + Organization
+
+والتعديلات الخطرة لا تضفها إلا لو كانت موجودة أصلًا ومحمية بصلاحيات مناسبة.
+
+لا تعمل delete أو destructive actions جديدة.
+
+المطلوب منك
+
+قبل التعديل:
+
+1. افحص الـ Database Management الحالي.
+2. افحص كل الـ entities الموجودة والعلاقات بينها.
+3. حدد أين توجد Company/Tenant relationships.
+4. حدد أي بيانات لا يظهر لها Company Context حاليًا.
+5. لا تغير schema لمجرد العرض إذا كانت العلاقات موجودة بالفعل.
+
+بعدها نفّذ أصغر تغيير معماري مناسب لتنظيم الشاشة وإظهار العلاقات.
+
+وفي النهاية تحقق من:
+
+- Platform Owner يرى بيانات كل الشركات.
+- كل record يظهر Company Context واضح.
+- Employee → Company → Department → Branch relationships صحيحة.
+- Department → Company → Employees صحيحة.
+- Branch → Company → Departments/Employees صحيحة.
+- Shift → Company → Employees صحيحة.
+- لا يوجد cross-tenant data leakage.
+- لا تظهر أي credentials أو secrets.
+- API typecheck.
+- Frontend typecheck.
+- API build.
+- Frontend build.
+- OpenAPI/code generation إذا تم تعديل الـ contracts.
+- "git diff --check".
+
+لا تبدأ Phase جديدة، ولا تعدّل payroll أو attendance أو leave أو backup/restore أو أي business logic غير متعلق مباشرة بتنظيم Database Management.
