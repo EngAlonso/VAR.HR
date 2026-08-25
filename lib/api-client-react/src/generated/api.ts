@@ -1654,6 +1654,77 @@ export const useUpdateDepartment = <TError = ErrorType<unknown>,
       return useMutation(getUpdateDepartmentMutationOptions(options));
     }
 
+export const getDeleteDepartmentUrl = (departmentId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}`
+}
+
+/**
+ * @summary Delete an empty department
+ */
+export const deleteDepartment = async (departmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteDepartmentUrl(departmentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteDepartmentMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext> => {
+
+const mutationKey = ['deleteDepartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDepartment>>, {departmentId: string}> = (props) => {
+          const {departmentId} = props ?? {};
+
+          return  deleteDepartment(departmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDepartmentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDepartment>>>
+
+    export type DeleteDepartmentMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete an empty department
+ */
+export const useDeleteDepartment = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDepartment>>,
+        TError,
+        {departmentId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteDepartmentMutationOptions(options));
+    }
+
 export const getListBranchesUrl = () => {
 
 

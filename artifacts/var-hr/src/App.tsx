@@ -85,6 +85,7 @@ import {
   useCreateDepartment,
   useGetDepartment,
   useUpdateDepartment,
+  useDeleteDepartment,
   useListBranches,
   useCreateBranch,
   useListEmployees,
@@ -6042,6 +6043,7 @@ function Departments() {
   const schedules = useListWorkSchedules({ active: true } as any);
   const create = useCreateDepartment();
   const update = useUpdateDepartment();
+  const remove = useDeleteDepartment();
   const updateEmployee = useUpdateEmployee();
   const [selected, setSelected] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -6124,6 +6126,23 @@ function Departments() {
           }
         },
         onError: () => toast.error(t("couldNotSaveRecord")),
+      },
+    );
+  }
+  function deleteDepartment() {
+    if (!selected || !window.confirm(`${t("remove")}: ${form.name}?`)) return;
+    remove.mutate(
+      { departmentId: selected },
+      {
+        onSuccess: () => {
+          toast.success(t("departmentSaved"));
+          setShowCreate(false);
+          setSelected(null);
+          resetForm();
+          qc.invalidateQueries({ queryKey: getListDepartmentsQueryKey() });
+        },
+        onError: (error: any) =>
+          toast.error(apiErrorMessage(error, t("deleteFailed"))),
       },
     );
   }
@@ -6222,22 +6241,22 @@ function Departments() {
                     {t("departmentEmployees")}
                   </h3>
                   <div className="mt-3 space-y-2">
-                    {employees.data?.map((employee: any) => (
+                    {activeDetail.employees?.map((employee: any) => (
                       <div
                         key={employee.id}
                         className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
                       >
                         <div className="min-w-0">
-                          <div className="truncate font-medium">
-                            {employee.firstName} {employee.lastName}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {employee.employeeNumber}
-                          </div>
+                           <div className="truncate font-medium">
+                             {employee.name}
+                           </div>
+                           <div className="text-xs text-muted-foreground">
+                             {employee.department}
+                           </div>
                         </div>
                         {canManage && (
-                          <select
-                            value={employee.department?.id ?? ""}
+                           <select
+                             value={selected ?? ""}
                             onChange={(event) =>
                               setMembership(employee.id, event.target.value)
                             }
@@ -6255,7 +6274,7 @@ function Departments() {
                         )}
                       </div>
                     ))}
-                    {!employees.data?.length && (
+                     {!activeDetail.employees?.length && (
                       <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
                         {t("noEmployeesMatch")}
                       </div>
@@ -6324,7 +6343,9 @@ function Departments() {
                 className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
               >
                 <option value="">{t("selectManager")}</option>
-                {employees.data?.map((employee: any) => (
+                 {employees.data
+                   ?.filter((employee: any) => employee.role === "manager")
+                   .map((employee: any) => (
                   <option key={employee.id} value={employee.id}>
                     {employee.firstName} {employee.lastName}
                   </option>
@@ -6368,7 +6389,19 @@ function Departments() {
               >
                 {t("cancel")}
               </Button>
-              <Button type="submit">{t("saveChanges")}</Button>
+               {selected && (
+                 <Button
+                   type="button"
+                   variant="destructive"
+                   onClick={deleteDepartment}
+                   disabled={remove.isPending}
+                 >
+                   {t("remove")}
+                 </Button>
+               )}
+               <Button type="submit" disabled={remove.isPending}>
+                 {t("saveChanges")}
+               </Button>
             </div>
           </form>
         </Modal>

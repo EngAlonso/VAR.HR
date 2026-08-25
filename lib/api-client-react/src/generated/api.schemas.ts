@@ -645,6 +645,7 @@ export type AttendanceCalculationScheduleSource = typeof AttendanceCalculationSc
 
 export const AttendanceCalculationScheduleSource = {
   employee_assignment: 'employee_assignment',
+  department_default: 'department_default',
   company_default: 'company_default',
   legacy_rules: 'legacy_rules',
 } as const;

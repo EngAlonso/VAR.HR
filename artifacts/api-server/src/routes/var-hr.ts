@@ -1915,6 +1915,8 @@ async function validateDepartmentReferences(
             and(
               eq(employeesTable.id, managerId),
               eq(employeesTable.companyId, companyId),
+              eq(employeesTable.status, "active"),
+              eq(employeesTable.role, "manager"),
             ),
           )
           .limit(1)
@@ -1935,6 +1937,44 @@ async function validateDepartmentReferences(
   ]);
   return (!managerId || manager.length > 0) &&
     (!defaultScheduleId || schedule.length > 0);
+}
+
+async function validateEmployeeDepartmentReferences(
+  companyId: string,
+  departmentId: string | null | undefined,
+  branchId: string | null | undefined,
+) {
+  const [department, branch] = await Promise.all([
+    departmentId
+      ? db
+          .select({ id: departmentsTable.id })
+          .from(departmentsTable)
+          .where(
+            and(
+              eq(departmentsTable.id, departmentId),
+              eq(departmentsTable.companyId, companyId),
+              eq(departmentsTable.active, true),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([{ id: null }]),
+    branchId
+      ? db
+          .select({ id: branchesTable.id })
+          .from(branchesTable)
+          .where(
+            and(
+              eq(branchesTable.id, branchId),
+              eq(branchesTable.companyId, companyId),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([{ id: null }]),
+  ]);
+  return (
+    (!departmentId || department.length > 0) &&
+    (!branchId || branch.length > 0)
+  );
 }
 
 async function departmentResponse(
@@ -2527,6 +2567,66 @@ router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
   res.json(UpdateDepartmentResponse.parse(response));
 });
 
+router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canManageCompany(context)) {
+    res
+      .status(403)
+      .json({ error: message(req, "noPermissionCreateDepartments") });
+    return;
+  }
+  const params = GetDepartmentParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [department] = await db
+    .select()
+    .from(departmentsTable)
+    .where(
+      and(
+        eq(departmentsTable.id, params.data.departmentId),
+        eq(departmentsTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!department) {
+    res.status(404).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const members = await db
+    .select({ id: employeesTable.id })
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.companyId, context.companyId),
+        eq(employeesTable.departmentId, department.id),
+      ),
+    )
+    .limit(1);
+  if (members.length > 0) {
+    res.status(409).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  await db
+    .delete(departmentsTable)
+    .where(
+      and(
+        eq(departmentsTable.id, department.id),
+        eq(departmentsTable.companyId, context.companyId),
+      ),
+    );
+  await recordAudit(
+    context.companyId,
+    "deleted",
+    "department",
+    department.id,
+    null,
+    department,
+  );
+  res.status(204).send();
+});
+
 router.get("/branches", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   const branches = await db
@@ -2643,6 +2743,16 @@ router.post("/employees", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  if (
+    !(await validateEmployeeDepartmentReferences(
+      context.companyId,
+      parsed.data.departmentId,
+      parsed.data.branchId,
+    ))
+  ) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const capacity = await ensureEmployeeCapacity(context.companyId);
   const activeCount = await db
     .select({ id: employeesTable.id })
@@ -2738,6 +2848,30 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  const [before] = await db
+    .select()
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.id, params.data.employeeId),
+        eq(employeesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!before) {
+    res.status(404).json({ error: message(req, "employeeNotFound") });
+    return;
+  }
+  if (
+    !(await validateEmployeeDepartmentReferences(
+      context.companyId,
+      parsed.data.departmentId ?? before.departmentId,
+      parsed.data.branchId ?? before.branchId,
+    ))
+  ) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const [employee] = await db
     .update(employeesTable)
     .set({ ...parsed.data, updatedAt: new Date() })
@@ -2781,6 +2915,7 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     "employee",
     employee.id,
     parsed.data,
+    before,
   );
   res.json(UpdateEmployeeResponse.parse(employeeResponse(row)));
 });

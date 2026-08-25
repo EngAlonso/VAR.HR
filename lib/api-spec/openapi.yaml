@@ -371,6 +371,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Department"
+    delete:
+      operationId: deleteDepartment
+      tags: [organization]
+      summary: Delete an empty department
+      responses:
+        "204":
+          description: Department deleted
+        "409":
+          description: Department still has employees
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /branches:
     get:
       operationId: listBranches

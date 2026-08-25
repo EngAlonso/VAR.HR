@@ -568,6 +568,16 @@ export const UpdateDepartmentResponse = zod.object({
 
 
 /**
+ * @summary Delete an empty department
+ */
+export const DeleteDepartmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const DeleteDepartmentResponse = zod.void()
+
+
+/**
  * @summary List company branches
  */
 export const ListBranchesResponseItem = zod.object({
@@ -922,7 +932,7 @@ export const PreviewAttendanceCalculationResponse = zod.object({
   "attendanceDate": zod.iso.date(),
   "ruleVersion": zod.int(),
   "ruleEffectiveFrom": zod.iso.date(),
-  "scheduleSource": zod.enum(['employee_assignment', 'company_default', 'legacy_rules']),
+  "scheduleSource": zod.enum(['employee_assignment', 'department_default', 'company_default', 'legacy_rules']),
   "rawLateMinutes": zod.int().min(previewAttendanceCalculationResponseRawLateMinutesMin),
   "lateGraceMinutes": zod.int().min(previewAttendanceCalculationResponseLateGraceMinutesMin),
   "effectiveLateMinutes": zod.int().min(previewAttendanceCalculationResponseEffectiveLateMinutesMin),
@@ -1040,7 +1050,7 @@ export const RecalculateAttendanceResponse = zod.object({
   "attendanceDate": zod.iso.date(),
   "ruleVersion": zod.int(),
   "ruleEffectiveFrom": zod.iso.date(),
-  "scheduleSource": zod.enum(['employee_assignment', 'company_default', 'legacy_rules']),
+  "scheduleSource": zod.enum(['employee_assignment', 'department_default', 'company_default', 'legacy_rules']),
   "rawLateMinutes": zod.int().min(recalculateAttendanceResponseRawLateMinutesMin),
   "lateGraceMinutes": zod.int().min(recalculateAttendanceResponseLateGraceMinutesMin),
   "effectiveLateMinutes": zod.int().min(recalculateAttendanceResponseEffectiveLateMinutesMin),
