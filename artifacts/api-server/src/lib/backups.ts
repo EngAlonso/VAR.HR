@@ -565,7 +565,22 @@ async function insertScope(
       ) {
         throw new Error("Backup contains a company outside the restore scope.");
       }
-      const json = JSON.stringify(row);
+      // jsonb_populate_record fills omitted columns with NULL rather than
+      // applying the table default. Older backups predate the department
+      // management fields, so normalize those rows without changing the
+      // stored payload or its integrity checksum.
+      const restoreRow =
+        table === "var_hr_departments"
+          ? {
+              ...row,
+              name_ar: row.name_ar ?? "",
+              description: row.description ?? null,
+              manager_id: row.manager_id ?? null,
+              default_schedule_id: row.default_schedule_id ?? null,
+              active: row.active ?? true,
+            }
+          : row;
+      const json = JSON.stringify(restoreRow);
       await client.query(
         `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM jsonb_populate_record(NULL::${quoteIdentifier(table)}, $1::jsonb) ON CONFLICT DO NOTHING`,
         [json],
