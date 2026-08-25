@@ -8665,11 +8665,18 @@ function Rules() {
   const rules = q.data as any;
   const localized = {
     current: locale === "ar" ? "الإصدار الحالي" : "Current version",
-    historical: locale === "ar" ? "الإصدارات السابقة" : "Historical versions",
+    historical:
+      locale === "ar" ? "سجل قواعد الحضور" : "Attendance Rule History",
     create: locale === "ar" ? "إنشاء إصدار جديد" : "Create New Version",
     effectiveFrom: locale === "ar" ? "ساري من" : "Effective from",
     effectiveTo: locale === "ar" ? "ساري حتى" : "Effective to",
+    status: locale === "ar" ? "الحالة" : "Status",
     createdBy: locale === "ar" ? "أنشأه" : "Created by",
+    createdAt: locale === "ar" ? "تاريخ الإنشاء" : "Created date",
+    historicalNote:
+      locale === "ar"
+        ? "يتم الاحتفاظ بالإصدارات السابقة لاستخدامها في حسابات الحضور والرواتب التاريخية، ولا يتم تعديلها مباشرة."
+        : "Previous versions are preserved for historical attendance and payroll calculations and are not edited directly.",
     review: locale === "ar" ? "مراجعة قبل الحفظ" : "Review before saving",
     confirm: locale === "ar" ? "حفظ الإصدار" : "Save version",
   };
@@ -8850,29 +8857,68 @@ function Rules() {
             <p className="mt-1 text-sm text-muted-foreground">
               {localized.current}: {rules.version || 1}
             </p>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              {localized.historicalNote}
+            </p>
           </div>
           <Button type="button" onClick={() => setReviewVersion(true)}>
             {localized.create}
           </Button>
         </div>
         <div className="mt-5 grid gap-3">
-          {(versions.data || []).map((version) => (
+          {(versions.data || []).map((version: any) => (
             <div
               key={version.id}
-              className="grid gap-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-4"
+              className="grid gap-3 rounded-xl border border-border p-4 text-sm sm:grid-cols-2 lg:grid-cols-6"
             >
-              <strong>
-                {t("version")} {version.version}
-              </strong>
-              <span>
-                {localized.effectiveFrom}: {version.effectiveFrom}
-              </span>
-              <span>
-                {localized.effectiveTo}: {version.effectiveTo || "—"}
-              </span>
-              <span>
-                {localized.createdBy}: {version.createdBy}
-              </span>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {t("version")}
+                </span>
+                <strong>{version.version}</strong>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {localized.effectiveFrom}
+                </span>
+                <span>{version.effectiveFrom}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {localized.effectiveTo}
+                </span>
+                <span>{version.effectiveTo || "—"}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {localized.status}
+                </span>
+                <span>
+                  {version.status === "active"
+                    ? locale === "ar"
+                      ? "نشط"
+                      : "Active"
+                    : locale === "ar"
+                      ? "مؤرشف"
+                      : "Archived"}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {localized.createdBy}
+                </span>
+                <span>{version.createdBy}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {localized.createdAt}
+                </span>
+                <span>
+                  {new Date(version.createdAt).toLocaleDateString(
+                    locale === "ar" ? "ar-EG" : "en-US",
+                  )}
+                </span>
+              </div>
             </div>
           ))}
         </div>

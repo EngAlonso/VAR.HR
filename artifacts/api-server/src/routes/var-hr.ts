@@ -5036,45 +5036,52 @@ router.post("/rules/versions", async (req, res): Promise<void> => {
         eq(attendanceRuleVersionsTable.status, "active"),
       ),
     );
-  const prior = existing
-    .filter(
-      (row) => row.effectiveFrom < effectiveFrom && row.effectiveTo === null,
-    )
-    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
-  const overlaps = existing.some(
+  const covering = existing.filter(
     (row) =>
-      row.id !== prior?.id &&
       row.effectiveFrom <= effectiveFrom &&
       (row.effectiveTo === null || row.effectiveTo >= effectiveFrom),
   );
-  if (overlaps) {
+  const prior = covering
+    .filter((row) => row.effectiveFrom < effectiveFrom)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  const next = existing
+    .filter((row) => row.effectiveFrom > effectiveFrom)
+    .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))[0];
+  if (
+    covering.length > 1 ||
+    existing.some((row) => row.effectiveFrom === effectiveFrom)
+  ) {
     res.status(409).json({
       error: "The effective date overlaps an existing attendance rule version.",
     });
     return;
   }
   const nextVersion = Math.max(0, ...existing.map((row) => row.version)) + 1;
-  if (prior) {
-    await db
-      .update(attendanceRuleVersionsTable)
-      .set({ effectiveTo: dateOffset(effectiveFrom, -1) })
-      .where(eq(attendanceRuleVersionsTable.id, prior.id));
-  }
-  const [created] = await db
-    .insert(attendanceRuleVersionsTable)
-    .values({
-      companyId: context.companyId,
-      version: nextVersion,
-      effectiveFrom,
-      status: "active",
-      createdBy: context.accountId,
-      configuration: {
-        ...configurationInput,
+  const created = await db.transaction(async (tx) => {
+    if (prior) {
+      await tx
+        .update(attendanceRuleVersionsTable)
+        .set({ effectiveTo: dateOffset(effectiveFrom, -1) })
+        .where(eq(attendanceRuleVersionsTable.id, prior.id));
+    }
+    const [inserted] = await tx
+      .insert(attendanceRuleVersionsTable)
+      .values({
+        companyId: context.companyId,
         version: nextVersion,
         effectiveFrom,
-      },
-    })
-    .returning();
+        effectiveTo: next ? dateOffset(next.effectiveFrom, -1) : null,
+        status: "active",
+        createdBy: context.accountId,
+        configuration: {
+          ...configurationInput,
+          version: nextVersion,
+          effectiveFrom,
+        },
+      })
+      .returning();
+    return inserted;
+  });
   await recordAudit(
     context.companyId,
     "created",

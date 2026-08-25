@@ -1,0 +1,73 @@
+Update the Attendance Rules version history UX and effective-date behavior.
+
+1. Rename "Previous Versions" to:
+   - English: Attendance Rule History
+   - Arabic: سجل قواعد الحضور
+
+2. Improve the history section UI so it clearly shows:
+   - Version number
+   - Effective From
+   - Effective To
+   - Status
+   - Created by
+   - Created date
+   - A short note explaining that old versions are preserved for historical attendance/payroll calculations and are not edited directly.
+
+3. Fix the effective-date behavior.
+
+Currently, when a company owner creates a new attendance-rule version during an existing rule period, the system shows:
+"The effective date overlaps an existing attendance..."
+
+This should NOT happen when the user intentionally wants to change the rules from a specific date.
+
+Example:
+- Version 1 starts on August 1.
+- On August 15, the company owner wants new rules to apply.
+- They should be able to create Version 2 with Effective From = August 15.
+- The system should automatically close Version 1 with Effective To = August 14.
+- Version 2 should apply from August 15 onward.
+
+The system must preserve the historical version instead of rejecting the change as an overlap.
+
+4. Keep historical calculations correct:
+- Attendance before August 15 uses Version 1.
+- Attendance from August 15 onward uses Version 2.
+- Existing raw attendance records must not be modified.
+- Existing finalized/locked payroll must not be modified.
+- Recalculation must resolve the rule according to the attendance date.
+
+5. Handle future-dated versions correctly as well:
+If Version 2 is scheduled for a future date, the current version should remain active until the day before Version 2 starts.
+
+6. Prevent only TRUE conflicts:
+Do not allow two different rule versions to cover the same effective date after the system automatically adjusts the previous version's Effective To.
+
+7. Do not add a restore/activate-old-version workflow.
+If the company wants to return to an old configuration, the correct behavior is to create a NEW version using the old configuration with a new Effective From date.
+
+8. Preserve all existing:
+- tenant isolation
+- authorization
+- audit logging
+- attendance calculation engine
+- payroll integration
+- Phase 2 shift system
+- leave and permission behavior
+
+Do not redesign the rule engine or create a parallel versioning system.
+
+Before changing anything, inspect the current version creation/update logic and identify exactly why the overlap error occurs.
+
+Then implement the smallest correct fix.
+
+Finally verify:
+- Creating a new version in the middle of the current period works.
+- The previous version automatically closes the day before.
+- Historical attendance still resolves to the correct version.
+- Future attendance resolves to the new version.
+- Genuine overlapping versions are rejected.
+- Attendance Rule History displays the correct dates and versions.
+- API typecheck passes.
+- Frontend typecheck passes.
+- API build passes.
+- Frontend build passes.
