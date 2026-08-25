@@ -6392,7 +6392,7 @@ function Departments() {
                {selected && (
                  <Button
                    type="button"
-                   variant="destructive"
+                   variant="danger"
                    onClick={deleteDepartment}
                    disabled={remove.isPending}
                  >
