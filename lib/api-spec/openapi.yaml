@@ -1571,6 +1571,21 @@ paths:
         "204":
           description: Mapping removed
   /devices/{deviceId}/events:
+    get:
+      operationId: listBiometricDeviceEvents
+      tags: [devices]
+      summary: List raw biometric events received from a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Raw biometric events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BiometricDeviceEvent"
     post:
       operationId: ingestBiometricEvent
       tags: [devices]
@@ -3618,6 +3633,30 @@ components:
           type: string
           enum: [received, mapped, pending_adapter]
         duplicate: { type: boolean }
+    BiometricDeviceEvent:
+      type: object
+      required:
+        [
+          id,
+          deviceId,
+          deviceEmployeeId,
+          employeeId,
+          occurredAt,
+          eventType,
+          direction,
+          processingStatus,
+          rawPayload,
+        ]
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        deviceEmployeeId: { type: string }
+        employeeId: { type: ["string", "null"] }
+        occurredAt: { type: string, format: date-time }
+        eventType: { type: string }
+        direction: { type: string, enum: [in, out, unknown] }
+        processingStatus: { type: string }
+        rawPayload: { type: object, additionalProperties: true }
     AttendanceLocation:
       type: object
       required: [id, name, latitude, longitude, radiusMeters, active]

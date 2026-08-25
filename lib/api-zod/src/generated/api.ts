@@ -3381,6 +3381,27 @@ export const DeleteDeviceMappingResponse = zod.void()
 
 
 /**
+ * @summary List raw biometric events received from a device
+ */
+export const ListBiometricDeviceEventsParams = zod.object({
+  "deviceId": zod.coerce.string()
+})
+
+export const ListBiometricDeviceEventsResponseItem = zod.object({
+  "id": zod.string(),
+  "deviceId": zod.string(),
+  "deviceEmployeeId": zod.string(),
+  "employeeId": zod.string().nullable(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "eventType": zod.string(),
+  "direction": zod.enum(['in', 'out', 'unknown']),
+  "processingStatus": zod.string(),
+  "rawPayload": zod.record(zod.string(), zod.unknown())
+})
+export const ListBiometricDeviceEventsResponse = zod.array(ListBiometricDeviceEventsResponseItem)
+
+
+/**
  * @summary Store a raw biometric event for adapter processing
  */
 export const IngestBiometricEventParams = zod.object({

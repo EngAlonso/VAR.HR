@@ -148,6 +148,7 @@ import {
   useDeleteHoliday,
   useListBiometricProviders,
   useListDeviceSyncHistory,
+  useListBiometricDeviceEvents,
   useListDeviceMappings,
   useCreateDeviceMapping,
   useDeleteDeviceMapping,
@@ -186,6 +187,7 @@ import {
   getListScheduleAssignmentsQueryKey,
   getListHolidaysQueryKey,
   getListDeviceSyncHistoryQueryKey,
+  getListBiometricDeviceEventsQueryKey,
   getListAttendanceLocationsQueryKey,
   getGetEmployeeHrRecordQueryKey,
   getGetSubscriptionQueryKey,
@@ -13771,6 +13773,7 @@ function Devices() {
   const createLocation = useCreateAttendanceLocation();
   const updateLocation = useUpdateAttendanceLocation();
   const [show, setShow] = useState(false);
+  const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [form, setForm] = useState({
     name: "",
@@ -13805,6 +13808,12 @@ function Devices() {
       queryKey: getListDeviceMappingsQueryKey(selectedDeviceId),
     },
   });
+  const selectedEvents = useListBiometricDeviceEvents(selectedDeviceId, {
+    query: {
+      enabled: Boolean(selectedDeviceId),
+      queryKey: getListBiometricDeviceEventsQueryKey(selectedDeviceId),
+    },
+  });
   function submit(e: FormEvent) {
     e.preventDefault();
     const data = {
@@ -13818,9 +13827,12 @@ function Devices() {
     create.mutate(
       { data: data as any },
       {
-        onSuccess: () => {
+        onSuccess: (createdDevice: any) => {
           toast.success(t("deviceAdded"));
           setShow(false);
+          if (createdDevice.registrationKey) {
+            setRegistrationKey(createdDevice.registrationKey);
+          }
           setForm({
             name: "",
             manufacturer: "",
@@ -14228,6 +14240,70 @@ function Devices() {
             )}
           </Card>
         )}
+        {selectedDeviceId && activeDevice && (
+          <Card>
+            <div className="border-b border-border p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg font-semibold">
+                    Imported punches
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Raw events received from this device, kept separate from calculated attendance.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedEvents.refetch()}
+                  disabled={selectedEvents.isFetching}
+                >
+                  <RefreshCw size={15} />
+                  {t("refresh")}
+                </Button>
+              </div>
+            </div>
+            {selectedEvents.isLoading ? (
+              <Skeleton className="m-5 h-20" />
+            ) : selectedEvents.isError ? (
+              <ErrorState retry={() => selectedEvents.refetch()} />
+            ) : selectedEvents.data?.length ? (
+              <div className="divide-y divide-border">
+                {selectedEvents.data.map((event: any) => {
+                  const mapping = selectedMappings.data?.find(
+                    (item: any) => item.deviceEmployeeId === event.deviceEmployeeId,
+                  );
+                  return (
+                    <div className="p-4" key={event.id}>
+                      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                        <div>
+                          <div className="font-semibold">
+                            {mapping?.employee?.name || `Device user ${event.deviceEmployeeId}`}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {event.deviceEmployeeId} · {event.direction} · {event.eventType}
+                          </div>
+                        </div>
+                        <div className="text-end text-xs text-muted-foreground">
+                          {date(event.occurredAt)} · {time(event.occurredAt)}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Badge tone={event.processingStatus === "mapped" ? "good" : "warn"}>
+                          {event.processingStatus}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Empty
+                title="No imported punches"
+                detail="A real ADMS upload will appear here after the device sends attendance data."
+              />
+            )}
+          </Card>
+        )}
         <Card>
           <div className="flex items-start justify-between border-b border-border p-5">
             <div>
@@ -14377,6 +14453,35 @@ function Devices() {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+      {registrationKey && (
+        <Modal
+          title="ZKTeco ADMS registration key"
+          onClose={() => setRegistrationKey(null)}
+        >
+          <div className="space-y-4">
+            <div className="rounded-lg border border-accent/30 bg-accent/10 p-4 text-sm">
+              Save this key now. It is shown only once and is used as the device Comm Key.
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+              <code className="min-w-0 flex-1 break-all text-sm">{registrationKey}</code>
+              <Button
+                variant="outline"
+                onClick={() => void navigator.clipboard?.writeText(registrationKey)}
+              >
+                Copy
+              </Button>
+            </div>
+            <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+              Configure the K50 Pro to use your published HTTPS host with ADMS path
+              <code className="mx-1 font-semibold text-foreground">/iclock</code>.
+              Keep the device ID equal to its Serial Number.
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setRegistrationKey(null)}>Done</Button>
+            </div>
+          </div>
         </Modal>
       )}
       {showLocation && (

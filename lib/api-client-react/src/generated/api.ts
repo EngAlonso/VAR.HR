@@ -43,6 +43,7 @@ import type {
   AuthPermission,
   AuthSessionResponse,
   BiometricDevice,
+  BiometricDeviceEvent,
   BiometricEventInput,
   BiometricEventReceipt,
   BiometricProvider,
@@ -7157,6 +7158,83 @@ export const useDeleteDeviceMapping = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeleteDeviceMappingMutationOptions(options));
     }
+
+export const getListBiometricDeviceEventsUrl = (deviceId: string,) => {
+
+
+
+
+  return `/api/devices/${deviceId}/events`
+}
+
+/**
+ * @summary List raw biometric events received from a device
+ */
+export const listBiometricDeviceEvents = async (deviceId: string, options?: Parameters<typeof customFetch>[1]): Promise<BiometricDeviceEvent[]> => {
+
+  return customFetch<BiometricDeviceEvent[]>(getListBiometricDeviceEventsUrl(deviceId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBiometricDeviceEventsQueryKey = (deviceId: string,) => {
+    return [
+    `/api/devices/${deviceId}/events`
+    ] as const;
+    }
+
+
+export const getListBiometricDeviceEventsQueryOptions = <TData = Awaited<ReturnType<typeof listBiometricDeviceEvents>>, TError = ErrorType<unknown>>(deviceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBiometricDeviceEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBiometricDeviceEventsQueryKey(deviceId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBiometricDeviceEvents>>> = ({ signal }) => listBiometricDeviceEvents(deviceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: deviceId !== null && deviceId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBiometricDeviceEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBiometricDeviceEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listBiometricDeviceEvents>>>
+export type ListBiometricDeviceEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List raw biometric events received from a device
+ */
+
+export function useListBiometricDeviceEvents<TData = Awaited<ReturnType<typeof listBiometricDeviceEvents>>, TError = ErrorType<unknown>>(
+ deviceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBiometricDeviceEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBiometricDeviceEventsQueryOptions(deviceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getIngestBiometricEventUrl = (deviceId: string,) => {
 

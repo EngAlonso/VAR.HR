@@ -96,6 +96,7 @@ import {
   IngestBiometricEventBody,
   IngestBiometricEventParams,
   IngestBiometricEventResponse,
+  ListBiometricDeviceEventsResponse,
   ListAttendanceHistoryQueryParams,
   ListAttendanceHistoryResponse,
   ListAttendanceRuleVersionsResponse,
@@ -8666,6 +8667,59 @@ router.delete(
     res.status(204).send(DeleteDeviceMappingResponse.parse(undefined));
   },
 );
+
+router.get("/devices/:deviceId/events", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "devices.view")) {
+    denyCapability(res, req, "devices.view");
+    return;
+  }
+  const params = IngestBiometricEventParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.deviceId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [device] = await db
+    .select({ id: devicesTable.id })
+    .from(devicesTable)
+    .where(
+      and(
+        eq(devicesTable.id, params.data.deviceId),
+        eq(devicesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!device) {
+    res.status(404).json({ error: message(req, "deviceNotFound") });
+    return;
+  }
+  const events = await db
+    .select()
+    .from(biometricEventsTable)
+    .where(
+      and(
+        eq(biometricEventsTable.deviceId, device.id),
+        eq(biometricEventsTable.companyId, context.companyId),
+      ),
+    )
+    .orderBy(desc(biometricEventsTable.occurredAt))
+    .limit(100);
+  res.json(
+    ListBiometricDeviceEventsResponse.parse(
+      events.map((event) => ({
+        id: event.id,
+        deviceId: event.deviceId,
+        deviceEmployeeId: event.deviceEmployeeId,
+        employeeId: event.employeeId,
+        occurredAt: event.occurredAt.toISOString(),
+        eventType: event.eventType,
+        direction: event.direction,
+        processingStatus: event.processingStatus,
+        rawPayload: event.rawPayload,
+      })),
+    ),
+  );
+});
 
 router.post("/devices/:deviceId/events", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);

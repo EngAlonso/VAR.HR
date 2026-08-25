@@ -1992,6 +1992,30 @@ export interface BiometricEventReceipt {
   duplicate: boolean;
 }
 
+export type BiometricDeviceEventDirection = typeof BiometricDeviceEventDirection[keyof typeof BiometricDeviceEventDirection];
+
+
+export const BiometricDeviceEventDirection = {
+  in: 'in',
+  out: 'out',
+  unknown: 'unknown',
+} as const;
+
+export type BiometricDeviceEventRawPayload = { [key: string]: unknown };
+
+export interface BiometricDeviceEvent {
+  id: string;
+  deviceId: string;
+  deviceEmployeeId: string;
+  /** @nullable */
+  employeeId: string | null;
+  occurredAt: string;
+  eventType: string;
+  direction: BiometricDeviceEventDirection;
+  processingStatus: string;
+  rawPayload: BiometricDeviceEventRawPayload;
+}
+
 export interface AttendanceLocation {
   id: string;
   name: string;
