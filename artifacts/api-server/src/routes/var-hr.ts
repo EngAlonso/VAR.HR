@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { createHash, randomBytes } from "node:crypto";
 import {
   and,
   asc,
@@ -1598,8 +1599,8 @@ function providerEventValidationError(
   return null;
 }
 
-async function applyProviderAttendanceEvent(
-  context: TenantContext,
+export async function applyProviderAttendanceEvent(
+  context: Pick<TenantContext, "companyId" | "company">,
   event: ProviderAttendanceEvent,
   employeeId: string,
 ): Promise<void> {
@@ -7824,6 +7825,14 @@ router.post("/devices", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "branchNotFound") });
     return;
   }
+  const registrationKey =
+    parsed.data.adapterKey === "zkteco-adms" &&
+    parsed.data.manufacturer.trim().toLowerCase() === "zkteco"
+      ? randomBytes(32).toString("base64url")
+      : null;
+  const registrationKeyHash = registrationKey
+    ? createHash("sha256").update(registrationKey).digest("hex")
+    : null;
   const [device] = await db.transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`var_hr_device_letters:${context.companyId}`}))`,
@@ -7853,17 +7862,30 @@ router.post("/devices", async (req, res): Promise<void> => {
         port: parsed.data.port,
         deviceIdentifier: parsed.data.deviceIdentifier,
         biometricCode: deviceLetter(nextIndex),
+        registrationKeyHash,
+        registrationKeyLast4: registrationKey?.slice(-4) ?? null,
         status: "not_configured",
         integrationState: "adapter_pending",
         note: message(req, "hardwareConnectorNote"),
       })
       .returning();
   });
-  await recordAudit(context.companyId, "created", "device", device.id, device);
+  await recordAudit(
+    context.companyId,
+    registrationKey ? "registration" : "created",
+    "device",
+    device.id,
+    device,
+  );
   const row = (await deviceRows(context)).find(
     (item) => item.device.id === device.id,
   );
-  res.status(201).json(CreateDeviceResponse.parse(mapDeviceRow(row!)));
+  res.status(201).json(
+    CreateDeviceResponse.parse({
+      ...mapDeviceRow(row!),
+      ...(registrationKey ? { registrationKey } : {}),
+    }),
+  );
 });
 
 router.get("/devices/providers", async (req, res): Promise<void> => {

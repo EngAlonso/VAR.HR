@@ -9,6 +9,38 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary ZKTeco ADMS cdata probe
+ */
+export const AdmsCdataProbeResponse = zod.unknown()
+
+
+/**
+ * @summary Receive a ZKTeco ADMS ATTLOG upload
+ */
+export const AdmsCdataUploadBody = zod.string()
+
+export const AdmsCdataUploadResponse = zod.unknown()
+
+
+/**
+ * @summary ZKTeco ADMS request poll
+ */
+export const AdmsGetRequestResponse = zod.unknown()
+
+
+/**
+ * @summary ZKTeco ADMS device command callback
+ */
+export const AdmsDeviceCommandResponse = zod.unknown()
+
+
+/**
+ * @summary ZKTeco ADMS heartbeat
+ */
+export const AdmsPingResponse = zod.unknown()
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -3154,7 +3186,8 @@ export const ListDevicesResponseItem = zod.object({
   "connectionState": zod.enum(['connected', 'unreachable', 'authentication_failure', 'unsupported', 'configuration_error', 'unknown']),
   "lastHealthCheck": zod.iso.datetime({"offset":true}).nullable(),
   "mappedEmployeeCount": zod.int().min(listDevicesResponseMappedEmployeeCountMin),
-  "note": zod.string().optional()
+  "note": zod.string().optional(),
+  "registrationKey": zod.string().optional().describe('One-time ADMS registration key, returned only when registering a ZKTeco ADMS device')
 })
 export const ListDevicesResponse = zod.array(ListDevicesResponseItem)
 
@@ -3204,7 +3237,8 @@ export const CreateDeviceResponse = zod.object({
   "connectionState": zod.enum(['connected', 'unreachable', 'authentication_failure', 'unsupported', 'configuration_error', 'unknown']),
   "lastHealthCheck": zod.iso.datetime({"offset":true}).nullable(),
   "mappedEmployeeCount": zod.int().min(createDeviceResponseMappedEmployeeCountMin),
-  "note": zod.string().optional()
+  "note": zod.string().optional(),
+  "registrationKey": zod.string().optional().describe('One-time ADMS registration key, returned only when registering a ZKTeco ADMS device')
 })
 
 

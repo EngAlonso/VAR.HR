@@ -14,6 +14,8 @@ export const devicesTable = pgTable("var_hr_devices", {
   port: integer("port"),
   deviceIdentifier: text("device_identifier"),
   biometricCode: text("biometric_code"),
+  registrationKeyHash: text("registration_key_hash"),
+  registrationKeyLast4: text("registration_key_last4"),
   status: text("status").notNull().default("not_configured"),
   integrationState: text("integration_state").notNull().default("adapter_pending"),
   connectionState: text("connection_state").notNull().default("unknown"),

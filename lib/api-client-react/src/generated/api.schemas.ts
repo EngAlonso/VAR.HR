@@ -1819,6 +1819,8 @@ export interface BiometricDevice {
   /** @minimum 0 */
   mappedEmployeeCount: number;
   note?: string;
+  /** One-time ADMS registration key, returned only when registering a ZKTeco ADMS device */
+  registrationKey?: string;
 }
 
 export type DeviceInputConnectionType = typeof DeviceInputConnectionType[keyof typeof DeviceInputConnectionType];

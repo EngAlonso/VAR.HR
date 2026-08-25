@@ -148,6 +148,379 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
+export const getAdmsCdataProbeUrl = () => {
+
+
+
+
+  return `/api/iclock/cdata`
+}
+
+/**
+ * @summary ZKTeco ADMS cdata probe
+ */
+export const admsCdataProbe = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAdmsCdataProbeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdmsCdataProbeQueryKey = () => {
+    return [
+    `/api/iclock/cdata`
+    ] as const;
+    }
+
+
+export const getAdmsCdataProbeQueryOptions = <TData = Awaited<ReturnType<typeof admsCdataProbe>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsCdataProbe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdmsCdataProbeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof admsCdataProbe>>> = ({ signal }) => admsCdataProbe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof admsCdataProbe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdmsCdataProbeQueryResult = NonNullable<Awaited<ReturnType<typeof admsCdataProbe>>>
+export type AdmsCdataProbeQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary ZKTeco ADMS cdata probe
+ */
+
+export function useAdmsCdataProbe<TData = Awaited<ReturnType<typeof admsCdataProbe>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsCdataProbe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdmsCdataProbeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdmsCdataUploadUrl = () => {
+
+
+
+
+  return `/api/iclock/cdata`
+}
+
+/**
+ * @summary Receive a ZKTeco ADMS ATTLOG upload
+ */
+export const admsCdataUpload = async (admsCdataUploadBody?: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAdmsCdataUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain', ...options?.headers },
+    body: admsCdataUploadBody
+  }
+);}
+
+
+
+
+
+export const getAdmsCdataUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof admsCdataUpload>>, TError,{data?: BodyType<string>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof admsCdataUpload>>, TError,{data?: BodyType<string>}, TContext> => {
+
+const mutationKey = ['admsCdataUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof admsCdataUpload>>, {data?: BodyType<string>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  admsCdataUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdmsCdataUploadMutationResult = NonNullable<Awaited<ReturnType<typeof admsCdataUpload>>>
+    export type AdmsCdataUploadMutationBody = BodyType<string> | undefined
+    export type AdmsCdataUploadMutationError = ErrorType<void>
+
+    /**
+ * @summary Receive a ZKTeco ADMS ATTLOG upload
+ */
+export const useAdmsCdataUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof admsCdataUpload>>, TError,{data?: BodyType<string>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof admsCdataUpload>>,
+        TError,
+        {data?: BodyType<string>},
+        TContext
+      > => {
+      return useMutation(getAdmsCdataUploadMutationOptions(options));
+    }
+
+export const getAdmsGetRequestUrl = () => {
+
+
+
+
+  return `/api/iclock/getrequest`
+}
+
+/**
+ * @summary ZKTeco ADMS request poll
+ */
+export const admsGetRequest = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAdmsGetRequestUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdmsGetRequestQueryKey = () => {
+    return [
+    `/api/iclock/getrequest`
+    ] as const;
+    }
+
+
+export const getAdmsGetRequestQueryOptions = <TData = Awaited<ReturnType<typeof admsGetRequest>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsGetRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdmsGetRequestQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof admsGetRequest>>> = ({ signal }) => admsGetRequest({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof admsGetRequest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdmsGetRequestQueryResult = NonNullable<Awaited<ReturnType<typeof admsGetRequest>>>
+export type AdmsGetRequestQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary ZKTeco ADMS request poll
+ */
+
+export function useAdmsGetRequest<TData = Awaited<ReturnType<typeof admsGetRequest>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsGetRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdmsGetRequestQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdmsDeviceCommandUrl = () => {
+
+
+
+
+  return `/api/iclock/devicecmd`
+}
+
+/**
+ * @summary ZKTeco ADMS device command callback
+ */
+export const admsDeviceCommand = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAdmsDeviceCommandUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdmsDeviceCommandMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof admsDeviceCommand>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof admsDeviceCommand>>, TError,void, TContext> => {
+
+const mutationKey = ['admsDeviceCommand'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof admsDeviceCommand>>, void> = () => {
+
+
+          return  admsDeviceCommand(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdmsDeviceCommandMutationResult = NonNullable<Awaited<ReturnType<typeof admsDeviceCommand>>>
+
+    export type AdmsDeviceCommandMutationError = ErrorType<unknown>
+
+    /**
+ * @summary ZKTeco ADMS device command callback
+ */
+export const useAdmsDeviceCommand = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof admsDeviceCommand>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof admsDeviceCommand>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdmsDeviceCommandMutationOptions(options));
+    }
+
+export const getAdmsPingUrl = () => {
+
+
+
+
+  return `/api/iclock/ping`
+}
+
+/**
+ * @summary ZKTeco ADMS heartbeat
+ */
+export const admsPing = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAdmsPingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdmsPingQueryKey = () => {
+    return [
+    `/api/iclock/ping`
+    ] as const;
+    }
+
+
+export const getAdmsPingQueryOptions = <TData = Awaited<ReturnType<typeof admsPing>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsPing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdmsPingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof admsPing>>> = ({ signal }) => admsPing({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof admsPing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdmsPingQueryResult = NonNullable<Awaited<ReturnType<typeof admsPing>>>
+export type AdmsPingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary ZKTeco ADMS heartbeat
+ */
+
+export function useAdmsPing<TData = Awaited<ReturnType<typeof admsPing>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof admsPing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdmsPingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getHealthCheckUrl = () => {
 
 

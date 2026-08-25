@@ -1,0 +1,59 @@
+The inspection confirmed that VAR HR currently does NOT support real ZKTeco K50 Pro communication.
+
+I want you to implement the real biometric device integration now.
+
+Target device:
+
+- ZKTeco K50 Pro
+- TCP port: 4370
+- ADMS/Cloud Server is available on the device
+- The VAR HR server is hosted on Replit
+- The device will connect over the Internet
+
+First, determine the correct integration architecture for the K50 Pro based on its supported ZKTeco communication methods.
+
+Prefer ADMS/Cloud Server integration if the K50 Pro supports it, because the device is remote and the VAR HR server is hosted in the cloud.
+
+Requirements:
+
+1. Implement a real ZKTeco/K50 Pro integration.
+2. Implement the required ADMS endpoints/protocol handling if ADMS is the correct method.
+3. Implement device registration and identification.
+4. Implement device authentication/security.
+5. Receive attendance punch events from the physical device.
+6. Map device users/punches to VAR HR employees safely.
+7. Store raw device events separately from calculated attendance.
+8. Prevent duplicate punch/event imports.
+9. Track device connection/sync status.
+10. Show the last successful synchronization time.
+11. Handle offline devices and reconnects safely.
+12. Preserve tenant isolation: a device belonging to Company A must never create or access attendance data for Company B.
+13. Add proper audit logging for device registration, configuration, synchronization, and imported events.
+14. Keep the existing mock biometric provider for development/testing; do not remove it.
+15. Add a real provider/adapter for ZKTeco instead of replacing the existing provider architecture.
+16. Do not modify existing attendance calculations or payroll logic unnecessarily. The real device should feed raw attendance events into the existing attendance pipeline.
+
+Important:
+Do NOT tell me to enter a Replit Preview URL into the K50 Pro.
+
+Before configuring the physical device, the VAR HR application must have a stable public deployment URL and a real device-facing endpoint.
+
+Also inspect the current Replit deployment configuration and tell me exactly what needs to be published/exposed for the K50 Pro.
+
+After implementation, provide me with:
+
+- The exact public server URL the K50 Pro should use.
+- The exact ADMS server path/endpoint.
+- The exact server port.
+- Whether HTTPS should be ON.
+- Whether "Enable Domain Name" should be ON or OFF.
+- Any required device-side settings.
+- How to register the K50 Pro inside VAR HR.
+- How to test that the physical device is connected.
+- How to test that one real fingerprint punch reaches VAR HR.
+- How to verify that the punch appears against the correct employee.
+- How to prevent duplicate punches.
+
+Do not modify real attendance/payroll data during testing.
+
+Do not claim the integration works until you have verified the actual protocol/endpoint and, if possible, tested a real device connection.

@@ -26,6 +26,47 @@ tags:
   - name: platform
   - name: auth
 paths:
+  /iclock/cdata:
+    get:
+      operationId: admsCdataProbe
+      tags: [devices]
+      summary: ZKTeco ADMS cdata probe
+      responses:
+        "200": { description: Protocol acknowledgement }
+    post:
+      operationId: admsCdataUpload
+      tags: [devices]
+      summary: Receive a ZKTeco ADMS ATTLOG upload
+      requestBody:
+        required: false
+        content:
+          text/plain: { schema: { type: string } }
+          application/x-www-form-urlencoded: { schema: { type: string } }
+      responses:
+        "200": { description: Protocol acknowledgement }
+        "400": { description: Malformed upload }
+        "401": { description: Invalid device key }
+  /iclock/getrequest:
+    get:
+      operationId: admsGetRequest
+      tags: [devices]
+      summary: ZKTeco ADMS request poll
+      responses:
+        "200": { description: Protocol acknowledgement }
+  /iclock/devicecmd:
+    post:
+      operationId: admsDeviceCommand
+      tags: [devices]
+      summary: ZKTeco ADMS device command callback
+      responses:
+        "200": { description: Protocol acknowledgement }
+  /iclock/ping:
+    get:
+      operationId: admsPing
+      tags: [devices]
+      summary: ZKTeco ADMS heartbeat
+      responses:
+        "200": { description: Protocol acknowledgement }
   /healthz:
     get:
       operationId: healthCheck
@@ -3436,6 +3477,9 @@ components:
         lastHealthCheck: { type: ["string", "null"], format: date-time }
         mappedEmployeeCount: { type: integer, minimum: 0 }
         note: { type: string }
+        registrationKey:
+          type: string
+          description: One-time ADMS registration key, returned only when registering a ZKTeco ADMS device
     DeviceInput:
       type: object
       required: [name, manufacturer, model, branchId]

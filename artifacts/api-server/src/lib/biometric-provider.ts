@@ -152,8 +152,26 @@ const unavailableProvider: BiometricProviderAdapter = {
   },
 };
 
+// ADMS devices push events to the server; they cannot be queried over TCP by this adapter.
+const zktecoAdmsProvider: BiometricProviderAdapter = {
+  key: "zkteco-adms",
+  name: "ZKTeco ADMS",
+  available: true,
+  description: "Inbound-only ZKTeco ADMS protocol receiver.",
+  async connect() {
+    return { status: "unsupported", message: "ZKTeco ADMS is inbound-only; the device must push to /iclock." };
+  },
+  async syncEmployees() {
+    throw new BiometricProviderError("employee_sync", "ZKTeco ADMS does not support outbound employee synchronization.");
+  },
+  async syncAttendance() {
+    throw new BiometricProviderError("attendance_sync", "ZKTeco ADMS does not support outbound attendance synchronization.");
+  },
+};
+
 const providers = new Map<string, BiometricProviderAdapter>([
   [mockProvider.key, mockProvider],
+  [zktecoAdmsProvider.key, zktecoAdmsProvider],
   [unavailableProvider.key, unavailableProvider],
 ]);
 
