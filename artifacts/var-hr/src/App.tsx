@@ -12119,9 +12119,24 @@ type AdminEntity = {
   label: string;
   columns: string[];
   editable: string[];
+  supportEditable?: string[];
+  canArchive?: boolean;
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
 type DatabaseCompany = { id: string; name: string; slug: string; active: boolean };
+type AdminHistoryEntry = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actorType: string;
+  actorId: string | null;
+  actor: { fullName: string; displayRole: string } | null;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+};
 const entityLabels: Record<string, string> = {
   companies: "Companies",
   departments: "Departments",
@@ -12198,6 +12213,10 @@ function DatabaseAdministration() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, unknown>>({});
+  const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
+  const [historyTitle, setHistoryTitle] = useState("");
   const [, setLocation] = useLocation();
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
@@ -12260,6 +12279,61 @@ function DatabaseAdministration() {
       URL.revokeObjectURL(url);
     } catch (cause) {
       setError(t("exportFailed"));
+    } finally {
+      setPending("");
+    }
+  };
+  const openEdit = (row: Record<string, unknown>) => {
+    setEditing(row);
+    setEditValues(
+      Object.fromEntries(
+        (data?.supportEditable ?? []).map((key) => [key, row[key] ?? ""]),
+      ),
+    );
+  };
+  const saveSupport = async () => {
+    if (!editing || !data) return;
+    setPending("save");
+    try {
+      await authRequest(`/api/platform/database/${data.key}/${editing.id}/support`, {
+        method: "PATCH",
+        body: JSON.stringify({ values: editValues }),
+      });
+      setEditing(null);
+      await load();
+    } catch (cause) {
+      setError("Could not save the supported changes.");
+    } finally {
+      setPending("");
+    }
+  };
+  const archive = async (row: Record<string, unknown>) => {
+    if (!data || !window.confirm(`Archive this ${data.label.toLowerCase().slice(0, -1)}?`)) {
+      return;
+    }
+    setPending("archive");
+    try {
+      await authRequest(`/api/platform/database/${data.key}/${row.id}/archive`, {
+        method: "POST",
+      });
+      await load();
+    } catch (cause) {
+      setError("This record could not be archived.");
+    } finally {
+      setPending("");
+    }
+  };
+  const openHistory = async (row: Record<string, unknown>) => {
+    if (!data) return;
+    setPending("history");
+    try {
+      const result = await authRequest<{ history: AdminHistoryEntry[]; label: string }>(
+        `/api/platform/database/${data.key}/${row.id}/history`,
+      );
+      setHistory(result.history);
+      setHistoryTitle(`${data.label} · ${String(row.name ?? row.first_name ?? row.id)}`);
+    } catch (cause) {
+      setError("Could not load record history.");
     } finally {
       setPending("");
     }
@@ -12411,6 +12485,9 @@ function DatabaseAdministration() {
                       {column.replaceAll("_", " ")}
                     </th>
                   ))}
+                  {(data.supportEditable?.length || data.canArchive) && (
+                    <th className="p-3 font-semibold">{t("actions")}</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -12437,6 +12514,29 @@ function DatabaseAdministration() {
                           : String(row[column] ?? "—")}
                       </td>
                     ))}
+                    {(data.supportEditable?.length || data.canArchive) && (
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" onClick={() => void openHistory(row)}>
+                            History
+                          </Button>
+                          {data.supportEditable?.length ? (
+                            <Button variant="outline" onClick={() => openEdit(row)}>
+                              {t("edit")}
+                            </Button>
+                          ) : null}
+                          {data.canArchive ? (
+                            <Button
+                              variant="quiet"
+                              disabled={pending !== ""}
+                              onClick={() => void archive(row)}
+                            >
+                              Archive
+                            </Button>
+                          ) : null}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -12449,6 +12549,67 @@ function DatabaseAdministration() {
           />
         )}
       </Card>
+      {editing && data && (
+        <Modal
+          title={`Support edit · ${data.label}`}
+          onClose={() => setEditing(null)}
+          className="max-w-2xl"
+        >
+          <p className="mb-4 text-sm text-muted-foreground">
+            Only approved operational fields are editable. Company ownership and authentication fields are locked.
+          </p>
+          <div className="space-y-3">
+            {(data.supportEditable ?? []).map((key) => (
+              <Field
+                key={key}
+                label={key.replaceAll("_", " ")}
+                value={String(editValues[key] ?? "")}
+                onChange={(value) =>
+                  setEditValues((current) => ({ ...current, [key]: value }))
+                }
+              />
+            ))}
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="quiet" onClick={() => setEditing(null)}>
+              {t("cancel")}
+            </Button>
+            <Button onClick={() => void saveSupport()} disabled={pending !== ""}>
+              {pending === "save" ? "…" : t("saveChanges")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {history && (
+        <Modal title={historyTitle} onClose={() => setHistory(null)} className="max-w-3xl">
+          <div className="space-y-4">
+            {history.length ? history.map((entry) => (
+              <div className="rounded-lg border border-border p-4" key={entry.id}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{entry.action.replaceAll("_", " ")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.actor?.fullName ?? entry.actorType} · {entry.actor?.displayRole ?? "System"}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{date(entry.createdAt)}</p>
+                </div>
+                {(entry.before || entry.after) && (
+                  <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
+                    <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(entry.before ?? {}, null, 2)}</pre>
+                    <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(entry.after ?? {}, null, 2)}</pre>
+                  </div>
+                )}
+                {entry.metadata && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Changed fields: {String(entry.metadata.fields ?? "—")}
+                  </p>
+                )}
+              </div>
+            )) : <Empty title="No history found" detail="This record has no recorded changes yet." />}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
