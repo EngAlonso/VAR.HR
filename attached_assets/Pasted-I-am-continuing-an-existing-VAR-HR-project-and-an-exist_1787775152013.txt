@@ -1,0 +1,110 @@
+I am continuing an existing VAR HR project and an existing K50 Pro ADMS investigation from another Replit Agent/account.
+
+DO NOT start the investigation from scratch.
+
+The previous Agent already investigated:
+- VAR HR project structure.
+- Existing ADMS routing.
+- K50 Pro Cloud Server requirements.
+- Replit Publishing.
+- Replit Custom Domains.
+- Replit deployment types.
+- DuckDNS.
+- FreeDNS.
+- EU.org.
+- No-IP.
+- HTTPS/TLS requirements.
+
+Confirmed technical facts:
+- VAR HR already exposes the ADMS endpoint at /iclock.
+- The ADMS ping endpoint is /iclock/ping.
+- /iclock is exposed by the API artifact in development and production.
+- No VAR HR code change should be necessary just to use a different hostname.
+- The K50 Pro keyboard cannot enter the '-' character.
+- Therefore the final hostname MUST NOT contain '-' or '_'.
+- The final solution MUST use HTTPS.
+- The final solution MUST NOT use the server IP.
+- We do NOT want to disable HTTPS.
+- We do NOT want firmware changes.
+- We do NOT want URL encoding or keyboard workarounds.
+- We do NOT want unnecessary changes to the VAR HR ADMS architecture.
+
+The previous Agent also checked official/current documentation for Replit and several free hostname providers, but the Agent's daily quota expired before producing the final conclusion.
+
+Your job is NOT to repeat everything.
+
+Instead, review the existing investigation notes/files and continue from the exact stopping point.
+
+I need the FINAL VERIFIED CONCLUSION.
+
+Compare the already-investigated options and determine whether there is a genuinely FREE hostname solution that satisfies ALL requirements:
+
+1. Stable hostname.
+2. No '-' character.
+3. No '_' character.
+4. Can be entered using the K50 Pro keyboard.
+5. HTTPS/TLS works for the exact hostname.
+6. Port 443 works.
+7. Replit routing works.
+8. Existing VAR HR /iclock route works without code changes.
+9. No IP address as the final solution.
+10. No firmware modification.
+11. No URL encoding/workaround.
+12. No unnecessary architecture changes.
+
+If no free solution satisfies everything, identify the CHEAPEST practical paid solution.
+
+INVESTIGATION ONLY.
+
+DO NOT:
+- Purchase anything.
+- Register a domain.
+- Change DNS.
+- Publish/deploy.
+- Change Replit settings.
+- Change VAR HR code.
+- Change the database.
+- Change any physical K50 settings.
+
+At the end, give me ONLY this final report:
+
+RECOMMENDED SOLUTION:
+[one clear answer]
+
+FREE OPTION:
+[YES/NO + exact reason]
+
+IF FREE IS IMPOSSIBLE:
+[cheapest practical option]
+
+EXACT SERVER ADDRESS:
+[exact format/example]
+
+SERVER PORT:
+[exact value]
+
+ENABLE DOMAIN NAME:
+[ON/OFF]
+
+HTTPS:
+[ON/OFF]
+
+PROXY:
+[ON/OFF]
+
+/iclock IN SERVER ADDRESS:
+[YES/NO]
+
+COMM KEY:
+[where it goes]
+
+REPLIT SETUP REQUIRED:
+[exact steps, but DO NOT perform them]
+
+DOMAIN PURCHASE REQUIRED:
+[YES/NO]
+
+FINAL VERDICT:
+[short clear conclusion]
+
+Do not make any changes. Investigation only.
