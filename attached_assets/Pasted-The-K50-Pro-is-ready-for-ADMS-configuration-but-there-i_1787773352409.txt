@@ -1,0 +1,42 @@
+The K50 Pro is ready for ADMS configuration, but there is a practical issue:
+
+The K50 Pro keyboard does not allow me to enter the "-" character required by the current Replit development hostname.
+
+The current VAR HR ADMS endpoint is working through the externally reachable Replit URL, but the current hostname contains many hyphens.
+
+I do NOT want to use the server IP because HTTPS/TLS and Replit routing may fail.
+I do NOT want to disable HTTPS.
+I do NOT want to change the K50 firmware or use URL encoding/workarounds.
+I do NOT want to change the VAR HR ADMS architecture unnecessarily.
+
+Please investigate and tell me the safest practical solution.
+
+Specifically:
+
+1. Verify the CURRENT active VAR HR public hostname.
+2. Verify whether the current hostname can be replaced with a stable custom domain that contains no hyphens.
+3. Check whether the existing VAR HR "/iclock" ADMS endpoint will automatically work through that custom domain without code changes.
+4. Check what is required in Replit to attach the custom domain and maintain HTTPS.
+5. If a custom domain is required, tell me exactly what type of domain/hostname I need to purchase or configure.
+6. If there is a free/simple alternative that works with the current Replit setup and K50 Pro keyboard, investigate it first.
+7. Do NOT purchase anything.
+8. Do NOT change DNS or deployment settings yet.
+9. Do NOT change VAR HR code yet.
+10. Do NOT change any physical K50 settings.
+11. Do NOT use the IP address as the final solution.
+12. Do NOT assume the old Replit hostname is still valid; verify the currently active one.
+
+Most importantly, I need a solution where the K50 Pro can actually enter the Server Address using its available keyboard characters while keeping HTTPS enabled.
+
+At the end, give me:
+
+- Recommended solution
+- Exact Server Address format
+- Server Port
+- Whether Enable Domain Name should be ON/OFF
+- Whether HTTPS should be ON/OFF
+- Whether "/iclock" needs to be entered anywhere
+- Where the VAR HR Comm Key goes
+- Any required Replit-side setup
+
+Do investigation only. No code, database, deployment, DNS, or physical-device changes yet.
