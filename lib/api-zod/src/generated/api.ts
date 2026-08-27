@@ -721,6 +721,11 @@ export const ListEmployeesQueryParams = zod.object({
   "departmentId": zod.coerce.string().optional()
 })
 
+export const listEmployeesResponseWorkingHoursMin = 0;
+export const listEmployeesResponseWorkingHoursMax = 24;
+
+
+
 export const ListEmployeesResponseItem = zod.object({
   "id": zod.string(),
   "employeeNumber": zod.string(),
@@ -728,6 +733,9 @@ export const ListEmployeesResponseItem = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
+  "nationalId": zod.string().nullish(),
+  "biometricCode": zod.string().nullish(),
+  "workingHours": zod.number().min(listEmployeesResponseWorkingHoursMin).max(listEmployeesResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -761,6 +769,11 @@ export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
  */
 
 
+
+
+export const createEmployeeBodyWorkingHoursMin = 0;
+export const createEmployeeBodyWorkingHoursMax = 24;
+
 export const createEmployeeBodySalaryMin = 0;
 
 
@@ -768,14 +781,22 @@ export const createEmployeeBodySalaryMin = 0;
 export const CreateEmployeeBody = zod.object({
   "firstName": zod.string().min(1),
   "lastName": zod.string().min(1),
-  "email": zod.email(),
+  "email": zod.email().optional().describe('Optional internal email; generated when omitted.'),
   "phone": zod.string().optional(),
+  "nationalId": zod.string().min(1).optional(),
+  "biometricCode": zod.string().min(1).optional(),
+  "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number().min(createEmployeeBodySalaryMin),
   "role": zod.enum(['employee', 'manager']).optional()
 })
+
+export const createEmployeeResponseWorkingHoursMin = 0;
+export const createEmployeeResponseWorkingHoursMax = 24;
+
+
 
 export const CreateEmployeeResponse = zod.object({
   "id": zod.string(),
@@ -784,6 +805,9 @@ export const CreateEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
+  "nationalId": zod.string().nullish(),
+  "biometricCode": zod.string().nullish(),
+  "workingHours": zod.number().min(createEmployeeResponseWorkingHoursMin).max(createEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -818,6 +842,11 @@ export const GetEmployeeParams = zod.object({
   "employeeId": zod.coerce.string()
 })
 
+export const getEmployeeResponseWorkingHoursMin = 0;
+export const getEmployeeResponseWorkingHoursMax = 24;
+
+
+
 export const GetEmployeeResponse = zod.object({
   "id": zod.string(),
   "employeeNumber": zod.string(),
@@ -825,6 +854,9 @@ export const GetEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
+  "nationalId": zod.string().nullish(),
+  "biometricCode": zod.string().nullish(),
+  "workingHours": zod.number().min(getEmployeeResponseWorkingHoursMin).max(getEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -861,6 +893,11 @@ export const UpdateEmployeeParams = zod.object({
 
 
 
+
+
+export const updateEmployeeBodyWorkingHoursMin = 0;
+export const updateEmployeeBodyWorkingHoursMax = 24;
+
 export const updateEmployeeBodySalaryMin = 0;
 
 
@@ -869,12 +906,20 @@ export const UpdateEmployeeBody = zod.object({
   "firstName": zod.string().min(1).optional(),
   "lastName": zod.string().min(1).optional(),
   "phone": zod.string().optional(),
+  "nationalId": zod.string().min(1).optional(),
+  "biometricCode": zod.string().min(1).optional(),
+  "workingHours": zod.number().min(updateEmployeeBodyWorkingHoursMin).max(updateEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
   "salary": zod.number().min(updateEmployeeBodySalaryMin).optional(),
   "status": zod.enum(['active', 'inactive']).optional(),
   "automaticOvertime": zod.enum(['default', 'enabled', 'disabled']).optional()
 })
+
+export const updateEmployeeResponseWorkingHoursMin = 0;
+export const updateEmployeeResponseWorkingHoursMax = 24;
+
+
 
 export const UpdateEmployeeResponse = zod.object({
   "id": zod.string(),
@@ -883,6 +928,9 @@ export const UpdateEmployeeResponse = zod.object({
   "lastName": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
+  "nationalId": zod.string().nullish(),
+  "biometricCode": zod.string().nullish(),
+  "workingHours": zod.number().min(updateEmployeeResponseWorkingHoursMin).max(updateEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),

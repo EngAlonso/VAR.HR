@@ -478,6 +478,15 @@ export interface Employee {
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  nationalId?: string | null;
+  /** @nullable */
+  biometricCode?: string | null;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;
@@ -502,8 +511,18 @@ export interface EmployeeInput {
   firstName: string;
   /** @minLength 1 */
   lastName: string;
-  email: string;
+  /** Optional internal email; generated when omitted. */
+  email?: string;
   phone?: string;
+  /** @minLength 1 */
+  nationalId?: string;
+  /** @minLength 1 */
+  biometricCode?: string;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId: string;
@@ -536,6 +555,15 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   lastName?: string;
   phone?: string;
+  /** @minLength 1 */
+  nationalId?: string;
+  /** @minLength 1 */
+  biometricCode?: string;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;

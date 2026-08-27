@@ -7221,7 +7221,10 @@ function AddEmployeePage() {
       !form.departmentId ||
       !form.branchId ||
       !form.scheduleId ||
+      !form.joinedOn ||
+      !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
+      !Number.isFinite(Number(form.workingHours)) ||
       Number(form.workingHours) < 0 ||
       Number(form.workingHours) > 24
     ) {
@@ -7243,7 +7246,7 @@ function AddEmployeePage() {
           departmentId: form.departmentId,
           branchId: form.branchId,
           joinedOn: form.joinedOn,
-        } as any,
+        },
       },
       {
         onSuccess: (createdEmployee: any) => {

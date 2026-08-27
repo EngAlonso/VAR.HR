@@ -12,8 +12,18 @@ export interface EmployeeInput {
   firstName: string;
   /** @minLength 1 */
   lastName: string;
-  email: string;
+  /** Optional internal email; generated when omitted. */
+  email?: string;
   phone?: string;
+  /** @minLength 1 */
+  nationalId?: string;
+  /** @minLength 1 */
+  biometricCode?: string;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId: string;

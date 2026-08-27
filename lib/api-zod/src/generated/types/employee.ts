@@ -19,6 +19,15 @@ export interface Employee {
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  nationalId?: string | null;
+  /** @nullable */
+  biometricCode?: string | null;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;

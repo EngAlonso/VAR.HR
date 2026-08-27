@@ -14,6 +14,15 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   lastName?: string;
   phone?: string;
+  /** @minLength 1 */
+  nationalId?: string;
+  /** @minLength 1 */
+  biometricCode?: string;
+  /**
+     * @minimum 0
+     * @maximum 24
+     */
+  workingHours?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;
