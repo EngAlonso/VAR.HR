@@ -1,0 +1,152 @@
+Continue the VAR HR biometric multi-device audit from exactly where the previous agent stopped.
+
+IMPORTANT:
+Do NOT restart the entire investigation.
+Do NOT repeat the previous audit unnecessarily.
+Do NOT change code, database, deployment, DNS, workflows, or physical K50 settings.
+
+The previous agent already completed the read-only investigation and confirmed:
+
+1. The current multi-device limitation is concentrated mainly in:
+   - one route-level validation/check
+   - one identity uniqueness/index constraint
+
+2. The production check confirmed that this Replit currently has NO production database, so there are no production rows to inspect or migrate.
+
+3. No migration, code change, database change, deployment change, DNS change, or device change has been performed.
+
+4. The desired business behavior is:
+
+   Main K50:
+   PIN 27 → Ahmed
+
+   Backup K50:
+   PIN 27 → Ahmed
+
+   And also:
+
+   Main K50:
+   PIN 27 → Ahmed
+
+   Galaa Branch K50:
+   PIN 27 → Yasmin
+
+   Mahalla K50:
+   PIN 27 → Masoud
+
+   Talkha K50:
+   PIN 27 → Mohsen
+
+The correct matching model must remain:
+
+Device Serial / Device ID + Device PIN → Employee
+
+NOT:
+
+PIN → Employee
+
+The same PIN may therefore exist on different devices for different employees.
+
+However, the same PIN must NOT belong to two different employees on the SAME device.
+
+The previous agent's audit specifically identified the likely blockers as:
+- a route-level check preventing an employee from having another biometric identity/mapping
+- a uniqueness/index constraint related to employee identity
+
+YOUR TASK NOW:
+
+Continue ONLY from this point.
+
+Retrieve and present the complete final audit findings, specifically:
+
+1. Exact current database constraints/indexes on:
+   - var_hr_employee_identities
+   - var_hr_device_employee_mappings
+
+2. Exact route/API validation that currently blocks the same employee from being mapped to another device.
+
+3. Confirm whether var_hr_device_employee_mappings itself already supports:
+   employee → multiple devices.
+
+4. Confirm whether employee_identities is actually required to be globally unique per employee, or whether it can safely become device-specific.
+
+5. Trace every usage of var_hr_employee_identities before recommending any schema change.
+
+6. Determine the MINIMUM SAFE CHANGE required to support:
+   Employee Ahmed:
+   - Device A + PIN 27
+   - Device B + PIN 27
+
+7. Confirm that this change will NOT break:
+   - employee login
+   - user accounts
+   - permissions
+   - ADMS
+   - attendance
+   - payroll
+   - reports
+   - tenant isolation
+
+8. Confirm the correct uniqueness rule:
+   UNIQUE(company_id, device_id, device_employee_id)
+
+   or whatever exact constraint the current schema/API requires.
+
+Do not assume this exact constraint is correct; verify it against the actual implementation first.
+
+9. Explain whether employee_identities should:
+   - remain one-per-employee,
+   - become one-per-device-per-employee,
+   - or be removed from the biometric mapping flow.
+
+10. Explain exactly what happens when:
+    A. Ahmed scans on Main K50.
+    B. Ahmed scans on Backup K50.
+    C. PIN 27 belongs to Ahmed on Device A but Yasmin on Device B.
+    D. PIN 27 is accidentally assigned to two employees on Device A.
+
+11. Identify any frontend UI changes needed so the company admin can map an existing employee to a second device.
+
+12. Identify any database migration required.
+
+13. Identify any existing data that would need migration/backfill.
+    Since the current environment has no production database, distinguish development/test data from production.
+
+14. Provide the exact implementation plan, but DO NOT IMPLEMENT IT YET.
+
+FINAL OUTPUT MUST HAVE THESE SECTIONS:
+
+CURRENTLY IMPLEMENTED
+
+CURRENT LIMITATION
+
+ROOT CAUSE
+
+MINIMUM SAFE FIX
+
+DATABASE CHANGES REQUIRED
+
+API CHANGES REQUIRED
+
+FRONTEND CHANGES REQUIRED
+
+ADMS/ATTENDANCE IMPACT
+
+PAYROLL/REPORTING IMPACT
+
+TENANT/SECURITY IMPACT
+
+TEST CASES REQUIRED
+
+NOT IMPLEMENTED YET
+
+Again: READ-ONLY ONLY.
+No code changes.
+No database changes.
+No migration.
+No deployment.
+No DNS.
+No K50 settings changes.
+No workflow changes.
+
+Continue from the previous audit rather than starting over.
