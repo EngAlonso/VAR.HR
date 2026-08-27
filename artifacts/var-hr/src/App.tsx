@@ -1601,6 +1601,32 @@ const pageCopy = {
     active: "Active",
     inactive: "Inactive",
     addEmployee: "Add employee",
+    employeeFormDetail:
+      "Create a complete employee record with the essentials your team needs.",
+    employeeIdentitySection: "Identity & contact",
+    employeeIdentityDetail:
+      "Keep personal and device identifiers together for confident attendance operations.",
+    employeeName: "Employee name",
+    employeeNameHint: "Enter the employee’s full name.",
+    nationalId: "National ID",
+    nationalIdHint: "Use the official identity number for this employee.",
+    biometricCode: "Biometric / fingerprint code",
+    biometricCodeHint:
+      "The employee code or number used to identify them on the fingerprint device.",
+    employeeEmploymentSection: "Employment details",
+    employeeEmploymentDetail:
+      "Set the working terms that will guide attendance and payroll calculations.",
+    workingHours: "Working hours",
+    workingHoursHint: "Hours per working day.",
+    employmentStartDate: "Employment start date",
+    employeePlacementSection: "Workplace placement",
+    employeePlacementDetail:
+      "Connect the employee to the right department, branch, and shift.",
+    shift: "Shift",
+    noShifts: "No shifts available",
+    shiftsLoadFailed: "Shifts could not be loaded.",
+    selectShiftHint: "Select an existing shift for this employee.",
+    salaryHint: "Monthly amount in the company currency.",
     noEmployeesMatch: "No employees match this view",
     adjustEmployeeSearch:
       "Adjust the search or add the first employee to this tenant.",
@@ -1877,6 +1903,32 @@ const pageCopy = {
     active: "نشط",
     inactive: "غير نشط",
     addEmployee: "إضافة موظف",
+    employeeFormDetail:
+      "أنشئ سجلاً متكاملاً للموظف بالبيانات الأساسية التي يحتاجها فريقك.",
+    employeeIdentitySection: "الهوية وبيانات التواصل",
+    employeeIdentityDetail:
+      "اجمع بيانات الهوية ومعرّف الجهاز لدعم عمليات الحضور بثقة.",
+    employeeName: "اسم الموظف",
+    employeeNameHint: "أدخل اسم الموظف بالكامل.",
+    nationalId: "الرقم القومي",
+    nationalIdHint: "استخدم رقم الهوية الرسمي لهذا الموظف.",
+    biometricCode: "كود البصمة / المعرّف الحيوي",
+    biometricCodeHint:
+      "الكود أو الرقم المستخدم للتعرّف على الموظف في جهاز البصمة.",
+    employeeEmploymentSection: "بيانات التوظيف",
+    employeeEmploymentDetail:
+      "حدد شروط العمل التي ستوجّه حسابات الحضور والرواتب.",
+    workingHours: "ساعات العمل",
+    workingHoursHint: "عدد الساعات في يوم العمل.",
+    employmentStartDate: "تاريخ بدء العمل",
+    employeePlacementSection: "التوزيع الوظيفي",
+    employeePlacementDetail:
+      "اربط الموظف بالقسم والفرع والشيفت المناسب.",
+    shift: "الشيفت",
+    noShifts: "لا توجد شيفتات متاحة",
+    shiftsLoadFailed: "تعذر تحميل الشيفتات.",
+    selectShiftHint: "اختر شيفتاً موجوداً لهذا الموظف.",
+    salaryHint: "المبلغ الشهري بعملة الشركة.",
     noEmployeesMatch: "لا يوجد موظفون يطابقون هذا العرض",
     adjustEmployeeSearch: "عدّل البحث أو أضف أول موظف إلى مساحة العمل.",
     selectOption: "اختر",
@@ -2376,6 +2428,33 @@ const pageCopy = {
     active: "Actif",
     inactive: "Inactif",
     addEmployee: "Ajouter un employé",
+    employeeFormDetail:
+      "Créez un dossier employé complet avec les informations essentielles pour votre équipe.",
+    employeeIdentitySection: "Identité et contact",
+    employeeIdentityDetail:
+      "Regroupez les identifiants personnels et appareil pour fiabiliser le suivi des présences.",
+    employeeName: "Nom de l’employé",
+    employeeNameHint: "Saisissez le nom complet de l’employé.",
+    nationalId: "Identifiant national",
+    nationalIdHint:
+      "Utilisez le numéro officiel d’identité de cet employé.",
+    biometricCode: "Code biométrique / empreinte",
+    biometricCodeHint:
+      "Le code ou numéro utilisé pour identifier l’employé sur le terminal d’empreinte.",
+    employeeEmploymentSection: "Détails de l’emploi",
+    employeeEmploymentDetail:
+      "Définissez les conditions qui guideront les calculs de présence et de paie.",
+    workingHours: "Heures de travail",
+    workingHoursHint: "Heures par jour travaillé.",
+    employmentStartDate: "Date de début d’emploi",
+    employeePlacementSection: "Affectation professionnelle",
+    employeePlacementDetail:
+      "Rattachez l’employé au bon département, à l’agence et à l’équipe.",
+    shift: "Équipe",
+    noShifts: "Aucune équipe disponible",
+    shiftsLoadFailed: "Les équipes n’ont pas pu être chargées.",
+    selectShiftHint: "Sélectionnez une équipe existante pour cet employé.",
+    salaryHint: "Montant mensuel dans la devise de l’entreprise.",
     noEmployeesMatch: "Aucun employé ne correspond à cette vue",
     adjustEmployeeSearch:
       "Modifiez la recherche ou ajoutez le premier employé à cet espace.",
@@ -2660,6 +2739,33 @@ const pageCopy = {
     active: "Aktiv",
     inactive: "Inaktiv",
     addEmployee: "Mitarbeitenden hinzufügen",
+    employeeFormDetail:
+      "Erstellen Sie einen vollständigen Mitarbeitendensatz mit den wichtigsten Angaben für Ihr Team.",
+    employeeIdentitySection: "Identität und Kontakt",
+    employeeIdentityDetail:
+      "Bündeln Sie persönliche und Gerätekennungen für eine verlässliche Anwesenheitsverwaltung.",
+    employeeName: "Name des Mitarbeitenden",
+    employeeNameHint: "Geben Sie den vollständigen Namen ein.",
+    nationalId: "Nationale ID",
+    nationalIdHint:
+      "Verwenden Sie die offizielle Identitätsnummer dieser Person.",
+    biometricCode: "Biometrischer / Fingerabdruck-Code",
+    biometricCodeHint:
+      "Der Code oder die Nummer, mit der die Person am Fingerabdruckgerät erkannt wird.",
+    employeeEmploymentSection: "Beschäftigungsdetails",
+    employeeEmploymentDetail:
+      "Legen Sie die Angaben fest, die Anwesenheits- und Abrechnungen steuern.",
+    workingHours: "Arbeitsstunden",
+    workingHoursHint: "Stunden pro Arbeitstag.",
+    employmentStartDate: "Beschäftigungsbeginn",
+    employeePlacementSection: "Arbeitszuordnung",
+    employeePlacementDetail:
+      "Ordnen Sie die Person der richtigen Abteilung, Niederlassung und Schicht zu.",
+    shift: "Schicht",
+    noShifts: "Keine Schichten verfügbar",
+    shiftsLoadFailed: "Schichten konnten nicht geladen werden.",
+    selectShiftHint: "Wählen Sie eine vorhandene Schicht für diese Person.",
+    salaryHint: "Monatlicher Betrag in der Unternehmenswährung.",
     noEmployeesMatch: "Keine Mitarbeitenden für diese Ansicht",
     adjustEmployeeSearch:
       "Passen Sie die Suche an oder fügen Sie den ersten Mitarbeitenden hinzu.",
@@ -7086,9 +7192,9 @@ function Employees() {
   const q = useListEmployees(params);
   const depts = useListDepartments();
   const branches = useListBranches();
+  const schedules = useListWorkSchedules();
   const create = useCreateEmployee();
-  const createDepartment = useCreateDepartment();
-  const createBranch = useCreateBranch();
+  const assignSchedule = useAssignEmployeeSchedule();
   const employee = useGetEmployee(selected || "", {
     query: {
       enabled: !!selected,
@@ -7101,32 +7207,71 @@ function Employees() {
   const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
   const [importResult, setImportResult] = useState<any | null>(null);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+    employeeName: "",
+    nationalId: "",
+    phone: "",
+    biometricCode: "",
+    workingHours: "8",
     departmentId: "",
     branchId: "",
     joinedOn: new Date().toISOString().slice(0, 10),
     salary: "0",
-    role: "employee",
+    scheduleId: "",
   });
   function submit(e: FormEvent) {
     e.preventDefault();
+    const employeeName = form.employeeName.trim();
+    const nameParts = employeeName.split(/\s+/).filter(Boolean);
+    if (
+      nameParts.length === 0 ||
+      !form.nationalId.trim() ||
+      !form.phone.trim() ||
+      !form.biometricCode.trim() ||
+      !form.departmentId ||
+      !form.branchId ||
+      !form.scheduleId ||
+      Number(form.salary) < 0 ||
+      Number(form.workingHours) < 0 ||
+      Number(form.workingHours) > 24
+    ) {
+      toast.error(t("required"));
+      return;
+    }
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(" ") || firstName;
     create.mutate(
       {
         data: {
-          ...form,
+          firstName,
+          lastName,
+          phone: form.phone.trim(),
+          nationalId: form.nationalId.trim(),
+          biometricCode: form.biometricCode.trim(),
+          workingHours: Number(form.workingHours),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
-          role: form.role as any,
+          joinedOn: form.joinedOn,
         } as any,
       },
       {
-        onSuccess: () => {
+        onSuccess: (createdEmployee: any) => {
           toast.success(t("employeeAdded"));
           setShowCreate(false);
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          assignSchedule.mutate(
+            {
+              employeeId: createdEmployee.id,
+              data: {
+                scheduleId: form.scheduleId,
+                effectiveFrom: form.joinedOn,
+                effectiveTo: null,
+              },
+            },
+            {
+              onError: () => toast.error(t("scheduleAssignmentFailed")),
+            },
+          );
         },
         onError: () => toast.error(t("couldNotCreateEmployee")),
       },
@@ -7323,121 +7468,233 @@ function Employees() {
         )}
       </Card>
       {showCreate && (
-        <Modal title={t("addEmployee")} onClose={() => setShowCreate(false)}>
-          <form onSubmit={submit} className="space-y-4">
-            {[
-              ["firstName", "firstName"],
-              ["lastName", "lastName"],
-              ["email", "email"],
-              ["salary", "monthlySalary"],
-            ].map(([key, label]) => (
-              <label key={key} className="block text-sm font-semibold">
-                {t(label as AppCopyKey)}
-                <input
-                  required={key !== "salary"}
-                  type={
-                    key === "salary"
-                      ? "number"
-                      : key === "email"
-                        ? "email"
-                        : "text"
-                  }
-                  value={(form as any)[key]}
-                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal outline-none focus:border-primary"
-                />
-              </label>
-            ))}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold">
-                {t("department")}
-                <div className="mt-1 flex gap-2">
-                  <select
-                    required
-                    value={form.departmentId}
-                    onChange={(e) =>
-                      setForm({ ...form, departmentId: e.target.value })
-                    }
-                    className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-2 text-sm font-normal"
-                  >
-                    <option value="">{t("selectOption")}</option>
-                    {depts.data?.map((x: any) => (
-                      <option key={x.id} value={x.id}>
-                        {departmentLabel(x.name, t)}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="px-2"
-                    title={t("createDepartmentPrompt")}
-                    onClick={() => {
-                      const name = window.prompt(t("createDepartmentPrompt"));
-                      if (name)
-                        createDepartment.mutate(
-                          { data: { name } },
-                          {
-                            onSuccess: () => {
-                              toast.success(t("departmentCreated"));
-                              qc.invalidateQueries({
-                                queryKey: getListDepartmentsQueryKey(),
-                              });
-                            },
-                          },
-                        );
-                    }}
-                  >
-                    <Plus size={15} />
-                  </Button>
+        <Modal
+          title={t("addEmployee")}
+          onClose={() => setShowCreate(false)}
+          className="max-w-3xl p-0"
+        >
+          <form
+            onSubmit={submit}
+            className="flex max-h-[calc(90dvh-72px)] flex-col"
+          >
+            <div className="overflow-y-auto p-4 sm:p-6">
+              <div className="mb-6 rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <UserPlus size={19} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+                      {t("addEmployee")}
+                    </p>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                      {t("employeeFormDetail")}
+                    </p>
+                  </div>
                 </div>
-              </label>
-              <label className="text-sm font-semibold">
-                {t("branch")}
-                <div className="mt-1 flex gap-2">
-                  <select
-                    required
-                    value={form.branchId}
-                    onChange={(e) =>
-                      setForm({ ...form, branchId: e.target.value })
-                    }
-                    className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-2 text-sm font-normal"
-                  >
-                    <option value="">{t("selectOption")}</option>
-                    {branches.data?.map((x: any) => (
-                      <option key={x.id} value={x.id}>
-                        {branchLabel(x.name, t)}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="px-2"
-                    title={t("createBranchPrompt")}
-                    onClick={() => {
-                      const name = window.prompt(t("createBranchPrompt"));
-                      const city = window.prompt(t("branchCityPrompt"));
-                      if (name && city)
-                        createBranch.mutate(
-                          { data: { name, city, gpsEnabled: false } },
-                          {
-                            onSuccess: () => {
-                              toast.success(t("branchCreated"));
-                              qc.invalidateQueries({
-                                queryKey: getListBranchesQueryKey(),
-                              });
-                            },
-                          },
-                        );
-                    }}
-                  >
-                    <Plus size={15} />
-                  </Button>
+              </div>
+
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                  <div className="mb-5">
+                    <h3 className="font-display text-base font-semibold">
+                      {t("employeeIdentitySection")}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {t("employeeIdentityDetail")}
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field
+                        label={t("employeeName")}
+                        name="employeeName"
+                        required
+                        autoComplete="name"
+                        placeholder={t("employeeNameHint")}
+                        value={form.employeeName}
+                        onChange={(value) =>
+                          setForm({ ...form, employeeName: value })
+                        }
+                      />
+                    </div>
+                    <Field
+                      label={t("nationalId")}
+                      name="nationalId"
+                      required
+                      placeholder={t("nationalIdHint")}
+                      value={form.nationalId}
+                      onChange={(value) =>
+                        setForm({ ...form, nationalId: value })
+                      }
+                    />
+                    <Field
+                      label={t("phoneNumber")}
+                      name="phone"
+                      required
+                      type="tel"
+                      autoComplete="tel"
+                      value={form.phone}
+                      onChange={(value) => setForm({ ...form, phone: value })}
+                    />
+                    <div className="sm:col-span-2">
+                      <Field
+                        label={t("biometricCode")}
+                        name="biometricCode"
+                        required
+                        placeholder={t("biometricCodeHint")}
+                        value={form.biometricCode}
+                        onChange={(value) =>
+                          setForm({ ...form, biometricCode: value })
+                        }
+                      />
+                      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                        {t("biometricCodeHint")}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </label>
+
+                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                  <div className="mb-5">
+                    <h3 className="font-display text-base font-semibold">
+                      {t("employeeEmploymentSection")}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {t("employeeEmploymentDetail")}
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Field
+                        label={t("monthlySalary")}
+                        name="salary"
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={form.salary}
+                        onChange={(value) => setForm({ ...form, salary: value })}
+                      />
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {t("salaryHint")}
+                      </p>
+                    </div>
+                    <div>
+                      <Field
+                        label={t("workingHours")}
+                        name="workingHours"
+                        required
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        inputMode="decimal"
+                        value={form.workingHours}
+                        onChange={(value) =>
+                          setForm({ ...form, workingHours: value })
+                        }
+                      />
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {t("workingHoursHint")}
+                      </p>
+                    </div>
+                    <Field
+                      label={t("employmentStartDate")}
+                      name="joinedOn"
+                      required
+                      type="date"
+                      value={form.joinedOn}
+                      onChange={(value) => setForm({ ...form, joinedOn: value })}
+                    />
+                    <label className="block text-sm font-semibold">
+                      {t("shift")}
+                      <select
+                        required
+                        name="scheduleId"
+                        value={form.scheduleId}
+                        disabled={schedules.isLoading || !schedules.data?.length}
+                        onChange={(e) =>
+                          setForm({ ...form, scheduleId: e.target.value })
+                        }
+                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <option value="">
+                          {schedules.isLoading
+                            ? t("loading")
+                            : schedules.data?.length
+                              ? t("selectOption")
+                              : t("noShifts")}
+                        </option>
+                        {schedules.data?.map((schedule: any) => (
+                          <option key={schedule.id} value={schedule.id}>
+                            {schedule.name} · {schedule.startTime}–{schedule.endTime}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                        {schedules.isError
+                          ? t("shiftsLoadFailed")
+                          : t("selectShiftHint")}
+                      </p>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                  <div className="mb-5">
+                    <h3 className="font-display text-base font-semibold">
+                      {t("employeePlacementSection")}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {t("employeePlacementDetail")}
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm font-semibold">
+                      {t("department")}
+                      <select
+                        required
+                        name="departmentId"
+                        value={form.departmentId}
+                        onChange={(e) =>
+                          setForm({ ...form, departmentId: e.target.value })
+                        }
+                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+                      >
+                        <option value="">{t("selectOption")}</option>
+                        {depts.data?.map((x: any) => (
+                          <option key={x.id} value={x.id}>
+                            {departmentLabel(x.name, t)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block text-sm font-semibold">
+                      {t("branch")}
+                      <select
+                        required
+                        name="branchId"
+                        value={form.branchId}
+                        onChange={(e) =>
+                          setForm({ ...form, branchId: e.target.value })
+                        }
+                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+                      >
+                        <option value="">{t("selectOption")}</option>
+                        {branches.data?.map((x: any) => (
+                          <option key={x.id} value={x.id}>
+                            {branchLabel(x.name, t)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex flex-col-reverse gap-2 border-t border-border bg-background/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
               <Button
                 type="button"
                 variant="quiet"
@@ -7445,8 +7702,13 @@ function Employees() {
               >
                 {t("cancel")}
               </Button>
-              <Button disabled={create.isPending} type="submit">
-                {create.isPending ? t("saving") : t("createEmployee")}
+              <Button
+                disabled={create.isPending || assignSchedule.isPending}
+                type="submit"
+              >
+                {create.isPending || assignSchedule.isPending
+                  ? t("saving")
+                  : t("createEmployee")}
               </Button>
             </div>
           </form>

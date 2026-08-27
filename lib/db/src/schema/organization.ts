@@ -56,6 +56,11 @@ export const employeesTable = pgTable("var_hr_employees", {
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
+  nationalId: text("national_id"),
+  biometricCode: text("biometric_code"),
+  workingHours: numeric("working_hours", { precision: 4, scale: 2, mode: "number" })
+    .notNull()
+    .default(8),
   departmentId: uuid("department_id").references(() => departmentsTable.id),
   branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
   status: text("status").notNull().default("active"),

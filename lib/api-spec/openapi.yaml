@@ -2324,7 +2324,7 @@ components:
           firstName,
           lastName,
           email,
-           department,
+          department,
           branch,
           status,
           role,
@@ -2338,6 +2338,9 @@ components:
         lastName: { type: string }
         email: { type: string, format: email }
         phone: { type: ["string", "null"] }
+        nationalId: { type: ["string", "null"] }
+        biometricCode: { type: ["string", "null"] }
+        workingHours: { type: number, minimum: 0, maximum: 24 }
         department:
           oneOf:
             - $ref: "#/components/schemas/DepartmentSummary"
@@ -2359,12 +2362,15 @@ components:
     EmployeeInput:
       type: object
       required:
-        [firstName, lastName, email, branchId, joinedOn, salary]
+        [firstName, lastName, branchId, joinedOn, salary]
       properties:
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
-        email: { type: string, format: email }
+        email: { type: string, format: email, description: "Optional internal email; generated when omitted." }
         phone: { type: string }
+        nationalId: { type: string, minLength: 1 }
+        biometricCode: { type: string, minLength: 1 }
+        workingHours: { type: number, minimum: 0, maximum: 24 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }
@@ -2378,6 +2384,9 @@ components:
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
         phone: { type: string }
+        nationalId: { type: string, minLength: 1 }
+        biometricCode: { type: string, minLength: 1 }
+        workingHours: { type: number, minimum: 0, maximum: 24 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         salary: { type: number, minimum: 0 }

@@ -1877,6 +1877,9 @@ function employeeResponse(
     lastName: row.employee.lastName,
     email: row.employee.email,
     phone: row.employee.phone,
+    nationalId: row.employee.nationalId,
+    biometricCode: row.employee.biometricCode,
+    workingHours: row.employee.workingHours,
     department: row.department
       ? {
           id: row.department.id,
@@ -2911,8 +2914,13 @@ router.post("/employees", async (req, res): Promise<void> => {
       employeeNumber: `NS-${String(1100 + activeCount.length).padStart(4, "0")}`,
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
-      email: parsed.data.email,
+       email:
+         parsed.data.email ||
+         `employee-${String(1100 + activeCount.length)}@varhr.local`,
       phone: parsed.data.phone,
+       nationalId: parsed.data.nationalId,
+       biometricCode: parsed.data.biometricCode,
+       workingHours: parsed.data.workingHours ?? 8,
       departmentId: parsed.data.departmentId,
       branchId: parsed.data.branchId,
       status: "active",
