@@ -2475,24 +2475,14 @@ router.post("/departments", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const referencesValid = await validateDepartmentReferences(
-    context.companyId,
-    parsed.data.managerId,
-    parsed.data.defaultScheduleId,
-  );
-  if (!referencesValid) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
   const [department] = await db
     .insert(departmentsTable)
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
-      nameAr: parsed.data.nameAr,
-      description: parsed.data.description ?? null,
-      managerId: parsed.data.managerId ?? null,
-      defaultScheduleId: parsed.data.defaultScheduleId ?? null,
+      // Keep the legacy column in sync while department names remain a
+      // single, locale-independent value in the product.
+      nameAr: parsed.data.name,
     })
     .returning();
   await recordAudit(
@@ -2542,15 +2532,6 @@ router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const referencesValid = await validateDepartmentReferences(
-    context.companyId,
-    parsed.data.managerId,
-    parsed.data.defaultScheduleId,
-  );
-  if (!referencesValid) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
   const [before] = await db
     .select()
     .from(departmentsTable)
@@ -2567,7 +2548,10 @@ router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
   }
   const [department] = await db
     .update(departmentsTable)
-    .set(parsed.data)
+    .set({
+      ...parsed.data,
+      ...(parsed.data.name !== undefined ? { nameAr: parsed.data.name } : {}),
+    })
     .where(
       and(
         eq(departmentsTable.id, before.id),

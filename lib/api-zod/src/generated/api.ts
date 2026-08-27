@@ -486,13 +486,8 @@ export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
 
 
 
-
 export const CreateDepartmentBody = zod.object({
-  "name": zod.string().min(1),
-  "nameAr": zod.string().min(1),
-  "description": zod.string().nullish(),
-  "managerId": zod.string().nullish(),
-  "defaultScheduleId": zod.string().nullish()
+  "name": zod.string().min(1)
 })
 
 export const CreateDepartmentResponse = zod.object({
@@ -566,13 +561,8 @@ export const UpdateDepartmentQueryParams = zod.object({
 
 
 
-
 export const UpdateDepartmentBody = zod.object({
   "name": zod.string().min(1).optional(),
-  "nameAr": zod.string().min(1).optional(),
-  "description": zod.string().nullish(),
-  "managerId": zod.string().nullish(),
-  "defaultScheduleId": zod.string().nullish(),
   "active": zod.boolean().optional()
 })
 

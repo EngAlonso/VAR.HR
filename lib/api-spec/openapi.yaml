@@ -2273,21 +2273,13 @@ components:
         employeeCount: { type: integer }
     DepartmentInput:
       type: object
-      required: [name, nameAr]
+      required: [name]
       properties:
         name: { type: string, minLength: 1 }
-        nameAr: { type: string, minLength: 1 }
-        description: { type: ["string", "null"] }
-        managerId: { type: ["string", "null"] }
-        defaultScheduleId: { type: ["string", "null"] }
     DepartmentUpdate:
       type: object
       properties:
         name: { type: string, minLength: 1 }
-        nameAr: { type: string, minLength: 1 }
-        description: { type: ["string", "null"] }
-        managerId: { type: ["string", "null"] }
-        defaultScheduleId: { type: ["string", "null"] }
         active: { type: boolean }
     Branch:
       type: object

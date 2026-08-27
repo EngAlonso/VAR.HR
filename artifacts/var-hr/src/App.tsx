@@ -820,8 +820,7 @@ const copy = {
     departmentCreated: "Department created",
     departmentsEyebrow: "Organization",
     departmentsTitle: "Departments",
-    departmentsDetail:
-      "Create departments, assign managers, and keep employee membership current.",
+    departmentsDetail: "Create and manage your company's departments.",
     addDepartment: "Add department",
     englishName: "English name",
     arabicName: "Arabic name",
@@ -1116,7 +1115,7 @@ const copy = {
     departmentCreated: "تم إنشاء القسم",
     departmentsEyebrow: "الهيكل التنظيمي",
     departmentsTitle: "الأقسام",
-    departmentsDetail: "أنشئ الأقسام وعيّن المديرين وحافظ على عضوية الموظفين.",
+    departmentsDetail: "أنشئ أقسام شركتك وأدرها بوضوح.",
     addDepartment: "إضافة قسم",
     englishName: "الاسم بالإنجليزية",
     arabicName: "الاسم بالعربية",
@@ -1432,6 +1431,8 @@ const pageCopy = {
       "Adjust the search or add the first employee to this tenant.",
     selectOption: "Select",
     createDepartmentPrompt: "Department name",
+    departmentNameHint:
+      "This name is stored exactly as entered and is not translated.",
     createBranchPrompt: "Branch name",
     branchCityPrompt: "Branch city",
     employeeStatusUpdated: "Employee status updated",
@@ -1702,6 +1703,8 @@ const pageCopy = {
     adjustEmployeeSearch: "عدّل البحث أو أضف أول موظف إلى مساحة العمل.",
     selectOption: "اختر",
     createDepartmentPrompt: "اسم القسم",
+    departmentNameHint:
+      "يُحفظ هذا الاسم كما تم إدخاله تمامًا ولا تتم ترجمته.",
     createBranchPrompt: "اسم الفرع",
     branchCityPrompt: "مدينة الفرع",
     employeeStatusUpdated: "تم تحديث حالة الموظف",
@@ -2197,6 +2200,8 @@ const pageCopy = {
       "Modifiez la recherche ou ajoutez le premier employé à cet espace.",
     selectOption: "Sélectionner",
     createDepartmentPrompt: "Nom du département",
+    departmentNameHint:
+      "Ce nom est enregistré exactement tel qu’il est saisi et n’est pas traduit.",
     createBranchPrompt: "Nom de l’agence",
     branchCityPrompt: "Ville de l’agence",
     employeeStatusUpdated: "Statut de l’employé mis à jour",
@@ -2476,6 +2481,8 @@ const pageCopy = {
       "Passen Sie die Suche an oder fügen Sie den ersten Mitarbeitenden hinzu.",
     selectOption: "Auswählen",
     createDepartmentPrompt: "Abteilungsname",
+    departmentNameHint:
+      "Dieser Name wird genau wie eingegeben gespeichert und nicht übersetzt.",
     createBranchPrompt: "Name der Niederlassung",
     branchCityPrompt: "Stadt der Niederlassung",
     employeeStatusUpdated: "Mitarbeiterstatus aktualisiert",
@@ -4352,16 +4359,9 @@ function localizedValue(
 
 function departmentLabel(
   value: string | undefined,
-  t: (key: AppCopyKey) => string,
+  _t: (key: AppCopyKey) => string,
 ) {
-  return localizedValue(
-    value,
-    {
-      Operations: "departmentOperations",
-      "People & Culture": "departmentPeopleCulture",
-    },
-    t,
-  );
+  return value || "—";
 }
 
 function branchLabel(
@@ -6576,13 +6576,11 @@ function Branches() {
 }
 
 function Departments() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage = workspace.data?.capabilities?.includes("organization.manage") ?? false;
   const departments = useListDepartments();
-  const employees = useListEmployees({ status: "active" });
-  const schedules = useListWorkSchedules({ active: true } as any);
   const create = useCreateDepartment();
   const update = useUpdateDepartment();
   const remove = useDeleteDepartment();
@@ -6591,11 +6589,6 @@ function Departments() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    nameAr: "",
-    description: "",
-    managerId: "",
-    defaultScheduleId: "",
-    active: true,
   });
   const detail = useGetDepartment(selected || "", undefined, {
     query: {
@@ -6606,11 +6599,6 @@ function Departments() {
   function resetForm() {
     setForm({
       name: "",
-      nameAr: "",
-      description: "",
-      managerId: "",
-      defaultScheduleId: "",
-      active: true,
     });
   }
   function openCreate() {
@@ -6622,23 +6610,13 @@ function Departments() {
     setSelected(item.id);
     setForm({
       name: item.name ?? "",
-      nameAr: item.nameAr ?? "",
-      description: item.description ?? "",
-      managerId: item.manager?.id ?? "",
-      defaultScheduleId: item.defaultScheduleId ?? "",
-      active: item.active !== false,
     });
     setShowCreate(true);
   }
   function save(event: FormEvent) {
     event.preventDefault();
     const data = {
-      name: form.name.trim(),
-      nameAr: form.nameAr.trim(),
-      description: form.description.trim() || null,
-      managerId: form.managerId || null,
-      defaultScheduleId: form.defaultScheduleId || null,
-      ...(selected ? { active: form.active } : {}),
+      name: form.name,
     };
     const options = {
       onSuccess: () => {
@@ -6725,10 +6703,7 @@ function Departments() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="font-display text-lg font-semibold">
-                      {locale === "ar" ? item.nameAr : item.name}
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {locale === "ar" ? item.name : item.nameAr}
+                      {item.name}
                     </div>
                   </div>
                   <Status value={item.active ? "active" : "inactive"} />
@@ -6760,7 +6735,7 @@ function Departments() {
                       {t("department")}
                     </div>
                     <h2 className="mt-1 font-display text-2xl font-semibold">
-                      {locale === "ar" ? activeDetail.nameAr : activeDetail.name}
+                      {activeDetail.name}
                     </h2>
                     {activeDetail.description && (
                       <p className="mt-2 text-sm text-muted-foreground">
@@ -6807,9 +6782,7 @@ function Departments() {
                             <option value="">{t("selectOption")}</option>
                             {departments.data.map((department: any) => (
                               <option key={department.id} value={department.id}>
-                                {locale === "ar"
-                                  ? department.nameAr
-                                  : department.name}
+                                {department.name}
                               </option>
                             ))}
                           </select>
@@ -6848,82 +6821,31 @@ function Departments() {
             setSelected(null);
           }}
         >
-          <form onSubmit={save} className="space-y-4">
-            {[
-              ["name", "englishName"],
-              ["nameAr", "arabicName"],
-            ].map(([key, label]) => (
-              <label key={key} className="block text-sm font-semibold">
-                {t(label as AppCopyKey)}
-                <input
-                  required
-                  value={(form as any)[key]}
-                  onChange={(event) =>
-                    setForm({ ...form, [key]: event.target.value })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                />
-              </label>
-            ))}
-            <label className="block text-sm font-semibold">
-              {t("departmentDescription")}
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  setForm({ ...form, description: event.target.value })
-                }
-                className="mt-1 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+          <form onSubmit={save} className="space-y-6">
+            <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
+              <div className="mb-5 flex items-start gap-3">
+                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Building2 size={19} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+                    {t("department")}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {t("departmentNameHint")}
+                  </p>
+                </div>
+              </div>
+              <Field
+                label={t("departmentName")}
+                name="departmentName"
+                required
+                autoComplete="organization"
+                value={form.name}
+                onChange={(value) => setForm({ name: value })}
               />
-            </label>
-            <label className="block text-sm font-semibold">
-              {t("manager")}
-              <select
-                value={form.managerId}
-                onChange={(event) =>
-                  setForm({ ...form, managerId: event.target.value })
-                }
-                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-              >
-                <option value="">{t("selectManager")}</option>
-                 {employees.data
-                   ?.filter((employee: any) => employee.role === "manager")
-                   .map((employee: any) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.firstName} {employee.lastName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
-              {t("schedules")}
-              <select
-                value={form.defaultScheduleId}
-                onChange={(event) =>
-                  setForm({ ...form, defaultScheduleId: event.target.value })
-                }
-                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-              >
-                <option value="">{t("selectOption")}</option>
-                {schedules.data?.map((schedule: any) => (
-                  <option key={schedule.id} value={schedule.id}>
-                    {locale === "ar" ? schedule.nameAr || schedule.name : schedule.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {selected && (
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(event) =>
-                    setForm({ ...form, active: event.target.checked })
-                  }
-                />
-                {form.active ? t("active") : t("inactive")}
-              </label>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
@@ -6941,7 +6863,7 @@ function Departments() {
                    {t("remove")}
                  </Button>
                )}
-               <Button type="submit" disabled={remove.isPending}>
+                <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>
                  {t("saveChanges")}
                </Button>
             </div>
@@ -7260,7 +7182,7 @@ function Employees() {
                       const name = window.prompt(t("createDepartmentPrompt"));
                       if (name)
                         createDepartment.mutate(
-                          { data: { name, nameAr: name } },
+                          { data: { name } },
                           {
                             onSuccess: () => {
                               toast.success(t("departmentCreated"));
@@ -17135,7 +17057,7 @@ function PlatformCompanyDetailsPage() {
             {details.organization.departments.length ? (
               details.organization.departments.map((department) => (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={department.id}>
-                  <span>{locale === "ar" && department.nameAr ? department.nameAr : department.name}</span>
+                  <span>{department.name}</span>
                   <span className="text-muted-foreground">
                     {department.employeeCount} {text("employees", "موظف")}
                     {department.managerId ? ` · ${text("manager assigned", "يوجد مدير")}` : ""}
