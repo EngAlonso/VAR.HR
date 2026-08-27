@@ -1846,7 +1846,7 @@ type PayrollLineItem = {
 };
 
 async function employeeRows(context: TenantContext) {
-  return db
+  const rows = await db
     .select({
       employee: employeesTable,
       department: departmentsTable,
@@ -1865,6 +1865,21 @@ async function employeeRows(context: TenantContext) {
       ),
     )
     .orderBy(asc(employeesTable.firstName));
+  const devices = await db
+    .select({ branchId: devicesTable.branchId })
+    .from(devicesTable)
+    .where(eq(devicesTable.companyId, context.companyId));
+  const deviceCounts = new Map<string, number>();
+  for (const device of devices) {
+    deviceCounts.set(
+      device.branchId,
+      (deviceCounts.get(device.branchId) ?? 0) + 1,
+    );
+  }
+  return rows.map((row) => ({
+    ...row,
+    deviceCount: deviceCounts.get(row.branch.id) ?? 0,
+  }));
 }
 
 function employeeResponse(
@@ -1894,7 +1909,11 @@ function employeeResponse(
       name: row.branch.name,
       city: row.branch.city,
       employeeCount: 0,
+      deviceCount: row.deviceCount,
       gpsEnabled: row.branch.gpsEnabled,
+      active: row.branch.active,
+      createdAt: row.branch.createdAt.toISOString(),
+      updatedAt: row.branch.updatedAt.toISOString(),
     },
     status: row.employee.status as "active" | "inactive",
     role: row.employee.role as "employee" | "manager",
