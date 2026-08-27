@@ -471,6 +471,117 @@ const secondaryNav: NavItem[] = [
     capability: "platform.view",
   },
 ];
+const companyAdminNav: NavItem[] = [
+  {
+    href: "/",
+    key: "companyNavOverview",
+    icon: LayoutDashboard,
+    roles: ["company_owner"],
+  },
+  {
+    href: "/profile",
+    key: "companyNavAccount",
+    icon: BriefcaseBusiness,
+    roles: ["company_owner"],
+  },
+  {
+    href: "/branches",
+    key: "companyNavBranches",
+    icon: Network,
+    roles: ["company_owner"],
+    capability: "branches.view",
+  },
+  {
+    href: "/departments",
+    key: "companyNavDepartments",
+    icon: Building2,
+    roles: ["company_owner"],
+    capability: "departments.view",
+  },
+  {
+    href: "/schedules",
+    key: "companyNavSchedules",
+    icon: Clock3,
+    roles: ["company_owner"],
+    capability: "schedules.view",
+  },
+  {
+    href: "/rules",
+    key: "companyNavRules",
+    icon: SlidersHorizontal,
+    roles: ["company_owner"],
+    capability: "attendance.rules.view",
+  },
+  {
+    href: "/employees",
+    key: "companyNavEmployees",
+    icon: Users,
+    roles: ["company_owner"],
+    capability: "employees.view",
+  },
+  {
+    href: "/requests",
+    key: "companyNavRequests",
+    icon: CalendarDays,
+    roles: ["company_owner"],
+  },
+  {
+    href: "/reports",
+    key: "companyNavReports",
+    icon: BarChart3,
+    roles: ["company_owner"],
+    capability: "reports.view",
+  },
+  {
+    href: "/payroll",
+    key: "companyNavPayroll",
+    icon: Coins,
+    roles: ["company_owner"],
+    capability: "payroll.view",
+  },
+  {
+    href: "/holidays",
+    key: "companyNavHolidays",
+    icon: CalendarDays,
+    roles: ["company_owner"],
+    capability: "holidays.view",
+  },
+  {
+    href: "/devices",
+    key: "companyNavDevices",
+    icon: Fingerprint,
+    roles: ["company_owner"],
+    capability: "devices.view",
+  },
+  {
+    href: "/sync-history",
+    key: "companyNavSyncHistory",
+    icon: RefreshCw,
+    roles: ["company_owner"],
+    capability: "sync-history.view",
+  },
+  {
+    href: "/backups",
+    key: "companyNavBackup",
+    icon: Database,
+    roles: ["company_owner"],
+    capability: "backups.view",
+  },
+  {
+    href: "/accounts",
+    key: "companyNavAccountManagement",
+    icon: UserPlus,
+    roles: ["company_owner"],
+    capability: "organization.manage",
+  },
+  {
+    href: "/subscription",
+    key: "companyNavSubscription",
+    icon: Zap,
+    roles: ["company_owner"],
+    capability: "payroll.view",
+  },
+];
 const platformNav: NavItem[] = [
   {
     href: "/platform",
@@ -518,6 +629,22 @@ const copy = {
     subscription: "Subscription",
     platformOwner: "Platform owner",
     accountManagement: "Account management",
+    companyNavOverview: "Overview",
+    companyNavAccount: "My account",
+    companyNavBranches: "Branches",
+    companyNavDepartments: "Departments",
+    companyNavSchedules: "Shift organization",
+    companyNavRules: "Attendance rules",
+    companyNavEmployees: "Employees",
+    companyNavRequests: "Requests",
+    companyNavReports: "Reports",
+    companyNavPayroll: "Payroll",
+    companyNavHolidays: "Holidays",
+    companyNavDevices: "Devices",
+    companyNavSyncHistory: "Sync history",
+    companyNavBackup: "Backup",
+    companyNavAccountManagement: "Account management",
+    companyNavSubscription: "Subscription",
     databaseAdministration: "Database Administration",
     accountSettings: "Account Settings",
     platformOwnerOnly: "Platform Owner only",
@@ -1002,6 +1129,22 @@ const copy = {
     backupRestore: "النسخ الاحتياطي والاستعادة",
     subscription: "الاشتراك",
     platformOwner: "مالك المنصة",
+    companyNavOverview: "نظرة عامة",
+    companyNavAccount: "حسابي",
+    companyNavBranches: "الفروع",
+    companyNavDepartments: "الاقسام",
+    companyNavSchedules: "تنظيم الشيفتات",
+    companyNavRules: "قواعد الحضور",
+    companyNavEmployees: "الموظفون",
+    companyNavRequests: "الطلبات",
+    companyNavReports: "التقارير",
+    companyNavPayroll: "الرواتب",
+    companyNavHolidays: "العطلات",
+    companyNavDevices: "الاجهزه",
+    companyNavSyncHistory: "سجل المزامنه",
+    companyNavBackup: "النسخ الاحتياطي",
+    companyNavAccountManagement: "ادارة الحسابات",
+    companyNavSubscription: "الاشتراك",
     workspace: "مساحة العمل",
     departmentOperations: "العمليات",
     departmentPeopleCulture: "الأفراد والثقافة",
@@ -1249,6 +1392,22 @@ const copy = {
     backupRestore: "Sauvegarde et restauration",
     subscription: "Abonnement",
     platformOwner: "Propriétaire de la plateforme",
+    companyNavOverview: "Vue d’ensemble",
+    companyNavAccount: "Mon compte",
+    companyNavBranches: "Succursales",
+    companyNavDepartments: "Départements",
+    companyNavSchedules: "Organisation des équipes",
+    companyNavRules: "Règles de présence",
+    companyNavEmployees: "Employés",
+    companyNavRequests: "Demandes",
+    companyNavReports: "Rapports",
+    companyNavPayroll: "Paie",
+    companyNavHolidays: "Jours fériés",
+    companyNavDevices: "Appareils",
+    companyNavSyncHistory: "Historique de synchronisation",
+    companyNavBackup: "Sauvegarde",
+    companyNavAccountManagement: "Gestion des comptes",
+    companyNavSubscription: "Abonnement",
     workspace: "Espace de travail",
     departmentOperations: "Opérations",
     departmentPeopleCulture: "People & Culture",
@@ -1337,6 +1496,22 @@ const copy = {
     backupRestore: "Sicherung und Wiederherstellung",
     subscription: "Abonnement",
     platformOwner: "Plattforminhaber",
+    companyNavOverview: "Übersicht",
+    companyNavAccount: "Mein Konto",
+    companyNavBranches: "Standorte",
+    companyNavDepartments: "Abteilungen",
+    companyNavSchedules: "Schichtorganisation",
+    companyNavRules: "Anwesenheitsregeln",
+    companyNavEmployees: "Mitarbeitende",
+    companyNavRequests: "Anfragen",
+    companyNavReports: "Berichte",
+    companyNavPayroll: "Lohnabrechnung",
+    companyNavHolidays: "Feiertage",
+    companyNavDevices: "Geräte",
+    companyNavSyncHistory: "Synchronisationsverlauf",
+    companyNavBackup: "Sicherung",
+    companyNavAccountManagement: "Kontoverwaltung",
+    companyNavSubscription: "Abonnement",
     workspace: "Arbeitsbereich",
     departmentOperations: "Operations",
     departmentPeopleCulture: "People & Culture",
@@ -1533,6 +1708,9 @@ const pageCopy = {
     workStarts: "Work starts",
     workEnds: "Work ends",
     gracePeriod: "Grace period (minutes)",
+    lateArrivalGrace: "Late arrival grace period (minutes)",
+    earlyDepartureGrace: "Early departure grace period (minutes)",
+    overtimeStartsAfter: "Overtime starts after (minutes)",
     overtimeAfter: "Overtime after (minutes)",
     locationVerification: "Location verification",
     gpsPolicy: "GPS policy",
@@ -1823,6 +2001,9 @@ const pageCopy = {
     workStarts: "بداية العمل",
     workEnds: "نهاية العمل",
     gracePeriod: "فترة السماح (بالدقائق)",
+    lateArrivalGrace: "فترة السماح للوصول المتأخر (بالدقائق)",
+    earlyDepartureGrace: "فترة السماح للانصراف المبكر (بالدقائق)",
+    overtimeStartsAfter: "يبدأ العمل الإضافي بعد (بالدقائق)",
     overtimeAfter: "العمل الإضافي بعد (بالدقائق)",
     locationVerification: "التحقق من الموقع",
     gpsPolicy: "سياسة GPS",
@@ -2305,6 +2486,9 @@ const pageCopy = {
     workStarts: "Début du travail",
     workEnds: "Fin du travail",
     gracePeriod: "Délai de grâce (minutes)",
+    lateArrivalGrace: "Délai de grâce pour arrivée tardive (minutes)",
+    earlyDepartureGrace: "Délai de grâce pour départ anticipé (minutes)",
+    overtimeStartsAfter: "Les heures supplémentaires commencent après (minutes)",
     overtimeAfter: "Heures supplémentaires après (minutes)",
     locationVerification: "Vérification de localisation",
     gpsPolicy: "Politique GPS",
@@ -2585,6 +2769,9 @@ const pageCopy = {
     workStarts: "Arbeitsbeginn",
     workEnds: "Arbeitsende",
     gracePeriod: "Kulanzzeit (Minuten)",
+    lateArrivalGrace: "Kulanzzeit bei verspäteter Ankunft (Minuten)",
+    earlyDepartureGrace: "Kulanzzeit bei frühem Feierabend (Minuten)",
+    overtimeStartsAfter: "Überstunden beginnen nach (Minuten)",
     overtimeAfter: "Überstunden ab (Minuten)",
     locationVerification: "Standortprüfung",
     gpsPolicy: "GPS-Richtlinie",
@@ -5362,10 +5549,17 @@ function Shell({ children }: { children: ReactNode }) {
     item.roles.includes(workspace.role as WorkspaceRole) &&
     (!item.capability || capabilities.includes(item.capability));
   const isPlatformOwner = workspace.role === "platform_owner";
-  const visibleNav = (isPlatformOwner ? platformNav : nav).filter(canSee);
-  const visibleSecondaryNav = isPlatformOwner
-    ? []
-    : secondaryNav.filter(canSee);
+  const visibleNav = (
+    isPlatformOwner
+      ? platformNav
+      : workspace.role === "company_owner"
+        ? companyAdminNav
+        : nav
+  ).filter(canSee);
+  const visibleSecondaryNav =
+    isPlatformOwner || workspace.role === "company_owner"
+      ? []
+      : secondaryNav.filter(canSee);
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
@@ -9105,6 +9299,7 @@ function Rules() {
         data: {
           ...form,
           graceMinutes: Number(form.graceMinutes),
+          earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
           overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
           locationRadiusMeters: Number(form.locationRadiusMeters),
           latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
@@ -9162,6 +9357,56 @@ function Rules() {
       />
       <form onSubmit={save} className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
         <div className="space-y-6">
+          <Card className="p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {locale === "ar"
+                ? "حدود الحضور والعمل الإضافي"
+                : locale === "fr"
+                  ? "Seuils de présence et d’heures supplémentaires"
+                  : locale === "de"
+                    ? "Grenzwerte für Anwesenheit und Überstunden"
+                    : "Attendance and overtime thresholds"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {locale === "ar"
+                ? "حدد فترات السماح التي تطبقها سياسة الحضور قبل تسجيل التأخير أو الانصراف المبكر أو العمل الإضافي."
+                : locale === "fr"
+                  ? "Définissez les délais appliqués avant de constater un retard, un départ anticipé ou des heures supplémentaires."
+                  : locale === "de"
+                    ? "Legen Sie die Toleranzen fest, bevor Verspätungen, früher Feierabend oder Überstunden erfasst werden."
+                    : "Set the policy tolerances before late arrival, early departure, or overtime is recorded."}
+            </p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <Field
+                label={t("lateArrivalGrace")}
+                type="number"
+                min={0}
+                required
+                value={form.graceMinutes}
+                onChange={(value) => setForm({ ...form, graceMinutes: value })}
+              />
+              <Field
+                label={t("earlyDepartureGrace")}
+                type="number"
+                min={0}
+                required
+                value={form.earlyCheckoutGraceMinutes}
+                onChange={(value) =>
+                  setForm({ ...form, earlyCheckoutGraceMinutes: value })
+                }
+              />
+              <Field
+                label={t("overtimeStartsAfter")}
+                type="number"
+                min={0}
+                required
+                value={form.overtimeAfterMinutes}
+                onChange={(value) =>
+                  setForm({ ...form, overtimeAfterMinutes: value })
+                }
+              />
+            </div>
+          </Card>
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
               {locale === "ar"
@@ -9313,9 +9558,6 @@ function Rules() {
           </Button>
         </div>
       </form>
-      <div className="mt-6">
-        <Schedules embedded />
-      </div>
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
