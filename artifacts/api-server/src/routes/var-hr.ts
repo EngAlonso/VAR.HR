@@ -8691,10 +8691,23 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     .from(employeeIdentitiesTable)
     .where(eq(employeeIdentitiesTable.employeeId, employee.employee.id))
     .limit(1);
-  if (existingIdentity) {
+  const [existingAccount] = await db
+    .select()
+    .from(userAccountsTable)
+    .where(eq(userAccountsTable.employeeId, employee.employee.id))
+    .limit(1);
+  const identityAccountMismatch =
+    (existingIdentity && !existingAccount) ||
+    (!existingIdentity && existingAccount) ||
+    (existingIdentity &&
+      existingAccount &&
+      (existingAccount.companyId !== context.companyId ||
+        existingIdentity.accountId !== existingAccount.id ||
+        existingIdentity.companyId !== context.companyId));
+  if (identityAccountMismatch) {
     res.status(409).json({
-      error: "This employee already has a biometric username.",
-      code: "EMPLOYEE_IDENTITY_EXISTS",
+      error: "The employee biometric identity and account are inconsistent.",
+      code: "EMPLOYEE_IDENTITY_ACCOUNT_MISMATCH",
     });
     return;
   }
@@ -8711,20 +8724,11 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
         ),
       );
   }
-  const [existingAccount] = await db
-    .select()
-    .from(userAccountsTable)
-    .where(eq(userAccountsTable.employeeId, employee.employee.id))
-    .limit(1);
-  const temporaryPassword = existingAccount ? null : generateNumericPassword();
+  const additionalDeviceMapping = Boolean(existingIdentity && existingAccount);
+  const temporaryPassword = additionalDeviceMapping
+    ? null
+    : generateNumericPassword();
   const username = `${biometricCode}-${parsed.data.deviceEmployeeId}`;
-  if (existingAccount && existingAccount.username !== username) {
-    res.status(409).json({
-      error: "This employee already has an account with a different username.",
-      code: "EMPLOYEE_ACCOUNT_USERNAME_MISMATCH",
-    });
-    return;
-  }
   let account: typeof userAccountsTable.$inferSelect;
   let mapping: typeof deviceEmployeeMappingsTable.$inferSelect;
   try {
@@ -8754,17 +8758,21 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
           active: true,
         })
         .returning();
-      const [createdIdentity] = await tx
-        .insert(employeeIdentitiesTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: employee.employee.id,
-          deviceId: device.id,
-          biometricEmployeeNumber: parsed.data.deviceEmployeeId,
-          username: createdAccount.username,
-          accountId: createdAccount.id,
-        })
-        .returning();
+      const createdIdentity =
+        existingIdentity ??
+        (
+          await tx
+            .insert(employeeIdentitiesTable)
+            .values({
+              companyId: context.companyId,
+              employeeId: employee.employee.id,
+              deviceId: device.id,
+              biometricEmployeeNumber: parsed.data.deviceEmployeeId,
+              username: createdAccount.username,
+              accountId: createdAccount.id,
+            })
+            .returning()
+        )[0];
       if (!createdMapping || !createdIdentity)
         throw new Error("EMPLOYEE_IDENTITY_CREATE_FAILED");
       return { account: createdAccount, mapping: createdMapping };
@@ -8800,7 +8808,9 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
   await writeAuthAudit({
     accountId: context.accountId,
     companyId: context.companyId,
-    action: "employee_identity_created",
+    action: additionalDeviceMapping
+      ? "employee_device_mapping_created"
+      : "employee_identity_created",
     entityType: "employee",
     entityId: employee.employee.id,
     metadata: { username: account.username, deviceId: device.id },
