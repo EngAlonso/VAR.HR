@@ -7472,12 +7472,33 @@ function Employees() {
           title={t("addEmployee")}
           onClose={() => setShowCreate(false)}
           className="max-w-3xl p-0"
+          footer={
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-background/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setShowCreate(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                form="employee-create-form"
+                disabled={create.isPending || assignSchedule.isPending}
+                type="submit"
+              >
+                {create.isPending || assignSchedule.isPending
+                  ? t("saving")
+                  : t("createEmployee")}
+              </Button>
+            </div>
+          }
         >
           <form
+            id="employee-create-form"
             onSubmit={submit}
-            className="flex max-h-[calc(90dvh-72px)] flex-col"
+            className="flex min-h-0 flex-col"
           >
-            <div className="overflow-y-auto p-4 sm:p-6">
+            <div className="min-h-0 p-4 sm:p-6">
               <div className="mb-6 rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
                 <div className="flex items-start gap-3">
                   <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -7693,23 +7714,6 @@ function Employees() {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col-reverse gap-2 border-t border-border bg-background/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setShowCreate(false)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                disabled={create.isPending || assignSchedule.isPending}
-                type="submit"
-              >
-                {create.isPending || assignSchedule.isPending
-                  ? t("saving")
-                  : t("createEmployee")}
-              </Button>
             </div>
           </form>
         </Modal>
@@ -18128,35 +18132,40 @@ function Modal({
   onClose,
   children,
   className = "",
+  footer,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  footer?: ReactNode;
 }) {
   const { t } = useI18n();
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-secondary/45 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={cn(
-          "max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-md)] animate-in sm:p-6",
-          className,
-        )}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">{title}</h2>
-          <Button
-            variant="quiet"
-            className="p-2"
-            onClick={onClose}
-            aria-label={t("closeDialog")}
-          >
-            <X size={18} />
-          </Button>
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-secondary/45 p-4">
+      <div className="flex min-h-full items-center justify-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className={cn(
+            "flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-md)] animate-in sm:p-6",
+            className,
+          )}
+        >
+          <div className="mb-5 flex shrink-0 items-center justify-between">
+            <h2 className="font-display text-xl font-semibold">{title}</h2>
+            <Button
+              variant="quiet"
+              className="p-2"
+              onClick={onClose}
+              aria-label={t("closeDialog")}
+            >
+              <X size={18} />
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+          {footer}
         </div>
-        {children}
       </div>
     </div>
   );
