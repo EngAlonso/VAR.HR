@@ -7471,7 +7471,7 @@ function Employees() {
         <Modal
           title={t("addEmployee")}
           onClose={() => setShowCreate(false)}
-          className="max-w-3xl p-0"
+          className="max-w-5xl p-0"
           footer={
             <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-background/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
               <Button
