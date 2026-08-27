@@ -1610,6 +1610,7 @@ const pageCopy = {
     employeeNameHint: "Enter the employee’s full name.",
     nationalId: "National ID",
     nationalIdHint: "Use the official identity number for this employee.",
+    phoneNumber: "Phone number",
     biometricCode: "Biometric / fingerprint code",
     biometricCodeHint:
       "The employee code or number used to identify them on the fingerprint device.",
@@ -1631,6 +1632,7 @@ const pageCopy = {
     adjustEmployeeSearch:
       "Adjust the search or add the first employee to this tenant.",
     selectOption: "Select",
+    loading: "Loading…",
     createDepartmentPrompt: "Department name",
     departmentNameHint:
       "This name is stored exactly as entered and is not translated.",
@@ -1728,7 +1730,6 @@ const pageCopy = {
     attendanceRulesDetail:
       "Versioned operating policy for time, overtime, and location verification.",
     version: "Version",
-    workingHours: "Working hours",
     rulesEffectiveNote:
       "Changes apply from the effective date. No legal or statutory interpretation is implied.",
     workStarts: "Work starts",
@@ -1912,6 +1913,7 @@ const pageCopy = {
     employeeNameHint: "أدخل اسم الموظف بالكامل.",
     nationalId: "الرقم القومي",
     nationalIdHint: "استخدم رقم الهوية الرسمي لهذا الموظف.",
+    phoneNumber: "رقم الهاتف",
     biometricCode: "كود البصمة / المعرّف الحيوي",
     biometricCodeHint:
       "الكود أو الرقم المستخدم للتعرّف على الموظف في جهاز البصمة.",
@@ -1932,6 +1934,7 @@ const pageCopy = {
     noEmployeesMatch: "لا يوجد موظفون يطابقون هذا العرض",
     adjustEmployeeSearch: "عدّل البحث أو أضف أول موظف إلى مساحة العمل.",
     selectOption: "اختر",
+    loading: "جارٍ التحميل…",
     createDepartmentPrompt: "اسم القسم",
     departmentNameHint:
       "يُحفظ هذا الاسم كما تم إدخاله تمامًا ولا تتم ترجمته.",
@@ -2047,7 +2050,6 @@ const pageCopy = {
     attendanceRulesDetail:
       "سياسة تشغيل بإصدارات للدوام والعمل الإضافي والتحقق من الموقع.",
     version: "الإصدار",
-    workingHours: "ساعات العمل",
     rulesEffectiveNote:
       "تسري التغييرات من تاريخ النفاذ ولا تمثل تفسيراً قانونياً أو نظامياً.",
     workStarts: "بداية العمل",
@@ -2438,6 +2440,7 @@ const pageCopy = {
     nationalId: "Identifiant national",
     nationalIdHint:
       "Utilisez le numéro officiel d’identité de cet employé.",
+    phoneNumber: "Numéro de téléphone",
     biometricCode: "Code biométrique / empreinte",
     biometricCodeHint:
       "Le code ou numéro utilisé pour identifier l’employé sur le terminal d’empreinte.",
@@ -2459,6 +2462,7 @@ const pageCopy = {
     adjustEmployeeSearch:
       "Modifiez la recherche ou ajoutez le premier employé à cet espace.",
     selectOption: "Sélectionner",
+    loading: "Chargement…",
     createDepartmentPrompt: "Nom du département",
     departmentNameHint:
       "Ce nom est enregistré exactement tel qu’il est saisi et n’est pas traduit.",
@@ -2559,7 +2563,6 @@ const pageCopy = {
     attendanceRulesDetail:
       "Politique versionnée pour les horaires, les heures supplémentaires et la localisation.",
     version: "Version",
-    workingHours: "Heures de travail",
     rulesEffectiveNote:
       "Les changements s’appliquent à la date d’effet. Aucune interprétation légale ou réglementaire n’est implicite.",
     workStarts: "Début du travail",
@@ -2749,6 +2752,7 @@ const pageCopy = {
     nationalId: "Nationale ID",
     nationalIdHint:
       "Verwenden Sie die offizielle Identitätsnummer dieser Person.",
+    phoneNumber: "Telefonnummer",
     biometricCode: "Biometrischer / Fingerabdruck-Code",
     biometricCodeHint:
       "Der Code oder die Nummer, mit der die Person am Fingerabdruckgerät erkannt wird.",
@@ -2770,6 +2774,7 @@ const pageCopy = {
     adjustEmployeeSearch:
       "Passen Sie die Suche an oder fügen Sie den ersten Mitarbeitenden hinzu.",
     selectOption: "Auswählen",
+    loading: "Wird geladen…",
     createDepartmentPrompt: "Abteilungsname",
     departmentNameHint:
       "Dieser Name wird genau wie eingegeben gespeichert und nicht übersetzt.",
@@ -2869,7 +2874,6 @@ const pageCopy = {
     attendanceRulesDetail:
       "Versionierte Richtlinie für Zeit, Überstunden und Standortprüfung.",
     version: "Version",
-    workingHours: "Arbeitszeit",
     rulesEffectiveNote:
       "Änderungen gelten ab dem Wirksamkeitsdatum. Keine rechtliche oder gesetzliche Auslegung ist enthalten.",
     workStarts: "Arbeitsbeginn",
@@ -7174,38 +7178,18 @@ function Departments() {
   );
 }
 
-function Employees() {
-  const { t, locale } = useI18n();
+function AddEmployeePage() {
+  const { t } = useI18n();
+  const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
-  const canManageEmployees =
-    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [showCreate, setShowCreate] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
-  const params = useMemo(
-    () => ({ search: search || undefined, status: status as any }),
-    [search, status],
-  );
-  const q = useListEmployees(params);
   const depts = useListDepartments();
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
   const create = useCreateEmployee();
   const assignSchedule = useAssignEmployeeSchedule();
-  const employee = useGetEmployee(selected || "", {
-    query: {
-      enabled: !!selected,
-      queryKey: getGetEmployeeQueryKey(selected || ""),
-    },
-  });
-  const update = useUpdateEmployee();
-  const importMutation = useImportEmployees();
-  const [showImport, setShowImport] = useState(false);
-  const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
-  const [importResult, setImportResult] = useState<any | null>(null);
+  const canManageEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
   const [form, setForm] = useState({
     employeeName: "",
     nationalId: "",
@@ -7218,6 +7202,13 @@ function Employees() {
     salary: "0",
     scheduleId: "",
   });
+
+  useEffect(() => {
+    if (workspaceQuery.data && !canManageEmployees) {
+      setLocation("/employees");
+    }
+  }, [canManageEmployees, setLocation, workspaceQuery.data]);
+
   function submit(e: FormEvent) {
     e.preventDefault();
     const employeeName = form.employeeName.trim();
@@ -7257,7 +7248,6 @@ function Employees() {
       {
         onSuccess: (createdEmployee: any) => {
           toast.success(t("employeeAdded"));
-          setShowCreate(false);
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
           assignSchedule.mutate(
             {
@@ -7272,11 +7262,321 @@ function Employees() {
               onError: () => toast.error(t("scheduleAssignmentFailed")),
             },
           );
+          setLocation("/employees");
         },
         onError: () => toast.error(t("couldNotCreateEmployee")),
       },
     );
   }
+
+  if (workspaceQuery.data && !canManageEmployees) return null;
+
+  return (
+    <div className="animate-in w-full">
+      <SectionTitle
+        eyebrow={t("employeesEyebrow")}
+        title={t("addEmployee")}
+        detail={t("employeeFormDetail")}
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLocation("/employees")}
+            data-testid="button-back-employees"
+          >
+            <ArrowLeft className="rtl:-scale-x-100" size={16} />
+            {t("cancel")}
+          </Button>
+        }
+      />
+
+      <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <UserPlus size={19} />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+              {t("addEmployee")}
+            </p>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {t("employeeFormDetail")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form
+        id="employee-create-form"
+        onSubmit={submit}
+        className="mt-5 space-y-5"
+      >
+        <Card className="p-4 sm:p-5 lg:p-6">
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold">
+              {t("employeeIdentitySection")}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("employeeIdentityDetail")}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Field
+                label={t("employeeName")}
+                name="employeeName"
+                required
+                autoComplete="name"
+                placeholder={t("employeeNameHint")}
+                value={form.employeeName}
+                onChange={(value) =>
+                  setForm({ ...form, employeeName: value })
+                }
+              />
+            </div>
+            <Field
+              label={t("nationalId")}
+              name="nationalId"
+              required
+              placeholder={t("nationalIdHint")}
+              value={form.nationalId}
+              onChange={(value) => setForm({ ...form, nationalId: value })}
+            />
+            <Field
+              label={t("phoneNumber")}
+              name="phone"
+              required
+              type="tel"
+              autoComplete="tel"
+              value={form.phone}
+              onChange={(value) => setForm({ ...form, phone: value })}
+            />
+            <div className="sm:col-span-2">
+              <Field
+                label={t("biometricCode")}
+                name="biometricCode"
+                required
+                placeholder={t("biometricCodeHint")}
+                value={form.biometricCode}
+                onChange={(value) =>
+                  setForm({ ...form, biometricCode: value })
+                }
+              />
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                {t("biometricCodeHint")}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 lg:p-6">
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold">
+              {t("employeeEmploymentSection")}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("employeeEmploymentDetail")}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Field
+                label={t("monthlySalary")}
+                name="salary"
+                required
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={form.salary}
+                onChange={(value) => setForm({ ...form, salary: value })}
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {t("salaryHint")}
+              </p>
+            </div>
+            <div>
+              <Field
+                label={t("workingHours")}
+                name="workingHours"
+                required
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                inputMode="decimal"
+                value={form.workingHours}
+                onChange={(value) =>
+                  setForm({ ...form, workingHours: value })
+                }
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {t("workingHoursHint")}
+              </p>
+            </div>
+            <Field
+              label={t("employmentStartDate")}
+              name="joinedOn"
+              required
+              type="date"
+              value={form.joinedOn}
+              onChange={(value) => setForm({ ...form, joinedOn: value })}
+            />
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("shift")}</span>
+              <select
+                required
+                name="scheduleId"
+                data-testid="select-employee-shift"
+                value={form.scheduleId}
+                disabled={schedules.isLoading || !schedules.data?.length}
+                onChange={(e) =>
+                  setForm({ ...form, scheduleId: e.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">
+                  {schedules.isLoading
+                    ? t("loading")
+                    : schedules.data?.length
+                      ? t("selectOption")
+                      : t("noShifts")}
+                </option>
+                {schedules.data?.map((schedule: any) => (
+                  <option
+                    key={schedule.id}
+                    value={schedule.id}
+                    data-testid={`option-employee-shift-${schedule.id}`}
+                  >
+                    {schedule.name} · {schedule.startTime}–{schedule.endTime}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                {schedules.isError
+                  ? t("shiftsLoadFailed")
+                  : t("selectShiftHint")}
+              </p>
+            </label>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 lg:p-6">
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold">
+              {t("employeePlacementSection")}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("employeePlacementDetail")}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("department")}</span>
+              <select
+                required
+                name="departmentId"
+                data-testid="select-employee-department"
+                value={form.departmentId}
+                onChange={(e) =>
+                  setForm({ ...form, departmentId: e.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+              >
+                <option value="">{t("selectOption")}</option>
+                {depts.data?.map((x: any) => (
+                  <option
+                    key={x.id}
+                    value={x.id}
+                    data-testid={`option-employee-department-${x.id}`}
+                  >
+                    {departmentLabel(x.name, t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("branch")}</span>
+              <select
+                required
+                name="branchId"
+                data-testid="select-employee-branch"
+                value={form.branchId}
+                onChange={(e) =>
+                  setForm({ ...form, branchId: e.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+              >
+                <option value="">{t("selectOption")}</option>
+                {branches.data?.map((x: any) => (
+                  <option
+                    key={x.id}
+                    value={x.id}
+                    data-testid={`option-employee-branch-${x.id}`}
+                  >
+                    {branchLabel(x.name, t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </Card>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="quiet"
+            className="w-full sm:w-auto"
+            onClick={() => setLocation("/employees")}
+            data-testid="button-cancel-add-employee"
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={create.isPending || assignSchedule.isPending}
+            data-testid="button-save-employee"
+          >
+            {create.isPending || assignSchedule.isPending
+              ? t("saving")
+              : t("createEmployee")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Employees() {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const [, setLocation] = useLocation();
+  const workspaceQuery = useGetWorkspace();
+  const canManageEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [selected, setSelected] = useState<string | null>(null);
+  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
+  const params = useMemo(
+    () => ({ search: search || undefined, status: status as any }),
+    [search, status],
+  );
+  const q = useListEmployees(params);
+  const depts = useListDepartments();
+  const branches = useListBranches();
+  const employee = useGetEmployee(selected || "", {
+    query: {
+      enabled: !!selected,
+      queryKey: getGetEmployeeQueryKey(selected || ""),
+    },
+  });
+  const update = useUpdateEmployee();
+  const importMutation = useImportEmployees();
+  const [showImport, setShowImport] = useState(false);
+  const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
+  const [importResult, setImportResult] = useState<any | null>(null);
   function selectImportFile(file: File | undefined) {
     if (!file) return;
     file
@@ -7352,7 +7652,7 @@ function Employees() {
         action={
           canManageEmployees ? (
             <Button
-              onClick={() => setShowCreate(true)}
+              onClick={() => setLocation("/employees/new")}
               data-testid="button-create-employee"
             >
               <Plus size={16} />
@@ -7458,7 +7758,10 @@ function Employees() {
             detail={t("adjustEmployeeSearch")}
             action={
               canManageEmployees ? (
-                <Button onClick={() => setShowCreate(true)}>
+                <Button
+                  onClick={() => setLocation("/employees/new")}
+                  data-testid="button-empty-create-employee"
+                >
                   <Plus size={15} />
                   {t("addEmployee")}
                 </Button>
@@ -7467,257 +7770,6 @@ function Employees() {
           />
         )}
       </Card>
-      {showCreate && (
-        <Modal
-          title={t("addEmployee")}
-          onClose={() => setShowCreate(false)}
-          className="max-w-5xl p-0"
-          footer={
-            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-background/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setShowCreate(false)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                form="employee-create-form"
-                disabled={create.isPending || assignSchedule.isPending}
-                type="submit"
-              >
-                {create.isPending || assignSchedule.isPending
-                  ? t("saving")
-                  : t("createEmployee")}
-              </Button>
-            </div>
-          }
-        >
-          <form
-            id="employee-create-form"
-            onSubmit={submit}
-            className="flex min-h-0 flex-col"
-          >
-            <div className="min-h-0 p-4 sm:p-6">
-              <div className="mb-6 rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
-                <div className="flex items-start gap-3">
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <UserPlus size={19} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
-                      {t("addEmployee")}
-                    </p>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                      {t("employeeFormDetail")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                  <div className="mb-5">
-                    <h3 className="font-display text-base font-semibold">
-                      {t("employeeIdentitySection")}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {t("employeeIdentityDetail")}
-                    </p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Field
-                        label={t("employeeName")}
-                        name="employeeName"
-                        required
-                        autoComplete="name"
-                        placeholder={t("employeeNameHint")}
-                        value={form.employeeName}
-                        onChange={(value) =>
-                          setForm({ ...form, employeeName: value })
-                        }
-                      />
-                    </div>
-                    <Field
-                      label={t("nationalId")}
-                      name="nationalId"
-                      required
-                      placeholder={t("nationalIdHint")}
-                      value={form.nationalId}
-                      onChange={(value) =>
-                        setForm({ ...form, nationalId: value })
-                      }
-                    />
-                    <Field
-                      label={t("phoneNumber")}
-                      name="phone"
-                      required
-                      type="tel"
-                      autoComplete="tel"
-                      value={form.phone}
-                      onChange={(value) => setForm({ ...form, phone: value })}
-                    />
-                    <div className="sm:col-span-2">
-                      <Field
-                        label={t("biometricCode")}
-                        name="biometricCode"
-                        required
-                        placeholder={t("biometricCodeHint")}
-                        value={form.biometricCode}
-                        onChange={(value) =>
-                          setForm({ ...form, biometricCode: value })
-                        }
-                      />
-                      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                        {t("biometricCodeHint")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                  <div className="mb-5">
-                    <h3 className="font-display text-base font-semibold">
-                      {t("employeeEmploymentSection")}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {t("employeeEmploymentDetail")}
-                    </p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Field
-                        label={t("monthlySalary")}
-                        name="salary"
-                        required
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        inputMode="decimal"
-                        value={form.salary}
-                        onChange={(value) => setForm({ ...form, salary: value })}
-                      />
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {t("salaryHint")}
-                      </p>
-                    </div>
-                    <div>
-                      <Field
-                        label={t("workingHours")}
-                        name="workingHours"
-                        required
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        inputMode="decimal"
-                        value={form.workingHours}
-                        onChange={(value) =>
-                          setForm({ ...form, workingHours: value })
-                        }
-                      />
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {t("workingHoursHint")}
-                      </p>
-                    </div>
-                    <Field
-                      label={t("employmentStartDate")}
-                      name="joinedOn"
-                      required
-                      type="date"
-                      value={form.joinedOn}
-                      onChange={(value) => setForm({ ...form, joinedOn: value })}
-                    />
-                    <label className="block text-sm font-semibold">
-                      {t("shift")}
-                      <select
-                        required
-                        name="scheduleId"
-                        value={form.scheduleId}
-                        disabled={schedules.isLoading || !schedules.data?.length}
-                        onChange={(e) =>
-                          setForm({ ...form, scheduleId: e.target.value })
-                        }
-                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <option value="">
-                          {schedules.isLoading
-                            ? t("loading")
-                            : schedules.data?.length
-                              ? t("selectOption")
-                              : t("noShifts")}
-                        </option>
-                        {schedules.data?.map((schedule: any) => (
-                          <option key={schedule.id} value={schedule.id}>
-                            {schedule.name} · {schedule.startTime}–{schedule.endTime}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                        {schedules.isError
-                          ? t("shiftsLoadFailed")
-                          : t("selectShiftHint")}
-                      </p>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                  <div className="mb-5">
-                    <h3 className="font-display text-base font-semibold">
-                      {t("employeePlacementSection")}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {t("employeePlacementDetail")}
-                    </p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block text-sm font-semibold">
-                      {t("department")}
-                      <select
-                        required
-                        name="departmentId"
-                        value={form.departmentId}
-                        onChange={(e) =>
-                          setForm({ ...form, departmentId: e.target.value })
-                        }
-                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
-                      >
-                        <option value="">{t("selectOption")}</option>
-                        {depts.data?.map((x: any) => (
-                          <option key={x.id} value={x.id}>
-                            {departmentLabel(x.name, t)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block text-sm font-semibold">
-                      {t("branch")}
-                      <select
-                        required
-                        name="branchId"
-                        value={form.branchId}
-                        onChange={(e) =>
-                          setForm({ ...form, branchId: e.target.value })
-                        }
-                        className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
-                      >
-                        <option value="">{t("selectOption")}</option>
-                        {branches.data?.map((x: any) => (
-                          <option key={x.id} value={x.id}>
-                            {branchLabel(x.name, t)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
-        </Modal>
-      )}
       {selected && (
         <Modal title={t("employeeProfile")} onClose={() => setSelected(null)}>
           {employee.isLoading ? (
@@ -18177,6 +18229,9 @@ function Field({
   onChange,
   type = "text",
   min,
+  max,
+  step,
+  inputMode,
   required = false,
   autoComplete,
   placeholder,
@@ -18193,6 +18248,17 @@ function Field({
   onChange: (value: string) => void;
   type?: string;
   min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  inputMode?:
+    | "none"
+    | "text"
+    | "decimal"
+    | "numeric"
+    | "tel"
+    | "search"
+    | "email"
+    | "url";
   required?: boolean;
   autoComplete?: string;
   placeholder?: string;
@@ -18220,10 +18286,15 @@ function Field({
       <div className="relative">
         <input
           name={name}
+          data-testid={name ? `input-${name}` : undefined}
           required={required}
           type={inputType}
           min={min}
-          inputMode={authStyle && type === "text" ? "tel" : undefined}
+          max={max}
+          step={step}
+          inputMode={
+            inputMode ?? (authStyle && type === "text" ? "tel" : undefined)
+          }
           dir={authStyle ? "ltr" : undefined}
           spellCheck={false}
           autoCapitalize={authStyle ? "none" : undefined}
@@ -18328,6 +18399,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Overview} />
         <Route path="/profile" component={Profile} />
+        <Route path="/employees/new" component={AddEmployeePage} />
         <Route path="/employees" component={Employees} />
         <Route path="/departments" component={Departments} />
         <Route path="/branches" component={Branches} />
