@@ -1,0 +1,122 @@
+Update the VAR HR "Add Department" form and department name localization behavior.
+
+IMPORTANT: This is NOT a request for two manually entered names.
+
+I want the company admin to enter the department name ONCE, in the language currently being used in the UI, and the system should automatically provide the equivalent localized department name for the other supported language.
+
+Example:
+- Current UI language: Arabic
+- Admin enters: "خدمة العملاء"
+- Saves the department
+- When the UI is switched to English, the department should display its English equivalent, e.g. "Customer Service" / "Call Center".
+- When switched back to Arabic, it should display "خدمة العملاء".
+
+The admin must NOT have to enter:
+- Arabic Name
+- English Name
+
+The department creation form must contain ONLY the department name field.
+
+Remove from the Add Department form:
+- Separate Arabic name field
+- Separate English name field
+- Description field
+- Shift/Schedule assignment
+- Manager assignment
+- Any other fields that are not intrinsically part of a department
+
+The department is an organizational entity only.
+
+The desired relationship is:
+
+Company
+  └── Departments
+        └── Employees
+
+Do NOT make a department responsible for:
+- assigning a shift
+- assigning a schedule
+- assigning a manager
+
+Those should remain separate concerns.
+
+UI REQUIREMENTS:
+- Redesign the Add Department form to look significantly more polished, modern, premium, and consistent with the existing VAR HR design system.
+- Keep the existing VAR HR branding, colors, typography, RTL/LTR behavior, spacing, dialogs, buttons, and responsive behavior consistent with the rest of the application.
+- Arabic UI must remain RTL.
+- English UI must remain LTR.
+- The field label should be localized by the interface language:
+  Arabic: "اسم القسم"
+  English: "Department Name"
+- Do not show "Arabic Name" or "English Name".
+- Do not show unnecessary fields or empty sections.
+- Keep validation clear and professional.
+- The form should work properly on desktop and mobile.
+
+LOCALIZATION REQUIREMENT:
+Do not simply store one Arabic string and blindly display the same string in English.
+
+I want the department to have a localized display name so that:
+Arabic UI → Arabic department name
+English UI → English department name
+
+However, the admin should only enter the name once.
+
+Before changing the data model, inspect the existing i18n/localization architecture and department schema/API. Use the project's existing localization approach if possible.
+
+If automatic machine translation is technically required, implement it in a way that does not introduce an unreliable external dependency without checking the existing project architecture first.
+
+If the current application already has a translation/localization mechanism suitable for entity names, reuse it.
+
+BACKWARD COMPATIBILITY:
+- Existing departments must not disappear or break.
+- Existing department records must continue to work.
+- Do not destroy existing department data.
+- If the current schema stores separate Arabic/English names, determine the safest migration/compatibility approach before changing it.
+- Do not make destructive database changes.
+
+SCOPE:
+First inspect the current department implementation:
+- database schema
+- API endpoints
+- validation schemas
+- department list/detail UI
+- Add Department form
+- i18n/localization system
+- employee-to-department relationships
+
+Then implement the smallest safe change that achieves the requested UX.
+
+Do NOT change:
+- employee scheduling logic
+- attendance logic
+- payroll logic
+- biometric/device logic
+- ADMS
+- K50 integration
+- employee permissions
+- department/employee security boundaries
+
+Also make sure department names are displayed consistently everywhere the department name appears, including:
+- Department management
+- Employee forms
+- Employee profile
+- Filters/selectors
+- Reports where applicable
+- Any dashboard or workspace department references
+
+The localized display name should change when the user changes the application language, without creating duplicate departments.
+
+After implementation:
+1. Verify Arabic UI.
+2. Verify English UI.
+3. Create a department in Arabic and verify its English display.
+4. Create a department in English and verify its Arabic display.
+5. Verify existing departments.
+6. Verify employee department selection.
+7. Verify mobile/responsive UI.
+8. Run the relevant typecheck/build/tests.
+
+Do not modify deployment, DNS, physical devices, K50 settings, or ADMS configuration.
+
+Before making changes, inspect the existing implementation and explain any schema/API implications. Then implement the change safely.
