@@ -1,0 +1,150 @@
+Continue the existing VAR HR project from the current imported code state.
+
+IMPORTANT:
+Do NOT start the Employee Account / Employee Self-Service work from scratch.
+
+A previous Agent already received the complete specification and started the architecture inspection, but stopped because the Free quota was exhausted.
+
+Your job is to continue from the current codebase.
+
+First inspect the current implementation and determine exactly what has already been completed before making any changes.
+
+The target specification is:
+
+- Automatically create an Employee Account when a Company Admin creates an employee.
+- Username = employee phone number.
+- System generates the password automatically.
+- Password is NOT temporary.
+- Do NOT add a password field to the existing Add Employee form.
+- Do NOT add Email.
+- Employee can log in using phone number + password.
+- Employee must enter Employee Self-Service, not Company Admin.
+- Employee can only access their own data.
+- Owner/Admin can manage employee account credentials according to permissions.
+- Passwords must remain securely hashed.
+- Do NOT store plaintext passwords.
+- Admin should be able to generate/reset a new password.
+- The newly generated password can be shown to the authorized admin at the time of generation and copied/shared.
+- Employee can change their own password securely.
+- Old password must stop working after a successful password change.
+- Add "Share Login via WhatsApp" functionality.
+- WhatsApp must open with the employee's actual registered phone number and a pre-filled message containing username and the newly generated/currently available password.
+- The admin manually presses Send.
+- NO WhatsApp API.
+- NO WhatsApp Cloud API.
+- NO automatic WhatsApp sending.
+
+Employee Self-Service should use the existing VAR HR data sources for:
+
+- Employee profile
+- Attendance
+- Check-in/check-out
+- Working hours
+- Late arrival
+- Early departure
+- Overtime
+- Assigned shift
+- Salary/payroll information
+- Leave requests
+- Permission requests
+- Notifications
+
+Use the existing database relationships and APIs.
+
+Do NOT create a parallel employee, account, attendance, shift, payroll, or leave system.
+
+Preserve the existing single source of truth.
+
+Very important existing requirements:
+
+- Add Employee remains a dedicated full page at /employees/new.
+- Do NOT bring back the Add Employee modal.
+- Keep the existing Add Employee form exactly as it currently is.
+- It must remain exactly 10 fields:
+  1. Employee Name
+  2. National ID
+  3. Phone Number
+  4. Monthly Salary
+  5. Working Hours
+  6. Biometric/Fingerprint Code
+  7. Employment Start Date
+  8. Department
+  9. Branch
+  10. Shift
+- Do not add Email.
+- Do not add Password.
+- Do not add any additional fields to Add Employee.
+
+Also preserve the existing employee assignment architecture:
+
+Department and Branch are stored through the existing employee relationships.
+
+Shift is stored through the existing employee schedule-assignment relationship.
+
+If an employee is created with a Department, Branch, and Shift, those assignments must immediately appear everywhere:
+
+- Employee List
+- Employee Profile
+- Shift Organization
+- Attendance
+- Reports
+- Payroll
+- Any other relevant screen
+
+Do not create duplicate assignment records.
+
+Localization must remain:
+
+- Arabic
+- English
+- French
+- German
+
+Arabic = RTL.
+English/French/German = LTR.
+
+Before changing anything:
+
+1. Inspect the current authentication/account tables.
+2. Inspect Employee → Account → Identity relationships.
+3. Inspect employee creation.
+4. Inspect login.
+5. Inspect permissions/authorization.
+6. Inspect password hashing.
+7. Inspect existing Employee Self-Service routes/components.
+8. Inspect existing attendance, payroll, leave, permission, and shift APIs.
+9. Identify what the previous Agent already implemented.
+10. Only then implement the missing pieces.
+
+Do not guess.
+
+Do not weaken security.
+
+Do not duplicate existing architecture.
+
+After implementation, verify the complete flow with real test data:
+
+- Create employee.
+- Confirm account automatically created.
+- Confirm username = phone.
+- Confirm generated password works.
+- Log in as employee.
+- Confirm Employee Self-Service opens.
+- Confirm employee cannot access another employee's data.
+- Change employee password.
+- Confirm old password fails.
+- Confirm new password works.
+- Reset/regenerate password as Owner/Admin.
+- Confirm old password fails.
+- Confirm new password works.
+- Test WhatsApp sharing.
+- Confirm WhatsApp opens using the employee's actual phone number.
+- Confirm message is pre-filled with the correct login information.
+- Confirm no WhatsApp API is involved.
+- Confirm Department/Branch/Shift remain synchronized everywhere.
+
+Run the appropriate typechecks, builds, and tests.
+
+Do not modify unrelated pages or modules.
+
+If something is already implemented correctly, preserve it and continue only with what is missing.

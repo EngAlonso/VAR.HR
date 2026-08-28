@@ -2997,6 +2997,23 @@ router.post("/employees", async (req, res): Promise<void> => {
     });
     return;
   }
+  const employeeUsername = parsed.data.phone.trim();
+  if (!employeeUsername) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [accountUsernameMatch] = await db
+    .select({ id: userAccountsTable.id })
+    .from(userAccountsTable)
+    .where(eq(userAccountsTable.username, employeeUsername))
+    .limit(1);
+  if (accountUsernameMatch) {
+    res.status(409).json({
+      error: "That phone number is already used as a login username.",
+      code: "EMPLOYEE_USERNAME_DUPLICATE",
+    });
+    return;
+  }
   const capacity = await ensureEmployeeCapacity(context.companyId);
   if (!capacity.allowed) {
     res.status(409).json({
@@ -3011,7 +3028,12 @@ router.post("/employees", async (req, res): Promise<void> => {
   let assignment:
     | typeof employeeScheduleAssignmentsTable.$inferSelect
     | undefined;
+  let employeeAccount:
+    | typeof userAccountsTable.$inferSelect
+    | undefined;
+  let temporaryPassword: string | undefined;
   const employeeNumber = await allocateEmployeeNumber(context.companyId);
+  temporaryPassword = generateNumericPassword();
   try {
     await db.transaction(async (tx) => {
       [employee] = await tx
@@ -3038,6 +3060,23 @@ router.post("/employees", async (req, res): Promise<void> => {
         .returning();
       if (!employee) {
         throw new Error("EMPLOYEE_CREATE_FAILED");
+      }
+      [employeeAccount] = await tx
+        .insert(userAccountsTable)
+        .values({
+          username: employeeUsername,
+          fullName: `${employee.firstName} ${employee.lastName}`,
+          primaryPhone: employeeUsername,
+          passwordHash: hashPassword(temporaryPassword!),
+          accountType: "employee",
+          displayRole: "Employee",
+          companyId: context.companyId,
+          employeeId: employee.id,
+          active: true,
+        })
+        .returning();
+      if (!employeeAccount) {
+        throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
       }
       [assignment] = await tx
         .insert(employeeScheduleAssignmentsTable)
@@ -3076,6 +3115,17 @@ router.post("/employees", async (req, res): Promise<void> => {
       });
       return;
     }
+    if (
+      error instanceof Error &&
+      (error.message.includes("EMPLOYEE_ACCOUNT_CREATE_FAILED") ||
+        error.message.includes("user_accounts_username"))
+    ) {
+      res.status(409).json({
+        error: "That phone number is already used as a login username.",
+        code: "EMPLOYEE_USERNAME_DUPLICATE",
+      });
+      return;
+    }
     throw error;
   }
   if (!employee) {
@@ -3083,6 +3133,9 @@ router.post("/employees", async (req, res): Promise<void> => {
   }
   if (!assignment) {
     throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+  }
+  if (!employeeAccount || !temporaryPassword) {
+    throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
   }
   const createdEmployee = employee;
   const [row] = await employeeRows(context).then((rows) =>
@@ -3102,7 +3155,15 @@ router.post("/employees", async (req, res): Promise<void> => {
     assignment.id,
     assignment,
   );
-  res.status(201).json(CreateEmployeeResponse.parse(employeeResponse(row)));
+  res.status(201).json(
+    CreateEmployeeResponse.parse({
+      ...employeeResponse(row),
+      accountCredentials: {
+        username: employeeAccount.username,
+        temporaryPassword,
+      },
+    }),
+  );
 });
 
 router.get("/employees/:employeeId", async (req, res): Promise<void> => {
