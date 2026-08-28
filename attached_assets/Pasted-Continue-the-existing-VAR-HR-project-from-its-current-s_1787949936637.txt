@@ -1,0 +1,370 @@
+Continue the existing VAR HR project from its current state.
+
+I want to implement the complete Employee Account / Employee Self-Service login system using the existing employee, account, identity, authentication, and permission architecture.
+
+IMPORTANT:
+
+- First inspect the existing database relationships, authentication system, employee account creation flow, permissions, and existing APIs.
+- Do NOT create a parallel account/authentication system.
+- Reuse the existing Employee + Account + Identity architecture.
+- Do NOT redesign or add fields to the existing Add Employee form.
+- Keep the existing 10 Add Employee fields exactly as they are.
+- Do NOT add Email.
+- Do NOT add a password field to the Add Employee form.
+- Do NOT use WhatsApp API.
+- Do NOT modify unrelated modules or pages.
+
+1. Automatic Employee Account Creation
+
+When a Company Owner/Admin creates a new employee:
+
+- The system must automatically create the employee's login account.
+- Username must be the employee's registered phone number.
+- The system must automatically generate a strong random password.
+- The generated password is NOT temporary.
+- There must be no "temporary password" concept.
+- The employee does not have to change the password on first login.
+- The account must be linked to the exact Employee record that was just created.
+- Do not create duplicate accounts if an account already exists for that employee.
+- Preserve the existing tenant/company isolation.
+
+Example:
+
+Employee:
+Mohamed Ahmed
+Phone:
+01012345678
+
+Login:
+Username: 01012345678
+Password: system-generated password
+
+2. Employee Login
+
+Employees must be able to log in using:
+
+Username = their phone number
+Password = their current account password
+
+After authentication, the system must identify the employee account and open the Employee Self-Service interface, not the Company Admin interface.
+
+The employee must only be able to access their own data.
+
+Backend authorization must enforce this.
+Do not rely only on hiding UI elements.
+
+An employee must never be able to access another employee's:
+
+- Salary
+- Attendance
+- Personal information
+- Leave balance
+- Requests
+- HR records
+- Biometric information
+- Any other private employee data
+
+even if they manually change IDs in URLs or API requests.
+
+3. Employee Account Management for Company Owner/Admin
+
+Inside the employee's profile/account management area, authorized Company Owner/Admin users must have an Employee Login / Account section.
+
+It should show:
+
+- Username
+- Account status
+- Password management controls
+
+The system must NOT expose password hashes.
+
+The Owner/Admin must be able to generate/set a new password.
+
+Use secure password handling consistent with the existing authentication architecture.
+
+4. Password Reset / Regeneration
+
+Because passwords must be securely stored as hashes:
+
+Do NOT store the employee's password as plaintext just so administrators can view it later.
+
+Instead provide:
+
+Generate New Password / Reset Password
+
+When an authorized Owner/Admin generates a new password:
+
+- Replace the old password.
+- The new password becomes the employee's current password immediately.
+- Show the newly generated password to the authorized administrator.
+- Allow the administrator to copy it.
+- Allow the administrator to share it through WhatsApp using the button described below.
+
+The generated password should be strong and random.
+
+The system must never display the old password after it has been replaced.
+
+5. Employee Changes Their Own Password
+
+Inside Employee Self-Service:
+
+Add a secure Change Password function.
+
+The employee can enter:
+
+- Current password
+- New password
+- Confirm new password
+
+After successful change:
+
+- The new password becomes the current password.
+- The old password is invalidated.
+- The system must NOT attempt to retrieve the old plaintext password.
+- The employee can continue using the new password.
+
+Do not weaken existing password security or validation.
+
+6. WhatsApp Sharing
+
+Add a button such as:
+
+Share Login via WhatsApp
+
+This is NOT a WhatsApp API integration.
+
+Do NOT send messages automatically.
+
+The button must simply open WhatsApp with a pre-filled message addressed to the employee's registered phone number.
+
+Use the employee's phone number stored in the employee record.
+
+The message should contain the current login credentials available to the administrator, for example:
+
+Hello Mohamed 👋
+
+Your VAR HR login details:
+
+Username: 01012345678
+Password: XXXXXXXX
+
+You can use these details to log in to VAR HR.
+
+The administrator must manually press Send inside WhatsApp.
+
+Important:
+
+- No WhatsApp Business API.
+- No WhatsApp Cloud API.
+- No external WhatsApp integration.
+- No automatic sending.
+- Just open WhatsApp with the phone number and encoded message.
+
+If the employee's phone number is missing or invalid, disable the WhatsApp sharing button and show a clear localized message.
+
+7. Employee Self-Service Dashboard
+
+After employee login, create/use the Employee Self-Service area.
+
+The employee should eventually be able to access:
+
+- Overview
+- My Account
+- Attendance
+- Salary
+- Leaves
+- Permissions / Requests
+- Notifications
+
+Do not expose Company Admin navigation.
+
+8. Attendance
+
+The employee must be able to see their own attendance records.
+
+Use the existing attendance/device data and existing biometric relationships.
+
+Show, where available:
+
+- Date
+- Check-in time
+- Check-out time
+- Working hours
+- Late arrival
+- Early departure
+- Overtime
+- Attendance status
+- Assigned shift
+
+Do not create a second attendance system.
+
+Use the existing attendance source of truth.
+
+9. Salary
+
+The employee must be able to see their own salary information only.
+
+Use the existing payroll/employee salary data.
+
+Do not expose another employee's salary.
+
+The employee should be able to see the relevant salary/payroll information available in the existing system.
+
+10. Leave Requests
+
+The employee must be able to submit a leave request.
+
+The request should use the existing leave/request/business logic.
+
+The employee should be able to see:
+
+- Leave type
+- Start date
+- End date
+- Number of days
+- Reason
+- Status
+- Approval/rejection information
+
+Do not create a parallel leave system.
+
+11. Permission Requests
+
+The employee must be able to submit permission requests using the existing request/business logic.
+
+For example:
+
+- Date
+- From time
+- To time
+- Reason
+- Status
+
+The employee should be able to track the request status.
+
+12. Employee Profile
+
+Employee Self-Service must display the employee's own information from the existing Employee record.
+
+Use the existing saved:
+
+- Employee number
+- Name
+- National ID
+- Phone
+- Department
+- Branch
+- Shift
+- Salary
+- Working hours
+- Biometric code
+- Employment start date
+- Status
+
+Do not add Email because VAR HR does not use employee email.
+
+13. Single Source of Truth
+
+This is extremely important.
+
+The Employee account must remain linked to the existing Employee record.
+
+Department, Branch, and Shift must use the existing relationships.
+
+Attendance must use the existing attendance records.
+
+Payroll must use the existing payroll data.
+
+Leave requests must use the existing leave system.
+
+Do NOT create duplicate employee/account/attendance/shift/leave tables unless the existing architecture genuinely requires it.
+
+14. Localization
+
+Everything must support the existing four languages:
+
+- Arabic
+- English
+- French
+- German
+
+Arabic must remain RTL.
+
+English/French/German must remain LTR.
+
+Do not hard-code English-only UI strings.
+
+15. Security
+
+Preserve tenant isolation.
+
+Company Owner/Admin:
+
+- Can manage employees belonging to their company according to existing permissions.
+
+Employee:
+
+- Can access only their own employee/account data.
+- Cannot access another employee by changing IDs.
+- Cannot access Company Admin pages.
+- Cannot access other employees' salary, attendance, requests, or HR records.
+
+Do not bypass existing authorization.
+
+16. UI / UX
+
+Keep the existing VAR HR visual identity.
+
+Employee Self-Service should feel like a professional modern HR portal, not an admin panel.
+
+Make it:
+
+- Clean
+- Modern
+- Responsive
+- Easy to use
+- Professional on desktop
+- Professional on mobile
+- Fully localized
+
+Do not redesign unrelated Company Admin pages.
+
+17. Verification
+
+Before finishing:
+
+1. Inspect the existing auth/account/employee architecture.
+2. Confirm employee account creation works automatically.
+3. Create a test employee.
+4. Confirm an account is created automatically.
+5. Confirm username equals the employee phone.
+6. Confirm a generated password exists.
+7. Confirm the employee can log in.
+8. Confirm the employee reaches Employee Self-Service.
+9. Confirm the employee cannot access another employee's data.
+10. Test password change by employee.
+11. Confirm the old password no longer works.
+12. Confirm the new password works.
+13. Test Owner/Admin password regeneration.
+14. Confirm the old password is invalidated.
+15. Confirm the newly generated password can be copied/shared.
+16. Test the WhatsApp button.
+17. Confirm it opens WhatsApp with the employee's actual phone number and a pre-filled message.
+18. Confirm no WhatsApp API is used.
+19. Test Arabic, English, French, and German.
+20. Confirm RTL/LTR behavior.
+21. Run existing typechecks/builds/tests.
+22. Do not modify unrelated pages or business logic.
+
+If any existing architecture already provides one of these capabilities, reuse it instead of implementing a duplicate version.
+
+Most importantly:
+
+Do not change the existing Add Employee form.
+Do not add Email.
+Do not add a password field to Add Employee.
+Do not bring back the Add Employee modal.
+Do not create a temporary-password system.
+Do not store plaintext passwords.
+Do not use WhatsApp API.
+Do not create duplicate employee/account/attendance/shift/leave systems.
