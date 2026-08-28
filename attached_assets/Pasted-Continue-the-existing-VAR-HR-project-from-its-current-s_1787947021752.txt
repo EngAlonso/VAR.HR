@@ -1,0 +1,233 @@
+Continue the existing VAR HR project from its current state. Do NOT restart or rebuild completed work.
+
+Already completed — DO NOT redo
+
+1. Department
+
+- Add Department is now a dedicated clean form.
+- It has only one Department Name field.
+- No Arabic Name / English Name split.
+- No description.
+- No manager assignment.
+- No shift assignment.
+- The department name is stored exactly as entered and remains the same when the user changes the interface language.
+- Arabic, English, French, and German localization is preserved.
+
+2. Company Admin Navigation
+   The sidebar order is already finalized as:
+3. Overview
+4. My Account
+5. Branches
+6. Departments
+7. Shift Organization
+8. Attendance Rules
+9. Employees
+10. Requests
+11. Reports
+12. Payroll
+13. Holidays
+14. Devices
+15. Sync History
+16. Backup
+17. Account Management
+18. Subscription
+
+Shift Organization is separate from Attendance Rules.
+
+Attendance Rules already contains:
+
+- Late arrival grace period
+- Early departure grace period
+- Overtime starts after
+
+3. Add Employee
+   Add Employee is NO LONGER a modal.
+   It is a dedicated full page:
+   "/employees/new"
+
+It already contains exactly these 10 fields:
+
+- Employee Name
+- National ID
+- Phone Number
+- Monthly Salary
+- Working Hours
+- Biometric/Fingerprint Code
+- Employment Start Date
+- Department
+- Branch
+- Shift
+
+Do NOT add any other fields.
+Do NOT bring the modal back.
+
+The page is responsive and uses the existing VAR HR design system.
+
+4. Employee Creation Backend
+   The employee creation API and generated contracts were updated to support:
+
+- nationalId
+- biometricCode
+- workingHours
+
+The previous employee creation response-validation bug was fixed.
+
+The bug was:
+The employee was inserted successfully, but the server response failed Zod validation because the Branch response was missing:
+
+- deviceCount
+- active
+- createdAt
+- updatedAt
+
+This was fixed by correcting the backend response mapping.
+
+5. Duplicate Employee Protection
+   Employee National ID and Phone are protected against duplicates within the same company.
+
+Tenant-scoped unique indexes exist for:
+
+- company_id + national_id
+- company_id + phone
+
+Backend duplicate handling returns proper 409 responses.
+
+The system also handles concurrent duplicate requests safely through PostgreSQL unique constraints.
+
+Different companies are allowed to have the same National ID or phone.
+
+6. Multi-Device Biometric Mapping
+   The employee/device biometric mapping logic was already fixed.
+
+First device mapping creates:
+
+- employee account
+- biometric identity
+- device mapping
+- temporary password
+- default permissions
+
+Additional device mapping:
+
+- reuses the existing account
+- reuses the existing biometric identity
+- creates only the additional device mapping
+- does not create another account
+- does not create another biometric identity
+- returns temporaryPassword: null
+
+Existing tenant/device validation and uniqueness rules remain intact.
+
+7. Modal Layout
+   The old shared modal positioning/scrolling problems were addressed, but Add Employee was ultimately moved completely to a dedicated page.
+
+Do NOT waste time redesigning the Add Employee modal or bring it back.
+
+---
+
+CURRENT REMAINING WORK
+
+The remaining task is mainly the Employee List and Employee Profile UI.
+
+The current employee data presentation is not good enough and feels incomplete.
+
+I want you to focus ONLY on improving the Employee List and Employee Profile.
+
+Employee List
+
+Make the employee list much more professional and clear.
+
+Each employee should clearly show:
+
+- Employee Number
+- Employee Name
+- National ID
+- Phone Number
+- Department
+- Branch
+- Shift
+- Monthly Salary
+- Working Hours
+- Biometric Code
+- Employment Start Date
+- Status
+
+The Employee Number must be:
+
+- clearly visible
+- professionally formatted
+- unique within the company
+- consistent
+- NOT changed for existing employees
+
+Do not overwrite existing employee numbers.
+
+Employee Profile
+
+The current employee profile presentation is incomplete.
+
+Redesign it into a professional HR/SaaS-style employee profile.
+
+Organize the information into clean sections/cards:
+
+1. Personal & Contact Information
+2. Employment Information
+3. Department / Branch / Shift
+4. Salary & Working Hours
+5. Biometric / Attendance Information
+6. Employment Start Date
+7. Employee Number & Status
+
+Show the REAL stored database values.
+
+Do not use fake placeholders when real values exist.
+
+The profile should include at minimum:
+
+- Employee Number
+- Employee Name
+- National ID
+- Phone
+- Monthly Salary
+- Working Hours
+- Biometric Code
+- Employment Start Date
+- Department
+- Branch
+- Shift
+- Status
+
+Design Requirements
+
+The Employee List and Profile should feel:
+
+- Premium
+- Modern
+- Professional
+- Clean
+- Like a real HR SaaS product
+- Well-spaced
+- Easy to scan
+- Responsive on desktop/tablet/mobile
+- Fully compatible with Arabic RTL and English/French/German LTR
+
+Do NOT make it look like a basic form or plain text page.
+
+IMPORTANT
+
+Before changing anything:
+
+1. Inspect the current Employee schema.
+2. Inspect the current Employee API response.
+3. Inspect the current Employee List.
+4. Inspect the current Employee Profile.
+5. Identify exactly which requested values already exist.
+6. Only use real existing data.
+7. Do not invent data.
+8. Do not change unrelated modules.
+9. Do not change Add Employee.
+10. Do not change attendance, payroll, devices, ADMS, backup, or other unrelated business logic.
+
+The goal now is NOT to rebuild the employee system.
+
+The goal is simply to make the existing Employee List and Employee Profile complete, professional, and visually polished, while preserving all existing backend behavior and data.

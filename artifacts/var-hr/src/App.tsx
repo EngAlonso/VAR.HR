@@ -4675,6 +4675,39 @@ function branchLabel(
   );
 }
 
+function effectiveScheduleName(
+  assignments:
+    | Array<{
+        employeeId: string;
+        scheduleName: string;
+        effectiveFrom: string;
+        effectiveTo: string | null;
+      }>
+    | undefined,
+  schedules:
+    | Array<{
+        name: string;
+        isDefault?: boolean;
+      }>
+    | undefined,
+  employeeId: string,
+) {
+  const today = new Date().toISOString().slice(0, 10);
+  const assignment = (assignments ?? [])
+    .filter(
+      (item) =>
+        item.employeeId === employeeId &&
+        item.effectiveFrom <= today &&
+        (!item.effectiveTo || item.effectiveTo >= today),
+    )
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  return (
+    assignment?.scheduleName ||
+    schedules?.find((schedule) => schedule.isDefault)?.name ||
+    ""
+  );
+}
+
 function cityLabel(value: string | undefined, t: (key: AppCopyKey) => string) {
   return localizedValue(
     value,
@@ -7570,6 +7603,8 @@ function Employees() {
   const q = useListEmployees(params);
   const depts = useListDepartments();
   const branches = useListBranches();
+  const scheduleAssignments = useListScheduleAssignments();
+  const schedules = useListWorkSchedules();
   const employee = useGetEmployee(selected || "", {
     query: {
       enabled: !!selected,
@@ -7706,18 +7741,23 @@ function Employees() {
         ) : q.isError ? (
           <ErrorState retry={() => q.refetch()} />
         ) : q.data?.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm rtl:text-right">
+          <>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[1450px] text-left text-sm rtl:text-right">
               <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">{t("employee")}</th>
-                  <th className="px-4 py-3">{t("department")}</th>
-                  <th className="px-4 py-3">{t("branch")}</th>
-                  <th className="px-4 py-3">{t("role")}</th>
-                  <th className="px-4 py-3">{t("status")}</th>
-                  <th className="px-5 py-3 text-right rtl:text-left">
-                    {t("joined")}
-                  </th>
+                  <th className="px-5 py-4">{t("employeeNumber")}</th>
+                  <th className="px-4 py-4">{t("employee")}</th>
+                  <th className="px-4 py-4">{t("nationalId")}</th>
+                  <th className="px-4 py-4">{t("phoneNumber")}</th>
+                  <th className="px-4 py-4">{t("department")}</th>
+                  <th className="px-4 py-4">{t("branch")}</th>
+                  <th className="px-4 py-4">{t("shift")}</th>
+                  <th className="px-4 py-4">{t("monthlySalary")}</th>
+                  <th className="px-4 py-4">{t("workingHours")}</th>
+                  <th className="px-4 py-4">{t("biometricCode")}</th>
+                  <th className="px-4 py-4">{t("employmentStartDate")}</th>
+                  <th className="px-5 py-4">{t("status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -7729,39 +7769,141 @@ function Employees() {
                     data-testid={`row-employee-${item.id}`}
                   >
                     <td className="px-5 py-4">
+                      <span
+                        className="inline-flex rounded-lg bg-secondary/5 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-secondary"
+                        data-testid={`text-list-employee-number-${item.id}`}
+                      >
+                        {item.employeeNumber}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
                           {item.avatarInitials ||
                             `${item.firstName[0]}${item.lastName[0]}`}
                         </div>
-                        <div>
-                          <div className="font-semibold">
+                        <div className="min-w-0">
+                          <div className="whitespace-nowrap font-semibold">
                             {item.firstName} {item.lastName}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.employeeNumber} · {item.email}
+                          <div className="max-w-[190px] truncate text-xs text-muted-foreground">
+                            {item.email}
                           </div>
                         </div>
                       </div>
                     </td>
+                    <td className="px-4 py-4 font-mono text-xs">
+                      {item.nationalId || t("notAvailable")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {item.phone || t("notAvailable")}
+                    </td>
                     <td className="px-4 py-4">
                       {departmentLabel(item.department?.name, t)}
                     </td>
+                    <td className="px-4 py-4">{branchLabel(item.branch?.name, t)}</td>
                     <td className="px-4 py-4">
-                      {branchLabel(item.branch?.name, t)}
+                      {effectiveScheduleName(
+                        scheduleAssignments.data,
+                        schedules.data,
+                        item.id,
+                      ) || t("notAvailable")}
                     </td>
-                    <td className="px-4 py-4">{roleLabel(item.role, t)}</td>
-                    <td className="px-4 py-4">
-                      <Status value={item.status} />
+                    <td className="whitespace-nowrap px-4 py-4 font-semibold">
+                      {money(item.salary, currency)}
                     </td>
-                    <td className="px-5 py-4 text-right text-muted-foreground rtl:text-left">
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {item.workingHours ?? t("notAvailable")}
+                      {item.workingHours != null && ` ${t("hours").toLowerCase()}`}
+                    </td>
+                    <td className="px-4 py-4 font-mono text-xs">
+                      {item.biometricCode || t("notAvailable")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
                       {date(item.joinedOn)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Status value={item.status} />
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+            <div className="grid gap-3 p-3 lg:hidden sm:grid-cols-2 sm:p-4">
+              {q.data.map((item: any) => {
+                const shift =
+                  effectiveScheduleName(
+                    scheduleAssignments.data,
+                    schedules.data,
+                    item.id,
+                  ) || t("notAvailable");
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => setSelected(item.id)}
+                    className="group rounded-2xl border border-border bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] rtl:text-right"
+                    data-testid={`card-employee-${item.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                          {item.avatarInitials ||
+                            `${item.firstName[0]}${item.lastName[0]}`}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold">
+                            {item.firstName} {item.lastName}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {item.email}
+                          </div>
+                        </div>
+                      </div>
+                      <Status value={item.status} />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                      <span className="font-mono text-xs font-bold tracking-wide text-secondary">
+                        {item.employeeNumber}
+                      </span>
+                      <ArrowUpRight
+                        size={16}
+                        className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      />
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <Info label={t("nationalId")} value={item.nationalId || t("notAvailable")} />
+                      <Info label={t("phoneNumber")} value={item.phone || t("notAvailable")} />
+                      <Info
+                        label={t("department")}
+                        value={departmentLabel(item.department?.name, t)}
+                      />
+                      <Info label={t("branch")} value={branchLabel(item.branch?.name, t)} />
+                      <Info label={t("shift")} value={shift} />
+                      <Info label={t("monthlySalary")} value={money(item.salary, currency)} />
+                      <Info
+                        label={t("workingHours")}
+                        value={
+                          item.workingHours != null
+                            ? `${item.workingHours} ${t("hours").toLowerCase()}`
+                            : t("notAvailable")
+                        }
+                      />
+                      <Info
+                        label={t("biometricCode")}
+                        value={item.biometricCode || t("notAvailable")}
+                      />
+                      <Info
+                        label={t("employmentStartDate")}
+                        value={date(item.joinedOn)}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <Empty
             title={t("noEmployeesMatch")}
@@ -7793,15 +7935,17 @@ function Employees() {
               <Skeleton className="h-44" />
             </div>
           ) : employee.data ? (
-            <div className="space-y-5">
-              <div className="rounded-2xl border border-primary/15 bg-primary/[0.045] p-4 sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-4">
+              <div className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-4 sm:p-6">
+                <div className="pointer-events-none absolute -end-12 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-lg font-bold text-primary"
+                      className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15"
                       data-testid={`img-employee-avatar-${employee.data.id}`}
                     >
-                      {employee.data.avatarInitials}
+                      {employee.data.avatarInitials ||
+                        `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
                     </div>
                     <div className="min-w-0">
                       <h3
@@ -7825,16 +7969,34 @@ function Employees() {
                     <Status value={employee.data.status} />
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-primary/10 pt-4 text-sm">
-                  <span className="text-muted-foreground">
-                    {t("employeeNumber")}
-                  </span>
-                  <span
-                    className="font-mono font-semibold tracking-wide text-foreground"
-                    data-testid={`text-employee-number-${employee.data.id}`}
-                  >
-                    {employee.data.employeeNumber}
-                  </span>
+                <div className="relative mt-5 grid gap-2 border-t border-primary/10 pt-4 sm:grid-cols-3">
+                  <div className="rounded-xl bg-card/70 p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                      {t("employeeNumber")}
+                    </div>
+                    <div
+                      className="mt-1 font-mono text-sm font-bold tracking-wide"
+                      data-testid={`text-employee-number-${employee.data.id}`}
+                    >
+                      {employee.data.employeeNumber}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-card/70 p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                      {t("branch")}
+                    </div>
+                    <div className="mt-1 truncate text-sm font-semibold">
+                      {branchLabel(employee.data.branch?.name, t)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-card/70 p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                      {t("employmentStartDate")}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold">
+                      {date(employee.data.joinedOn)}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -7869,21 +8031,6 @@ function Employees() {
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Info
-                    label={t("salary")}
-                    value={money(employee.data.salary, currency)}
-                    testId={`text-profile-salary-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("workingHours")}
-                    value={`${employee.data.workingHours ?? 0} ${t("hours").toLowerCase()}`}
-                    testId={`text-profile-working-hours-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("employmentStartDate")}
-                    value={date(employee.data.joinedOn)}
-                    testId={`text-profile-start-date-${employee.data.id}`}
-                  />
-                  <Info
                     label={t("role")}
                     value={roleLabel(employee.data.role, t)}
                     testId={`text-profile-role-${employee.data.id}`}
@@ -7899,6 +8046,11 @@ function Employees() {
                       <Status value={employee.data.status} />
                     </div>
                   </div>
+                  <Info
+                    label={t("employmentStartDate")}
+                    value={date(employee.data.joinedOn)}
+                    testId={`text-profile-start-date-${employee.data.id}`}
+                  />
                 </div>
               </EmployeeProfileSection>
 
@@ -7958,6 +8110,29 @@ function Employees() {
                       </div>
                     </div>
                   )}
+                </div>
+              </EmployeeProfileSection>
+
+              <EmployeeProfileSection
+                title={t("monthlySalary")}
+                detail={t("salaryHint")}
+                icon={<Coins size={17} />}
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Info
+                    label={t("monthlySalary")}
+                    value={money(employee.data.salary, currency)}
+                    testId={`text-profile-salary-${employee.data.id}`}
+                  />
+                  <Info
+                    label={t("workingHours")}
+                    value={
+                      employee.data.workingHours != null
+                        ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
+                        : t("notAvailable")
+                    }
+                    testId={`text-profile-working-hours-${employee.data.id}`}
+                  />
                 </div>
               </EmployeeProfileSection>
 
