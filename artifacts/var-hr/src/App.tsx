@@ -7585,6 +7585,412 @@ function AddEmployeePage() {
   );
 }
 
+function EmployeeProfilePage() {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const [, setLocation] = useLocation();
+  const { employeeId = "" } = useParams<{ employeeId: string }>();
+  const workspaceQuery = useGetWorkspace();
+  const canManageEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
+  const employee = useGetEmployee(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
+  const employeeSchedule = useGetEmployeeSchedule(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeScheduleQueryKey(employeeId),
+    },
+  });
+  const update = useUpdateEmployee();
+
+  return (
+    <div className="animate-in">
+      <div className="mb-5">
+        <Button
+          variant="quiet"
+          className="px-0 hover:bg-transparent"
+          onClick={() => setLocation("/employees")}
+          data-testid="button-back-to-employees"
+        >
+          <ArrowLeft size={16} />
+          {t("employees")}
+        </Button>
+      </div>
+      <SectionTitle
+        eyebrow={t("employeeProfile")}
+        title={
+          employee.data
+            ? `${employee.data.firstName} ${employee.data.lastName}`
+            : t("employeeProfile")
+        }
+        detail={t("employeeDetail")}
+      />
+      {!employeeId ? (
+        <Empty
+          title={t("employeeProfileLoadFailed")}
+          detail={t("checkWorkspace")}
+          action={
+            <Button variant="outline" onClick={() => setLocation("/employees")}>
+              {t("employees")}
+            </Button>
+          }
+        />
+      ) : employee.isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-48" />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Skeleton className="h-52" />
+            <Skeleton className="h-52" />
+          </div>
+          <Skeleton className="h-52" />
+        </div>
+      ) : employee.isError ? (
+        <Card>
+          <Empty
+            title={t("employeeProfileLoadFailed")}
+            detail={t("checkWorkspace")}
+            action={
+              <Button variant="outline" onClick={() => employee.refetch()}>
+                {t("retry")}
+              </Button>
+            }
+          />
+        </Card>
+      ) : employee.data ? (
+        <div className="space-y-4">
+          <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-4 sm:p-6">
+            <div className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15"
+                  data-testid={`img-employee-avatar-${employee.data.id}`}
+                >
+                  {employee.data.avatarInitials ||
+                    `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
+                </div>
+                <div className="min-w-0">
+                  <h2
+                    className="truncate font-display text-2xl font-semibold sm:text-3xl"
+                    data-testid={`text-employee-name-${employee.data.id}`}
+                  >
+                    {employee.data.firstName} {employee.data.lastName}
+                  </h2>
+                  <p
+                    className="mt-1 truncate text-sm text-muted-foreground"
+                    data-testid={`text-employee-email-${employee.data.id}`}
+                  >
+                    {employee.data.email}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
+                <Status value={employee.data.status} />
+              </div>
+            </div>
+            <div className="relative mt-6 grid gap-2 border-t border-primary/10 pt-4 sm:grid-cols-3">
+              <Info
+                label={t("employeeNumber")}
+                value={employee.data.employeeNumber}
+                testId={`text-employee-number-${employee.data.id}`}
+              />
+              <Info
+                label={t("branch")}
+                value={branchLabel(employee.data.branch?.name, t)}
+              />
+              <Info
+                label={t("employmentStartDate")}
+                value={date(employee.data.joinedOn)}
+              />
+            </div>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <EmployeeProfileSection
+              title={t("employeeIdentitySection")}
+              detail={t("employeeIdentityDetail")}
+              icon={<UserRound size={17} />}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Info
+                  label={t("email")}
+                  value={employee.data.email}
+                  testId={`text-profile-email-${employee.data.id}`}
+                />
+                <Info
+                  label={t("phoneNumber")}
+                  value={employee.data.phone || t("notAvailable")}
+                  testId={`text-profile-phone-${employee.data.id}`}
+                />
+                <Info
+                  label={t("nationalId")}
+                  value={employee.data.nationalId || t("notAvailable")}
+                  testId={`text-profile-national-id-${employee.data.id}`}
+                />
+              </div>
+            </EmployeeProfileSection>
+
+            <EmployeeProfileSection
+              title={t("employeeEmploymentSection")}
+              detail={t("employeeEmploymentDetail")}
+              icon={<BriefcaseBusiness size={17} />}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Info
+                  label={t("role")}
+                  value={roleLabel(employee.data.role, t)}
+                  testId={`text-profile-role-${employee.data.id}`}
+                />
+                <div
+                  className="rounded-lg bg-muted/60 p-3"
+                  data-testid={`status-profile-employee-${employee.data.id}`}
+                >
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {t("status")}
+                  </div>
+                  <div className="mt-2">
+                    <Status value={employee.data.status} />
+                  </div>
+                </div>
+                <Info
+                  label={t("employmentStartDate")}
+                  value={date(employee.data.joinedOn)}
+                  testId={`text-profile-start-date-${employee.data.id}`}
+                />
+              </div>
+            </EmployeeProfileSection>
+          </div>
+
+          <EmployeeProfileSection
+            title={t("employeePlacementSection")}
+            detail={t("employeePlacementDetail")}
+            icon={<Building2 size={17} />}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Info
+                label={t("department")}
+                value={departmentLabel(employee.data.department?.name, t)}
+                testId={`text-profile-department-${employee.data.id}`}
+              />
+              <Info
+                label={t("branch")}
+                value={
+                  employee.data.branch
+                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
+                    : t("notAvailable")
+                }
+                testId={`text-profile-branch-${employee.data.id}`}
+              />
+              <Info
+                label={t("shift")}
+                value={
+                  employeeSchedule.data?.schedule?.name ||
+                  t("notAvailable")
+                }
+                testId={`text-profile-shift-${employee.data.id}`}
+              />
+              <Info
+                label={t("effectiveFrom")}
+                value={
+                  employeeSchedule.data?.assignment?.effectiveFrom
+                    ? date(employeeSchedule.data.assignment.effectiveFrom)
+                    : t("notAvailable")
+                }
+                testId={`text-profile-shift-effective-${employee.data.id}`}
+              />
+              {employeeSchedule.data?.schedule && (
+                <div
+                  className="rounded-lg bg-muted/60 p-3 sm:col-span-2"
+                  data-testid={`text-profile-shift-hours-${employee.data.id}`}
+                >
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {t("workingHours")}
+                  </div>
+                  <div className="mt-1 font-medium">
+                    {employeeSchedule.data.schedule.startTime}–{" "}
+                    {employeeSchedule.data.schedule.endTime}
+                    {employeeSchedule.data.schedule.workingDays?.length
+                      ? ` · ${employeeSchedule.data.schedule.workingDays
+                          .map((day: string) => scheduleDayLabel(day, t))
+                          .join(", ")}`
+                      : ""}
+                  </div>
+                </div>
+              )}
+            </div>
+          </EmployeeProfileSection>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <EmployeeProfileSection
+              title={t("monthlySalary")}
+              detail={t("salaryHint")}
+              icon={<Coins size={17} />}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Info
+                  label={t("monthlySalary")}
+                  value={money(employee.data.salary, currency)}
+                  testId={`text-profile-salary-${employee.data.id}`}
+                />
+                <Info
+                  label={t("workingHours")}
+                  value={
+                    employee.data.workingHours != null
+                      ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
+                      : t("notAvailable")
+                  }
+                  testId={`text-profile-working-hours-${employee.data.id}`}
+                />
+              </div>
+            </EmployeeProfileSection>
+
+            <EmployeeProfileSection
+              title={t("biometricCode")}
+              detail={t("biometricCodeHint")}
+              icon={<Fingerprint size={17} />}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Info
+                  label={t("biometricCode")}
+                  value={employee.data.biometricCode || t("notAvailable")}
+                  testId={`text-profile-biometric-code-${employee.data.id}`}
+                />
+                {canManageEmployees ? (
+                  <label className="rounded-lg bg-muted/60 p-3 text-sm font-semibold">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {t("automaticOvertime")}
+                    </span>
+                    <select
+                      value={employee.data.automaticOvertime ?? "default"}
+                      onChange={(event) =>
+                        update.mutate(
+                          {
+                            employeeId: employee.data.id,
+                            data: {
+                              automaticOvertime: event.target.value as
+                                | "default"
+                                | "enabled"
+                                | "disabled",
+                            } as any,
+                          },
+                          {
+                            onSuccess: () => {
+                              toast.success(t("employeeStatusUpdated"));
+                              qc.invalidateQueries({
+                                queryKey: getListEmployeesQueryKey(),
+                              });
+                              qc.invalidateQueries({
+                                queryKey: getGetEmployeeQueryKey(
+                                  employee.data.id,
+                                ),
+                              });
+                            },
+                            onError: (error: unknown) =>
+                              toast.error(
+                                apiErrorMessage(
+                                  error,
+                                  t("couldNotSaveRecord"),
+                                ),
+                              ),
+                          },
+                        )
+                      }
+                      className="mt-2 h-9 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
+                      data-testid={`select-profile-automatic-overtime-${employee.data.id}`}
+                    >
+                      <option value="default">
+                        {locale === "ar"
+                          ? "استخدام إعداد الشركة"
+                          : "Use company default"}
+                      </option>
+                      <option value="enabled">
+                        {locale === "ar" ? "مفعّل" : "Enabled"}
+                      </option>
+                      <option value="disabled">
+                        {locale === "ar" ? "معطّل" : "Disabled"}
+                      </option>
+                    </select>
+                  </label>
+                ) : (
+                  <Info
+                    label={t("automaticOvertime")}
+                    value={
+                      employee.data.automaticOvertime === "enabled"
+                        ? t("enabled")
+                        : employee.data.automaticOvertime === "disabled"
+                          ? t("disabled")
+                          : locale === "ar"
+                            ? "الإعداد الافتراضي"
+                            : locale === "fr"
+                              ? "Par défaut"
+                              : locale === "de"
+                                ? "Standard"
+                                : "Default"
+                    }
+                    testId={`text-profile-automatic-overtime-${employee.data.id}`}
+                  />
+                )}
+              </div>
+            </EmployeeProfileSection>
+          </div>
+
+          <div className="border-t border-border pt-1">
+            <EmployeeHrPanel
+              employeeId={employee.data.id}
+              canEdit={canManageEmployees}
+            />
+          </div>
+
+          {canManageEmployees && (
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  update.mutate(
+                    {
+                      employeeId: employee.data.id,
+                      data: {
+                        status:
+                          employee.data.status === "active"
+                            ? "inactive"
+                            : "active",
+                      } as any,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success(t("employeeStatusUpdated"));
+                        qc.invalidateQueries({
+                          queryKey: getListEmployeesQueryKey(),
+                        });
+                        qc.invalidateQueries({
+                          queryKey: getGetEmployeeQueryKey(employee.data.id),
+                        });
+                      },
+                    },
+                  )
+                }
+                data-testid={`button-toggle-employee-status-${employee.data.id}`}
+              >
+                {employee.data.status === "active"
+                  ? t("markInactive")
+                  : t("reactivateEmployee")}
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <ErrorState retry={() => employee.refetch()} />
+      )}
+    </div>
+  );
+}
+
 function Employees() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
@@ -7594,7 +8000,6 @@ function Employees() {
     workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selected, setSelected] = useState<string | null>(null);
   const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const params = useMemo(
     () => ({ search: search || undefined, status: status as any }),
@@ -7605,19 +8010,6 @@ function Employees() {
   const branches = useListBranches();
   const scheduleAssignments = useListScheduleAssignments();
   const schedules = useListWorkSchedules();
-  const employee = useGetEmployee(selected || "", {
-    query: {
-      enabled: !!selected,
-      queryKey: getGetEmployeeQueryKey(selected || ""),
-    },
-  });
-  const employeeSchedule = useGetEmployeeSchedule(selected || "", {
-    query: {
-      enabled: Boolean(selected),
-      queryKey: getGetEmployeeScheduleQueryKey(selected || ""),
-    },
-  });
-  const update = useUpdateEmployee();
   const importMutation = useImportEmployees();
   const [showImport, setShowImport] = useState(false);
   const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
@@ -7764,7 +8156,7 @@ function Employees() {
                 {q.data.map((item: any) => (
                   <tr
                     key={item.id}
-                    onClick={() => setSelected(item.id)}
+                    onClick={() => setLocation(`/employees/${item.id}`)}
                     className="cursor-pointer transition-colors hover:bg-muted/40"
                     data-testid={`row-employee-${item.id}`}
                   >
@@ -7842,7 +8234,7 @@ function Employees() {
                   <button
                     type="button"
                     key={item.id}
-                    onClick={() => setSelected(item.id)}
+                    onClick={() => setLocation(`/employees/${item.id}`)}
                     className="group rounded-2xl border border-border bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] rtl:text-right"
                     data-testid={`card-employee-${item.id}`}
                   >
@@ -7922,357 +8314,6 @@ function Employees() {
           />
         )}
       </Card>
-      {selected && (
-        <Modal
-          title={t("employeeProfile")}
-          onClose={() => setSelected(null)}
-          className="max-w-3xl"
-        >
-          {employee.isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-28" />
-              <Skeleton className="h-44" />
-              <Skeleton className="h-44" />
-            </div>
-          ) : employee.data ? (
-            <div className="space-y-4">
-              <div className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-4 sm:p-6">
-                <div className="pointer-events-none absolute -end-12 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
-                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div
-                      className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15"
-                      data-testid={`img-employee-avatar-${employee.data.id}`}
-                    >
-                      {employee.data.avatarInitials ||
-                        `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
-                    </div>
-                    <div className="min-w-0">
-                      <h3
-                        className="truncate font-display text-xl font-semibold sm:text-2xl"
-                        data-testid={`text-employee-name-${employee.data.id}`}
-                      >
-                        {employee.data.firstName} {employee.data.lastName}
-                      </h3>
-                      <p
-                        className="truncate text-sm text-muted-foreground"
-                        data-testid={`text-employee-email-${employee.data.id}`}
-                      >
-                        {employee.data.email}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <Badge tone="accent">
-                      {roleLabel(employee.data.role, t)}
-                    </Badge>
-                    <Status value={employee.data.status} />
-                  </div>
-                </div>
-                <div className="relative mt-5 grid gap-2 border-t border-primary/10 pt-4 sm:grid-cols-3">
-                  <div className="rounded-xl bg-card/70 p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                      {t("employeeNumber")}
-                    </div>
-                    <div
-                      className="mt-1 font-mono text-sm font-bold tracking-wide"
-                      data-testid={`text-employee-number-${employee.data.id}`}
-                    >
-                      {employee.data.employeeNumber}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-card/70 p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                      {t("branch")}
-                    </div>
-                    <div className="mt-1 truncate text-sm font-semibold">
-                      {branchLabel(employee.data.branch?.name, t)}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-card/70 p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                      {t("employmentStartDate")}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold">
-                      {date(employee.data.joinedOn)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <EmployeeProfileSection
-                title={t("employeeIdentitySection")}
-                detail={t("employeeIdentityDetail")}
-                icon={<UserRound size={17} />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info
-                    label={t("email")}
-                    value={employee.data.email}
-                    testId={`text-profile-email-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("phoneNumber")}
-                    value={employee.data.phone || t("notAvailable")}
-                    testId={`text-profile-phone-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("nationalId")}
-                    value={employee.data.nationalId || t("notAvailable")}
-                    testId={`text-profile-national-id-${employee.data.id}`}
-                  />
-                </div>
-              </EmployeeProfileSection>
-
-              <EmployeeProfileSection
-                title={t("employeeEmploymentSection")}
-                detail={t("employeeEmploymentDetail")}
-                icon={<BriefcaseBusiness size={17} />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info
-                    label={t("role")}
-                    value={roleLabel(employee.data.role, t)}
-                    testId={`text-profile-role-${employee.data.id}`}
-                  />
-                  <div
-                    className="rounded-lg bg-muted/60 p-3"
-                    data-testid={`status-profile-employee-${employee.data.id}`}
-                  >
-                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {t("status")}
-                    </div>
-                    <div className="mt-2">
-                      <Status value={employee.data.status} />
-                    </div>
-                  </div>
-                  <Info
-                    label={t("employmentStartDate")}
-                    value={date(employee.data.joinedOn)}
-                    testId={`text-profile-start-date-${employee.data.id}`}
-                  />
-                </div>
-              </EmployeeProfileSection>
-
-              <EmployeeProfileSection
-                title={t("employeePlacementSection")}
-                detail={t("employeePlacementDetail")}
-                icon={<Building2 size={17} />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info
-                    label={t("department")}
-                    value={departmentLabel(employee.data.department?.name, t)}
-                    testId={`text-profile-department-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("branch")}
-                    value={
-                      employee.data.branch
-                        ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
-                        : t("notAvailable")
-                    }
-                    testId={`text-profile-branch-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("shift")}
-                    value={
-                      employeeSchedule.data?.schedule?.name ||
-                      t("notAvailable")
-                    }
-                    testId={`text-profile-shift-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("effectiveFrom")}
-                    value={
-                      employeeSchedule.data?.assignment?.effectiveFrom
-                        ? date(employeeSchedule.data.assignment.effectiveFrom)
-                        : t("notAvailable")
-                    }
-                    testId={`text-profile-shift-effective-${employee.data.id}`}
-                  />
-                  {employeeSchedule.data?.schedule && (
-                    <div
-                      className="rounded-lg bg-muted/60 p-3 sm:col-span-2"
-                      data-testid={`text-profile-shift-hours-${employee.data.id}`}
-                    >
-                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {t("workingHours")}
-                      </div>
-                      <div className="mt-1 font-medium">
-                        {employeeSchedule.data.schedule.startTime}–{" "}
-                        {employeeSchedule.data.schedule.endTime}
-                        {employeeSchedule.data.schedule.workingDays?.length
-                          ? ` · ${employeeSchedule.data.schedule.workingDays
-                              .map((day: string) => scheduleDayLabel(day, t))
-                              .join(", ")}`
-                          : ""}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </EmployeeProfileSection>
-
-              <EmployeeProfileSection
-                title={t("monthlySalary")}
-                detail={t("salaryHint")}
-                icon={<Coins size={17} />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info
-                    label={t("monthlySalary")}
-                    value={money(employee.data.salary, currency)}
-                    testId={`text-profile-salary-${employee.data.id}`}
-                  />
-                  <Info
-                    label={t("workingHours")}
-                    value={
-                      employee.data.workingHours != null
-                        ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
-                        : t("notAvailable")
-                    }
-                    testId={`text-profile-working-hours-${employee.data.id}`}
-                  />
-                </div>
-              </EmployeeProfileSection>
-
-              <EmployeeProfileSection
-                title={t("biometricCode")}
-                detail={t("biometricCodeHint")}
-                icon={<Fingerprint size={17} />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info
-                    label={t("biometricCode")}
-                    value={employee.data.biometricCode || t("notAvailable")}
-                    testId={`text-profile-biometric-code-${employee.data.id}`}
-                  />
-                  {canManageEmployees ? (
-                    <label className="rounded-lg bg-muted/60 p-3 text-sm font-semibold">
-                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {t("automaticOvertime")}
-                      </span>
-                      <select
-                        value={employee.data.automaticOvertime ?? "default"}
-                        onChange={(event) =>
-                          update.mutate(
-                            {
-                              employeeId: employee.data.id,
-                              data: {
-                                automaticOvertime: event.target.value as
-                                  | "default"
-                                  | "enabled"
-                                  | "disabled",
-                              } as any,
-                            },
-                            {
-                              onSuccess: () => {
-                                toast.success(t("employeeStatusUpdated"));
-                                qc.invalidateQueries({
-                                  queryKey: getListEmployeesQueryKey(),
-                                });
-                                qc.invalidateQueries({
-                                  queryKey: getGetEmployeeQueryKey(
-                                    employee.data.id,
-                                  ),
-                                });
-                              },
-                              onError: (error: unknown) =>
-                                toast.error(
-                                  apiErrorMessage(
-                                    error,
-                                    t("couldNotSaveRecord"),
-                                  ),
-                                ),
-                            },
-                          )
-                        }
-                        className="mt-2 h-9 w-full rounded-lg border border-input bg-background px-2 text-sm font-normal"
-                        data-testid={`select-profile-automatic-overtime-${employee.data.id}`}
-                      >
-                        <option value="default">
-                          {locale === "ar"
-                            ? "استخدام إعداد الشركة"
-                            : "Use company default"}
-                        </option>
-                        <option value="enabled">
-                          {locale === "ar" ? "مفعّل" : "Enabled"}
-                        </option>
-                        <option value="disabled">
-                          {locale === "ar" ? "معطّل" : "Disabled"}
-                        </option>
-                      </select>
-                    </label>
-                  ) : (
-                    <Info
-                      label={t("automaticOvertime")}
-                      value={
-                        employee.data.automaticOvertime === "enabled"
-                          ? t("enabled")
-                          : employee.data.automaticOvertime === "disabled"
-                            ? t("disabled")
-                            : locale === "ar"
-                              ? "الإعداد الافتراضي"
-                              : locale === "fr"
-                                ? "Par défaut"
-                                : locale === "de"
-                                  ? "Standard"
-                                  : "Default"
-                      }
-                      testId={`text-profile-automatic-overtime-${employee.data.id}`}
-                    />
-                  )}
-                </div>
-              </EmployeeProfileSection>
-
-              <div className="border-t border-border pt-1">
-                <EmployeeHrPanel
-                  employeeId={employee.data.id}
-                  canEdit={canManageEmployees}
-                />
-              </div>
-
-              {canManageEmployees && (
-                <Button
-                  className="w-full sm:w-auto"
-                  variant="outline"
-                  onClick={() =>
-                    update.mutate(
-                      {
-                        employeeId: employee.data.id,
-                        data: {
-                          status:
-                            employee.data.status === "active"
-                              ? "inactive"
-                              : "active",
-                        } as any,
-                      },
-                      {
-                        onSuccess: () => {
-                          toast.success(t("employeeStatusUpdated"));
-                          qc.invalidateQueries({
-                            queryKey: getListEmployeesQueryKey(),
-                          });
-                          qc.invalidateQueries({
-                            queryKey: getGetEmployeeQueryKey(employee.data.id),
-                          });
-                        },
-                      },
-                    )
-                  }
-                  data-testid={`button-toggle-employee-status-${employee.data.id}`}
-                >
-                  {employee.data.status === "active"
-                    ? t("markInactive")
-                    : t("reactivateEmployee")}
-                </Button>
-              )}
-            </div>
-          ) : (
-            <ErrorState retry={() => employee.refetch()} />
-          )}
-        </Modal>
-      )}
     </div>
   );
 }
@@ -18831,6 +18872,7 @@ function Router() {
         <Route path="/" component={Overview} />
         <Route path="/profile" component={Profile} />
         <Route path="/employees/new" component={AddEmployeePage} />
+        <Route path="/employees/:employeeId" component={EmployeeProfilePage} />
         <Route path="/employees" component={Employees} />
         <Route path="/departments" component={Departments} />
         <Route path="/branches" component={Branches} />
