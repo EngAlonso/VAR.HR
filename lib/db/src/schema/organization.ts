@@ -75,6 +75,9 @@ export const employeesTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
+    companyEmployeeNumberUnique: uniqueIndex(
+      "var_hr_employees_company_employee_number_uidx",
+    ).on(table.companyId, table.employeeNumber),
     companyNationalIdUnique: uniqueIndex(
       "var_hr_employees_company_national_id_uidx",
     ).on(table.companyId, table.nationalId),

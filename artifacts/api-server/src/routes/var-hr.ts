@@ -273,6 +273,8 @@ function message(
 const employeeNationalIdUniqueConstraint =
   "var_hr_employees_company_national_id_uidx";
 const employeePhoneUniqueConstraint = "var_hr_employees_company_phone_uidx";
+const employeeNumberUniqueConstraint =
+  "var_hr_employees_company_employee_number_uidx";
 
 function postgresUniqueConstraint(error: unknown): string | null {
   if (!error || typeof error !== "object") return null;
@@ -1894,6 +1896,23 @@ async function employeeRows(context: TenantContext) {
   }));
 }
 
+async function allocateEmployeeNumber(companyId: string): Promise<string> {
+  const existing = await db
+    .select({ employeeNumber: employeesTable.employeeNumber })
+    .from(employeesTable)
+    .where(eq(employeesTable.companyId, companyId));
+  const used = new Set(
+    existing.map((item) => item.employeeNumber.trim().toLowerCase()),
+  );
+  let sequence = 1;
+  let candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+  while (used.has(candidate.toLowerCase())) {
+    sequence += 1;
+    candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+  }
+  return candidate;
+}
+
 function employeeResponse(
   row: Awaited<ReturnType<typeof employeeRows>>[number],
 ) {
@@ -2960,15 +2979,6 @@ router.post("/employees", async (req, res): Promise<void> => {
     return;
   }
   const capacity = await ensureEmployeeCapacity(context.companyId);
-  const activeCount = await db
-    .select({ id: employeesTable.id })
-    .from(employeesTable)
-    .where(
-      and(
-        eq(employeesTable.companyId, context.companyId),
-        eq(employeesTable.status, "active"),
-      ),
-    );
   if (!capacity.allowed) {
     res.status(409).json({
       error: message(req, "activeEmployeeLimit", {
@@ -2979,17 +2989,18 @@ router.post("/employees", async (req, res): Promise<void> => {
     return;
   }
   let employee: typeof employeesTable.$inferSelect | undefined;
+  const employeeNumber = await allocateEmployeeNumber(context.companyId);
   try {
     [employee] = await db
       .insert(employeesTable)
       .values({
         companyId: context.companyId,
-        employeeNumber: `NS-${String(1100 + activeCount.length).padStart(4, "0")}`,
+        employeeNumber,
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         email:
           parsed.data.email ||
-          `employee-${String(1100 + activeCount.length)}@varhr.local`,
+          `employee-${employeeNumber.toLowerCase()}@varhr.local`,
         phone: parsed.data.phone,
         nationalId: parsed.data.nationalId,
         biometricCode: parsed.data.biometricCode,
@@ -3015,6 +3026,13 @@ router.post("/employees", async (req, res): Promise<void> => {
       res.status(409).json({
         error: message(req, "employeePhoneDuplicate"),
         code: "EMPLOYEE_PHONE_DUPLICATE",
+      });
+      return;
+    }
+    if (constraint === employeeNumberUniqueConstraint) {
+      res.status(409).json({
+        error: message(req, "reportDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
       });
       return;
     }
@@ -6858,14 +6876,14 @@ router.post("/employees/import", async (req, res): Promise<void> => {
     resultIndex: number;
   }> = [];
   const nextEmployeeNumber = () => {
-    let sequence = existingEmployees.length + preparedRows.length + 1;
-    let candidate = `NS-${String(1100 + sequence).padStart(4, "0")}`;
+    let sequence = 1;
+    let candidate = `EMP-${String(sequence).padStart(4, "0")}`;
     while (
       existingNumbers.has(candidate.toLowerCase()) ||
       seenNumbers.has(candidate.toLowerCase())
     ) {
       sequence += 1;
-      candidate = `NS-${String(1100 + sequence).padStart(4, "0")}`;
+      candidate = `EMP-${String(sequence).padStart(4, "0")}`;
     }
     return candidate;
   };
