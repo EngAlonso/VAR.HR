@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
@@ -48,29 +49,40 @@ export const branchesTable = pgTable("var_hr_branches", {
   active: boolean("active").notNull().default(true),
 });
 
-export const employeesTable = pgTable("var_hr_employees", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
-  employeeNumber: text("employee_number").notNull(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone"),
-  nationalId: text("national_id"),
-  biometricCode: text("biometric_code"),
-  workingHours: numeric("working_hours", { precision: 4, scale: 2, mode: "number" })
-    .notNull()
-    .default(8),
-  departmentId: uuid("department_id").references(() => departmentsTable.id),
-  branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
-  status: text("status").notNull().default("active"),
-  role: text("role").notNull().default("employee"),
-  automaticOvertime: text("automatic_overtime"),
-  joinedOn: date("joined_on", { mode: "string" }).notNull(),
-  salary: numeric("salary", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const employeesTable = pgTable(
+  "var_hr_employees",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+    employeeNumber: text("employee_number").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    nationalId: text("national_id"),
+    biometricCode: text("biometric_code"),
+    workingHours: numeric("working_hours", { precision: 4, scale: 2, mode: "number" })
+      .notNull()
+      .default(8),
+    departmentId: uuid("department_id").references(() => departmentsTable.id),
+    branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
+    status: text("status").notNull().default("active"),
+    role: text("role").notNull().default("employee"),
+    automaticOvertime: text("automatic_overtime"),
+    joinedOn: date("joined_on", { mode: "string" }).notNull(),
+    salary: numeric("salary", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    companyNationalIdUnique: uniqueIndex(
+      "var_hr_employees_company_national_id_uidx",
+    ).on(table.companyId, table.nationalId),
+    companyPhoneUnique: uniqueIndex(
+      "var_hr_employees_company_phone_uidx",
+    ).on(table.companyId, table.phone),
+  }),
+);
 
 export const insertCompanySchema = createInsertSchema(companiesTable).omit({
   id: true,

@@ -529,7 +529,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Employee"
         "409":
-          description: Plan limit reached
+          description: Plan limit reached or duplicate employee identity
           content:
             application/json:
               schema:

@@ -270,6 +270,18 @@ function message(
   return translateApiMessage(requestedLocale(req), key, variables);
 }
 
+const employeeNationalIdUniqueConstraint =
+  "var_hr_employees_company_national_id_uidx";
+const employeePhoneUniqueConstraint = "var_hr_employees_company_phone_uidx";
+
+function postgresUniqueConstraint(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const candidate = error as { code?: unknown; constraint?: unknown };
+  return candidate.code === "23505" && typeof candidate.constraint === "string"
+    ? candidate.constraint
+    : null;
+}
+
 function canUseCapability(
   context: TenantContext,
   capability: string,
@@ -2907,6 +2919,46 @@ router.post("/employees", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  const [nationalIdMatch, phoneMatch] = await Promise.all([
+    parsed.data.nationalId
+      ? db
+          .select({ id: employeesTable.id })
+          .from(employeesTable)
+          .where(
+            and(
+              eq(employeesTable.companyId, context.companyId),
+              eq(employeesTable.nationalId, parsed.data.nationalId),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
+    parsed.data.phone
+      ? db
+          .select({ id: employeesTable.id })
+          .from(employeesTable)
+          .where(
+            and(
+              eq(employeesTable.companyId, context.companyId),
+              eq(employeesTable.phone, parsed.data.phone),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
+  if (nationalIdMatch.length > 0) {
+    res.status(409).json({
+      error: message(req, "employeeNationalIdDuplicate"),
+      code: "EMPLOYEE_NATIONAL_ID_DUPLICATE",
+    });
+    return;
+  }
+  if (phoneMatch.length > 0) {
+    res.status(409).json({
+      error: message(req, "employeePhoneDuplicate"),
+      code: "EMPLOYEE_PHONE_DUPLICATE",
+    });
+    return;
+  }
   const capacity = await ensureEmployeeCapacity(context.companyId);
   const activeCount = await db
     .select({ id: employeesTable.id })
@@ -2926,28 +2978,51 @@ router.post("/employees", async (req, res): Promise<void> => {
     });
     return;
   }
-  const [employee] = await db
-    .insert(employeesTable)
-    .values({
-      companyId: context.companyId,
-      employeeNumber: `NS-${String(1100 + activeCount.length).padStart(4, "0")}`,
-      firstName: parsed.data.firstName,
-      lastName: parsed.data.lastName,
-       email:
-         parsed.data.email ||
-         `employee-${String(1100 + activeCount.length)}@varhr.local`,
-      phone: parsed.data.phone,
-       nationalId: parsed.data.nationalId,
-       biometricCode: parsed.data.biometricCode,
-       workingHours: parsed.data.workingHours ?? 8,
-      departmentId: parsed.data.departmentId,
-      branchId: parsed.data.branchId,
-      status: "active",
-      role: parsed.data.role ?? "employee",
-      joinedOn: calendarDate(parsed.data.joinedOn)!,
-      salary: parsed.data.salary,
-    })
-    .returning();
+  let employee: typeof employeesTable.$inferSelect | undefined;
+  try {
+    [employee] = await db
+      .insert(employeesTable)
+      .values({
+        companyId: context.companyId,
+        employeeNumber: `NS-${String(1100 + activeCount.length).padStart(4, "0")}`,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        email:
+          parsed.data.email ||
+          `employee-${String(1100 + activeCount.length)}@varhr.local`,
+        phone: parsed.data.phone,
+        nationalId: parsed.data.nationalId,
+        biometricCode: parsed.data.biometricCode,
+        workingHours: parsed.data.workingHours ?? 8,
+        departmentId: parsed.data.departmentId,
+        branchId: parsed.data.branchId,
+        status: "active",
+        role: parsed.data.role ?? "employee",
+        joinedOn: calendarDate(parsed.data.joinedOn)!,
+        salary: parsed.data.salary,
+      })
+      .returning();
+  } catch (error) {
+    const constraint = postgresUniqueConstraint(error);
+    if (constraint === employeeNationalIdUniqueConstraint) {
+      res.status(409).json({
+        error: message(req, "employeeNationalIdDuplicate"),
+        code: "EMPLOYEE_NATIONAL_ID_DUPLICATE",
+      });
+      return;
+    }
+    if (constraint === employeePhoneUniqueConstraint) {
+      res.status(409).json({
+        error: message(req, "employeePhoneDuplicate"),
+        code: "EMPLOYEE_PHONE_DUPLICATE",
+      });
+      return;
+    }
+    throw error;
+  }
+  if (!employee) {
+    throw new Error("EMPLOYEE_CREATE_FAILED");
+  }
   const [row] = await employeeRows(context).then((rows) =>
     rows.filter((item) => item.employee.id === employee.id),
   );

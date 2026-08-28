@@ -7267,7 +7267,8 @@ function AddEmployeePage() {
           );
           setLocation("/employees");
         },
-        onError: () => toast.error(t("couldNotCreateEmployee")),
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("couldNotCreateEmployee"))),
       },
     );
   }
