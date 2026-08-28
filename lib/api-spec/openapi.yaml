@@ -2362,7 +2362,7 @@ components:
     EmployeeInput:
       type: object
       required:
-        [firstName, lastName, branchId, joinedOn, salary]
+        [firstName, lastName, branchId, joinedOn, salary, scheduleId]
       properties:
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
@@ -2375,6 +2375,7 @@ components:
         branchId: { type: string }
         joinedOn: { type: string, format: date }
         salary: { type: number, minimum: 0 }
+        scheduleId: { type: string }
         role:
           type: string
           enum: [employee, manager]

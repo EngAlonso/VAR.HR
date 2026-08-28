@@ -2938,6 +2938,25 @@ router.post("/employees", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  if (!isUuid(parsed.data.scheduleId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [schedule] = await db
+    .select()
+    .from(workSchedulesTable)
+    .where(
+      and(
+        eq(workSchedulesTable.id, parsed.data.scheduleId),
+        eq(workSchedulesTable.companyId, context.companyId),
+        eq(workSchedulesTable.active, true),
+      ),
+    )
+    .limit(1);
+  if (!schedule) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const [nationalIdMatch, phoneMatch] = await Promise.all([
     parsed.data.nationalId
       ? db
@@ -2989,30 +3008,51 @@ router.post("/employees", async (req, res): Promise<void> => {
     return;
   }
   let employee: typeof employeesTable.$inferSelect | undefined;
+  let assignment:
+    | typeof employeeScheduleAssignmentsTable.$inferSelect
+    | undefined;
   const employeeNumber = await allocateEmployeeNumber(context.companyId);
   try {
-    [employee] = await db
-      .insert(employeesTable)
-      .values({
-        companyId: context.companyId,
-        employeeNumber,
-        firstName: parsed.data.firstName,
-        lastName: parsed.data.lastName,
-        email:
-          parsed.data.email ||
-          `employee-${employeeNumber.toLowerCase()}@varhr.local`,
-        phone: parsed.data.phone,
-        nationalId: parsed.data.nationalId,
-        biometricCode: parsed.data.biometricCode,
-        workingHours: parsed.data.workingHours ?? 8,
-        departmentId: parsed.data.departmentId,
-        branchId: parsed.data.branchId,
-        status: "active",
-        role: parsed.data.role ?? "employee",
-        joinedOn: calendarDate(parsed.data.joinedOn)!,
-        salary: parsed.data.salary,
-      })
-      .returning();
+    await db.transaction(async (tx) => {
+      [employee] = await tx
+        .insert(employeesTable)
+        .values({
+          companyId: context.companyId,
+          employeeNumber,
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          email:
+            parsed.data.email ||
+            `employee-${employeeNumber.toLowerCase()}@varhr.local`,
+          phone: parsed.data.phone,
+          nationalId: parsed.data.nationalId,
+          biometricCode: parsed.data.biometricCode,
+          workingHours: parsed.data.workingHours ?? 8,
+          departmentId: parsed.data.departmentId,
+          branchId: parsed.data.branchId,
+          status: "active",
+          role: parsed.data.role ?? "employee",
+          joinedOn: calendarDate(parsed.data.joinedOn)!,
+          salary: parsed.data.salary,
+        })
+        .returning();
+      if (!employee) {
+        throw new Error("EMPLOYEE_CREATE_FAILED");
+      }
+      [assignment] = await tx
+        .insert(employeeScheduleAssignmentsTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: employee.id,
+          scheduleId: schedule.id,
+          effectiveFrom: calendarDate(parsed.data.joinedOn)!,
+          effectiveTo: null,
+        })
+        .returning();
+      if (!assignment) {
+        throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+      }
+    });
   } catch (error) {
     const constraint = postgresUniqueConstraint(error);
     if (constraint === employeeNationalIdUniqueConstraint) {
@@ -3041,15 +3081,26 @@ router.post("/employees", async (req, res): Promise<void> => {
   if (!employee) {
     throw new Error("EMPLOYEE_CREATE_FAILED");
   }
+  if (!assignment) {
+    throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+  }
+  const createdEmployee = employee;
   const [row] = await employeeRows(context).then((rows) =>
-    rows.filter((item) => item.employee.id === employee.id),
+    rows.filter((item) => item.employee.id === createdEmployee.id),
   );
   await recordAudit(
     context.companyId,
     "created",
     "employee",
-    employee.id,
-    employee,
+    createdEmployee.id,
+    createdEmployee,
+  );
+  await recordAudit(
+    context.companyId,
+    "created",
+    "employee_schedule_assignment",
+    assignment.id,
+    assignment,
   );
   res.status(201).json(CreateEmployeeResponse.parse(employeeResponse(row)));
 });

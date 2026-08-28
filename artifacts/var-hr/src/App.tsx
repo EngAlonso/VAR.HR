@@ -882,7 +882,7 @@ const copy = {
     searchReviewMaintainPeople:
       "Search, review, and maintain the people behind the operating picture.",
     addEmployee: "Add employee",
-    searchByNameNumberEmail: "Search by name, number, or email",
+    searchByNameNumberEmail: "Search by name or number",
     allStatuses: "All statuses",
     employee: "Employee",
     department: "Department",
@@ -1596,7 +1596,7 @@ const pageCopy = {
     employeesTitle: "Employees",
     employeesDetail:
       "Search, review, and maintain the people behind the operating picture.",
-    searchEmployees: "Search by name, number, or email",
+    searchEmployees: "Search by name or number",
     allStatuses: "All statuses",
     active: "Active",
     inactive: "Inactive",
@@ -1899,7 +1899,7 @@ const pageCopy = {
     employeesEyebrow: "سجل القوى العاملة",
     employeesTitle: "الموظفون",
     employeesDetail: "ابحث عن فريق العمل وراجعه وأدره بوضوح.",
-    searchEmployees: "البحث بالاسم أو الرقم أو البريد الإلكتروني",
+    searchEmployees: "البحث بالاسم أو الرقم",
     allStatuses: "كل الحالات",
     active: "نشط",
     inactive: "غير نشط",
@@ -2207,7 +2207,7 @@ const pageCopy = {
     workforceRegistry: "سجل القوى العاملة",
     searchReviewMaintainPeople:
       "ابحث عن الأشخاص الذين يدعمون العمليات وراجعهم وأدر بياناتهم.",
-    searchByNameNumberEmail: "البحث بالاسم أو الرقم أو البريد الإلكتروني",
+    searchByNameNumberEmail: "البحث بالاسم أو الرقم",
     adjustSearchOrAddFirstEmployee:
       "عدّل البحث أو أضف أول موظف إلى مساحة العمل.",
     firstName: "الاسم الأول",
@@ -2425,7 +2425,7 @@ const pageCopy = {
     employeesTitle: "Employés",
     employeesDetail:
       "Recherchez, examinez et gérez les personnes qui font fonctionner l’activité.",
-    searchEmployees: "Rechercher par nom, numéro ou e-mail",
+    searchEmployees: "Rechercher par nom ou numéro",
     allStatuses: "Tous les statuts",
     active: "Actif",
     inactive: "Inactif",
@@ -2737,7 +2737,7 @@ const pageCopy = {
     employeesTitle: "Mitarbeitende",
     employeesDetail:
       "Suchen, prüfen und verwalten Sie die Menschen hinter dem operativen Überblick.",
-    searchEmployees: "Nach Name, Nummer oder E-Mail suchen",
+    searchEmployees: "Nach Name oder Nummer suchen",
     allStatuses: "Alle Status",
     active: "Aktiv",
     inactive: "Inaktiv",
@@ -6664,7 +6664,7 @@ function EmployeeHrProfile({
                 {employee.data.firstName} {employee.data.lastName}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {employee.data.email}
+                {employee.data.phone || t("notAvailable")}
               </p>
             </div>
           </div>
@@ -7220,7 +7220,6 @@ function AddEmployeePage() {
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
   const create = useCreateEmployee();
-  const assignSchedule = useAssignEmployeeSchedule();
   const canManageEmployees =
     workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
   const [form, setForm] = useState({
@@ -7279,25 +7278,13 @@ function AddEmployeePage() {
           departmentId: form.departmentId,
           branchId: form.branchId,
           joinedOn: form.joinedOn,
+          scheduleId: form.scheduleId,
         },
       },
       {
-        onSuccess: (createdEmployee: any) => {
+        onSuccess: () => {
           toast.success(t("employeeAdded"));
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          assignSchedule.mutate(
-            {
-              employeeId: createdEmployee.id,
-              data: {
-                scheduleId: form.scheduleId,
-                effectiveFrom: form.joinedOn,
-                effectiveTo: null,
-              },
-            },
-            {
-              onError: () => toast.error(t("scheduleAssignmentFailed")),
-            },
-          );
           setLocation("/employees");
         },
         onError: (error: unknown) =>
@@ -7572,10 +7559,10 @@ function AddEmployeePage() {
           <Button
             type="submit"
             className="w-full sm:w-auto"
-            disabled={create.isPending || assignSchedule.isPending}
+            disabled={create.isPending}
             data-testid="button-save-employee"
           >
-            {create.isPending || assignSchedule.isPending
+            {create.isPending
               ? t("saving")
               : t("createEmployee")}
           </Button>
@@ -7683,9 +7670,9 @@ function EmployeeProfilePage() {
                   </h2>
                   <p
                     className="mt-1 truncate text-sm text-muted-foreground"
-                    data-testid={`text-employee-email-${employee.data.id}`}
+                    data-testid={`text-employee-phone-${employee.data.id}`}
                   >
-                    {employee.data.email}
+                    {employee.data.phone || t("notAvailable")}
                   </p>
                 </div>
               </div>
@@ -7718,11 +7705,6 @@ function EmployeeProfilePage() {
               icon={<UserRound size={17} />}
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                <Info
-                  label={t("email")}
-                  value={employee.data.email}
-                  testId={`text-profile-email-${employee.data.id}`}
-                />
                 <Info
                   label={t("phoneNumber")}
                   value={employee.data.phone || t("notAvailable")}
@@ -8179,7 +8161,7 @@ function Employees() {
                             {item.firstName} {item.lastName}
                           </div>
                           <div className="max-w-[190px] truncate text-xs text-muted-foreground">
-                            {item.email}
+                            {item.phone || t("notAvailable")}
                           </div>
                         </div>
                       </div>
@@ -8249,7 +8231,7 @@ function Employees() {
                             {item.firstName} {item.lastName}
                           </div>
                           <div className="truncate text-xs text-muted-foreground">
-                            {item.email}
+                            {item.phone || t("notAvailable")}
                           </div>
                         </div>
                       </div>
@@ -10440,7 +10422,6 @@ function reportColumns(
       employee,
       { key: "department", label: t("department") },
       { key: "branch", label: t("branch") },
-      { key: "email", label: t("email") },
       { key: "joinedOn", label: t("joinedOn") },
       { key: "salary", label: t("salary") },
       { key: "status", label: t("status") },

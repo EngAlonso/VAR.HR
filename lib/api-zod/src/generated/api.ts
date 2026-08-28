@@ -790,6 +790,7 @@ export const CreateEmployeeBody = zod.object({
   "branchId": zod.string(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number().min(createEmployeeBodySalaryMin),
+  "scheduleId": zod.string(),
   "role": zod.enum(['employee', 'manager']).optional()
 })
 

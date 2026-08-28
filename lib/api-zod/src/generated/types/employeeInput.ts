@@ -30,5 +30,6 @@ export interface EmployeeInput {
   joinedOn: string;
   /** @minimum 0 */
   salary: number;
+  scheduleId: string;
   role?: EmployeeInputRole;
 }
