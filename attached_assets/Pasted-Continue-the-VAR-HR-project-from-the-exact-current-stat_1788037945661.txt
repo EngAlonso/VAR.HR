@@ -1,0 +1,61 @@
+Continue the VAR HR project from the exact current state. Do NOT restart or rewrite completed work.
+
+The previous agent investigated an employee whose phone number did not match the login username and found:
+
+- Employee: محمد احمد ابراهيم
+- Employee phone: "01200229944"
+- Login username was incorrectly still "01200229955"
+- The linked account uses "employee_id" directly.
+- The cause was an older phone-number change that updated the employee record but did not update the existing linked account.
+- The linked account was repaired so its username and primary_phone now match the employee phone, while preserving the same account and password.
+- The existing update logic was also changed so future employee phone changes synchronize the existing linked login account automatically.
+
+The employee self-service "My Profile" page was also extended to display these existing employee fields as read-only:
+
+1. Working hours
+2. Basic salary
+3. Employment start date
+4. Shift
+5. Biometric code
+6. National ID
+7. Employee number
+8. Phone
+9. Department
+10. Branch
+
+The Shift is read from the existing effective schedule endpoint, and employee self-service access remains employee-scoped.
+
+The previous agent added regression coverage for the self-only schedule/profile access and read-only profile surface.
+
+Current verification before the last quota interruption:
+
+- API tests: 24/24 passed
+- Full workspace typecheck: passed
+- Frontend build: passed
+- API build: passed
+- Managed frontend workflow: running
+- Managed API workflow: running
+- Live database recheck confirmed the repaired linked account now matches the employee phone in both username and primary_phone.
+- Workflow logs were clean except for the expected unauthenticated 401 on the sign-in screen.
+- API health endpoint was identified as "/healthz".
+
+IMPORTANT:
+
+- Do not change the Add Employee form.
+- Do not add email or password fields.
+- Do not create another authentication/account system.
+- Do not store plaintext passwords.
+- Do not change employee-number logic.
+- Do not change unrelated HR business logic.
+- Do not modify production/business data except if a clearly verified repair is required for the specific employee/account mismatch described above.
+
+The only remaining task is to finish the final verification that was interrupted by the previous account's quota limit:
+
+1. Verify "/healthz".
+2. Verify both managed workflows are still running.
+3. Verify the repaired employee/account relationship one final time.
+4. Inspect the final git diff and confirm only the intended files changed.
+5. Confirm the self-service profile renders the requested fields.
+6. Report exactly what was implemented and verified.
+
+Do not make additional changes unless a verification failure requires a narrowly scoped fix.
