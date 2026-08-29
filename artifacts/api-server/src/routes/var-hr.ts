@@ -3160,7 +3160,7 @@ router.post("/employees", async (req, res): Promise<void> => {
       ...employeeResponse(row),
       accountCredentials: {
         username: employeeAccount.username,
-        temporaryPassword,
+        generatedPassword: temporaryPassword,
       },
     }),
   );

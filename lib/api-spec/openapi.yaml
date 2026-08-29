@@ -134,6 +134,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthMeResponse"
+  /auth/employee/password:
+    post:
+      operationId: changeEmployeePassword
+      tags: [auth]
+      summary: Change the authenticated employee password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeePasswordChangeInput"
+      responses:
+        "200":
+          description: Password changed and the current session renewed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success: { type: boolean }
   /auth/provision/platform-owner/status:
     get:
       operationId: getInitialPlatformOwnerProvisioningStatus
@@ -294,7 +315,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TemporaryPassword"
+                $ref: "#/components/schemas/GeneratedPassword"
   /auth/accounts/{accountId}/set-password:
     post:
       operationId: setAuthAccountPassword
@@ -2038,12 +2059,19 @@ components:
           type: array
           items: { type: string }
         active: { type: boolean }
-    TemporaryPassword:
+    GeneratedPassword:
       type: object
-      required: [username, temporaryPassword]
+      required: [username, generatedPassword]
       properties:
         username: { type: string }
-        temporaryPassword: { type: string }
+        generatedPassword: { type: string }
+    EmployeePasswordChangeInput:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword: { type: string, minLength: 1 }
+        newPassword: { type: string, minLength: 6 }
+        confirmPassword: { type: string, minLength: 6 }
     PermanentPasswordInput:
       type: object
       required: [password]
@@ -2051,10 +2079,10 @@ components:
         password: { type: string, minLength: 10 }
     AuthAccountCredentials:
       type: object
-      required: [account, temporaryPassword]
+      required: [account, generatedPassword]
       properties:
         account: { $ref: "#/components/schemas/AuthAccount" }
-        temporaryPassword: { type: string }
+        generatedPassword: { type: string }
     PlatformCompanyInput:
       type: object
       required: [name]

@@ -5,9 +5,8 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
-import type { AuthAccount } from './authAccount';
 
-export interface AuthAccountCredentials {
-  account: AuthAccount;
+export interface GeneratedPassword {
+  username: string;
   generatedPassword: string;
 }

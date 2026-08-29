@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface TemporaryPassword {
-  username: string;
-  temporaryPassword: string;
-}
+export type ChangeEmployeePassword200 = {
+  success: boolean;
+};

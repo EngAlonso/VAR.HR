@@ -19,6 +19,7 @@ import {
 } from "@tanstack/react-query";
 import {
   Link,
+  Redirect,
   Route,
   Switch,
   useParams,
@@ -124,6 +125,7 @@ import {
   useGetReport,
   useImportEmployees,
   useListPayrollPeriods,
+  useGetMyPayroll,
   useCreatePayrollPeriod,
   useCalculatePayroll,
   useGetPayrollCalculation,
@@ -418,6 +420,12 @@ const nav: NavItem[] = [
     icon: Coins,
     roles: ["platform_owner", "company_owner"],
     capability: "payroll.view",
+  },
+  {
+    href: "/payroll",
+    key: "payroll",
+    icon: Coins,
+    roles: ["employee"],
   },
   {
     href: "/holidays",
@@ -5203,6 +5211,369 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+type EmployeeCredential = {
+  username: string;
+  generatedPassword: string;
+};
+
+function employeeAccountCopy(locale: Locale) {
+  const labels = {
+    en: {
+      credentialsTitle: "Employee login credentials",
+      credentialsDetail:
+        "Save or share these credentials now. The generated password will not be shown again.",
+      loginUsername: "Phone / login username",
+      generatedPassword: "Generated password",
+      currentPassword: "Current password",
+      copyCredentials: "Copy credentials",
+      copied: "Copied",
+      shareWhatsApp: "Share via WhatsApp",
+      invalidPhone: "WhatsApp sharing needs a valid employee phone number.",
+      close: "Close",
+      changePassword: "Change employee password",
+      passwordHint:
+        "Use your current password and choose a new password of at least 6 characters.",
+      confirmPassword: "Confirm new password",
+      savePassword: "Save new password",
+      passwordUpdated: "Password updated.",
+      passwordFailed: "Could not update your password.",
+      currentPasswordInvalid: "The current password is incorrect.",
+      passwordMismatch: "Passwords do not match.",
+      passwordTooShort: "Password must contain at least 6 characters.",
+      payroll: "My payroll",
+      payrollDetail: "Your latest calculated or finalized payroll statement.",
+      noPayroll: "No payroll statement is available yet.",
+      period: "Payroll period",
+      calculatedAt: "Calculated",
+      gross: "Gross salary",
+      additions: "Additions",
+      deductions: "Deductions",
+      net: "Net salary",
+      regenerate: "Generate new password",
+      accountStatus: "Account status",
+      active: "Active",
+      inactive: "Inactive",
+      accountNotFound: "No linked login account was found.",
+      regenerated: "A new password was generated.",
+    },
+    ar: {
+      credentialsTitle: "بيانات دخول الموظف",
+      credentialsDetail:
+        "احفظ أو شارك البيانات الآن. لن تظهر كلمة المرور المولدة مرة أخرى.",
+      loginUsername: "الهاتف / اسم تسجيل الدخول",
+      generatedPassword: "كلمة المرور المولدة",
+      currentPassword: "كلمة المرور الحالية",
+      copyCredentials: "نسخ بيانات الدخول",
+      copied: "تم النسخ",
+      shareWhatsApp: "المشاركة عبر واتساب",
+      invalidPhone: "تحتاج مشاركة واتساب إلى رقم هاتف موظف صحيح.",
+      close: "إغلاق",
+      changePassword: "تغيير كلمة مرور الموظف",
+      passwordHint:
+        "استخدم كلمة المرور الحالية واختر كلمة جديدة من 6 أحرف على الأقل.",
+      confirmPassword: "تأكيد كلمة المرور الجديدة",
+      savePassword: "حفظ كلمة المرور الجديدة",
+      passwordUpdated: "تم تحديث كلمة المرور.",
+      passwordFailed: "تعذر تحديث كلمة المرور.",
+      currentPasswordInvalid: "كلمة المرور الحالية غير صحيحة.",
+      passwordMismatch: "كلمتا المرور غير متطابقتين.",
+      passwordTooShort: "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل.",
+      payroll: "راتبي",
+      payrollDetail: "آخر كشف راتب تم احتسابه أو اعتماده.",
+      noPayroll: "لا يوجد كشف راتب متاح حتى الآن.",
+      period: "فترة الراتب",
+      calculatedAt: "تاريخ الاحتساب",
+      gross: "الراتب الإجمالي",
+      additions: "الإضافات",
+      deductions: "الخصومات",
+      net: "صافي الراتب",
+      regenerate: "توليد كلمة مرور جديدة",
+      accountStatus: "حالة الحساب",
+      active: "نشط",
+      inactive: "غير نشط",
+      accountNotFound: "لم يتم العثور على حساب دخول مرتبط.",
+      regenerated: "تم توليد كلمة مرور جديدة.",
+    },
+    fr: {
+      credentialsTitle: "Identifiants de connexion de l’employé",
+      credentialsDetail:
+        "Enregistrez ou partagez ces identifiants maintenant. Le mot de passe ne sera plus affiché.",
+      loginUsername: "Téléphone / identifiant",
+      generatedPassword: "Mot de passe généré",
+      currentPassword: "Mot de passe actuel",
+      copyCredentials: "Copier les identifiants",
+      copied: "Copié",
+      shareWhatsApp: "Partager sur WhatsApp",
+      invalidPhone: "Le partage WhatsApp nécessite un numéro valide.",
+      close: "Fermer",
+      changePassword: "Changer le mot de passe de l’employé",
+      passwordHint:
+        "Utilisez le mot de passe actuel et choisissez-en un nouveau de 6 caractères minimum.",
+      confirmPassword: "Confirmer le nouveau mot de passe",
+      savePassword: "Enregistrer le nouveau mot de passe",
+      passwordUpdated: "Mot de passe mis à jour.",
+      passwordFailed: "Impossible de mettre à jour le mot de passe.",
+      currentPasswordInvalid: "Le mot de passe actuel est incorrect.",
+      passwordMismatch: "Les mots de passe ne correspondent pas.",
+      passwordTooShort: "Le mot de passe doit contenir au moins 6 caractères.",
+      payroll: "Ma paie",
+      payrollDetail: "Votre dernier bulletin calculé ou finalisé.",
+      noPayroll: "Aucun bulletin de paie n’est encore disponible.",
+      period: "Période de paie",
+      calculatedAt: "Calculé",
+      gross: "Salaire brut",
+      additions: "Ajouts",
+      deductions: "Retenues",
+      net: "Salaire net",
+      regenerate: "Générer un nouveau mot de passe",
+      accountStatus: "État du compte",
+      active: "Actif",
+      inactive: "Inactif",
+      accountNotFound: "Aucun compte de connexion associé trouvé.",
+      regenerated: "Un nouveau mot de passe a été généré.",
+    },
+    de: {
+      credentialsTitle: "Anmeldedaten des Mitarbeitenden",
+      credentialsDetail:
+        "Speichern oder teilen Sie diese Daten jetzt. Das generierte Passwort wird nicht erneut angezeigt.",
+      loginUsername: "Telefon / Login-Benutzername",
+      generatedPassword: "Generiertes Passwort",
+      currentPassword: "Aktuelles Passwort",
+      copyCredentials: "Anmeldedaten kopieren",
+      copied: "Kopiert",
+      shareWhatsApp: "Über WhatsApp teilen",
+      invalidPhone: "Für die WhatsApp-Freigabe ist eine gültige Telefonnummer erforderlich.",
+      close: "Schließen",
+      changePassword: "Passwort des Mitarbeitenden ändern",
+      passwordHint:
+        "Geben Sie Ihr aktuelles Passwort ein und wählen Sie ein neues mit mindestens 6 Zeichen.",
+      confirmPassword: "Neues Passwort bestätigen",
+      savePassword: "Neues Passwort speichern",
+      passwordUpdated: "Passwort aktualisiert.",
+      passwordFailed: "Das Passwort konnte nicht aktualisiert werden.",
+      currentPasswordInvalid: "Das aktuelle Passwort ist falsch.",
+      passwordMismatch: "Die Passwörter stimmen nicht überein.",
+      passwordTooShort: "Das Passwort muss mindestens 6 Zeichen enthalten.",
+      payroll: "Meine Gehaltsabrechnung",
+      payrollDetail: "Ihre letzte berechnete oder abgeschlossene Abrechnung.",
+      noPayroll: "Noch keine Gehaltsabrechnung verfügbar.",
+      period: "Abrechnungszeitraum",
+      calculatedAt: "Berechnet",
+      gross: "Bruttogehalt",
+      additions: "Zuschläge",
+      deductions: "Abzüge",
+      net: "Nettogehalt",
+      regenerate: "Neues Passwort generieren",
+      accountStatus: "Kontostatus",
+      active: "Aktiv",
+      inactive: "Inaktiv",
+      accountNotFound: "Kein verknüpftes Login-Konto gefunden.",
+      regenerated: "Ein neues Passwort wurde generiert.",
+    },
+  } as const;
+  return labels[locale];
+}
+
+function CredentialReveal({
+  credential,
+  phone,
+  locale,
+  onClose,
+}: {
+  credential: EmployeeCredential;
+  phone?: string | null;
+  locale: Locale;
+  onClose: () => void;
+}) {
+  const c = employeeAccountCopy(locale);
+  const [copied, setCopied] = useState(false);
+  const text = `${c.credentialsTitle}\n${c.loginUsername}: ${credential.username}\n${c.generatedPassword}: ${credential.generatedPassword}`;
+  const whatsappPhone = (phone ?? "").replace(/\D/g, "");
+  const canShare = whatsappPhone.length >= 7;
+  const copy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <Modal title={c.credentialsTitle} onClose={onClose}>
+      <div className="space-y-4" dir={locale === "ar" ? "rtl" : "ltr"}>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {c.credentialsDetail}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Info label={c.loginUsername} value={credential.username} />
+          <Info label={c.generatedPassword} value={credential.generatedPassword} />
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+          <Button variant="quiet" onClick={onClose}>{c.close}</Button>
+          <Button variant="outline" onClick={() => void copy()}>
+            <Check size={16} />
+            {copied ? c.copied : c.copyCredentials}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!canShare}
+            title={!canShare ? c.invalidPhone : undefined}
+            onClick={() => {
+              if (!canShare) return;
+              window.open(
+                `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(text)}`,
+                "_blank",
+                "noopener,noreferrer",
+              );
+            }}
+          >
+            {c.shareWhatsApp}
+          </Button>
+        </div>
+        {!canShare && (
+          <p className="text-xs text-muted-foreground">{c.invalidPhone}</p>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function EmployeePasswordChange() {
+  const auth = useAuth();
+  const { locale } = useI18n();
+  const c = employeeAccountCopy(locale);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error(c.passwordTooShort);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error(c.passwordMismatch);
+      return;
+    }
+    setPending(true);
+    try {
+      await authRequest("/api/auth/employee/password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success(c.passwordUpdated);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      toast.error(
+        message.includes("current password") ? c.currentPasswordInvalid : c.passwordFailed,
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <Card className="mt-6 border-primary/15 p-5">
+      <div className="flex items-start gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <KeyRound size={18} />
+        </div>
+        <div>
+          <h2 className="font-display text-lg font-semibold">{c.changePassword}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{c.passwordHint}</p>
+        </div>
+      </div>
+      <form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-3">
+        <Field label={c.currentPassword} type="password" value={currentPassword} onChange={setCurrentPassword} autoComplete="current-password" required />
+        <Field label={c.generatedPassword} type="password" value={newPassword} onChange={setNewPassword} autoComplete="new-password" required min={6} />
+        <Field label={c.confirmPassword} type="password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" required min={6} />
+        <div className="sm:col-span-3 flex justify-end">
+          <Button type="submit" disabled={pending}>{pending ? "…" : c.savePassword}</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function EmployeeCredentialManager({
+  employeeId,
+  phone,
+  canManage,
+}: {
+  employeeId: string;
+  phone?: string | null;
+  canManage: boolean;
+}) {
+  const { locale } = useI18n();
+  const c = employeeAccountCopy(locale);
+  const [account, setAccount] = useState<AuthAccount | null>(null);
+  const [credentials, setCredentials] = useState<EmployeeCredential | null>(null);
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    if (!canManage) return;
+    void authRequest<AuthAccount[]>("/api/auth/accounts")
+      .then((accounts) =>
+        setAccount(accounts.find((item) => item.employeeId === employeeId) ?? null),
+      )
+      .catch(() => setAccount(null));
+  }, [canManage, employeeId]);
+  if (!canManage) return null;
+  const regenerate = async () => {
+    if (!account) return;
+    setPending(true);
+    try {
+      const result = await authRequest<EmployeeCredential>(
+        `/api/auth/accounts/${account.id}/reset-password`,
+        { method: "POST" },
+      );
+      setCredentials(result);
+      toast.success(c.regenerated);
+    } catch {
+      toast.error(c.passwordFailed);
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <>
+      <Card className="border-primary/15 p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <KeyRound size={17} className="text-primary" />
+              <h2 className="font-display text-lg font-semibold">{c.credentialsTitle}</h2>
+            </div>
+            {account ? (
+              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <p>{c.loginUsername}: <span className="font-medium text-foreground">{account.username}</span></p>
+                <p>{c.accountStatus}: {account.active ? c.active : c.inactive}</p>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">{c.accountNotFound}</p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            disabled={!account || pending}
+            onClick={() => void regenerate()}
+          >
+            <KeyRound size={16} />
+            {pending ? "…" : c.regenerate}
+          </Button>
+        </div>
+      </Card>
+      {credentials && (
+        <CredentialReveal
+          credential={credentials}
+          phone={phone}
+          locale={locale}
+          onClose={() => setCredentials(null)}
+        />
+      )}
+    </>
+  );
+}
+
 function Login({
   onSignedIn,
   setupAvailable,
@@ -6683,6 +7054,7 @@ function EmployeeHrProfile({
             />
           </div>
           <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
+          <EmployeePasswordChange />
         </Card>
       ) : (
         <Empty
@@ -7212,7 +7584,7 @@ function Departments() {
 }
 
 function AddEmployeePage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
@@ -7220,8 +7592,13 @@ function AddEmployeePage() {
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
   const create = useCreateEmployee();
+  const [credentials, setCredentials] = useState<
+    (EmployeeCredential & { phone: string }) | null
+  >(null);
   const canManageEmployees =
     workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const canManageCredentials =
+    workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const [form, setForm] = useState({
     employeeName: "",
     nationalId: "",
@@ -7282,10 +7659,20 @@ function AddEmployeePage() {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           toast.success(t("employeeAdded"));
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          setLocation("/employees");
+          const generated = result?.accountCredentials?.generatedPassword;
+          const username = result?.accountCredentials?.username;
+          if (generated && username) {
+            setCredentials({
+              username,
+              generatedPassword: generated,
+              phone: form.phone.trim(),
+            });
+          } else {
+            setLocation("/employees");
+          }
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("couldNotCreateEmployee"))),
@@ -7568,6 +7955,17 @@ function AddEmployeePage() {
           </Button>
         </div>
       </form>
+      {credentials && (
+        <CredentialReveal
+          credential={credentials}
+          phone={credentials.phone}
+          locale={locale}
+          onClose={() => {
+            setCredentials(null);
+            setLocation("/employees");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -7928,6 +8326,12 @@ function EmployeeProfilePage() {
               canEdit={canManageEmployees}
             />
           </div>
+
+          <EmployeeCredentialManager
+            employeeId={employee.data.id}
+            phone={employee.data.phone}
+            canManage={canManageCredentials}
+          />
 
           {canManageEmployees && (
             <div className="flex justify-end border-t border-border pt-4">
@@ -11246,11 +11650,74 @@ function Reports() {
   );
 }
 
+function EmployeePayrollStatement({
+  query,
+}: {
+  query: {
+    isLoading: boolean;
+    isError: boolean;
+    data?: any;
+    refetch: () => unknown;
+  };
+}) {
+  const { locale } = useI18n();
+  const c = employeeAccountCopy(locale);
+  const workspace = useGetWorkspace();
+  const currency = workspace.data?.company?.currency ?? "EGP";
+  const item = query.data?.items?.[0];
+  return (
+    <div className="animate-in">
+      <SectionTitle eyebrow={c.payroll} title={c.payroll} detail={c.payrollDetail} />
+      {query.isLoading ? (
+        <Card className="p-6"><Skeleton className="h-48" /></Card>
+      ) : query.isError ? (
+        <Card><ErrorState retry={() => query.refetch()} /></Card>
+      ) : query.data && item ? (
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{c.period}</p>
+              <h2 className="mt-1 font-display text-2xl font-semibold">
+                {query.data.period?.label}
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {c.calculatedAt}: {date(query.data.calculatedAt)}
+            </p>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Info label={c.gross} value={money(item.grossSalary ?? item.gross ?? 0, currency)} />
+            <Info label={c.additions} value={money(item.additions ?? item.overtime ?? 0, currency)} />
+            <Info label={c.deductions} value={money(item.deductions ?? 0, currency)} />
+            <Info label={c.net} value={money(item.netSalary ?? item.net ?? 0, currency)} />
+            <Info label={c.period} value={`${query.data.period?.from} – ${query.data.period?.to}`} />
+          </div>
+          {query.data.explanation && (
+            <p className="mt-5 rounded-lg bg-muted/60 p-3 text-sm leading-6 text-muted-foreground">
+              {query.data.explanation}
+            </p>
+          )}
+        </Card>
+      ) : (
+        <Card><Empty title={c.noPayroll} detail={c.payrollDetail} /></Card>
+      )}
+    </div>
+  );
+}
+
 function Payroll() {
   const { t } = useI18n();
+  const auth = useAuth();
+  const isEmployee = auth.account.accountType === "employee";
   const qc = useQueryClient();
-  const q = useListPayrollPeriods();
-  const employees = useListEmployees({ status: "active" });
+  const q = useListPayrollPeriods({ query: { enabled: !isEmployee } });
+  const myPayroll = useGetMyPayroll(undefined, {
+    query: { enabled: isEmployee },
+  });
+  const employees = useListEmployees(
+    { status: "active" },
+    { query: { enabled: !isEmployee } },
+  );
   const createPeriod = useCreatePayrollPeriod();
   const calc = useCalculatePayroll();
   const finalize = useFinalizePayroll();
@@ -11422,6 +11889,9 @@ function Payroll() {
   const selectedEmployee = calculation.data?.items.find(
     (item: any) => item.employee.id === selectedEmployeeId,
   );
+  if (isEmployee) {
+    return <EmployeePayrollStatement query={myPayroll} />;
+  }
   return (
     <div className="animate-in">
       <SectionTitle
@@ -18847,6 +19317,15 @@ function I18nProvider({ children }: { children: ReactNode }) {
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 function Router() {
+  const auth = useAuth();
+  const [location] = useLocation();
+  const employeeAllowedPaths = ["/", "/profile", "/attendance", "/requests", "/payroll"];
+  if (
+    auth.account.accountType === "employee" &&
+    !employeeAllowedPaths.includes(location)
+  ) {
+    return <Redirect to="/" />;
+  }
   return (
     <Shell>
       <Switch>

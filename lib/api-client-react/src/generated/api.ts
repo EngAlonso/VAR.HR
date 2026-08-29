@@ -52,6 +52,7 @@ import type {
   BranchUpdate,
   BulkScheduleAssignmentInput,
   BulkScheduleAssignmentResponse,
+  ChangeEmployeePassword200,
   DashboardSummary,
   Department,
   DepartmentInput,
@@ -69,9 +70,11 @@ import type {
   EmployeeImportInput,
   EmployeeImportResult,
   EmployeeInput,
+  EmployeePasswordChangeInput,
   EmployeeSchedule,
   EmployeeScheduleInput,
   EmployeeUpdate,
+  GeneratedPassword,
   GetAttendanceReportParams,
   GetBranchParams,
   GetDepartmentParams,
@@ -116,7 +119,6 @@ import type {
   StaffAccountCreated,
   StaffAccountInput,
   SubscriptionStatus,
-  TemporaryPassword,
   UpdateAuthAccount200,
   UpdateBranchParams,
   UpdateDepartmentParams,
@@ -823,6 +825,77 @@ export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TErr
 
 
 
+export const getChangeEmployeePasswordUrl = () => {
+
+
+
+
+  return `/api/auth/employee/password`
+}
+
+/**
+ * @summary Change the authenticated employee password
+ */
+export const changeEmployeePassword = async (employeePasswordChangeInput: EmployeePasswordChangeInput, options?: Parameters<typeof customFetch>[1]): Promise<ChangeEmployeePassword200> => {
+
+  return customFetch<ChangeEmployeePassword200>(getChangeEmployeePasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employeePasswordChangeInput)
+  }
+);}
+
+
+
+
+
+export const getChangeEmployeePasswordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeEmployeePassword>>, TError,{data: BodyType<EmployeePasswordChangeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeEmployeePassword>>, TError,{data: BodyType<EmployeePasswordChangeInput>}, TContext> => {
+
+const mutationKey = ['changeEmployeePassword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeEmployeePassword>>, {data: BodyType<EmployeePasswordChangeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeEmployeePassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeEmployeePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changeEmployeePassword>>>
+    export type ChangeEmployeePasswordMutationBody = BodyType<EmployeePasswordChangeInput>
+    export type ChangeEmployeePasswordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Change the authenticated employee password
+ */
+export const useChangeEmployeePassword = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeEmployeePassword>>, TError,{data: BodyType<EmployeePasswordChangeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeEmployeePassword>>,
+        TError,
+        {data: BodyType<EmployeePasswordChangeInput>},
+        TContext
+      > => {
+      return useMutation(getChangeEmployeePasswordMutationOptions(options));
+    }
+
 export const getGetInitialPlatformOwnerProvisioningStatusUrl = () => {
 
 
@@ -1428,9 +1501,9 @@ export const getResetAuthAccountPasswordUrl = (accountId: string,) => {
 /**
  * @summary Reset a managed account password
  */
-export const resetAuthAccountPassword = async (accountId: string, options?: Parameters<typeof customFetch>[1]): Promise<TemporaryPassword> => {
+export const resetAuthAccountPassword = async (accountId: string, options?: Parameters<typeof customFetch>[1]): Promise<GeneratedPassword> => {
 
-  return customFetch<TemporaryPassword>(getResetAuthAccountPasswordUrl(accountId),
+  return customFetch<GeneratedPassword>(getResetAuthAccountPasswordUrl(accountId),
   {
     ...options,
     method: 'POST'

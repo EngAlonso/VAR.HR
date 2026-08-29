@@ -34,6 +34,7 @@ import {
   WorkspaceAuthError,
   getWorkspaceContext,
   getTenantContext,
+  hasCapability,
   requirePlatformOwner,
   type TenantContext,
 } from "../lib/tenant-context";
@@ -109,6 +110,16 @@ const accountUpdateSchema = z.object({
 const permanentPasswordSchema = z.object({
   password: z.string().min(10).max(256),
 });
+const employeePasswordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    newPassword: z.string().min(6).max(256),
+    confirmPassword: z.string().min(6).max(256),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  });
 const companyInputSchema = z
   .object({
     name: z.string().trim().min(2).max(160),
@@ -427,6 +438,63 @@ router.get("/auth/me", async (req, res): Promise<void> => {
   res.json({ user: accountResponse(account) });
 });
 
+router.post(
+  "/auth/employee/password",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (context.role !== "employee" || !context.employeeId) {
+      res.status(403).json({
+        error: "Only an authenticated employee can change this password.",
+        code: "EMPLOYEE_ACCESS_DENIED",
+      });
+      return;
+    }
+    const parsed = employeePasswordChangeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: errorMessage(parsed.error), code: "INVALID_PASSWORD" });
+      return;
+    }
+    const [account] = await db
+      .select()
+      .from(userAccountsTable)
+      .where(
+        and(
+          eq(userAccountsTable.id, context.accountId),
+          eq(userAccountsTable.employeeId, context.employeeId),
+          eq(userAccountsTable.accountType, "employee"),
+          eq(userAccountsTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!account || !verifyPassword(parsed.data.currentPassword, account.passwordHash)) {
+      res.status(400).json({
+        error: "The current password is incorrect.",
+        code: "CURRENT_PASSWORD_INVALID",
+      });
+      return;
+    }
+    await db
+      .update(userAccountsTable)
+      .set({ passwordHash: hashPassword(parsed.data.newPassword), updatedAt: new Date() })
+      .where(eq(userAccountsTable.id, account.id));
+    await db
+      .delete(authSessionsTable)
+      .where(eq(authSessionsTable.accountId, account.id));
+    const token = await createSession(account.id);
+    setSessionCookie(res, token);
+    await writeAuthAudit({
+      accountId: account.id,
+      companyId: account.companyId,
+      action: "employee_password_changed",
+      entityType: "account",
+      entityId: account.id,
+    });
+    res.json({ success: true });
+  },
+);
+
 router.post("/auth/logout", async (req, res): Promise<void> => {
   const account = await loadAuthenticatedAccount(req);
   await destroySession(req);
@@ -465,9 +533,13 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
     context.role === "platform_owner" && req.query.companyId
       ? String(req.query.companyId)
       : context.companyId;
-  if (context.role !== "platform_owner" && context.role !== "company_owner") {
+  const canManageEmployeeCredentials =
+    context.role === "platform_owner" ||
+    context.role === "company_owner" ||
+    hasCapability(context, "employees.credentials");
+  if (!canManageEmployeeCredentials) {
     res.status(403).json({
-      error: "Only company owners can manage staff accounts.",
+      error: "You do not have permission to manage account credentials.",
       code: "ACCOUNT_ACCESS_DENIED",
     });
     return;
@@ -486,9 +558,17 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
       context.role === "company_owner"
         ? and(
             eq(userAccountsTable.companyId, companyId),
-            eq(userAccountsTable.accountType, "staff"),
+            or(
+              eq(userAccountsTable.accountType, "staff"),
+              eq(userAccountsTable.accountType, "employee"),
+            ),
           )
-        : eq(userAccountsTable.companyId, companyId),
+        : context.role === "platform_owner"
+          ? eq(userAccountsTable.companyId, companyId)
+          : and(
+              eq(userAccountsTable.companyId, companyId),
+              eq(userAccountsTable.accountType, "employee"),
+            ),
     )
     .orderBy(asc(userAccountsTable.username));
   if (accounts.length === 0) {
@@ -1051,7 +1131,10 @@ router.post(
         account.accountType === "company_owner") ||
       (context.role === "company_owner" &&
         account.companyId === context.companyId &&
-        account.accountType === "staff");
+        (account.accountType === "staff" || account.accountType === "employee")) ||
+      (hasCapability(context, "employees.credentials") &&
+        account.companyId === context.companyId &&
+        account.accountType === "employee");
     if (!canReset) {
       res.status(403).json({
         error: "You do not have permission to reset this password.",
@@ -1059,14 +1142,14 @@ router.post(
       });
       return;
     }
-    const temporaryPassword =
+    const generatedPassword =
       account.accountType === "employee"
         ? generateNumericPassword()
         : randomStaffPassword();
     await db
       .update(userAccountsTable)
       .set({
-        passwordHash: hashPassword(temporaryPassword),
+        passwordHash: hashPassword(generatedPassword),
         updatedAt: new Date(),
       })
       .where(eq(userAccountsTable.id, account.id));
@@ -1080,7 +1163,7 @@ router.post(
       entityType: "account",
       entityId: account.id,
     });
-    res.json({ username: account.username, temporaryPassword });
+    res.json({ username: account.username, generatedPassword });
   },
 );
 

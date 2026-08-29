@@ -138,6 +138,27 @@ export const GetAuthMeResponse = zod.object({
 
 
 /**
+ * @summary Change the authenticated employee password
+ */
+
+export const changeEmployeePasswordBodyNewPasswordMin = 6;
+
+export const changeEmployeePasswordBodyConfirmPasswordMin = 6;
+
+
+
+export const ChangeEmployeePasswordBody = zod.object({
+  "currentPassword": zod.string().min(1),
+  "newPassword": zod.string().min(changeEmployeePasswordBodyNewPasswordMin),
+  "confirmPassword": zod.string().min(changeEmployeePasswordBodyConfirmPasswordMin)
+})
+
+export const ChangeEmployeePasswordResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Check whether initial Platform Owner setup is available
  */
 export const GetInitialPlatformOwnerProvisioningStatusResponse = zod.object({
@@ -355,7 +376,7 @@ export const ResetAuthAccountPasswordParams = zod.object({
 
 export const ResetAuthAccountPasswordResponse = zod.object({
   "username": zod.string(),
-  "temporaryPassword": zod.string()
+  "generatedPassword": zod.string()
 })
 
 

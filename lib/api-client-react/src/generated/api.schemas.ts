@@ -109,9 +109,18 @@ export interface AuthAccountUpdate {
   active?: boolean;
 }
 
-export interface TemporaryPassword {
+export interface GeneratedPassword {
   username: string;
-  temporaryPassword: string;
+  generatedPassword: string;
+}
+
+export interface EmployeePasswordChangeInput {
+  /** @minLength 1 */
+  currentPassword: string;
+  /** @minLength 6 */
+  newPassword: string;
+  /** @minLength 6 */
+  confirmPassword: string;
 }
 
 export interface PermanentPasswordInput {
@@ -121,7 +130,7 @@ export interface PermanentPasswordInput {
 
 export interface AuthAccountCredentials {
   account: AuthAccount;
-  temporaryPassword: string;
+  generatedPassword: string;
 }
 
 export type PlatformCompanyInputOwnersItem = {
@@ -2285,6 +2294,10 @@ export type DateFromParameter = string;
 export type DateToParameter = string;
 
 export type ReportPeriodIdParameter = string;
+
+export type ChangeEmployeePassword200 = {
+  success: boolean;
+};
 
 export type GetInitialPlatformOwnerProvisioningStatus200 = {
   setupAvailable: boolean;
