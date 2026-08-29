@@ -955,6 +955,7 @@ const copy = {
     activateDepartment: "Activate department",
     deactivateDepartment: "Deactivate department",
     salary: "Salary",
+    basicSalary: "Basic salary",
     markInactive: "Mark inactive",
     reactivateEmployee: "Reactivate employee",
     employeeAddedToWorkspace: "Employee added to the workspace",
@@ -1378,6 +1379,7 @@ const copy = {
     required: "مطلوب",
     role: "الدور",
     salary: "الراتب",
+    basicSalary: "الراتب الأساسي",
     saveAttendancePolicy: "حفظ سياسة الحضور",
     saveHrRecord: "حفظ سجل الموارد البشرية",
     saving: "جارٍ الحفظ…",
@@ -2499,6 +2501,7 @@ const pageCopy = {
     createEmployee: "Créer l’employé",
     employeeProfile: "Profil de l’employé",
     employeeNumber: "Numéro d’employé",
+    basicSalary: "Salaire de base",
     deleteSuccessful: "Suppression réussie",
     activateDepartment: "Activer le département",
     deactivateDepartment: "Désactiver le département",
@@ -2815,6 +2818,7 @@ const pageCopy = {
     createEmployee: "Mitarbeitenden erstellen",
     employeeProfile: "Mitarbeiterprofil",
     employeeNumber: "Mitarbeiternummer",
+    basicSalary: "Grundgehalt",
     deleteSuccessful: "Erfolgreich gelöscht",
     activateDepartment: "Abteilung aktivieren",
     deactivateDepartment: "Abteilung deaktivieren",
@@ -7111,10 +7115,17 @@ function EmployeeHrProfile({
   const { t } = useI18n();
   const workspace = useGetWorkspace();
   const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
+  const currency = workspace.data?.company?.currency ?? "EGP";
   const employee = useGetEmployee(employeeId, {
     query: {
       enabled: Boolean(employeeId),
       queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
+  const employeeSchedule = useGetEmployeeSchedule(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
   return (
@@ -7155,24 +7166,65 @@ function EmployeeHrProfile({
               <h2 className="font-display text-xl font-semibold">
                 {employee.data.firstName} {employee.data.lastName}
               </h2>
-              <p className="text-sm text-muted-foreground">
-                {employee.data.phone || t("notAvailable")}
-              </p>
             </div>
           </div>
-          <div className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
-            <Info
-              label={t("employeeNumber")}
-              value={employee.data.employeeNumber}
-            />
-            <Info
-              label={t("department")}
-              value={departmentLabel(employee.data.department?.name, t)}
-            />
-            <Info
-              label={t("branch")}
-              value={branchLabel(employee.data.branch?.name, t)}
-            />
+          <div className="mt-6 border-t border-border pt-6">
+            <h3 className="font-display text-lg font-semibold">
+              {t("employeeProfile")}
+            </h3>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <Info
+                label={t("employeeNumber")}
+                value={employee.data.employeeNumber}
+              />
+              <Info
+                label={t("nationalId")}
+                value={employee.data.nationalId || t("notAvailable")}
+              />
+              <Info
+                label={t("phoneNumber")}
+                value={employee.data.phone || t("notAvailable")}
+              />
+              <Info
+                label={t("basicSalary")}
+                value={money(employee.data.salary, currency)}
+              />
+              <Info
+                label={t("workingHours")}
+                value={
+                  employee.data.workingHours != null
+                    ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
+                    : t("notAvailable")
+                }
+              />
+              <Info
+                label={t("employmentStartDate")}
+                value={date(employee.data.joinedOn)}
+              />
+              <Info
+                label={t("department")}
+                value={departmentLabel(employee.data.department?.name, t)}
+              />
+              <Info
+                label={t("branch")}
+                value={
+                  employee.data.branch
+                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
+                    : t("notAvailable")
+                }
+              />
+              <Info
+                label={t("shift")}
+                value={
+                  employeeSchedule.data?.schedule?.name ||
+                  t("notAvailable")
+                }
+              />
+              <Info
+                label={t("biometricCode")}
+                value={employee.data.biometricCode || t("notAvailable")}
+              />
+            </div>
           </div>
           <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
           <EmployeePasswordChange />

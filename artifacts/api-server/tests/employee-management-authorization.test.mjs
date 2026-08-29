@@ -27,6 +27,14 @@ const updateEmployeeRoute = route.slice(
   route.indexOf('router.patch("/employees/:employeeId"'),
   route.indexOf('router.delete("/employees/:employeeId"'),
 );
+const getEmployeeRoute = route.slice(
+  route.indexOf('router.get("/employees/:employeeId"'),
+  route.indexOf('router.patch("/employees/:employeeId"'),
+);
+const getEmployeeScheduleRoute = route.slice(
+  route.indexOf('router.get(\n  "/employees/:employeeId/schedule"'),
+  route.indexOf('router.put(\n  "/employees/:employeeId/schedule"'),
+);
 const deleteEmployeeRoute = route.slice(
   route.indexOf('router.delete("/employees/:employeeId"'),
   route.indexOf('router.get("/employees/:employeeId/schedule"'),
@@ -89,6 +97,34 @@ test("employee updates enforce the existing manager department scope", () => {
   assert.match(updateEmployeeRoute, /parsed\.data\.departmentId !== context\.departmentId/);
   assert.match(updateEmployeeRoute, /workspaceAccessDenied/);
   assert.match(updateEmployeeRoute, /res\.status\(403\)/);
+});
+
+test("employee self-service profile is read-only and self-scoped", () => {
+  const selfServiceProfile = app.slice(
+    app.indexOf("function EmployeeHrProfile("),
+    app.indexOf("function AccountProfileSummary("),
+  );
+  for (const key of [
+    "employeeNumber",
+    "nationalId",
+    "phoneNumber",
+    "basicSalary",
+    "workingHours",
+    "employmentStartDate",
+    "department",
+    "branch",
+    "shift",
+    "biometricCode",
+  ]) {
+    assert.match(selfServiceProfile, new RegExp(`t\\("${key}"\\)`));
+  }
+  assert.match(selfServiceProfile, /useGetEmployeeSchedule\(employeeId/);
+  assert.match(selfServiceProfile, /EmployeeHrPanel employeeId=\{employee\.data\.id\} canEdit=\{false\}/);
+  assert.doesNotMatch(selfServiceProfile, /useUpdateEmployee\(/);
+  assert.match(getEmployeeRoute, /context\.role === "employee"/);
+  assert.match(getEmployeeRoute, /params\.data\.employeeId !== context\.employeeId/);
+  assert.match(getEmployeeRoute, /employeeOwnProfile/);
+  assert.match(getEmployeeScheduleRoute, /authorizedEmployee\(context, params\.data\.employeeId\)/);
 });
 
 test("employee deletes enforce the existing manager department scope", () => {
