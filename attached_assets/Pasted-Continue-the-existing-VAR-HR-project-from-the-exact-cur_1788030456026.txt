@@ -1,0 +1,110 @@
+Continue the existing VAR HR project from the exact current code state.
+
+DO NOT restart or redo the Employee / Department / Branch Management implementation.
+
+The previous agent already completed the main implementation and stopped only during final verification because the quota ended.
+
+Already implemented
+
+Employee numbering:
+
+- New employees/imports now use simple numeric employee numbers:
+  1, 2, 3, 4, ...
+- The old EMP-#### generation was removed for new employees/imports.
+- Existing employee numbers are preserved and are NOT automatically renumbered.
+- Employee lists sort employee numbers numerically.
+- Authorized management users can manually change an employee number.
+- Duplicate employee numbers are prevented within the same company.
+- Different companies can use the same employee number.
+
+Management controls:
+
+- Employee edit.
+- Employee number change.
+- Employee activate/deactivate.
+- Safe employee deletion.
+- Department management controls.
+- Department activate/deactivate/delete.
+- Branch management controls.
+- Branch activate/deactivate/delete.
+
+Deletion safety:
+
+- Employee deletion preserves historical/operational data.
+- Do not delete attendance, payroll, leave, HR history, device history, or other dependent historical data just to allow deletion.
+- Block deletion when dependencies exist.
+- Employee authentication/session/account handling is protected when an employee is deleted/deactivated.
+- Branch deletion is blocked when employees/devices or other dependencies reference it.
+- Department deletion follows the same conservative dependency rules.
+- Authorization is enforced server-side, not only in the UI.
+
+The focused API tests already passed.
+
+EXACT CURRENT STOPPING POINT
+
+The previous agent was doing final verification.
+
+Typecheck was initially failing because the imported workspace's generated library declaration outputs had not been built yet, causing many cascading errors.
+
+The agent then identified 3 actual frontend callback/type errors that appeared after the generated types became available.
+
+The next step is ONLY to:
+
+1. Build the required workspace libraries/declaration outputs.
+2. Rerun the full workspace typecheck.
+3. Fix ONLY the real TypeScript/frontend errors caused by the current implementation.
+4. Do not restart the feature or change unrelated code.
+
+Then complete:
+
+- Full workspace typecheck.
+- API tests.
+- Frontend production build.
+- API production build.
+- Database constraint/index verification.
+- Employee-number tests.
+- Duplicate-number tests.
+- Cross-company numbering test.
+- Manual employee-number change test.
+- Numeric sorting test.
+- Employee activate/deactivate test.
+- Department activate/deactivate test.
+- Branch activate/deactivate test.
+- Safe deletion/dependency-blocking tests.
+- Authorization tests.
+- Existing assignment consistency tests.
+
+STRICTLY DO NOT CHANGE
+
+- Add Employee form.
+- Its existing 10 fields.
+- Employee Account / Self-Service.
+- Authentication architecture.
+- Permissions architecture.
+- Attendance.
+- Payroll.
+- Leave.
+- Devices.
+- Existing Department/Branch/Shift source-of-truth relationships.
+- Unrelated UI or business logic.
+
+Do not add Email.
+Do not add a password field.
+Do not bring back the employee modal.
+Do not create parallel tables or systems.
+
+Do not guess and do not redo completed work.
+
+After everything passes, report:
+
+1. Exact files changed.
+2. Exact employee-number behavior.
+3. How manual numbering works.
+4. How duplicate numbers are prevented.
+5. Employee/Department/Branch deletion rules.
+6. Database constraints added.
+7. All tests/builds that passed.
+8. Whether the real UI was tested.
+9. Any remaining limitations.
+
+Continue from the current implementation, not from scratch.
