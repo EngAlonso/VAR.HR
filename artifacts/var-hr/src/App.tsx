@@ -42,6 +42,7 @@ import {
   CircleHelp,
   Clock3,
   Coins,
+  Copy,
   Database,
   Download,
   Eye,
@@ -5240,12 +5241,16 @@ function employeeAccountCopy(locale: Locale) {
     en: {
       credentialsTitle: "Employee login credentials",
       credentialsDetail:
-        "Save or share these credentials now. The generated password will not be shown again.",
+        "Save or share these credentials now. This newly generated password will not be shown again.",
       loginUsername: "Phone / login username",
       generatedPassword: "Generated password",
+      newlyGeneratedPassword: "Newly generated password",
       currentPassword: "Current password",
       copyCredentials: "Copy credentials",
+      copyPassword: "Copy password",
       copied: "Copied",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
       shareWhatsApp: "Share via WhatsApp",
       invalidPhone: "WhatsApp sharing needs a valid employee phone number.",
       close: "Close",
@@ -5268,7 +5273,7 @@ function employeeAccountCopy(locale: Locale) {
       additions: "Additions",
       deductions: "Deductions",
       net: "Net salary",
-      regenerate: "Generate new password",
+      resetPassword: "Reset password",
       accountStatus: "Account status",
       active: "Active",
       inactive: "Inactive",
@@ -5278,12 +5283,16 @@ function employeeAccountCopy(locale: Locale) {
     ar: {
       credentialsTitle: "بيانات دخول الموظف",
       credentialsDetail:
-        "احفظ أو شارك البيانات الآن. لن تظهر كلمة المرور المولدة مرة أخرى.",
+        "احفظ أو شارك البيانات الآن. لن تظهر كلمة المرور الجديدة المولدة مرة أخرى.",
       loginUsername: "الهاتف / اسم تسجيل الدخول",
       generatedPassword: "كلمة المرور المولدة",
+      newlyGeneratedPassword: "كلمة المرور الجديدة المولدة",
       currentPassword: "كلمة المرور الحالية",
       copyCredentials: "نسخ بيانات الدخول",
+      copyPassword: "نسخ كلمة المرور",
       copied: "تم النسخ",
+      showPassword: "إظهار كلمة المرور",
+      hidePassword: "إخفاء كلمة المرور",
       shareWhatsApp: "المشاركة عبر واتساب",
       invalidPhone: "تحتاج مشاركة واتساب إلى رقم هاتف موظف صحيح.",
       close: "إغلاق",
@@ -5306,7 +5315,7 @@ function employeeAccountCopy(locale: Locale) {
       additions: "الإضافات",
       deductions: "الخصومات",
       net: "صافي الراتب",
-      regenerate: "توليد كلمة مرور جديدة",
+      resetPassword: "إعادة تعيين كلمة المرور",
       accountStatus: "حالة الحساب",
       active: "نشط",
       inactive: "غير نشط",
@@ -5316,12 +5325,16 @@ function employeeAccountCopy(locale: Locale) {
     fr: {
       credentialsTitle: "Identifiants de connexion de l’employé",
       credentialsDetail:
-        "Enregistrez ou partagez ces identifiants maintenant. Le mot de passe ne sera plus affiché.",
+        "Enregistrez ou partagez ces identifiants maintenant. Ce nouveau mot de passe généré ne sera plus affiché.",
       loginUsername: "Téléphone / identifiant",
       generatedPassword: "Mot de passe généré",
+      newlyGeneratedPassword: "Nouveau mot de passe généré",
       currentPassword: "Mot de passe actuel",
       copyCredentials: "Copier les identifiants",
+      copyPassword: "Copier le mot de passe",
       copied: "Copié",
+      showPassword: "Afficher le mot de passe",
+      hidePassword: "Masquer le mot de passe",
       shareWhatsApp: "Partager sur WhatsApp",
       invalidPhone: "Le partage WhatsApp nécessite un numéro valide.",
       close: "Fermer",
@@ -5344,7 +5357,7 @@ function employeeAccountCopy(locale: Locale) {
       additions: "Ajouts",
       deductions: "Retenues",
       net: "Salaire net",
-      regenerate: "Générer un nouveau mot de passe",
+      resetPassword: "Réinitialiser le mot de passe",
       accountStatus: "État du compte",
       active: "Actif",
       inactive: "Inactif",
@@ -5354,12 +5367,16 @@ function employeeAccountCopy(locale: Locale) {
     de: {
       credentialsTitle: "Anmeldedaten des Mitarbeitenden",
       credentialsDetail:
-        "Speichern oder teilen Sie diese Daten jetzt. Das generierte Passwort wird nicht erneut angezeigt.",
+        "Speichern oder teilen Sie diese Daten jetzt. Das neu generierte Passwort wird nicht erneut angezeigt.",
       loginUsername: "Telefon / Login-Benutzername",
       generatedPassword: "Generiertes Passwort",
+      newlyGeneratedPassword: "Neu generiertes Passwort",
       currentPassword: "Aktuelles Passwort",
       copyCredentials: "Anmeldedaten kopieren",
+      copyPassword: "Passwort kopieren",
       copied: "Kopiert",
+      showPassword: "Passwort anzeigen",
+      hidePassword: "Passwort ausblenden",
       shareWhatsApp: "Über WhatsApp teilen",
       invalidPhone: "Für die WhatsApp-Freigabe ist eine gültige Telefonnummer erforderlich.",
       close: "Schließen",
@@ -5382,7 +5399,7 @@ function employeeAccountCopy(locale: Locale) {
       additions: "Zuschläge",
       deductions: "Abzüge",
       net: "Nettogehalt",
-      regenerate: "Neues Passwort generieren",
+      resetPassword: "Passwort zurücksetzen",
       accountStatus: "Kontostatus",
       active: "Aktiv",
       inactive: "Inaktiv",
@@ -5391,6 +5408,28 @@ function employeeAccountCopy(locale: Locale) {
     },
   } as const;
   return labels[locale];
+}
+
+function normalizeEgyptianWhatsAppPhone(phone?: string | null): string | null {
+  const rawPhone = (phone ?? "").trim();
+  const digits = rawPhone.replace(/\D/g, "");
+  if (!digits) return null;
+
+  const hadInternationalPrefix =
+    rawPhone.startsWith("+") || digits.startsWith("00");
+  const normalizedInput = digits.startsWith("00") ? digits.slice(2) : digits;
+  if (/^01[0125]\d{8}$/.test(normalizedInput)) {
+    return `20${normalizedInput.slice(1)}`;
+  }
+  if (/^201[0125]\d{8}$/.test(normalizedInput)) {
+    return normalizedInput;
+  }
+
+  // Preserve valid non-Egyptian numbers only when they were saved with an
+  // explicit international prefix.
+  return hadInternationalPrefix && /^\d{8,15}$/.test(normalizedInput)
+    ? normalizedInput
+    : null;
 }
 
 function CredentialReveal({
@@ -5405,14 +5444,20 @@ function CredentialReveal({
   onClose: () => void;
 }) {
   const c = employeeAccountCopy(locale);
-  const [copied, setCopied] = useState(false);
-  const text = `${c.credentialsTitle}\n${c.loginUsername}: ${credential.username}\n${c.generatedPassword}: ${credential.generatedPassword}`;
-  const whatsappPhone = (phone ?? "").replace(/\D/g, "");
-  const canShare = whatsappPhone.length >= 7;
-  const copy = async () => {
+  const [passwordVisible, setPasswordVisible] = useState(true);
+  const [copiedCredentials, setCopiedCredentials] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const text = `${c.credentialsTitle}\n${c.loginUsername}: ${credential.username}\n${c.newlyGeneratedPassword}: ${credential.generatedPassword}`;
+  const whatsappPhone = normalizeEgyptianWhatsAppPhone(phone);
+  const copyCredentials = async () => {
     await navigator.clipboard.writeText(text);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    setCopiedCredentials(true);
+    window.setTimeout(() => setCopiedCredentials(false), 1800);
+  };
+  const copyPassword = async () => {
+    await navigator.clipboard.writeText(credential.generatedPassword);
+    setCopiedPassword(true);
+    window.setTimeout(() => setCopiedPassword(false), 1800);
   };
   return (
     <Modal title={c.credentialsTitle} onClose={onClose}>
@@ -5422,20 +5467,47 @@ function CredentialReveal({
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Info label={c.loginUsername} value={credential.username} />
-          <Info label={c.generatedPassword} value={credential.generatedPassword} />
+          <div className="rounded-lg bg-muted/60 p-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {c.newlyGeneratedPassword}
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="min-w-0 flex-1 break-all font-medium">
+                {passwordVisible
+                  ? credential.generatedPassword
+                  : "•".repeat(credential.generatedPassword.length)}
+              </span>
+              <Button
+                type="button"
+                variant="quiet"
+                className="shrink-0 p-1.5"
+                onClick={() => setPasswordVisible((visible) => !visible)}
+                aria-label={
+                  passwordVisible ? c.hidePassword : c.showPassword
+                }
+                title={passwordVisible ? c.hidePassword : c.showPassword}
+              >
+                {passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
           <Button variant="quiet" onClick={onClose}>{c.close}</Button>
-          <Button variant="outline" onClick={() => void copy()}>
+          <Button variant="outline" onClick={() => void copyCredentials()}>
             <Check size={16} />
-            {copied ? c.copied : c.copyCredentials}
+            {copiedCredentials ? c.copied : c.copyCredentials}
+          </Button>
+          <Button variant="outline" onClick={() => void copyPassword()}>
+            <Copy size={16} />
+            {copiedPassword ? c.copied : c.copyPassword}
           </Button>
           <Button
             variant="outline"
-            disabled={!canShare}
-            title={!canShare ? c.invalidPhone : undefined}
+            disabled={!whatsappPhone}
+            title={!whatsappPhone ? c.invalidPhone : undefined}
             onClick={() => {
-              if (!canShare) return;
+              if (!whatsappPhone) return;
               window.open(
                 `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(text)}`,
                 "_blank",
@@ -5446,8 +5518,10 @@ function CredentialReveal({
             {c.shareWhatsApp}
           </Button>
         </div>
-        {!canShare && (
-          <p className="text-xs text-muted-foreground">{c.invalidPhone}</p>
+        {!whatsappPhone && (
+          <p role="alert" className="text-xs text-destructive">
+            {c.invalidPhone}
+          </p>
         )}
       </div>
     </Modal>
@@ -5577,7 +5651,7 @@ function EmployeeCredentialManager({
             onClick={() => void regenerate()}
           >
             <KeyRound size={16} />
-            {pending ? "…" : c.regenerate}
+            {pending ? "…" : c.resetPassword}
           </Button>
         </div>
       </Card>
