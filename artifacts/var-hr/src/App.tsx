@@ -90,10 +90,12 @@ import {
   useListBranches,
   useCreateBranch,
   useUpdateBranch,
+  useDeleteBranch,
   useListEmployees,
   useCreateEmployee,
   useGetEmployee,
   useUpdateEmployee,
+  useDeleteEmployee,
   useGetAttendanceToday,
   useListAttendanceHistory,
   useCheckIn,
@@ -948,6 +950,9 @@ const copy = {
     noEmployeeContextDetail:
       "The workspace has not attached an employee identity to this session.",
     employeeNumber: "Employee number",
+    deleteSuccessful: "Deleted successfully",
+    activateDepartment: "Activate department",
+    deactivateDepartment: "Deactivate department",
     salary: "Salary",
     markInactive: "Mark inactive",
     reactivateEmployee: "Reactivate employee",
@@ -983,6 +988,7 @@ const copy = {
     editBranch: "Change branch",
     departmentDeactivated: "Department status updated",
     branchCreated: "Branch created",
+    employeeSaved: "Employee saved",
     employeeStatusUpdated: "Employee status updated",
     currentEmployeeContext: "Current employee context",
     noEmployeeContext: "No employee context",
@@ -1293,12 +1299,16 @@ const copy = {
     couldNotSaveBranch: "تعذر حفظ الفرع.",
     editBranch: "تغيير الفرع",
     departmentDeactivated: "تم تحديث حالة القسم",
+    employeeSaved: "تم حفظ الموظف",
     disabled: "معطل",
     email: "البريد الإلكتروني",
     emergencyContactName: "اسم جهة اتصال الطوارئ",
     emergencyContactPhone: "هاتف الطوارئ",
     employee: "الموظف",
     employeeNumber: "رقم الموظف",
+    deleteSuccessful: "تم الحذف بنجاح",
+    activateDepartment: "تفعيل القسم",
+    deactivateDepartment: "تعطيل القسم",
     employeeProfile: "ملف الموظف",
     employeeProfileLoadFailed: "تعذر تحميل ملف الموظف.",
     employeeStatusUpdated: "تم تحديث حالة الموظف",
@@ -2482,11 +2492,15 @@ const pageCopy = {
     couldNotCreateEmployee: "Impossible de créer l’employé",
     departmentCreated: "Département créé",
     branchCreated: "Agence créée",
+    employeeSaved: "Employé enregistré",
     save: "Enregistrer",
     saving: "Enregistrement…",
     createEmployee: "Créer l’employé",
     employeeProfile: "Profil de l’employé",
     employeeNumber: "Numéro d’employé",
+    deleteSuccessful: "Suppression réussie",
+    activateDepartment: "Activer le département",
+    deactivateDepartment: "Désactiver le département",
     salary: "Salaire",
     markInactive: "Désactiver",
     reactivateEmployee: "Réactiver l’employé",
@@ -2794,11 +2808,15 @@ const pageCopy = {
     couldNotCreateEmployee: "Mitarbeitender konnte nicht erstellt werden",
     departmentCreated: "Abteilung erstellt",
     branchCreated: "Niederlassung erstellt",
+    employeeSaved: "Mitarbeitender gespeichert",
     save: "Speichern",
     saving: "Speichern…",
     createEmployee: "Mitarbeitenden erstellen",
     employeeProfile: "Mitarbeiterprofil",
     employeeNumber: "Mitarbeiternummer",
+    deleteSuccessful: "Erfolgreich gelöscht",
+    activateDepartment: "Abteilung aktivieren",
+    deactivateDepartment: "Abteilung deaktivieren",
     salary: "Gehalt",
     markInactive: "Deaktivieren",
     reactivateEmployee: "Mitarbeitenden reaktivieren",
@@ -7144,6 +7162,7 @@ function Branches() {
   const branches = useListBranches();
   const create = useCreateBranch();
   const update = useUpdateBranch();
+  const remove = useDeleteBranch();
   const [selected, setSelected] = useState<any | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -7194,6 +7213,22 @@ function Branches() {
     } else {
       create.mutate({ data } as any, options);
     }
+  }
+  function deleteBranch() {
+    if (!selected || !window.confirm(`${t("remove")}: ${selected.name}?`)) return;
+    remove.mutate(
+      { branchId: selected.id },
+      {
+        onSuccess: () => {
+          toast.success(t("deleteSuccessful"));
+          setSelected(null);
+          setEditing(false);
+          qc.invalidateQueries({ queryKey: getListBranchesQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("deleteFailed"))),
+      },
+    );
   }
   return (
     <div className="animate-in">
@@ -7276,7 +7311,17 @@ function Branches() {
             )}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>{t("cancel")}</Button>
-              <Button type="submit" disabled={create.isPending || update.isPending}>{t("saveChanges")}</Button>
+              {selected && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={deleteBranch}
+                  disabled={remove.isPending}
+                >
+                  {t("remove")}
+                </Button>
+              )}
+              <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
         </Modal>
@@ -7299,6 +7344,7 @@ function Departments() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    active: true,
   });
   const detail = useGetDepartment(selected || "", undefined, {
     query: {
@@ -7309,6 +7355,7 @@ function Departments() {
   function resetForm() {
     setForm({
       name: "",
+      active: true,
     });
   }
   function openCreate() {
@@ -7320,6 +7367,7 @@ function Departments() {
     setSelected(item.id);
     setForm({
       name: item.name ?? "",
+      active: item.active !== false,
     });
     setShowCreate(true);
   }
@@ -7327,6 +7375,7 @@ function Departments() {
     event.preventDefault();
     const data = {
       name: form.name,
+      ...(selected ? { active: form.active } : {}),
     };
     const options = {
       onSuccess: () => {
@@ -7552,8 +7601,20 @@ function Departments() {
                 required
                 autoComplete="organization"
                 value={form.name}
-                onChange={(value) => setForm({ name: value })}
+                onChange={(value) => setForm({ ...form, name: value })}
               />
+              {selected && (
+                <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(event) =>
+                      setForm({ ...form, active: event.target.checked })
+                    }
+                  />
+                  {form.active ? t("activateDepartment") : t("deactivateDepartment")}
+                </label>
+              )}
             </div>
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
               <Button
@@ -7995,6 +8056,102 @@ function EmployeeProfilePage() {
     },
   });
   const update = useUpdateEmployee();
+  const remove = useDeleteEmployee();
+  const departments = useListDepartments();
+  const branches = useListBranches();
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    employeeNumber: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    nationalId: "",
+    biometricCode: "",
+    workingHours: "8",
+    salary: "0",
+    departmentId: "",
+    branchId: "",
+    status: "active",
+  });
+  function openEdit() {
+    if (!employee.data) return;
+    setEditForm({
+      employeeNumber: employee.data.employeeNumber,
+      firstName: employee.data.firstName,
+      lastName: employee.data.lastName,
+      phone: employee.data.phone ?? "",
+      nationalId: employee.data.nationalId ?? "",
+      biometricCode: employee.data.biometricCode ?? "",
+      workingHours: String(employee.data.workingHours ?? 8),
+      salary: String(employee.data.salary ?? 0),
+      departmentId: employee.data.department?.id ?? "",
+      branchId: employee.data.branch?.id ?? "",
+      status: employee.data.status,
+    });
+    setEditing(true);
+  }
+  function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !editForm.employeeNumber.match(/^[1-9][0-9]*$/) ||
+      !editForm.firstName.trim() ||
+      !editForm.lastName.trim() ||
+      !editForm.branchId
+    ) {
+      toast.error(t("couldNotSaveRecord"));
+      return;
+    }
+    update.mutate(
+      {
+        employeeId,
+        data: {
+          employeeNumber: editForm.employeeNumber.trim(),
+          firstName: editForm.firstName.trim(),
+          lastName: editForm.lastName.trim(),
+          phone: editForm.phone.trim(),
+          nationalId: editForm.nationalId.trim(),
+          biometricCode: editForm.biometricCode.trim(),
+          workingHours: Number(editForm.workingHours),
+          salary: Number(editForm.salary),
+          departmentId: editForm.departmentId || null,
+          branchId: editForm.branchId,
+          status: editForm.status,
+        } as any,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("employeeSaved"));
+          setEditing(false);
+          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
+      },
+    );
+  }
+  function deleteEmployee() {
+    if (
+      !employee.data ||
+      !window.confirm(
+        `${t("remove")}: ${employee.data.firstName} ${employee.data.lastName}?`,
+      )
+    ) {
+      return;
+    }
+    remove.mutate(
+      { employeeId: employee.data.id },
+      {
+        onSuccess: () => {
+          toast.success(t("deleteSuccessful"));
+          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          setLocation("/employees");
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("deleteFailed"))),
+      },
+    );
+  }
 
   return (
     <div className="animate-in">
@@ -8080,6 +8237,20 @@ function EmployeeProfilePage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
                 <Status value={employee.data.status} />
+                {canManageEmployees && (
+                  <>
+                    <Button variant="outline" onClick={openEdit}>
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={deleteEmployee}
+                      disabled={remove.isPending}
+                    >
+                      {t("remove")}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             <div className="relative mt-6 grid gap-2 border-t border-primary/10 pt-4 sm:grid-cols-3">
@@ -8375,6 +8546,124 @@ function EmployeeProfilePage() {
         </div>
       ) : (
         <ErrorState retry={() => employee.refetch()} />
+      )}
+      {editing && employee.data && (
+        <Modal
+          title={t("edit")}
+          onClose={() => setEditing(false)}
+          className="max-w-2xl"
+        >
+          <form onSubmit={saveEdit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={t("employeeNumber")}
+                value={editForm.employeeNumber}
+                inputMode="numeric"
+                required
+                onChange={(value) => setEditForm({ ...editForm, employeeNumber: value })}
+              />
+              <Field
+                label={t("firstName")}
+                value={editForm.firstName}
+                required
+                onChange={(value) => setEditForm({ ...editForm, firstName: value })}
+              />
+              <Field
+                label={t("lastName")}
+                value={editForm.lastName}
+                required
+                onChange={(value) => setEditForm({ ...editForm, lastName: value })}
+              />
+              <Field
+                label={t("phoneNumber")}
+                value={editForm.phone}
+                inputMode="tel"
+                onChange={(value) => setEditForm({ ...editForm, phone: value })}
+              />
+              <Field
+                label={t("nationalId")}
+                value={editForm.nationalId}
+                onChange={(value) => setEditForm({ ...editForm, nationalId: value })}
+              />
+              <Field
+                label={t("biometricCode")}
+                value={editForm.biometricCode}
+                onChange={(value) => setEditForm({ ...editForm, biometricCode: value })}
+              />
+              <Field
+                label={t("workingHours")}
+                type="number"
+                min={0}
+                max={24}
+                step={0.25}
+                value={editForm.workingHours}
+                onChange={(value) => setEditForm({ ...editForm, workingHours: value })}
+              />
+              <Field
+                label={t("salary")}
+                type="number"
+                min={0}
+                step={0.01}
+                value={editForm.salary}
+                onChange={(value) => setEditForm({ ...editForm, salary: value })}
+              />
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("department")}</span>
+                <select
+                  value={editForm.departmentId}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, departmentId: event.target.value })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="">—</option>
+                  {departments.data?.map((item: any) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("branch")}</span>
+                <select
+                  value={editForm.branchId}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, branchId: event.target.value })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  {branches.data?.map((item: any) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("status")}</span>
+                <select
+                  value={editForm.status}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, status: event.target.value })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="active">{t("active")}</option>
+                  <option value="inactive">{t("inactive")}</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
+              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
+                {t("cancel")}
+              </Button>
+              <Button type="submit" disabled={update.isPending}>
+                {t("saveChanges")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

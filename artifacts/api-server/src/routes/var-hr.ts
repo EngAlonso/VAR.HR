@@ -49,6 +49,12 @@ import {
   CreateAttendanceLocationResponse,
   CreateEmployeeBody,
   CreateEmployeeResponse,
+  DeleteBranchParams,
+  DeleteBranchResponse,
+  DeleteDepartmentParams,
+  DeleteDepartmentResponse,
+  DeleteEmployeeParams,
+  DeleteEmployeeResponse,
   CreateHolidayBody,
   CreateHolidayResponse,
   CreateLeaveRequestBody,
@@ -185,8 +191,10 @@ import {
   attendanceTable,
   attendanceCalculationsTable,
   attendanceTimeAdjustmentsTable,
+  accountPermissionsTable,
   auditLogsTable,
   authAuditEventsTable,
+  authSessionsTable,
   biometricEventsTable,
   biometricSyncHistoryTable,
   branchesTable,
@@ -1878,7 +1886,10 @@ async function employeeRows(context: TenantContext) {
         employeeScopeCondition(context),
       ),
     )
-    .orderBy(asc(employeesTable.firstName));
+    .orderBy(
+      sql`CASE WHEN ${employeesTable.employeeNumber} ~ '^[0-9]+$' THEN ${employeesTable.employeeNumber}::bigint ELSE 9223372036854775807 END`,
+      asc(employeesTable.firstName),
+    );
   const devices = await db
     .select({ branchId: devicesTable.branchId })
     .from(devicesTable)
@@ -1905,10 +1916,10 @@ async function allocateEmployeeNumber(companyId: string): Promise<string> {
     existing.map((item) => item.employeeNumber.trim().toLowerCase()),
   );
   let sequence = 1;
-  let candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+  let candidate = String(sequence);
   while (used.has(candidate.toLowerCase())) {
     sequence += 1;
-    candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+    candidate = String(sequence);
   }
   return candidate;
 }
@@ -2044,6 +2055,89 @@ async function validateEmployeeDepartmentReferences(
     (!departmentId || department.length > 0) &&
     (!branchId || branch.length > 0)
   );
+}
+
+async function employeeDeleteDependencies(companyId: string, employeeId: string) {
+  const [
+    attendance,
+    attendanceCalculations,
+    leaveRequests,
+    permissionRequests,
+    attendanceAdjustments,
+    leaveBalances,
+    leaveTransactions,
+    payrollCalculations,
+    payrollAdjustments,
+    scheduleAssignments,
+    deviceMappings,
+    biometricEvents,
+    hrRecords,
+    identities,
+    departmentManager,
+  ] = await Promise.all([
+    db.select({ id: attendanceTable.id }).from(attendanceTable).where(
+      and(eq(attendanceTable.companyId, companyId), eq(attendanceTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: attendanceCalculationsTable.id }).from(attendanceCalculationsTable).where(
+      and(eq(attendanceCalculationsTable.companyId, companyId), eq(attendanceCalculationsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: leaveRequestsTable.id }).from(leaveRequestsTable).where(
+      and(eq(leaveRequestsTable.companyId, companyId), eq(leaveRequestsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: permissionRequestsTable.id }).from(permissionRequestsTable).where(
+      and(eq(permissionRequestsTable.companyId, companyId), eq(permissionRequestsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: attendanceTimeAdjustmentsTable.id }).from(attendanceTimeAdjustmentsTable).where(
+      and(eq(attendanceTimeAdjustmentsTable.companyId, companyId), eq(attendanceTimeAdjustmentsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: leaveBalancesTable.id }).from(leaveBalancesTable).where(
+      and(eq(leaveBalancesTable.companyId, companyId), eq(leaveBalancesTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: leaveBalanceTransactionsTable.id }).from(leaveBalanceTransactionsTable).where(
+      and(eq(leaveBalanceTransactionsTable.companyId, companyId), eq(leaveBalanceTransactionsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: payrollCalculationsTable.id }).from(payrollCalculationsTable).where(
+      and(eq(payrollCalculationsTable.companyId, companyId), eq(payrollCalculationsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: payrollAdjustmentsTable.id }).from(payrollAdjustmentsTable).where(
+      and(eq(payrollAdjustmentsTable.companyId, companyId), eq(payrollAdjustmentsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: employeeScheduleAssignmentsTable.id }).from(employeeScheduleAssignmentsTable).where(
+      and(eq(employeeScheduleAssignmentsTable.companyId, companyId), eq(employeeScheduleAssignmentsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: deviceEmployeeMappingsTable.id }).from(deviceEmployeeMappingsTable).where(
+      and(eq(deviceEmployeeMappingsTable.companyId, companyId), eq(deviceEmployeeMappingsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: biometricEventsTable.id }).from(biometricEventsTable).where(
+      and(eq(biometricEventsTable.companyId, companyId), eq(biometricEventsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: employeeHrRecordsTable.id }).from(employeeHrRecordsTable).where(
+      and(eq(employeeHrRecordsTable.companyId, companyId), eq(employeeHrRecordsTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: employeeIdentitiesTable.id }).from(employeeIdentitiesTable).where(
+      and(eq(employeeIdentitiesTable.companyId, companyId), eq(employeeIdentitiesTable.employeeId, employeeId)),
+    ).limit(1),
+    db.select({ id: departmentsTable.id }).from(departmentsTable).where(
+      and(eq(departmentsTable.companyId, companyId), eq(departmentsTable.managerId, employeeId)),
+    ).limit(1),
+  ]);
+  return [
+    ["attendance", attendance],
+    ["attendanceCalculations", attendanceCalculations],
+    ["leaveRequests", leaveRequests],
+    ["permissionRequests", permissionRequests],
+    ["attendanceAdjustments", attendanceAdjustments],
+    ["leaveBalances", leaveBalances],
+    ["leaveTransactions", leaveTransactions],
+    ["payrollCalculations", payrollCalculations],
+    ["payrollAdjustments", payrollAdjustments],
+    ["scheduleAssignments", scheduleAssignments],
+    ["deviceMappings", deviceMappings],
+    ["biometricEvents", biometricEvents],
+    ["hrRecords", hrRecords],
+    ["biometricIdentity", identities],
+    ["departmentManager", departmentManager],
+  ].filter(([, rows]) => rows.length > 0).map(([name]) => name);
 }
 
 async function departmentResponse(
@@ -2632,8 +2726,8 @@ router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
       .json({ error: message(req, "noPermissionCreateDepartments") });
     return;
   }
-  const params = GetDepartmentParams.safeParse(req.params);
-  if (!params.success) {
+  const params = DeleteDepartmentParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.departmentId)) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
@@ -2662,7 +2756,10 @@ router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
     )
     .limit(1);
   if (members.length > 0) {
-    res.status(409).json({ error: message(req, "invalidRequest") });
+    res.status(409).json({
+      error: message(req, "departmentDeleteBlocked"),
+      code: "DEPARTMENT_DELETE_BLOCKED",
+    });
     return;
   }
   await db
@@ -2681,7 +2778,7 @@ router.delete("/departments/:departmentId", async (req, res): Promise<void> => {
     null,
     department,
   );
-  res.status(204).send();
+  res.status(204).send(DeleteDepartmentResponse.parse(undefined));
 });
 
 router.get("/branches", async (req, res): Promise<void> => {
@@ -2885,6 +2982,79 @@ router.patch("/branches/:branchId", async (req, res): Promise<void> => {
   );
   const response = await branchResponse(context, branch.id);
   res.json(UpdateBranchResponse.parse(response));
+});
+
+router.delete("/branches/:branchId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "branches.manage")) {
+    res.status(403).json({ error: message(req, "noPermissionCreateBranches") });
+    return;
+  }
+  const params = DeleteBranchParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.branchId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [branch] = await db
+    .select()
+    .from(branchesTable)
+    .where(
+      and(
+        eq(branchesTable.id, params.data.branchId),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!branch) {
+    res.status(404).json({ error: message(req, "branchNotFound") });
+    return;
+  }
+  const [employeeReference, deviceReference] = await Promise.all([
+    db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.companyId, context.companyId),
+          eq(employeesTable.branchId, branch.id),
+        ),
+      )
+      .limit(1),
+    db
+      .select({ id: devicesTable.id })
+      .from(devicesTable)
+      .where(
+        and(
+          eq(devicesTable.companyId, context.companyId),
+          eq(devicesTable.branchId, branch.id),
+        ),
+      )
+      .limit(1),
+  ]);
+  if (employeeReference.length > 0 || deviceReference.length > 0) {
+    res.status(409).json({
+      error: message(req, "branchDeleteBlocked"),
+      code: "BRANCH_DELETE_BLOCKED",
+    });
+    return;
+  }
+  await db
+    .delete(branchesTable)
+    .where(
+      and(
+        eq(branchesTable.id, branch.id),
+        eq(branchesTable.companyId, context.companyId),
+      ),
+    );
+  await recordAudit(
+    context.companyId,
+    "deleted",
+    "branch",
+    branch.id,
+    null,
+    branch,
+  );
+  res.status(204).send(DeleteBranchResponse.parse(undefined));
 });
 
 router.get("/employees", async (req, res): Promise<void> => {
@@ -3226,26 +3396,67 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
   }
+  const updateData = {
+    ...parsed.data,
+    ...(parsed.data.employeeNumber !== undefined
+      ? { employeeNumber: parsed.data.employeeNumber.trim() }
+      : {}),
+  };
   if (
+    (updateData.employeeNumber !== undefined &&
+      !/^[1-9][0-9]*$/.test(updateData.employeeNumber)) ||
     !(await validateEmployeeDepartmentReferences(
       context.companyId,
-      parsed.data.departmentId ?? before.departmentId,
-      parsed.data.branchId ?? before.branchId,
+      parsed.data.departmentId !== undefined
+        ? parsed.data.departmentId
+        : before.departmentId,
+      parsed.data.branchId !== undefined ? parsed.data.branchId : before.branchId,
     ))
   ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const [employee] = await db
-    .update(employeesTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
-    .where(
-      and(
-        eq(employeesTable.id, params.data.employeeId),
-        eq(employeesTable.companyId, context.companyId),
-      ),
-    )
-    .returning();
+  if (updateData.employeeNumber !== undefined) {
+    const [duplicate] = await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.companyId, context.companyId),
+          eq(employeesTable.employeeNumber, updateData.employeeNumber),
+        ),
+      )
+      .limit(1);
+    if (duplicate && duplicate.id !== before.id) {
+      res.status(409).json({
+        error: message(req, "employeeNumberDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
+      });
+      return;
+    }
+  }
+  let employee: typeof employeesTable.$inferSelect | undefined;
+  try {
+    [employee] = await db
+      .update(employeesTable)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .returning();
+  } catch (error) {
+    if (postgresUniqueConstraint(error) === employeeNumberUniqueConstraint) {
+      res.status(409).json({
+        error: message(req, "employeeNumberDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
+      });
+      return;
+    }
+    throw error;
+  }
   if (!employee) {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
@@ -3278,10 +3489,95 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     "updated",
     "employee",
     employee.id,
-    parsed.data,
+    updateData,
     before,
   );
   res.json(UpdateEmployeeResponse.parse(employeeResponse(row)));
+});
+
+router.delete("/employees/:employeeId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "employees.manage")) {
+    res
+      .status(403)
+      .json({ error: message(req, "noPermissionManageEmployees") });
+    return;
+  }
+  const params = DeleteEmployeeParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.employeeId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [employee] = await db
+    .select()
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.id, params.data.employeeId),
+        eq(employeesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!employee) {
+    res.status(404).json({ error: message(req, "employeeNotFound") });
+    return;
+  }
+  const dependencies = await employeeDeleteDependencies(
+    context.companyId,
+    employee.id,
+  );
+  if (dependencies.length > 0) {
+    res.status(409).json({
+      error: message(req, "employeeDeleteBlocked"),
+      code: "EMPLOYEE_DELETE_BLOCKED",
+      dependencies,
+    });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({ id: userAccountsTable.id })
+      .from(userAccountsTable)
+      .where(
+        and(
+          eq(userAccountsTable.companyId, context.companyId),
+          eq(userAccountsTable.employeeId, employee.id),
+        ),
+      )
+      .limit(1);
+    if (account) {
+      await tx
+        .delete(authSessionsTable)
+        .where(eq(authSessionsTable.accountId, account.id));
+      await tx
+        .delete(accountPermissionsTable)
+        .where(eq(accountPermissionsTable.accountId, account.id));
+      await tx
+        .update(authAuditEventsTable)
+        .set({ accountId: null })
+        .where(eq(authAuditEventsTable.accountId, account.id));
+      await tx
+        .delete(userAccountsTable)
+        .where(eq(userAccountsTable.id, account.id));
+    }
+    await tx
+      .delete(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, employee.id),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      );
+  });
+  await recordAudit(
+    context.companyId,
+    "deleted",
+    "employee",
+    employee.id,
+    null,
+    employee,
+  );
+  res.status(204).send(DeleteEmployeeResponse.parse(undefined));
 });
 
 router.get("/attendance/today", async (req, res): Promise<void> => {
@@ -6989,13 +7285,13 @@ router.post("/employees/import", async (req, res): Promise<void> => {
   }> = [];
   const nextEmployeeNumber = () => {
     let sequence = 1;
-    let candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+    let candidate = String(sequence);
     while (
       existingNumbers.has(candidate.toLowerCase()) ||
       seenNumbers.has(candidate.toLowerCase())
     ) {
       sequence += 1;
-      candidate = `EMP-${String(sequence).padStart(4, "0")}`;
+      candidate = String(sequence);
     }
     return candidate;
   };
@@ -7068,6 +7364,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
       ).trim();
       const normalizedNumber = employeeNumber.toLowerCase();
       if (
+        !/^[1-9][0-9]*$/.test(employeeNumber) ||
         existingEmails.has(normalizedEmail) ||
         seenEmails.has(normalizedEmail) ||
         existingNumbers.has(normalizedNumber) ||

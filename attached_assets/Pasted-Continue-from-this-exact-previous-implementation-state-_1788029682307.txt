@@ -1,0 +1,118 @@
+Continue from this exact previous implementation state.
+
+This is the last confirmed progress from the previous agent before the quota ended.
+
+What was already investigated and confirmed
+
+The Employee / Department / Branch Management Controls feature was being implemented.
+
+The previous agent already inspected:
+
+- Employee schema and relationships.
+- Department and Branch relationships.
+- Authorization/permission model.
+- Existing management routes and UI.
+- Dependent database tables.
+
+The Add Employee page and its existing 10 fields MUST remain completely unchanged.
+
+Important database safety findings
+
+Employees are referenced by:
+
+- Attendance
+- Leave
+- Payroll
+- Scheduling / Shift assignments
+- HR records
+- Device mappings
+- Authentication / Employee accounts
+- Other operational and historical records
+
+Therefore deletion must be conservative.
+
+Required deletion behavior already established
+
+Employee:
+
+- Deactivation must always be available to authorized management users.
+- Hard deletion is allowed only if the employee has no dependent historical or operational records.
+- Never delete attendance, payroll, leave, HR history, device history, or other historical data just to make deletion possible.
+- If dependencies exist, block hard deletion and explain why.
+- Handle the employee's authentication/account and sessions safely when deactivated or deleted.
+
+Branch:
+
+- Hard deletion must be blocked if employees or devices still reference the branch.
+- Never silently delete dependent HR or historical data.
+
+Department:
+
+- Apply the same safe-deletion principle.
+- Do not silently destroy employee relationships or historical records.
+
+Important environment state
+
+At the time of the previous investigation:
+
+- PostgreSQL was reachable.
+- The development snapshot had not yet created the application tables/data.
+- Therefore there were no live employee records to reconcile or automatically renumber in that snapshot.
+
+Do NOT assume that this is still true. Inspect the current database state before performing any destructive operation.
+
+Still remaining to implement
+
+The previous agent had not yet completed:
+
+1. Simple sequential Employee Numbers:
+   1
+   2
+   3
+   4
+   ...
+
+2. Remove the old EMP-0001 / large/random employee-number generation.
+
+3. Preserve existing employee numbers if they already exist.
+
+4. Manual employee-number editing.
+
+Example:
+1 → 11
+
+The employee must then appear numerically between:
+10
+11
+12
+
+5. Numeric sorting everywhere.
+
+6. Prevent duplicate employee numbers within the same company using backend validation AND database uniqueness protection.
+
+7. Implement the missing Employee Delete backend route.
+
+8. Implement the missing Branch Delete backend route.
+
+9. Complete the management UI controls:
+   
+   - Employee edit
+   - Employee number change
+   - Employee activate/deactivate
+   - Employee safe delete
+   - Department activate/deactivate/delete
+   - Branch activate/deactivate/delete
+
+10. Complete authorization and dependency checks.
+
+11. Complete localization for Arabic, English, French, and German.
+
+12. Run the full verification suite.
+
+Do NOT restart the investigation from zero.
+
+Do NOT change the Add Employee form.
+
+Do NOT create a parallel assignment/authentication system.
+
+Continue from this exact state and finish the feature.
