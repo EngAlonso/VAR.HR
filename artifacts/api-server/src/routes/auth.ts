@@ -1132,7 +1132,8 @@ router.post(
       (context.role === "company_owner" &&
         account.companyId === context.companyId &&
         (account.accountType === "staff" || account.accountType === "employee")) ||
-      (hasCapability(context, "employees.credentials") &&
+      (context.role !== "platform_owner" &&
+        hasCapability(context, "employees.credentials") &&
         account.companyId === context.companyId &&
         account.accountType === "employee");
     if (!canReset) {

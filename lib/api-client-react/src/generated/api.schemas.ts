@@ -522,7 +522,7 @@ export interface EmployeeInput {
   lastName: string;
   /** Optional internal email; generated when omitted. */
   email?: string;
-  phone?: string;
+  phone: string;
   /** @minLength 1 */
   nationalId?: string;
   /** @minLength 1 */

@@ -183,6 +183,7 @@ import {
   getGetAttendanceRulesQueryKey,
   getGetAttendanceReportQueryKey,
   getListPayrollPeriodsQueryKey,
+  getGetMyPayrollQueryKey,
   getGetPayrollCalculationQueryKey,
   getListPayrollAdjustmentsQueryKey,
   getListDevicesQueryKey,
@@ -7978,6 +7979,8 @@ function EmployeeProfilePage() {
   const workspaceQuery = useGetWorkspace();
   const canManageEmployees =
     workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const canManageCredentials =
+    workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const employee = useGetEmployee(employeeId, {
     query: {
@@ -11710,13 +11713,20 @@ function Payroll() {
   const auth = useAuth();
   const isEmployee = auth.account.accountType === "employee";
   const qc = useQueryClient();
-  const q = useListPayrollPeriods({ query: { enabled: !isEmployee } });
+  const q = useListPayrollPeriods({
+    query: { queryKey: getListPayrollPeriodsQueryKey(), enabled: !isEmployee },
+  });
   const myPayroll = useGetMyPayroll(undefined, {
-    query: { enabled: isEmployee },
+    query: { queryKey: getGetMyPayrollQueryKey(), enabled: isEmployee },
   });
   const employees = useListEmployees(
     { status: "active" },
-    { query: { enabled: !isEmployee } },
+    {
+      query: {
+        queryKey: getListEmployeesQueryKey({ status: "active" }),
+        enabled: !isEmployee,
+      },
+    },
   );
   const createPeriod = useCreatePayrollPeriod();
   const calc = useCalculatePayroll();

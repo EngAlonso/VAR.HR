@@ -803,7 +803,7 @@ export const CreateEmployeeBody = zod.object({
   "firstName": zod.string().min(1),
   "lastName": zod.string().min(1),
   "email": zod.email().optional().describe('Optional internal email; generated when omitted.'),
-  "phone": zod.string().optional(),
+  "phone": zod.string(),
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
   "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).optional(),

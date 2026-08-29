@@ -1,0 +1,58 @@
+Continue from the exact current state. Do NOT restart the implementation.
+
+The previous Agent already implemented most of the Employee Account / Employee Self-Service work and stopped during verification because of the quota limit.
+
+Last known state:
+
+- Employee account is automatically created.
+- Username is the employee phone number.
+- Generated password support exists.
+- Server-side sessions and scrypt password hashing are already in place.
+- Employee-scoped authorization already exists.
+- Payroll/Leave/Attendance employee-scoped APIs already exist.
+- Credential management, employee password change, generatedPassword response, and Employee Self-Service wiring were already being implemented.
+- API contracts were already updated.
+
+The last verification found only two TypeScript issues:
+
+1. The new employee password-audit call uses the wrong context type.
+2. The employee input schema marks phone as optional although the employee creation route validates it as required.
+
+Fix only these issues, then continue verification.
+
+Do NOT:
+
+- Restart the feature.
+- Change the existing Add Employee form.
+- Change its 10 fields.
+- Add Email.
+- Add a password field to Add Employee.
+- Bring back the Add Employee modal.
+- Create another authentication/account system.
+- Store plaintext passwords.
+- Use WhatsApp API.
+
+After fixing the two TypeScript issues, run the complete verification:
+
+1. Create a real test employee.
+2. Confirm the account is automatically created.
+3. Confirm username = phone number.
+4. Confirm generated password works.
+5. Log in as the employee.
+6. Confirm Employee Self-Service opens.
+7. Confirm the employee can only access their own data.
+8. Change the employee password.
+9. Confirm old password no longer works.
+10. Confirm new password works.
+11. As Owner/Admin, regenerate the employee password.
+12. Confirm the old password is invalidated.
+13. Confirm the newly generated password can be copied/shared.
+14. Test the WhatsApp button.
+15. Confirm WhatsApp opens with the employee's actual phone number and a pre-filled message.
+16. Confirm NO WhatsApp API is used.
+17. Verify attendance, salary/payroll, leave, permission requests, profile, Department, Branch, and Shift use the existing data sources.
+18. Verify Arabic, English, French, and German.
+19. Run typecheck, build, API tests, and relevant security tests.
+20. Report exactly what passed and anything that remains.
+
+Do not make unrelated changes.
