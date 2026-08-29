@@ -5242,6 +5242,9 @@ function employeeAccountCopy(locale: Locale) {
       credentialsTitle: "Employee login credentials",
       credentialsDetail:
         "Save or share these credentials now. This newly generated password will not be shown again.",
+      varHrCredentials: "VAR HR login credentials",
+      companyName: "Company",
+      employeeName: "Employee",
       loginUsername: "Phone / login username",
       generatedPassword: "Generated password",
       newlyGeneratedPassword: "Newly generated password",
@@ -5284,6 +5287,9 @@ function employeeAccountCopy(locale: Locale) {
       credentialsTitle: "بيانات دخول الموظف",
       credentialsDetail:
         "احفظ أو شارك البيانات الآن. لن تظهر كلمة المرور الجديدة المولدة مرة أخرى.",
+      varHrCredentials: "بيانات تسجيل الدخول إلى VAR HR",
+      companyName: "الشركة",
+      employeeName: "الموظف",
       loginUsername: "الهاتف / اسم تسجيل الدخول",
       generatedPassword: "كلمة المرور المولدة",
       newlyGeneratedPassword: "كلمة المرور الجديدة المولدة",
@@ -5326,6 +5332,9 @@ function employeeAccountCopy(locale: Locale) {
       credentialsTitle: "Identifiants de connexion de l’employé",
       credentialsDetail:
         "Enregistrez ou partagez ces identifiants maintenant. Ce nouveau mot de passe généré ne sera plus affiché.",
+      varHrCredentials: "Identifiants de connexion VAR HR",
+      companyName: "Entreprise",
+      employeeName: "Employé",
       loginUsername: "Téléphone / identifiant",
       generatedPassword: "Mot de passe généré",
       newlyGeneratedPassword: "Nouveau mot de passe généré",
@@ -5368,6 +5377,9 @@ function employeeAccountCopy(locale: Locale) {
       credentialsTitle: "Anmeldedaten des Mitarbeitenden",
       credentialsDetail:
         "Speichern oder teilen Sie diese Daten jetzt. Das neu generierte Passwort wird nicht erneut angezeigt.",
+      varHrCredentials: "VAR HR-Anmeldedaten",
+      companyName: "Unternehmen",
+      employeeName: "Mitarbeitende",
       loginUsername: "Telefon / Login-Benutzername",
       generatedPassword: "Generiertes Passwort",
       newlyGeneratedPassword: "Neu generiertes Passwort",
@@ -5435,11 +5447,15 @@ function normalizeEgyptianWhatsAppPhone(phone?: string | null): string | null {
 function CredentialReveal({
   credential,
   phone,
+  companyName,
+  employeeName,
   locale,
   onClose,
 }: {
   credential: EmployeeCredential;
   phone?: string | null;
+  companyName: string;
+  employeeName: string;
   locale: Locale;
   onClose: () => void;
 }) {
@@ -5447,7 +5463,13 @@ function CredentialReveal({
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [copiedCredentials, setCopiedCredentials] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
-  const text = `${c.credentialsTitle}\n${c.loginUsername}: ${credential.username}\n${c.newlyGeneratedPassword}: ${credential.generatedPassword}`;
+  const text = [
+    c.varHrCredentials,
+    `${c.companyName}: ${companyName}`,
+    `${c.employeeName}: ${employeeName}`,
+    `${c.loginUsername}: ${credential.username}`,
+    `${c.newlyGeneratedPassword}: ${credential.generatedPassword}`,
+  ].join("\n");
   const whatsappPhone = normalizeEgyptianWhatsAppPhone(phone);
   const copyCredentials = async () => {
     await navigator.clipboard.writeText(text);
@@ -5591,10 +5613,14 @@ function EmployeePasswordChange() {
 function EmployeeCredentialManager({
   employeeId,
   phone,
+  companyName,
+  employeeName,
   canManage,
 }: {
   employeeId: string;
   phone?: string | null;
+  companyName: string;
+  employeeName: string;
   canManage: boolean;
 }) {
   const { locale } = useI18n();
@@ -5659,6 +5685,8 @@ function EmployeeCredentialManager({
         <CredentialReveal
           credential={credentials}
           phone={phone}
+          companyName={companyName}
+          employeeName={employeeName}
           locale={locale}
           onClose={() => setCredentials(null)}
         />
@@ -7729,7 +7757,11 @@ function AddEmployeePage() {
   const schedules = useListWorkSchedules();
   const create = useCreateEmployee();
   const [credentials, setCredentials] = useState<
-    (EmployeeCredential & { phone: string }) | null
+    (EmployeeCredential & {
+      phone: string;
+      companyName: string;
+      employeeName: string;
+    }) | null
   >(null);
   const canCreateEmployees =
     workspaceQuery.data?.capabilities?.includes("employees.create") ?? false;
@@ -7805,6 +7837,8 @@ function AddEmployeePage() {
               username,
               generatedPassword: generated,
               phone: form.phone.trim(),
+              companyName: workspaceQuery.data?.company?.name ?? "",
+              employeeName: `${firstName} ${lastName}`,
             });
           } else {
             setLocation("/employees");
@@ -8095,6 +8129,8 @@ function AddEmployeePage() {
         <CredentialReveal
           credential={credentials}
           phone={credentials.phone}
+          companyName={credentials.companyName}
+          employeeName={credentials.employeeName}
           locale={locale}
           onClose={() => {
             setCredentials(null);
@@ -8584,6 +8620,8 @@ function EmployeeProfilePage() {
           <EmployeeCredentialManager
             employeeId={employee.data.id}
             phone={employee.data.phone}
+            companyName={workspaceQuery.data?.company?.name ?? ""}
+            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
             canManage={canManageCredentials}
           />
 
