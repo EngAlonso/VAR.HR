@@ -3426,7 +3426,14 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     ...(parsed.data.employeeNumber !== undefined
       ? { employeeNumber: parsed.data.employeeNumber.trim() }
       : {}),
+    ...(parsed.data.phone !== undefined
+      ? { phone: parsed.data.phone.trim() }
+      : {}),
   };
+  if (updateData.phone !== undefined && !updateData.phone) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   if (
     (updateData.employeeNumber !== undefined &&
       !/^[1-9][0-9]*$/.test(updateData.employeeNumber)) ||
@@ -3462,18 +3469,94 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   }
   let employee: typeof employeesTable.$inferSelect | undefined;
   try {
-    [employee] = await db
-      .update(employeesTable)
-      .set({ ...updateData, updatedAt: new Date() })
-      .where(
-        and(
-          eq(employeesTable.id, params.data.employeeId),
-          eq(employeesTable.companyId, context.companyId),
-        ),
-      )
-      .returning();
+    employee = await db.transaction(async (tx) => {
+      let linkedEmployeeAccountId: string | undefined;
+      const phoneChanged =
+        updateData.phone !== undefined && updateData.phone !== before.phone;
+      if (phoneChanged && updateData.phone) {
+        const [linkedAccount] = await tx
+          .select({ id: userAccountsTable.id })
+          .from(userAccountsTable)
+          .where(
+            and(
+              eq(userAccountsTable.employeeId, before.id),
+              eq(userAccountsTable.companyId, context.companyId),
+              eq(userAccountsTable.accountType, "employee"),
+            ),
+          )
+          .limit(1);
+        if (linkedAccount) {
+          const [usernameConflict] = await tx
+            .select({ id: userAccountsTable.id })
+            .from(userAccountsTable)
+            .where(
+              and(
+                eq(userAccountsTable.username, updateData.phone),
+                sql`${userAccountsTable.id} <> ${linkedAccount.id}`,
+              ),
+            )
+            .limit(1);
+          if (usernameConflict) {
+            throw new Error("EMPLOYEE_PHONE_USERNAME_DUPLICATE");
+          }
+          linkedEmployeeAccountId = linkedAccount.id;
+        }
+      }
+
+      const [updatedEmployee] = await tx
+        .update(employeesTable)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(
+          and(
+            eq(employeesTable.id, params.data.employeeId),
+            eq(employeesTable.companyId, context.companyId),
+          ),
+        )
+        .returning();
+
+      if (updatedEmployee && linkedEmployeeAccountId && updateData.phone) {
+        await tx
+          .update(userAccountsTable)
+          .set({
+            username: updateData.phone,
+            primaryPhone: updateData.phone,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(userAccountsTable.id, linkedEmployeeAccountId),
+              eq(userAccountsTable.employeeId, before.id),
+              eq(userAccountsTable.companyId, context.companyId),
+              eq(userAccountsTable.accountType, "employee"),
+            ),
+          );
+      }
+
+      return updatedEmployee;
+    });
   } catch (error) {
-    if (postgresUniqueConstraint(error) === employeeNumberUniqueConstraint) {
+    if (
+      error instanceof Error &&
+      error.message === "EMPLOYEE_PHONE_USERNAME_DUPLICATE"
+    ) {
+      res.status(409).json({
+        error: message(req, "employeePhoneDuplicate"),
+        code: "EMPLOYEE_PHONE_DUPLICATE",
+      });
+      return;
+    }
+    const constraint = postgresUniqueConstraint(error);
+    if (
+      constraint === employeePhoneUniqueConstraint ||
+      constraint?.includes("user_accounts_username")
+    ) {
+      res.status(409).json({
+        error: message(req, "employeePhoneDuplicate"),
+        code: "EMPLOYEE_PHONE_DUPLICATE",
+      });
+      return;
+    }
+    if (constraint === employeeNumberUniqueConstraint) {
       res.status(409).json({
         error: message(req, "employeeNumberDuplicate"),
         code: "EMPLOYEE_NUMBER_DUPLICATE",
