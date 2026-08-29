@@ -4,11 +4,13 @@ import {
   date,
   numeric,
   pgTable,
+  check,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { z } from "zod/v4";
 
 export const companiesTable = pgTable("var_hr_companies", {
@@ -84,6 +86,10 @@ export const employeesTable = pgTable(
     companyPhoneUnique: uniqueIndex(
       "var_hr_employees_company_phone_uidx",
     ).on(table.companyId, table.phone),
+    employeeNumberFormat: check(
+      "var_hr_employees_employee_number_format_chk",
+      sql`${table.employeeNumber} ~ '^[1-9][0-9]*$' OR ${table.employeeNumber} ~ '^EMP-[0-9]+$'`,
+    ),
   }),
 );
 

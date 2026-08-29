@@ -512,6 +512,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Branch"
+    delete:
+      operationId: deleteBranch
+      tags: [organization]
+      summary: Delete an unused company branch
+      responses:
+        "204":
+          description: Branch deleted
+        "409":
+          description: Branch still has employees or devices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /employees:
     get:
       operationId: listEmployees
@@ -588,6 +601,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Employee"
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: Delete an employee without historical or operational records
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "204":
+          description: Employee deleted
+        "409":
+          description: Employee has historical or operational records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /attendance/today:
     get:
       operationId: getAttendanceToday
@@ -2410,6 +2438,9 @@ components:
     EmployeeUpdate:
       type: object
       properties:
+        employeeNumber:
+          type: string
+          pattern: "^[1-9][0-9]*$"
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
         phone: { type: string }

@@ -734,6 +734,16 @@ export const UpdateBranchResponse = zod.object({
 
 
 /**
+ * @summary Delete an unused company branch
+ */
+export const DeleteBranchParams = zod.object({
+  "branchId": zod.coerce.string()
+})
+
+export const DeleteBranchResponse = zod.void()
+
+
+/**
  * @summary List employees in the active tenant
  */
 export const ListEmployeesQueryParams = zod.object({
@@ -913,6 +923,7 @@ export const UpdateEmployeeParams = zod.object({
   "employeeId": zod.coerce.string()
 })
 
+export const updateEmployeeBodyEmployeeNumberRegExp = new RegExp('^[1-9][0-9]*$');
 
 
 
@@ -925,6 +936,7 @@ export const updateEmployeeBodySalaryMin = 0;
 
 
 export const UpdateEmployeeBody = zod.object({
+  "employeeNumber": zod.string().regex(updateEmployeeBodyEmployeeNumberRegExp).optional(),
   "firstName": zod.string().min(1).optional(),
   "lastName": zod.string().min(1).optional(),
   "phone": zod.string().optional(),
@@ -978,6 +990,16 @@ export const UpdateEmployeeResponse = zod.object({
   "salary": zod.number(),
   "avatarInitials": zod.string().optional()
 })
+
+
+/**
+ * @summary Delete an employee without historical or operational records
+ */
+export const DeleteEmployeeParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const DeleteEmployeeResponse = zod.void()
 
 
 /**

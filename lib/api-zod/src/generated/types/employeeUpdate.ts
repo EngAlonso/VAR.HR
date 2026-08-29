@@ -9,6 +9,8 @@ import type { EmployeeUpdateAutomaticOvertime } from './employeeUpdateAutomaticO
 import type { EmployeeUpdateStatus } from './employeeUpdateStatus';
 
 export interface EmployeeUpdate {
+  /** @pattern ^[1-9][0-9]*$ */
+  employeeNumber?: string;
   /** @minLength 1 */
   firstName?: string;
   /** @minLength 1 */

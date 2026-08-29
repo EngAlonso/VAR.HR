@@ -560,6 +560,8 @@ export const EmployeeUpdateAutomaticOvertime = {
 } as const;
 
 export interface EmployeeUpdate {
+  /** @pattern ^[1-9][0-9]*$ */
+  employeeNumber?: string;
   /** @minLength 1 */
   firstName?: string;
   /** @minLength 1 */

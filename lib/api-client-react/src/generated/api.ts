@@ -2494,6 +2494,77 @@ export const useUpdateBranch = <TError = ErrorType<unknown>,
       return useMutation(getUpdateBranchMutationOptions(options));
     }
 
+export const getDeleteBranchUrl = (branchId: string,) => {
+
+
+
+
+  return `/api/branches/${branchId}`
+}
+
+/**
+ * @summary Delete an unused company branch
+ */
+export const deleteBranch = async (branchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteBranchUrl(branchId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteBranchMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,{branchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,{branchId: string}, TContext> => {
+
+const mutationKey = ['deleteBranch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBranch>>, {branchId: string}> = (props) => {
+          const {branchId} = props ?? {};
+
+          return  deleteBranch(branchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBranchMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBranch>>>
+
+    export type DeleteBranchMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete an unused company branch
+ */
+export const useDeleteBranch = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,{branchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBranch>>,
+        TError,
+        {branchId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteBranchMutationOptions(options));
+    }
+
 export const getListEmployeesUrl = (params?: ListEmployeesParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2796,6 +2867,77 @@ export const useUpdateEmployee = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateEmployeeMutationOptions(options));
+    }
+
+export const getDeleteEmployeeUrl = (employeeId: string,) => {
+
+
+
+
+  return `/api/employees/${employeeId}`
+}
+
+/**
+ * @summary Delete an employee without historical or operational records
+ */
+export const deleteEmployee = async (employeeId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteEmployeeUrl(employeeId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteEmployeeMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{employeeId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{employeeId: string}, TContext> => {
+
+const mutationKey = ['deleteEmployee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmployee>>, {employeeId: string}> = (props) => {
+          const {employeeId} = props ?? {};
+
+          return  deleteEmployee(employeeId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmployee>>>
+
+    export type DeleteEmployeeMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete an employee without historical or operational records
+ */
+export const useDeleteEmployee = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{employeeId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEmployee>>,
+        TError,
+        {employeeId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteEmployeeMutationOptions(options));
     }
 
 export const getGetAttendanceTodayUrl = () => {
