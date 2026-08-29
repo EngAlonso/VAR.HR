@@ -2072,6 +2072,7 @@ async function employeeDeleteDependencies(companyId: string, employeeId: string)
     deviceMappings,
     biometricEvents,
     hrRecords,
+    hrManagerRecords,
     identities,
     departmentManager,
   ] = await Promise.all([
@@ -2114,6 +2115,9 @@ async function employeeDeleteDependencies(companyId: string, employeeId: string)
     db.select({ id: employeeHrRecordsTable.id }).from(employeeHrRecordsTable).where(
       and(eq(employeeHrRecordsTable.companyId, companyId), eq(employeeHrRecordsTable.employeeId, employeeId)),
     ).limit(1),
+    db.select({ id: employeeHrRecordsTable.id }).from(employeeHrRecordsTable).where(
+      and(eq(employeeHrRecordsTable.companyId, companyId), eq(employeeHrRecordsTable.managerId, employeeId)),
+    ).limit(1),
     db.select({ id: employeeIdentitiesTable.id }).from(employeeIdentitiesTable).where(
       and(eq(employeeIdentitiesTable.companyId, companyId), eq(employeeIdentitiesTable.employeeId, employeeId)),
     ).limit(1),
@@ -2135,6 +2139,7 @@ async function employeeDeleteDependencies(companyId: string, employeeId: string)
     ["deviceMappings", deviceMappings],
     ["biometricEvents", biometricEvents],
     ["hrRecords", hrRecords],
+    ["hrManagerRecords", hrManagerRecords],
     ["biometricIdentity", identities],
     ["departmentManager", departmentManager],
   ].filter(([, rows]) => rows.length > 0).map(([name]) => name);
@@ -3396,6 +3401,26 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
   }
+  const employeeScope = employeeScopeCondition(context);
+  if (
+    employeeScope &&
+    !(await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(and(eq(employeesTable.id, before.id), employeeScope))
+      .limit(1)).length
+  ) {
+    res.status(403).json({ error: message(req, "workspaceAccessDenied") });
+    return;
+  }
+  if (
+    context.role === "manager" &&
+    parsed.data.departmentId !== undefined &&
+    parsed.data.departmentId !== context.departmentId
+  ) {
+    res.status(403).json({ error: message(req, "workspaceAccessDenied") });
+    return;
+  }
   const updateData = {
     ...parsed.data,
     ...(parsed.data.employeeNumber !== undefined
@@ -3520,6 +3545,18 @@ router.delete("/employees/:employeeId", async (req, res): Promise<void> => {
     .limit(1);
   if (!employee) {
     res.status(404).json({ error: message(req, "employeeNotFound") });
+    return;
+  }
+  const employeeScope = employeeScopeCondition(context);
+  if (
+    employeeScope &&
+    !(await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(and(eq(employeesTable.id, employee.id), employeeScope))
+      .limit(1)).length
+  ) {
+    res.status(403).json({ error: message(req, "workspaceAccessDenied") });
     return;
   }
   const dependencies = await employeeDeleteDependencies(

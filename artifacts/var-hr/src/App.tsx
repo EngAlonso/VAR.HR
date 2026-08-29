@@ -387,7 +387,7 @@ const nav: NavItem[] = [
     href: "/branches",
     key: "branches",
     icon: Network,
-    roles: ["company_owner"],
+    roles: ["company_owner", "manager"],
     capability: "branches.view",
   },
   {
@@ -7157,8 +7157,7 @@ function Branches() {
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage =
-    workspace.data?.role === "company_owner" &&
-    (workspace.data?.capabilities?.includes("branches.manage") ?? false);
+    workspace.data?.capabilities?.includes("branches.manage") ?? false;
   const branches = useListBranches();
   const create = useCreateBranch();
   const update = useUpdateBranch();
@@ -7334,7 +7333,8 @@ function Departments() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
-  const canManage = workspace.data?.capabilities?.includes("organization.manage") ?? false;
+  const canManage =
+    workspace.data?.capabilities?.includes("departments.manage") ?? false;
   const departments = useListDepartments();
   const create = useCreateDepartment();
   const update = useUpdateDepartment();
@@ -7657,8 +7657,8 @@ function AddEmployeePage() {
   const [credentials, setCredentials] = useState<
     (EmployeeCredential & { phone: string }) | null
   >(null);
-  const canManageEmployees =
-    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const canCreateEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.create") ?? false;
   const canManageCredentials =
     workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const [form, setForm] = useState({
@@ -7675,10 +7675,10 @@ function AddEmployeePage() {
   });
 
   useEffect(() => {
-    if (workspaceQuery.data && !canManageEmployees) {
+    if (workspaceQuery.data && !canCreateEmployees) {
       setLocation("/employees");
     }
-  }, [canManageEmployees, setLocation, workspaceQuery.data]);
+  }, [canCreateEmployees, setLocation, workspaceQuery.data]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -7742,7 +7742,7 @@ function AddEmployeePage() {
     );
   }
 
-  if (workspaceQuery.data && !canManageEmployees) return null;
+  if (workspaceQuery.data && !canCreateEmployees) return null;
 
   return (
     <div className="animate-in w-full">
@@ -8038,7 +8038,9 @@ function EmployeeProfilePage() {
   const [, setLocation] = useLocation();
   const { employeeId = "" } = useParams<{ employeeId: string }>();
   const workspaceQuery = useGetWorkspace();
-  const canManageEmployees =
+  const canEditEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.edit") ?? false;
+  const canDeleteEmployees =
     workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
   const canManageCredentials =
     workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
@@ -8237,18 +8239,22 @@ function EmployeeProfilePage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
                 <Status value={employee.data.status} />
-                {canManageEmployees && (
+                {(canEditEmployees || canDeleteEmployees) && (
                   <>
-                    <Button variant="outline" onClick={openEdit}>
-                      {t("edit")}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={deleteEmployee}
-                      disabled={remove.isPending}
-                    >
-                      {t("remove")}
-                    </Button>
+                    {canEditEmployees && (
+                      <Button variant="outline" onClick={openEdit}>
+                        {t("edit")}
+                      </Button>
+                    )}
+                    {canDeleteEmployees && (
+                      <Button
+                        variant="danger"
+                        onClick={deleteEmployee}
+                        disabled={remove.isPending}
+                      >
+                        {t("remove")}
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -8415,7 +8421,7 @@ function EmployeeProfilePage() {
                   value={employee.data.biometricCode || t("notAvailable")}
                   testId={`text-profile-biometric-code-${employee.data.id}`}
                 />
-                {canManageEmployees ? (
+                {canEditEmployees ? (
                   <label className="rounded-lg bg-muted/60 p-3 text-sm font-semibold">
                     <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       {t("automaticOvertime")}
@@ -8497,7 +8503,7 @@ function EmployeeProfilePage() {
           <div className="border-t border-border pt-1">
             <EmployeeHrPanel
               employeeId={employee.data.id}
-              canEdit={canManageEmployees}
+              canEdit={canEditEmployees}
             />
           </div>
 
@@ -8507,7 +8513,7 @@ function EmployeeProfilePage() {
             canManage={canManageCredentials}
           />
 
-          {canManageEmployees && (
+          {canEditEmployees && (
             <div className="flex justify-end border-t border-border pt-4">
               <Button
                 variant="outline"
@@ -8674,8 +8680,8 @@ function Employees() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const workspaceQuery = useGetWorkspace();
-  const canManageEmployees =
-    workspaceQuery.data?.capabilities?.includes("employees.manage") ?? false;
+  const canCreateEmployees =
+    workspaceQuery.data?.capabilities?.includes("employees.create") ?? false;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const currency = workspaceQuery.data?.company?.currency ?? "EGP";
@@ -8765,7 +8771,7 @@ function Employees() {
         title={t("employeesTitle")}
         detail={t("employeesDetail")}
         action={
-          canManageEmployees ? (
+          canCreateEmployees ? (
             <Button
               onClick={() => setLocation("/employees/new")}
               data-testid="button-create-employee"
@@ -8979,7 +8985,7 @@ function Employees() {
             title={t("noEmployeesMatch")}
             detail={t("adjustEmployeeSearch")}
             action={
-              canManageEmployees ? (
+              canCreateEmployees ? (
                 <Button
                   onClick={() => setLocation("/employees/new")}
                   data-testid="button-empty-create-employee"

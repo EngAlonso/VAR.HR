@@ -1,0 +1,320 @@
+Continue from the completed READ-ONLY audit.
+
+The audit is complete. Do NOT restart or redesign the Employee / Department / Branch Management feature.
+
+Fix ONLY the 3 confirmed remaining gaps below.
+
+IMPORTANT:
+Do not change anything else in VAR HR.
+Do not change the Add Employee form.
+Do not change its existing 10 fields.
+Do not add an employee-number field.
+Do not change Employee Accounts / Self-Service.
+Do not change authentication, attendance, payroll, leave, devices, reports, or unrelated HR modules.
+Do not create a parallel permission or management system.
+Preserve all existing functionality that already passed the audit.
+
+==================================================
+
+1. FIX GRANULAR MANAGER PERMISSIONS
+   ==================================================
+
+Align the management UI with the existing backend granular capabilities.
+
+Do NOT invent new permissions.
+
+Use the existing permission system and existing capability names.
+
+Employee management UI must respect the appropriate existing capabilities, including:
+
+- employees.create
+- employees.edit
+- employees.manage
+
+Use the correct capability for each action instead of using employees.manage as a blanket gate.
+
+Examples:
+
+- Employee edit controls → employees.edit
+- Employee activate/deactivate → the existing appropriate management capability
+- Employee number change → employees.edit or the existing appropriate capability
+- Employee deletion → employees.manage
+- Employee creation → employees.create
+
+Department UI must respect:
+
+- departments.manage
+
+Do not require organization.manage when departments.manage is already the intended permission.
+
+Branch UI must respect:
+
+- branches.manage
+
+Do not keep Branch management Owner-only if the existing permission system explicitly grants branches.manage to Managers.
+
+A Manager who has the correct granular permission must be able to see and use the corresponding management UI.
+
+A Manager without that permission must NOT see or use the control.
+
+Do not weaken server-side authorization.
+The UI is only being aligned with the existing backend permissions.
+
+==================================================
+2. FIX MANAGER DEPARTMENT SCOPE
+
+This is a SECURITY REQUIREMENT.
+
+A Manager must NOT be able to modify or delete employees outside the department(s) they are authorized to manage.
+
+The backend must enforce this.
+
+Do NOT rely on UI visibility.
+
+Inspect the existing Manager department-scope model and use it as the source of truth.
+
+For employee UPDATE operations:
+
+- Verify the target employee belongs to a department within the Manager's authorized scope.
+- If not, reject the request server-side with the existing appropriate authorization response.
+- Do not modify the employee.
+
+For employee DELETE operations:
+
+- Verify the target employee belongs to a department within the Manager's authorized scope.
+- If not, reject the request server-side.
+- Do not delete anything.
+
+For employee status changes and employee-number changes:
+
+- Apply the same Manager scope enforcement where appropriate.
+
+Company Owners / authorized higher-level roles must retain their existing ability to manage employees across the company according to the current permission model.
+
+Platform Owners must retain their existing platform behavior.
+
+Do not create a new scope system.
+Use the existing authorization/context/manager-scope infrastructure already present in the project.
+
+==================================================
+3. FIX EMPLOYEE DELETION DEPENDENCY CHECK
+
+Before deleting an employee, add the missing dependency check for:
+
+employeeHrRecords.managerId
+
+If another employee's HR record references the employee being deleted as its manager:
+
+- Block the deletion.
+- Return the existing controlled employee-delete conflict response.
+- Do NOT allow PostgreSQL to throw a raw foreign-key error.
+- Do NOT cascade-delete the dependent HR record.
+- Do NOT modify the other employee.
+
+Use the existing deletion dependency/error architecture.
+
+The response should remain consistent with the existing:
+
+EMPLOYEE_DELETE_BLOCKED
+
+behavior and localization system.
+
+If the project already has a dependency list/error structure, extend that structure rather than creating a parallel error format.
+
+==================================================
+IMPORTANT DATA-SAFETY RULES
+
+Do not delete existing employees.
+Do not delete departments.
+Do not delete branches.
+Do not modify production/business data.
+
+Do not change existing employee numbers.
+
+Do not change the existing employee numbering algorithm.
+
+Do not change existing department/branch relationships.
+
+Do not change the Add Employee form.
+
+Do not change the employee account system.
+
+Do not change unrelated modules.
+
+==================================================
+TESTING REQUIREMENTS
+
+After implementation, run strong regression tests.
+
+A. Employee permission tests
+
+Verify:
+
+1. Manager with employees.edit can edit an employee within scope.
+2. Manager without employees.edit cannot edit.
+3. Manager with the appropriate status-management capability can activate/deactivate within scope.
+4. Manager without that capability cannot activate/deactivate.
+5. Manager with employees.manage can delete when deletion is safe.
+6. Manager without employees.manage cannot delete.
+7. Company Owner retains existing management access.
+
+B. Department permission tests
+
+Verify:
+
+1. Manager with departments.manage can access department management UI/API.
+2. Manager without departments.manage cannot.
+3. Existing Owner access still works.
+
+C. Branch permission tests
+
+Verify:
+
+1. Manager with branches.manage can access branch management UI/API.
+2. Manager without branches.manage cannot.
+3. Existing Owner access still works.
+
+D. Manager department-scope security tests
+
+Create/use test data for at least two departments.
+
+Verify:
+
+1. Manager can modify an employee inside their authorized department.
+2. Manager cannot modify an employee outside their authorized department.
+3. Manager cannot delete an employee outside their authorized department.
+4. Manager cannot change the employee number of an employee outside their scope.
+5. Manager cannot activate/deactivate an employee outside their scope.
+6. Company Owner is not incorrectly restricted by Manager department scope.
+
+All unauthorized cross-department mutations must be rejected server-side.
+
+E. Employee deletion dependency tests
+
+Verify:
+
+1. Employee with no dependencies → deletion succeeds if authorized.
+2. Employee referenced by attendance → deletion blocked.
+3. Employee referenced by leave → deletion blocked.
+4. Employee referenced by payroll → deletion blocked.
+5. Employee referenced by schedule → deletion blocked.
+6. Employee referenced by device/biometric mapping → deletion blocked.
+7. Employee referenced by HR record → deletion blocked.
+8. Employee referenced as manager through employeeHrRecords.managerId → deletion blocked with controlled EMPLOYEE_DELETE_BLOCKED response.
+9. No dependent record is deleted when the employee deletion is blocked.
+10. No raw PostgreSQL foreign-key error is exposed to the client.
+
+F. Tenant isolation tests
+
+Verify:
+
+1. Manager cannot access another company's employee.
+2. Manager cannot modify another company's employee.
+3. Manager cannot delete another company's employee.
+4. Employee numbers remain company-scoped.
+5. Existing cross-company behavior remains unchanged.
+
+G. Regression tests
+
+Run:
+
+- Full workspace typecheck
+- Existing API tests
+- Employee management tests
+- Department management tests
+- Branch management tests
+- Authorization tests
+- Manager scope tests
+- Employee deletion dependency tests
+- Frontend production build
+- API production build
+- git diff --check
+
+If the project has an existing security/SAST test, run it as well.
+
+==================================================
+UI VERIFICATION
+
+Verify that the UI now reflects granular permissions correctly.
+
+Employee:
+
+- Edit
+- Employee number change
+- Activate/deactivate
+- Delete
+
+Department:
+
+- Management controls
+
+Branch:
+
+- Management controls
+
+A Manager with the appropriate permission should see the correct control.
+
+A Manager without the permission should not see it.
+
+Do not change the visual design unnecessarily.
+
+==================================================
+FINAL SCOPE CHECK
+
+Before finishing, verify that ONLY the following areas were changed:
+
+1. Management UI permission gates
+2. Existing backend authorization/scope checks
+3. Employee deletion dependency checking
+4. Tests required for these changes
+5. Generated API/client files ONLY if genuinely required
+
+No unrelated source files should be changed.
+
+==================================================
+FINAL REPORT
+
+At the end, report:
+
+1. Granular Manager Permissions
+
+What was fixed.
+
+2. Manager Department Scope
+
+What was fixed and how server-side enforcement works.
+
+3. Employee Deletion Dependency
+
+What dependency was added and what response is returned.
+
+4. Tests
+
+Give exact results, for example:
+
+- Typecheck: PASS/FAIL
+- API tests: X/X
+- Permission tests: X/X
+- Manager scope tests: X/X
+- Deletion dependency tests: X/X
+- Tenant isolation tests: X/X
+- Frontend build: PASS/FAIL
+- API build: PASS/FAIL
+- SAST/security scan: PASS/FAIL
+- git diff --check: PASS/FAIL
+
+5. Files Changed
+
+List every changed file and briefly explain why it changed.
+
+6. Confirmation
+
+Explicitly confirm:
+
+- Add Employee remains exactly 10 fields.
+- No employee-number field was added to Add Employee.
+- Existing employee numbers were not changed.
+- No unrelated VAR HR business logic was changed.
+- No existing employee/department/branch data was deleted.
+- No parallel permission system was created.
+- No authentication/account system was changed.
