@@ -254,7 +254,7 @@ import {
 } from "../lib/annual-leave-balance.mjs";
 
 const router: IRouter = Router();
-const TODAY = "2026-08-16";
+const TODAY = localCalendarDate(new Date(), "Africa/Cairo");
 const employeeImportInputSchema = z.object({
   headers: z.array(z.string()).min(1),
   rows: z.array(z.record(z.string(), z.unknown())).min(1),
@@ -4890,7 +4890,7 @@ async function applyApprovedPermissionAnnualLeave(
     );
     const rules = await attendanceRulesFor(context.companyId, request.date);
     if (!rules.absenceDeductsAnnualLeave) return 0;
-    const policy = await annualLeavePolicyFor(context.companyId);
+    const policy = await annualLeavePolicyFor(context.companyId, request.date);
     if (!policy || policy.deductionMode !== "automatic") return 0;
     const [balance] = await tx
       .select()
@@ -6419,189 +6419,6 @@ router.put("/rules", async (req, res): Promise<void> => {
     ),
   );
 });
-
-/*
-
-router.get("/rules/versions", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.rules.view")) {
-    res.status(403).json({ error: message(req, "attendanceRulesAccess") });
-    return;
-  }
-  await ensureInitialRuleVersion(context.companyId);
-  const versions = await db
-    .select()
-    .from(attendanceRuleVersionsTable)
-    .where(eq(attendanceRuleVersionsTable.companyId, context.companyId))
-    .orderBy(desc(attendanceRuleVersionsTable.version));
-  res.json(
-    ListAttendanceRuleVersionsResponse.parse(versions.map(ruleVersionResponse)),
-  );
-});
-
-router.post("/rules/versions", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.rules.manage")) {
-    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
-    return;
-  }
-  const parsed = CreateAttendanceRuleVersionBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  await ensureInitialRuleVersion(context.companyId);
-  const { effectiveFrom, ...configurationInput } = parsed.data;
-  const existing = await db
-    .select()
-    .from(attendanceRuleVersionsTable)
-    .where(
-      and(
-        eq(attendanceRuleVersionsTable.companyId, context.companyId),
-        eq(attendanceRuleVersionsTable.status, "active"),
-      ),
-    );
-  const covering = existing.filter(
-    (row) =>
-      row.effectiveFrom <= effectiveFrom &&
-      (row.effectiveTo === null || row.effectiveTo >= effectiveFrom),
-  );
-  const prior = covering
-    .filter((row) => row.effectiveFrom < effectiveFrom)
-    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
-  const next = existing
-    .filter((row) => row.effectiveFrom > effectiveFrom)
-    .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))[0];
-  if (covering.length > 1) {
-    res.status(409).json({
-      error:
-        "The effective date is covered by multiple attendance rule versions; resolve the existing conflict first.",
-    });
-    return;
-  }
-  const superseded = covering.find(
-    (row) => row.effectiveFrom === effectiveFrom,
-  );
-  const nextVersion = Math.max(0, ...existing.map((row) => row.version)) + 1;
-  const created = await db.transaction(async (tx) => {
-    if (prior) {
-      await tx
-        .update(attendanceRuleVersionsTable)
-        .set({ effectiveTo: dateOffset(effectiveFrom, -1) })
-        .where(eq(attendanceRuleVersionsTable.id, prior.id));
-    }
-    if (superseded) {
-      await tx
-        .update(attendanceRuleVersionsTable)
-        .set({ status: "archived" })
-        .where(eq(attendanceRuleVersionsTable.id, superseded.id));
-    }
-    const [inserted] = await tx
-      .insert(attendanceRuleVersionsTable)
-      .values({
-        companyId: context.companyId,
-        version: nextVersion,
-        effectiveFrom,
-        effectiveTo: next ? dateOffset(next.effectiveFrom, -1) : null,
-        status: "active",
-        createdBy: context.accountId,
-        configuration: {
-          ...configurationInput,
-          version: nextVersion,
-          effectiveFrom,
-        },
-      })
-      .returning();
-    return inserted;
-  });
-  await recordAudit(
-    context.companyId,
-    "created",
-    "attendance_rule_version",
-    created.id,
-    created,
-    superseded
-      ? {
-          action: "retroactive_replacement",
-          replacedVersionId: superseded.id,
-          replacedVersion: superseded.version,
-          effectiveFrom,
-          retroactive: effectiveFrom < TODAY,
-        }
-      : null,
-  );
-  if (superseded) {
-    await recordAudit(
-      context.companyId,
-      "superseded",
-      "attendance_rule_version",
-      superseded.id,
-      {
-        status: "archived",
-        replacedByVersionId: created.id,
-        replacedByVersion: created.version,
-        effectiveFrom,
-        retroactive: effectiveFrom < TODAY,
-      },
-      superseded,
-    );
-  }
-  res
-    .status(201)
-    .json(
-      CreateAttendanceRuleVersionResponse.parse(ruleVersionResponse(created)),
-    );
-});
-
-router.put("/rules", async (req, res): Promise<void> => {
-  const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.rules.manage")) {
-    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
-    return;
-  }
-  const parsed = UpdateAttendanceRulesBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const current = await attendanceRulesFor(context.companyId, TODAY);
-  const [rules] = await db
-    .insert(attendanceRuleVersionsTable)
-    .values({
-      companyId: context.companyId,
-      version: current.version + 1,
-      effectiveFrom: TODAY,
-      status: "active",
-      createdBy: context.accountId,
-      configuration: {
-        ...parsed.data,
-        version: current.version + 1,
-        effectiveFrom: TODAY,
-      },
-    })
-    .returning();
-  if (current.id) {
-    await db
-      .update(attendanceRuleVersionsTable)
-      .set({ effectiveTo: dateOffset(TODAY, -1) })
-      .where(eq(attendanceRuleVersionsTable.id, current.id));
-  }
-  await recordAudit(
-    context.companyId,
-    "created",
-    "attendance_rule_version",
-    rules.id,
-    rules,
-    current,
-  );
-  res.json(
-    UpdateAttendanceRulesResponse.parse(
-      await attendanceRulesFor(context.companyId, TODAY),
-    ),
-  );
-});
-
-*/
 
 router.get("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);

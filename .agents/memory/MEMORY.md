@@ -12,3 +12,5 @@
 - [Database admin SQL identifiers](database-admin-sql-identifiers.md) — raw support queries must quote configured table/column names because entity fields can include reserved words such as from/to.
 - [Tenant-scoped employee uniqueness](tenant-scoped-employee-uniqueness.md) — inspect and reconcile historical duplicates before adding nullable composite identity indexes.
 - [Effective-dated attendance calculations](effective-dated-attendance-calculations.md) — future rule edits must not change historical attendance or payroll outcomes.
+- [Operational attendance rule date](operational-attendance-rule-date.md) — derive automatic rule-month boundaries from the Cairo operational calendar while keeping historical calculations date-scoped.
+- [Settings mutation payloads](settings-mutation-payloads.md) — strip server-owned metadata and coerce generated enum fields at the settings PUT boundary.

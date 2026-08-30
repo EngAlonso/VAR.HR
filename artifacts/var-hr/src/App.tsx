@@ -109,11 +109,11 @@ import {
   useDecideAttendanceTimeAdjustment,
   useReverseAttendanceTimeAdjustment,
   useListLeaveBalances,
-  useListLeavePolicies,
-  useCreateLeavePolicy,
   useListLeaveBalanceTransactions,
   useAdjustLeaveBalance,
   useListLeaveRequests,
+  useListLeavePolicies,
+  useCreateLeavePolicy,
   useCreateLeaveRequest,
   useDecideLeaveRequest,
   useCancelLeaveRequest,
@@ -178,9 +178,9 @@ import {
   getPreviewAttendanceCalculationQueryKey,
   getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
-  getListLeavePoliciesQueryKey,
   getListLeaveBalanceTransactionsQueryKey,
   getListLeaveRequestsQueryKey,
+  getListLeavePoliciesQueryKey,
   getListPermissionRequestsQueryKey,
   getGetAttendanceRulesQueryKey,
   getGetAttendanceReportQueryKey,
@@ -1042,8 +1042,6 @@ const copy = {
     reviewedInOperationsQueue: "Reviewed in operations queue",
     notApprovedAtThisTime: "Not approved at this time",
     workingHours: "Working hours",
-    changesApplyEffectiveDate:
-      "Changes apply from the effective date. No legal or statutory interpretation is implied.",
     workStarts: "Work starts",
     workEnds: "Work ends",
     gracePeriodMinutes: "Grace period (minutes)",
@@ -1754,10 +1752,7 @@ const pageCopy = {
     policyControl: "Policy control",
     attendanceRulesTitle: "Attendance rules",
     attendanceRulesDetail:
-      "Versioned operating policy for time, overtime, and location verification.",
-    version: "Version",
-    rulesEffectiveNote:
-      "Changes apply from the effective date. No legal or statutory interpretation is implied.",
+      "Current company settings for time, overtime, leave balance, and location verification.",
     workStarts: "Work starts",
     workEnds: "Work ends",
     gracePeriod: "Grace period (minutes)",
@@ -1780,16 +1775,23 @@ const pageCopy = {
     attendanceThresholdsTitle: "Attendance and overtime thresholds",
     attendanceThresholdsDetail:
       "Set the policy tolerances before late arrival, early departure, or overtime is recorded.",
-    weeklyHolidayRulesTitle: "Weekly and holiday extra-pay rules",
+    weeklyHolidayRulesTitle: "Specific day multipliers",
     weeklyHolidayRulesDetail:
-      "When rules overlap, only the highest applicable multiplier is applied.",
+      "Configure weekly-day and holiday multipliers. When rules overlap, only the highest applicable multiplier is applied.",
     addWeeklyMultiplier: "Add weekly multiplier",
+    addHolidayMultiplier: "Add holiday multiplier",
+    holidayPeriodName: "Holiday name",
+    holidayPeriodFrom: "Start date",
+    holidayPeriodTo: "End date",
+    holidayPeriodMultiplier: "Extra-pay multiplier",
+    noHolidayMultipliers: "No holiday multipliers configured.",
     attendancePenaltiesTitle: "Attendance penalties & permissions",
     attendancePenaltiesDetail:
       "Set late, early-departure, and absence multipliers, including approved permission coverage.",
-    annualLeaveSettings: "Annual leave settings",
+    annualLeaveSettings: "Annual leave system",
     annualLeaveSettingsDetail:
-      "These values are saved as an annual leave policy version and used by balances, attendance, payroll, and self-service.",
+      "These current settings are used by annual balances, attendance, permissions, payroll, and self-service.",
+    annualLeaveBalances: "Annual leave balances",
     annualEntitlementDays: "Annual entitlement (days)",
     leaveYearStartsIn: "Leave year starts in",
     absenceDeductionWhen: "When should absence deduct leave?",
@@ -1816,23 +1818,6 @@ const pageCopy = {
     policiesBalanceLedger: "Policies & balance ledger",
     policies: "Policies",
     ledger: "Ledger",
-    createPolicyVersion: "Create policy version",
-    leavePolicyVersionCreated: "Leave policy version created",
-    couldNotCreateLeavePolicy: "Could not create leave policy",
-    noLeavePolicies: "No leave policies",
-    createFirstEffectivePolicy: "Create the first effective-dated policy.",
-    leaveYearStartsMonth: "Leave year starts in month",
-    deductionMonths: "Deduction months",
-    monthlyMaximum: "Monthly maximum",
-    balanceLedgerEmpty: "Ledger is empty",
-    balanceLedgerDetail: "Accruals and request transitions will appear here.",
-    adjustLeaveBalance: "Adjust leave balance",
-    adjustmentAmount: "Adjustment amount",
-    negativeAdjustmentHint: "Use a negative number to remove days",
-    reasonRequired: "Reason (required)",
-    applyAdjustment: "Apply adjustment",
-    balanceAdjusted: "Balance adjusted",
-    couldNotAdjustBalance: "Could not adjust balance",
     absenceMultiplier: "Absence multiplier",
     lateArrivalMultiplier: "Late arrival multiplier",
     earlyDepartureMultiplier: "Early departure multiplier",
@@ -1840,15 +1825,6 @@ const pageCopy = {
     fullDayPermission: "Full-day permission",
     permissionCoversLate: "Permission covers late arrival",
     permissionCoversEarly: "Permission covers early departure",
-    currentRuleVersion: "Current version",
-    attendanceRuleHistory: "Attendance rule history",
-    createRuleVersion: "Create new version",
-    historicalRulesNote:
-      "Historical versions are preserved for attendance and payroll history. They cannot be edited or deleted after their period has ended.",
-    retroactiveRulesNote:
-      "This change will replace the attendance rule applicable from the selected date. Existing attendance calculations for the affected period may need to be recalculated. Finalized or locked payroll will not be changed automatically.",
-    reviewBeforeSaving: "Review before saving",
-    saveRuleVersion: "Save version",
     evidenceAnalysis: "Evidence & analysis",
     attendanceReportsTitle: "Attendance reports",
     reportsDetail:
@@ -2148,10 +2124,7 @@ const pageCopy = {
     policyControl: "التحكم في السياسة",
     attendanceRulesTitle: "قواعد الحضور",
     attendanceRulesDetail:
-      "سياسة تشغيل بإصدارات للدوام والعمل الإضافي والتحقق من الموقع.",
-    version: "الإصدار",
-    rulesEffectiveNote:
-      "تسري التغييرات من تاريخ النفاذ ولا تمثل تفسيراً قانونياً أو نظامياً.",
+      "إعدادات الشركة الحالية للدوام والعمل الإضافي والرصيد السنوي والتحقق من الموقع.",
     workStarts: "بداية العمل",
     workEnds: "نهاية العمل",
     gracePeriod: "فترة السماح (بالدقائق)",
@@ -2174,16 +2147,23 @@ const pageCopy = {
     attendanceThresholdsTitle: "حدود الحضور والعمل الإضافي",
     attendanceThresholdsDetail:
       "حدد فترات السماح التي تطبقها سياسة الحضور قبل تسجيل التأخير أو الانصراف المبكر أو العمل الإضافي.",
-    weeklyHolidayRulesTitle: "مضاعفات أيام الأسبوع والعطلات",
+    weeklyHolidayRulesTitle: "مضاعفات يوم معين",
     weeklyHolidayRulesDetail:
-      "يتم تطبيق أعلى مضاعف فقط عند تعارض أكثر من قاعدة.",
+      "حدد مضاعفات أيام الأسبوع والعطلات. عند تداخل القواعد يطبق أعلى مضاعف فقط.",
     addWeeklyMultiplier: "إضافة مضاعف أسبوعي",
+    addHolidayMultiplier: "إضافة مضاعف عطلة",
+    holidayPeriodName: "اسم العطلة",
+    holidayPeriodFrom: "تاريخ البداية",
+    holidayPeriodTo: "تاريخ النهاية",
+    holidayPeriodMultiplier: "مضاعف الأجر الإضافي",
+    noHolidayMultipliers: "لا توجد مضاعفات عطلات معدة.",
     attendancePenaltiesTitle: "جزاءات الحضور والإذن",
     attendancePenaltiesDetail:
       "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد.",
-    annualLeaveSettings: "إعدادات الإجازة السنوية",
+    annualLeaveSettings: "نظام الرصيد السنوي",
     annualLeaveSettingsDetail:
-      "تُحفظ هذه القيم كإصدار من سياسة الإجازة السنوية وتستخدم في الرصيد والحضور والرواتب والخدمة الذاتية.",
+      "تستخدم هذه الإعدادات الحالية في الرصيد السنوي والحضور والإذن والرواتب والخدمة الذاتية.",
+    annualLeaveBalances: "أرصدة الإجازة السنوية",
     annualEntitlementDays: "أيام الإجازة السنوية",
     leaveYearStartsIn: "بداية سنة الإجازة",
     absenceDeductionWhen: "متى يخصم الغياب من الإجازة؟",
@@ -2210,23 +2190,6 @@ const pageCopy = {
     policiesBalanceLedger: "السياسات وسجل الرصيد",
     policies: "السياسات",
     ledger: "السجل",
-    createPolicyVersion: "إنشاء إصدار سياسة",
-    leavePolicyVersionCreated: "تم إنشاء إصدار سياسة الإجازة",
-    couldNotCreateLeavePolicy: "تعذر إنشاء سياسة الإجازة",
-    noLeavePolicies: "لا توجد سياسات إجازات",
-    createFirstEffectivePolicy: "أنشئ أول سياسة مؤرخة النفاذ.",
-    leaveYearStartsMonth: "تبدأ سنة الإجازة في الشهر",
-    deductionMonths: "أشهر الخصم",
-    monthlyMaximum: "الحد الأقصى الشهري",
-    balanceLedgerEmpty: "السجل فارغ",
-    balanceLedgerDetail: "ستظهر الاستحقاقات وتغييرات الطلبات هنا.",
-    adjustLeaveBalance: "تعديل رصيد الإجازة",
-    adjustmentAmount: "مقدار التعديل",
-    negativeAdjustmentHint: "استخدم رقماً سالباً لإزالة أيام",
-    reasonRequired: "السبب (مطلوب)",
-    applyAdjustment: "تطبيق التعديل",
-    balanceAdjusted: "تم تعديل الرصيد",
-    couldNotAdjustBalance: "تعذر تعديل الرصيد",
     absenceMultiplier: "مضاعف الغياب",
     lateArrivalMultiplier: "مضاعف التأخير",
     earlyDepartureMultiplier: "مضاعف الانصراف المبكر",
@@ -2234,15 +2197,6 @@ const pageCopy = {
     fullDayPermission: "إذن ليوم كامل",
     permissionCoversLate: "الإذن يغطي التأخير",
     permissionCoversEarly: "الإذن يغطي الانصراف المبكر",
-    currentRuleVersion: "الإصدار الحالي",
-    attendanceRuleHistory: "سجل قواعد الحضور",
-    createRuleVersion: "إنشاء إصدار جديد",
-    historicalRulesNote:
-      "يتم الاحتفاظ بالإصدارات السابقة لأغراض سجل الحضور والرواتب والتدقيق، ولا يمكن تعديلها أو حذفها بعد انتهاء الفترة الخاصة بها.",
-    retroactiveRulesNote:
-      "سيؤدي هذا التغيير إلى استبدال قاعدة الحضور السارية من التاريخ المحدد. قد تحتاج حسابات الحضور للفترة المتأثرة إلى إعادة حساب. لن يتم تغيير الرواتب النهائية أو المقفلة تلقائياً.",
-    reviewBeforeSaving: "مراجعة قبل الحفظ",
-    saveRuleVersion: "حفظ الإصدار",
     evidenceAnalysis: "الأدلة والتحليل",
     attendanceReportsTitle: "تقارير الحضور",
     reportsDetail: "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
@@ -2405,8 +2359,6 @@ const pageCopy = {
     theDecisionQueueIsClear: "قائمة القرارات فارغة",
     notApprovedAtThisTime: "لم تتم الموافقة في الوقت الحالي",
     reviewedInOperationsQueue: "تمت مراجعته في قائمة العمليات",
-    changesApplyEffectiveDate:
-      "تسري التغييرات من تاريخ النفاذ ولا تمثل تفسيراً قانونياً أو نظامياً.",
     gracePeriodMinutes: "فترة السماح (بالدقائق)",
     overtimeAfterMinutes: "العمل الإضافي بعد (بالدقائق)",
     locationRadiusMeters: "نطاق الموقع (بالمتر)",
@@ -2739,10 +2691,17 @@ const pageCopy = {
     policyControl: "Contrôle de la politique",
     attendanceRulesTitle: "Règles de présence",
     attendanceRulesDetail:
-      "Politique versionnée pour les horaires, les heures supplémentaires et la localisation.",
-    version: "Version",
-    rulesEffectiveNote:
-      "Les changements s’appliquent à la date d’effet. Aucune interprétation légale ou réglementaire n’est implicite.",
+      "Paramètres actuels de l’entreprise pour les horaires, les heures supplémentaires, le solde annuel et la localisation.",
+    weeklyHolidayRulesTitle: "Multiplicateurs d’un jour précis",
+    weeklyHolidayRulesDetail:
+      "Configurez les multiplicateurs des jours de la semaine et des jours fériés. En cas de chevauchement, seul le multiplicateur le plus élevé s’applique.",
+    addWeeklyMultiplier: "Ajouter un multiplicateur hebdomadaire",
+    addHolidayMultiplier: "Ajouter un multiplicateur de jour férié",
+    holidayPeriodName: "Nom du jour férié",
+    holidayPeriodFrom: "Date de début",
+    holidayPeriodTo: "Date de fin",
+    holidayPeriodMultiplier: "Multiplicateur de rémunération supplémentaire",
+    noHolidayMultipliers: "Aucun multiplicateur de jour férié configuré.",
     workStarts: "Début du travail",
     workEnds: "Fin du travail",
     gracePeriod: "Délai de grâce (minutes)",
@@ -3057,10 +3016,17 @@ const pageCopy = {
     policyControl: "Richtliniensteuerung",
     attendanceRulesTitle: "Anwesenheitsregeln",
     attendanceRulesDetail:
-      "Versionierte Richtlinie für Zeit, Überstunden und Standortprüfung.",
-    version: "Version",
-    rulesEffectiveNote:
-      "Änderungen gelten ab dem Wirksamkeitsdatum. Keine rechtliche oder gesetzliche Auslegung ist enthalten.",
+      "Aktuelle Unternehmenseinstellungen für Arbeitszeit, Überstunden, Jahresurlaub und Standortprüfung.",
+    weeklyHolidayRulesTitle: "Multiplikatoren für einen bestimmten Tag",
+    weeklyHolidayRulesDetail:
+      "Konfigurieren Sie Multiplikatoren für Wochentage und Feiertage. Bei Überschneidungen gilt nur der höchste Multiplikator.",
+    addWeeklyMultiplier: "Wöchentlichen Multiplikator hinzufügen",
+    addHolidayMultiplier: "Feiertagsmultiplikator hinzufügen",
+    holidayPeriodName: "Feiertagsname",
+    holidayPeriodFrom: "Startdatum",
+    holidayPeriodTo: "Enddatum",
+    holidayPeriodMultiplier: "Multiplikator für Überstundenvergütung",
+    noHolidayMultipliers: "Keine Feiertagsmultiplikatoren konfiguriert.",
     workStarts: "Arbeitsbeginn",
     workEnds: "Arbeitsende",
     gracePeriod: "Kulanzzeit (Minuten)",
@@ -5232,7 +5198,7 @@ function permissionDescription(
     "departments.manage": "إنشاء الأقسام وتعديلها وأرشفتها.",
     "branches.view": "عرض الفروع وسجلاتها.",
     "branches.manage": "إنشاء الفروع وتعديلها وأرشفتها.",
-    "attendance.rules.view": "عرض قواعد الحضور وسجل الإصدارات.",
+    "attendance.rules.view": "عرض قواعد الحضور وسجل التغييرات.",
     "attendance.rules.manage": "إنشاء قواعد الحضور وتعديلها.",
     "schedules.view": "عرض تنظيم الشيفتات والتعيينات.",
     "schedules.manage": "إنشاء الجداول والتعيينات وتعديلها.",
@@ -11267,10 +11233,14 @@ function Rules() {
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
   function save() {
+    const ruleInput = { ...form };
+    for (const field of ["id", "companyId", "createdAt", "updatedAt"]) {
+      delete ruleInput[field];
+    }
     update.mutate(
       {
         data: {
-          ...form,
+          ...ruleInput,
           requiredHours: Number(form.requiredHours),
           graceMinutes: Number(form.graceMinutes),
           earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
@@ -11286,15 +11256,22 @@ function Rules() {
           annualLeaveMonthlyDeductionLimit: Number(
             form.annualLeaveMonthlyDeductionLimit ?? 1,
           ),
-          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
+          latePenaltyMultiplier: Number(form.latePenaltyMultiplier) as 1 | 2 | 3,
           earlyDeparturePenaltyMultiplier: Number(
             form.earlyDeparturePenaltyMultiplier,
-          ),
-          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
+          ) as 1 | 2 | 3,
+          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier) as
+            | 1
+            | 2
+            | 3,
           permissionCoveredMinutesMultiplier: Number(
             form.permissionCoveredMinutesMultiplier,
-          ),
-          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
+          ) as 0 | 1 | 2 | 3,
+          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier) as
+            | 0
+            | 1
+            | 2
+            | 3,
           locationRadiusMeters: Number(form.locationRadiusMeters),
           reason: form.reason?.trim() || t("attendancePolicyUpdated"),
         },
@@ -11311,137 +11288,6 @@ function Rules() {
       },
     );
   }
-  /*
-  function saveVersion() {
-    const finishSave = () => {
-      toast.success(t("attendancePolicyUpdated"));
-      setReviewVersion(false);
-      qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
-      qc.invalidateQueries({
-        queryKey: getListAttendanceRuleVersionsQueryKey(),
-      });
-      qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
-      qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-    };
-    createVersion.mutate(
-      {
-        data: {
-          ...form,
-          effectiveFrom,
-          requiredHours: Number(form.requiredHours),
-          graceMinutes: Number(form.graceMinutes),
-          earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
-          overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
-          overtimeMultiplier: Number(form.overtimeMultiplier),
-          hourlyRateDivisor: Number(form.hourlyRateDivisor),
-          lateDeductionFactor: Number(form.lateDeductionFactor),
-          earlyCheckoutDeductionFactor: Number(
-            form.earlyCheckoutDeductionFactor,
-          ),
-          absenceDeductionFactor: Number(form.absenceDeductionFactor),
-          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
-          earlyDeparturePenaltyMultiplier: Number(
-            form.earlyDeparturePenaltyMultiplier,
-          ),
-          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
-          absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),
-          annualLeaveEntitlement: Number(form.annualLeaveEntitlement),
-          annualLeavePeriodStartMonth: Number(
-            form.annualLeavePeriodStartMonth,
-          ),
-          permissionCoveredMinutesMultiplier: Number(
-            form.permissionCoveredMinutesMultiplier,
-          ),
-          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
-          locationRadiusMeters: Number(form.locationRadiusMeters),
-        } as any,
-      },
-      {
-        onSuccess: () => {
-          const annualPolicy = (policies.data || []).find((policy: any) =>
-            ["annual", "annual leave"].includes(
-              String(policy.leaveType).trim().toLowerCase(),
-            ),
-          ) as any;
-          const policyChanged =
-            !annualPolicy ||
-            Number(annualPolicy.annualEntitlement) !==
-              Number(form.annualLeaveEntitlement) ||
-            Number(annualPolicy.periodStartMonth ?? 1) !==
-              Number(form.annualLeavePeriodStartMonth);
-          if (!policyChanged) {
-            finishSave();
-            return;
-          }
-          createPolicy.mutate(
-            {
-              data: {
-                leaveType: annualPolicy?.leaveType || "Annual leave",
-                annualEntitlement: Number(form.annualLeaveEntitlement),
-                accrualFrequency: annualPolicy?.accrualFrequency || "monthly",
-                deductionMode: annualPolicy?.deductionMode || "automatic",
-                carryForwardAllowed: Boolean(
-                  annualPolicy?.carryForwardAllowed ?? false,
-                ),
-                carryForwardDays: Number(
-                  annualPolicy?.carryForwardDays ?? 0,
-                ),
-                carryForwardExpiryMonths:
-                  annualPolicy?.carryForwardExpiryMonths ?? null,
-                allowNegative: Boolean(annualPolicy?.allowNegative ?? false),
-                periodStartMonth: Number(form.annualLeavePeriodStartMonth),
-                allowedBalanceMonths:
-                  annualPolicy?.allowedBalanceMonths ||
-                  Array.from({ length: 12 }, (_, index) => index + 1),
-                monthlyDeductionLimit: Number(
-                  annualPolicy?.monthlyDeductionLimit ?? 1,
-                ),
-                enabled: true,
-                effectiveFrom,
-              } as any,
-            },
-            {
-              onSuccess: finishSave,
-              onError: (error) =>
-                toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
-            },
-          );
-        },
-        onError: (error) =>
-          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
-      },
-    );
-  }
-  */
-  function saveLegacy(e: FormEvent) {
-    e.preventDefault();
-    update.mutate(
-      {
-        data: {
-          ...form,
-          graceMinutes: Number(form.graceMinutes),
-          earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
-          overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
-          locationRadiusMeters: Number(form.locationRadiusMeters),
-          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
-          earlyDeparturePenaltyMultiplier: Number(
-            form.earlyDeparturePenaltyMultiplier,
-          ),
-          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
-          permissionCoveredMinutesMultiplier: Number(
-            form.permissionCoveredMinutesMultiplier,
-          ),
-          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
-        } as any,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("attendancePolicyUpdated"));
-          qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
-        },
-      },
-    );
-  }
   const rules = q.data as any;
   return (
     <div className="animate-in">
@@ -11455,9 +11301,9 @@ function Rules() {
           </Badge>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-        <div className="space-y-6">
-          <Card className="p-6">
+      <div className="flex flex-col gap-6">
+        <div className="contents">
+          <Card className="order-1 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("attendanceThresholdsTitle")}
             </h2>
@@ -11494,154 +11340,30 @@ function Rules() {
                 }
               />
             </div>
+            <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={Boolean(form.overtimeEligible)}
+                onChange={(event) =>
+                  setForm({ ...form, overtimeEligible: event.target.checked })
+                }
+                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+              />
+              <span>
+                {t("automaticOvertimeCalculation")}
+                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                  {t("automaticOvertimeCalculationDetail")}
+                </span>
+              </span>
+            </label>
           </Card>
-          <Card className="p-6">
+          <Card className="order-3 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("weeklyHolidayRulesTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {t("weeklyHolidayRulesDetail")}
             </p>
-            <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-              <h3 className="font-semibold">
-                {t("annualLeaveSettings")}
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("annualLeaveSettingsDetail")}
-              </p>
-              <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form.absenceDeductsAnnualLeave)}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      absenceDeductsAnnualLeave: event.target.checked,
-                    })
-                  }
-                  className="mt-0.5 h-4 w-4 accent-primary"
-                />
-                <span>
-                  {t("deductAnnualLeaveForUnapproved")}
-                  <span className="mt-1 block text-xs font-normal">
-                    {t("absenceDeductionDetail")}
-                  </span>
-                </span>
-              </label>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-semibold">
-                  {t("absenceDeductionWhen")}
-                  <select
-                    value={form.absenceLeaveDeductionTrigger}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        absenceLeaveDeductionTrigger: event.target.value,
-                      })
-                    }
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="unexcused_absence">
-                      {t("unapprovedAbsencesOnly")}
-                    </option>
-                    <option value="any_absence">
-                      {t("anyAbsenceMissing")}
-                    </option>
-                  </select>
-                </label>
-                <Field
-                  label={t("leaveDaysPerAbsence")}
-                  type="number"
-                  min={0}
-                  required
-                  value={form.absenceLeaveDeductionDays}
-                  onChange={(value) =>
-                    setForm({ ...form, absenceLeaveDeductionDays: value })
-                  }
-                />
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <Field
-                  label={locale === "ar" ? "استحقاق الإجازة السنوية" : "Annual leave entitlement"}
-                  type="number"
-                  min={0}
-                  value={form.annualLeaveEntitlement}
-                  onChange={(value) =>
-                    setForm({ ...form, annualLeaveEntitlement: value })
-                  }
-                />
-                <label className="block text-sm font-semibold">
-                  {locale === "ar" ? "بداية سنة الإجازة" : "Leave year starts in month"}
-                  <select
-                    value={form.annualLeavePeriodStartMonth}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        annualLeavePeriodStartMonth: Number(event.target.value),
-                      })
-                    }
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                      (month) => (
-                        <option key={month} value={month}>
-                          {month}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-                <Field
-                  label={locale === "ar" ? "الحد الشهري للخصم" : "Monthly deduction limit"}
-                  type="number"
-                  min={0}
-                  value={form.annualLeaveMonthlyDeductionLimit ?? 1}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      annualLeaveMonthlyDeductionLimit: value,
-                    })
-                  }
-                />
-              </div>
-              <div className="mt-4">
-                <span className="text-sm font-semibold">
-                  {locale === "ar" ? "أشهر السماح بخصم الرصيد" : "Months when balance may be deducted"}
-                </span>
-                <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                    (month) => {
-                      const selectedMonths = form.annualLeaveAllowedMonths || [];
-                      return (
-                        <label
-                          key={month}
-                          className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedMonths.includes(month)}
-                            onChange={(event) =>
-                              setForm({
-                                ...form,
-                                annualLeaveAllowedMonths: event.target.checked
-                                  ? [...selectedMonths, month].sort(
-                                      (a: number, b: number) => a - b,
-                                    )
-                                  : selectedMonths.filter(
-                                      (item: number) => item !== month,
-                                    ),
-                              })
-                            }
-                            className="h-4 w-4 accent-primary"
-                          />
-                          {month}
-                        </label>
-                      );
-                    },
-                  )}
-                </div>
-              </div>
-            </div>
             <div className="mt-5 space-y-3">
               {(form.weeklyMultipliers || []).map(
                 (item: any, index: number) => (
@@ -11714,30 +11436,111 @@ function Rules() {
                 <Plus size={15} /> {t("addWeeklyMultiplier")}
               </Button>
             </div>
+            <div className="mt-6 space-y-3 border-t border-border pt-5">
+              {(form.holidayPeriods || []).map((item: any, index: number) => (
+                <div
+                  key={`${item.name}-${index}`}
+                  className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[1.2fr_1fr_1fr_1fr_auto]"
+                >
+                  <Field
+                    label={t("holidayPeriodName")}
+                    value={item.name}
+                    onChange={(value) => {
+                      const next = [...(form.holidayPeriods || [])];
+                      next[index] = { ...item, name: value };
+                      setForm({ ...form, holidayPeriods: next });
+                    }}
+                  />
+                  <Field
+                    label={t("holidayPeriodFrom")}
+                    type="date"
+                    value={item.from}
+                    onChange={(value) => {
+                      const next = [...(form.holidayPeriods || [])];
+                      next[index] = { ...item, from: value };
+                      setForm({ ...form, holidayPeriods: next });
+                    }}
+                  />
+                  <Field
+                    label={t("holidayPeriodTo")}
+                    type="date"
+                    value={item.to}
+                    onChange={(value) => {
+                      const next = [...(form.holidayPeriods || [])];
+                      next[index] = { ...item, to: value };
+                      setForm({ ...form, holidayPeriods: next });
+                    }}
+                  />
+                  <label className="block text-sm font-semibold">
+                    {t("holidayPeriodMultiplier")}
+                    <select
+                      value={item.multiplier}
+                      onChange={(event) => {
+                        const next = [...(form.holidayPeriods || [])];
+                        next[index] = {
+                          ...item,
+                          multiplier: Number(event.target.value),
+                        };
+                        setForm({ ...form, holidayPeriods: next });
+                      }}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    >
+                      <option value={1}>1x</option>
+                      <option value={2}>2x</option>
+                      <option value={3}>3x</option>
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        holidayPeriods: (form.holidayPeriods || []).filter(
+                          (_: any, i: number) => i !== index,
+                        ),
+                      })
+                    }
+                  >
+                    {t("remove")}
+                  </Button>
+                </div>
+              ))}
+              {!(form.holidayPeriods || []).length && (
+                <p className="text-sm text-muted-foreground">
+                  {t("noHolidayMultipliers")}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    holidayPeriods: [
+                      ...(form.holidayPeriods || []),
+                      {
+                        name: "",
+                        from: "",
+                        to: "",
+                        multiplier: 2,
+                        enabled: true,
+                      },
+                    ],
+                  })
+                }
+              >
+                <Plus size={15} /> {t("addHolidayMultiplier")}
+              </Button>
+            </div>
           </Card>
-          <Card className="p-6">
+          <Card className="order-2 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("attendancePenaltiesTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {t("attendancePenaltiesDetail")}
             </p>
-            <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={Boolean(form.overtimeEligible)}
-                onChange={(event) =>
-                  setForm({ ...form, overtimeEligible: event.target.checked })
-                }
-                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
-              />
-              <span>
-                {t("automaticOvertimeCalculation")}
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                  {t("automaticOvertimeCalculationDetail")}
-                </span>
-              </span>
-            </label>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
                 [
@@ -11809,7 +11612,7 @@ function Rules() {
               ))}
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="order-5 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("locationVerification")}
             </h2>
@@ -11836,7 +11639,7 @@ function Rules() {
               />
             </div>
           </Card>
-          <Card className="bg-muted/50 p-5">
+          <Card className="order-6 bg-muted/50 p-5">
             <div className="flex gap-3">
               <CircleHelp size={17} className="mt-0.5 text-primary" />
               <div>
@@ -11847,7 +11650,7 @@ function Rules() {
               </div>
             </div>
           </Card>
-          <label className="block text-sm font-semibold">
+          <label className="order-7 block text-sm font-semibold">
             {locale === "ar" ? "سبب التغيير (مطلوب للسجل)" : "Change reason (required for history)"}
             <textarea
               value={form.reason || ""}
@@ -11860,23 +11663,154 @@ function Rules() {
             type="button"
             onClick={save}
             disabled={update.isPending}
-            className="w-full"
+            className="order-8 w-full"
           >
             {update.isPending ? t("savingPolicy") : t("saveAttendancePolicy")}
           </Button>
         </div>
       </div>
-      <Card className="mt-6 p-6">
+      <Card className="order-4 p-6">
         <div>
           <h2 className="font-display text-lg font-semibold">
-            {locale === "ar" ? "أرصدة الإجازة السنوية" : "Annual leave balances"}
+            {t("annualLeaveSettings")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {locale === "ar"
-              ? "الأرصدة الحالية للموظفين وفق إعدادات الإجازة السنوية أعلاه."
-              : "Current employee balances using the annual leave settings above."}
+            {t("annualLeaveSettingsDetail")}
           </p>
         </div>
+        <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+          <label className="flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
+            <input
+              type="checkbox"
+              checked={Boolean(form.absenceDeductsAnnualLeave)}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  absenceDeductsAnnualLeave: event.target.checked,
+                })
+              }
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span>
+              {t("deductAnnualLeaveForUnapproved")}
+              <span className="mt-1 block text-xs font-normal">
+                {t("absenceDeductionDetail")}
+              </span>
+            </span>
+          </label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              {t("absenceDeductionWhen")}
+              <select
+                value={form.absenceLeaveDeductionTrigger}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    absenceLeaveDeductionTrigger: event.target.value,
+                  })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="unexcused_absence">
+                  {t("unapprovedAbsencesOnly")}
+                </option>
+                <option value="any_absence">{t("anyAbsenceMissing")}</option>
+              </select>
+            </label>
+            <Field
+              label={t("leaveDaysPerAbsence")}
+              type="number"
+              min={0}
+              required
+              value={form.absenceLeaveDeductionDays}
+              onChange={(value) =>
+                setForm({ ...form, absenceLeaveDeductionDays: value })
+              }
+            />
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field
+              label={t("annualEntitlementDays")}
+              type="number"
+              min={0}
+              value={form.annualLeaveEntitlement}
+              onChange={(value) =>
+                setForm({ ...form, annualLeaveEntitlement: value })
+              }
+            />
+            <label className="block text-sm font-semibold">
+              {t("leaveYearStartsIn")}
+              <select
+                value={form.annualLeavePeriodStartMonth}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    annualLeavePeriodStartMonth: Number(event.target.value),
+                  })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                  (month) => (
+                    <option key={month} value={month}>
+                      {month}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+            <Field
+              label={t("monthlyMaximumDeduction")}
+              type="number"
+              min={0}
+              value={form.annualLeaveMonthlyDeductionLimit ?? 1}
+              onChange={(value) =>
+                setForm({
+                  ...form,
+                  annualLeaveMonthlyDeductionLimit: value,
+                })
+              }
+            />
+          </div>
+          <div className="mt-4">
+            <span className="text-sm font-semibold">
+              {t("balanceDeductionMonths")}
+            </span>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                (month) => {
+                  const selectedMonths = form.annualLeaveAllowedMonths || [];
+                  return (
+                    <label
+                      key={month}
+                      className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMonths.includes(month)}
+                        onChange={(event) =>
+                          setForm({
+                            ...form,
+                            annualLeaveAllowedMonths: event.target.checked
+                              ? [...selectedMonths, month].sort(
+                                  (a: number, b: number) => a - b,
+                                )
+                              : selectedMonths.filter(
+                                  (item: number) => item !== month,
+                                ),
+                          })
+                        }
+                        className="h-4 w-4 accent-primary"
+                      />
+                      {month}
+                    </label>
+                  );
+                },
+              )}
+            </div>
+          </div>
+        </div>
+        <h3 className="mt-6 font-semibold">{t("annualLeaveBalances")}</h3>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {balances.isLoading ? (
             <Skeleton className="h-24" />
@@ -11908,7 +11842,7 @@ function Rules() {
           )}
         </div>
       </Card>
-      <Card className="mt-6 p-6">
+      <Card className="order-9 p-6">
         <div>
           <h2 className="font-display text-lg font-semibold">
             {locale === "ar" ? "سجل تغييرات قواعد الحضور" : "Attendance rules change history"}
@@ -15289,7 +15223,7 @@ const entityLabelsArabic: Record<string, string> = {
   users: "المستخدمون والحسابات",
   shifts: "الشيفتات",
   shift_assignments: "ربط الموظفين بالشيفتات",
-  attendance_rules: "قواعد الحضور وإصداراتها",
+  attendance_rules: "قواعد الحضور",
   attendance_calculations: "حسابات الحضور",
   leave_requests: "طلبات الإجازات",
   permission_requests: "طلبات الأذونات",
