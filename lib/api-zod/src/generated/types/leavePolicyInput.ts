@@ -29,6 +29,14 @@ export interface LeavePolicyInput {
      * @maximum 12
      */
   periodStartMonth?: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  allowedBalanceMonths?: number[];
+  /** @minimum 0 */
+  monthlyDeductionLimit?: number;
   enabled?: boolean;
   effectiveFrom: string;
 }

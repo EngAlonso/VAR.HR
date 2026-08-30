@@ -869,6 +869,17 @@ export interface LeaveBalance {
   total: number;
   periodStart: string;
   periodEnd: string;
+  /**
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  allowedBalanceMonths: number[];
+  /** @minimum 0 */
+  monthlyDeductionLimit: number;
+  /** @minimum 0 */
+  deductedThisMonth: number;
+  /** @minimum 0 */
+  unauthorizedAbsenceDays: number;
 }
 
 export type LeavePolicyAccrualFrequency = typeof LeavePolicyAccrualFrequency[keyof typeof LeavePolicyAccrualFrequency];
@@ -919,6 +930,14 @@ export interface LeavePolicy {
      * @maximum 12
      */
   periodStartMonth: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  allowedBalanceMonths: number[];
+  /** @minimum 0 */
+  monthlyDeductionLimit: number;
   enabled: boolean;
   effectiveFrom: string;
   /** @nullable */
@@ -967,6 +986,14 @@ export interface LeavePolicyInput {
      * @maximum 12
      */
   periodStartMonth?: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  allowedBalanceMonths?: number[];
+  /** @minimum 0 */
+  monthlyDeductionLimit?: number;
   enabled?: boolean;
   effectiveFrom: string;
 }
@@ -1274,6 +1301,14 @@ export interface AttendanceRules {
      * @maximum 12
      */
   annualLeavePeriodStartMonth: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  annualLeaveAllowedMonths: number[];
+  /** @minimum 0 */
+  annualLeaveMonthlyDeductionLimit: number;
   gpsPolicy: AttendanceRulesGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters?: number;
@@ -1467,6 +1502,14 @@ export interface AttendanceRulesInput {
      * @maximum 12
      */
   annualLeavePeriodStartMonth: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  annualLeaveAllowedMonths: number[];
+  /** @minimum 0 */
+  annualLeaveMonthlyDeductionLimit: number;
   gpsPolicy: AttendanceRulesInputGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters: number;

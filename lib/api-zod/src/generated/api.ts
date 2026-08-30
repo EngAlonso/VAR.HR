@@ -1567,6 +1567,16 @@ export const CorrectAttendanceResponse = zod.object({
 /**
  * @summary List leave balances
  */
+export const listLeaveBalancesResponseAllowedBalanceMonthsItemMax = 12;
+
+export const listLeaveBalancesResponseMonthlyDeductionLimitMin = 0;
+
+export const listLeaveBalancesResponseDeductedThisMonthMin = 0;
+
+export const listLeaveBalancesResponseUnauthorizedAbsenceDaysMin = 0;
+
+
+
 export const ListLeaveBalancesResponseItem = zod.object({
   "id": zod.string(),
   "employee": zod.object({
@@ -1583,7 +1593,11 @@ export const ListLeaveBalancesResponseItem = zod.object({
   "remaining": zod.number(),
   "total": zod.number(),
   "periodStart": zod.iso.date(),
-  "periodEnd": zod.iso.date()
+  "periodEnd": zod.iso.date(),
+  "allowedBalanceMonths": zod.array(zod.int().min(1).max(listLeaveBalancesResponseAllowedBalanceMonthsItemMax)),
+  "monthlyDeductionLimit": zod.number().min(listLeaveBalancesResponseMonthlyDeductionLimitMin),
+  "deductedThisMonth": zod.number().min(listLeaveBalancesResponseDeductedThisMonthMin),
+  "unauthorizedAbsenceDays": zod.number().min(listLeaveBalancesResponseUnauthorizedAbsenceDaysMin)
 })
 export const ListLeaveBalancesResponse = zod.array(ListLeaveBalancesResponseItem)
 
@@ -1599,6 +1613,11 @@ export const listLeavePoliciesResponseCarryForwardExpiryMonthsMin = 0;
 
 export const listLeavePoliciesResponsePeriodStartMonthMax = 12;
 
+export const listLeavePoliciesResponseAllowedBalanceMonthsItemMax = 12;
+
+
+export const listLeavePoliciesResponseMonthlyDeductionLimitMin = 0;
+
 
 
 export const ListLeavePoliciesResponseItem = zod.object({
@@ -1613,6 +1632,8 @@ export const ListLeavePoliciesResponseItem = zod.object({
   "carryForwardExpiryMonths": zod.int().min(listLeavePoliciesResponseCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
   "periodStartMonth": zod.int().min(1).max(listLeavePoliciesResponsePeriodStartMonthMax),
+  "allowedBalanceMonths": zod.array(zod.int().min(1).max(listLeavePoliciesResponseAllowedBalanceMonthsItemMax)).min(1),
+  "monthlyDeductionLimit": zod.number().min(listLeavePoliciesResponseMonthlyDeductionLimitMin),
   "enabled": zod.boolean(),
   "effectiveFrom": zod.iso.date(),
   "effectiveTo": zod.iso.date().nullish(),
@@ -1636,6 +1657,13 @@ export const createLeavePolicyBodyCarryForwardExpiryMonthsMin = 0;
 export const createLeavePolicyBodyPeriodStartMonthDefault = 1;
 export const createLeavePolicyBodyPeriodStartMonthMax = 12;
 
+export const createLeavePolicyBodyAllowedBalanceMonthsItemMax = 12;
+
+export const createLeavePolicyBodyAllowedBalanceMonthsDefault = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+export const createLeavePolicyBodyMonthlyDeductionLimitDefault = 1;
+export const createLeavePolicyBodyMonthlyDeductionLimitMin = 0;
+
 export const createLeavePolicyBodyEnabledDefault = true;
 
 export const CreateLeavePolicyBody = zod.object({
@@ -1648,6 +1676,8 @@ export const CreateLeavePolicyBody = zod.object({
   "carryForwardExpiryMonths": zod.int().min(createLeavePolicyBodyCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
   "periodStartMonth": zod.int().min(1).max(createLeavePolicyBodyPeriodStartMonthMax).default(createLeavePolicyBodyPeriodStartMonthDefault),
+  "allowedBalanceMonths": zod.array(zod.int().min(1).max(createLeavePolicyBodyAllowedBalanceMonthsItemMax)).min(1).default(createLeavePolicyBodyAllowedBalanceMonthsDefault),
+  "monthlyDeductionLimit": zod.number().min(createLeavePolicyBodyMonthlyDeductionLimitMin).default(createLeavePolicyBodyMonthlyDeductionLimitDefault),
   "enabled": zod.boolean().default(createLeavePolicyBodyEnabledDefault),
   "effectiveFrom": zod.iso.date()
 })
@@ -1659,6 +1689,11 @@ export const createLeavePolicyResponseCarryForwardDaysMin = 0;
 export const createLeavePolicyResponseCarryForwardExpiryMonthsMin = 0;
 
 export const createLeavePolicyResponsePeriodStartMonthMax = 12;
+
+export const createLeavePolicyResponseAllowedBalanceMonthsItemMax = 12;
+
+
+export const createLeavePolicyResponseMonthlyDeductionLimitMin = 0;
 
 
 
@@ -1674,6 +1709,8 @@ export const CreateLeavePolicyResponse = zod.object({
   "carryForwardExpiryMonths": zod.int().min(createLeavePolicyResponseCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
   "periodStartMonth": zod.int().min(1).max(createLeavePolicyResponsePeriodStartMonthMax),
+  "allowedBalanceMonths": zod.array(zod.int().min(1).max(createLeavePolicyResponseAllowedBalanceMonthsItemMax)).min(1),
+  "monthlyDeductionLimit": zod.number().min(createLeavePolicyResponseMonthlyDeductionLimitMin),
   "enabled": zod.boolean(),
   "effectiveFrom": zod.iso.date(),
   "effectiveTo": zod.iso.date().nullish(),
@@ -1722,6 +1759,16 @@ export const AdjustLeaveBalanceBody = zod.object({
   "reason": zod.string().min(1)
 })
 
+export const adjustLeaveBalanceResponseAllowedBalanceMonthsItemMax = 12;
+
+export const adjustLeaveBalanceResponseMonthlyDeductionLimitMin = 0;
+
+export const adjustLeaveBalanceResponseDeductedThisMonthMin = 0;
+
+export const adjustLeaveBalanceResponseUnauthorizedAbsenceDaysMin = 0;
+
+
+
 export const AdjustLeaveBalanceResponse = zod.object({
   "id": zod.string(),
   "employee": zod.object({
@@ -1738,7 +1785,11 @@ export const AdjustLeaveBalanceResponse = zod.object({
   "remaining": zod.number(),
   "total": zod.number(),
   "periodStart": zod.iso.date(),
-  "periodEnd": zod.iso.date()
+  "periodEnd": zod.iso.date(),
+  "allowedBalanceMonths": zod.array(zod.int().min(1).max(adjustLeaveBalanceResponseAllowedBalanceMonthsItemMax)),
+  "monthlyDeductionLimit": zod.number().min(adjustLeaveBalanceResponseMonthlyDeductionLimitMin),
+  "deductedThisMonth": zod.number().min(adjustLeaveBalanceResponseDeductedThisMonthMin),
+  "unauthorizedAbsenceDays": zod.number().min(adjustLeaveBalanceResponseUnauthorizedAbsenceDaysMin)
 })
 
 
@@ -1979,6 +2030,11 @@ export const getAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
 
 export const getAttendanceRulesResponseAnnualLeavePeriodStartMonthMax = 12;
 
+export const getAttendanceRulesResponseAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const getAttendanceRulesResponseAnnualLeaveMonthlyDeductionLimitMin = 0;
+
 export const getAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
 
@@ -2026,6 +2082,8 @@ export const GetAttendanceRulesResponse = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(getAttendanceRulesResponseAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(getAttendanceRulesResponseAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(getAttendanceRulesResponseAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(getAttendanceRulesResponseAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(getAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2059,6 +2117,11 @@ export const listAttendanceRuleVersionsResponseConfigurationAbsenceLeaveDeductio
 export const listAttendanceRuleVersionsResponseConfigurationAnnualLeaveEntitlementMin = 0;
 
 export const listAttendanceRuleVersionsResponseConfigurationAnnualLeavePeriodStartMonthMax = 12;
+
+export const listAttendanceRuleVersionsResponseConfigurationAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const listAttendanceRuleVersionsResponseConfigurationAnnualLeaveMonthlyDeductionLimitMin = 0;
 
 export const listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2115,6 +2178,8 @@ export const ListAttendanceRuleVersionsResponseItem = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(listAttendanceRuleVersionsResponseConfigurationAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(listAttendanceRuleVersionsResponseConfigurationAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2151,6 +2216,11 @@ export const createAttendanceRuleVersionBodyOneAbsenceLeaveDeductionDaysMin = 0;
 export const createAttendanceRuleVersionBodyOneAnnualLeaveEntitlementMin = 0;
 
 export const createAttendanceRuleVersionBodyOneAnnualLeavePeriodStartMonthMax = 12;
+
+export const createAttendanceRuleVersionBodyOneAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const createAttendanceRuleVersionBodyOneAnnualLeaveMonthlyDeductionLimitMin = 0;
 
 export const createAttendanceRuleVersionBodyOneLocationRadiusMetersMin = 0;
 
@@ -2199,6 +2269,8 @@ export const CreateAttendanceRuleVersionBody = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(createAttendanceRuleVersionBodyOneAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(createAttendanceRuleVersionBodyOneAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(createAttendanceRuleVersionBodyOneAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(createAttendanceRuleVersionBodyOneAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(createAttendanceRuleVersionBodyOneAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionBodyOneLocationRadiusMetersMin)
 }).and(zod.object({
@@ -2228,6 +2300,11 @@ export const createAttendanceRuleVersionResponseConfigurationAbsenceLeaveDeducti
 export const createAttendanceRuleVersionResponseConfigurationAnnualLeaveEntitlementMin = 0;
 
 export const createAttendanceRuleVersionResponseConfigurationAnnualLeavePeriodStartMonthMax = 12;
+
+export const createAttendanceRuleVersionResponseConfigurationAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const createAttendanceRuleVersionResponseConfigurationAnnualLeaveMonthlyDeductionLimitMin = 0;
 
 export const createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2284,6 +2361,8 @@ export const CreateAttendanceRuleVersionResponse = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(createAttendanceRuleVersionResponseConfigurationAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(createAttendanceRuleVersionResponseConfigurationAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(createAttendanceRuleVersionResponseConfigurationAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(createAttendanceRuleVersionResponseConfigurationAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(createAttendanceRuleVersionResponseConfigurationAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2319,6 +2398,11 @@ export const updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin = 0;
 export const updateAttendanceRulesBodyAnnualLeaveEntitlementMin = 0;
 
 export const updateAttendanceRulesBodyAnnualLeavePeriodStartMonthMax = 12;
+
+export const updateAttendanceRulesBodyAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const updateAttendanceRulesBodyAnnualLeaveMonthlyDeductionLimitMin = 0;
 
 export const updateAttendanceRulesBodyLocationRadiusMetersMin = 0;
 
@@ -2367,6 +2451,8 @@ export const UpdateAttendanceRulesBody = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(updateAttendanceRulesBodyAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(updateAttendanceRulesBodyAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(updateAttendanceRulesBodyAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(updateAttendanceRulesBodyAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesBodyLocationRadiusMetersMin)
 })
@@ -2394,6 +2480,11 @@ export const updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
 export const updateAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
 
 export const updateAttendanceRulesResponseAnnualLeavePeriodStartMonthMax = 12;
+
+export const updateAttendanceRulesResponseAnnualLeaveAllowedMonthsItemMax = 12;
+
+
+export const updateAttendanceRulesResponseAnnualLeaveMonthlyDeductionLimitMin = 0;
 
 export const updateAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
@@ -2442,6 +2533,8 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "absenceLeaveDeductionDays": zod.number().min(updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin),
   "annualLeaveEntitlement": zod.number().min(updateAttendanceRulesResponseAnnualLeaveEntitlementMin),
   "annualLeavePeriodStartMonth": zod.int().min(1).max(updateAttendanceRulesResponseAnnualLeavePeriodStartMonthMax),
+  "annualLeaveAllowedMonths": zod.array(zod.int().min(1).max(updateAttendanceRulesResponseAnnualLeaveAllowedMonthsItemMax)).min(1),
+  "annualLeaveMonthlyDeductionLimit": zod.number().min(updateAttendanceRulesResponseAnnualLeaveMonthlyDeductionLimitMin),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),

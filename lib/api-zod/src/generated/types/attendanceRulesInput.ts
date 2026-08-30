@@ -67,6 +67,14 @@ export interface AttendanceRulesInput {
      * @maximum 12
      */
   annualLeavePeriodStartMonth: number;
+  /**
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  annualLeaveAllowedMonths: number[];
+  /** @minimum 0 */
+  annualLeaveMonthlyDeductionLimit: number;
   gpsPolicy: AttendanceRulesInputGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters: number;

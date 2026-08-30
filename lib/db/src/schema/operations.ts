@@ -226,6 +226,8 @@ export const leavePoliciesTable = pgTable("var_hr_leave_policies", {
   carryForwardExpiryMonths: integer("carry_forward_expiry_months"),
   allowNegative: boolean("allow_negative").notNull().default(false),
   periodStartMonth: integer("period_start_month").notNull().default(1),
+  allowedBalanceMonths: integer("allowed_balance_months").array().notNull().default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+  monthlyDeductionLimit: numeric("monthly_deduction_limit", { precision: 8, scale: 2, mode: "number" }).notNull().default(1),
   enabled: boolean("enabled").notNull().default(true),
   effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
   effectiveTo: date("effective_to", { mode: "string" }),
@@ -249,6 +251,12 @@ export const leaveBalanceTransactionsTable = pgTable("var_hr_leave_balance_trans
   sourceRequestId: uuid("source_request_id").references(() => leaveRequestsTable.id),
   actorId: text("actor_id").notNull(),
   reason: text("reason").notNull(),
+  /**
+   * Calendar date on which a balance event applies. This is separate from
+   * createdAt so effective-dated monthly limits remain stable if an approval
+   * is entered later than the leave or permission date.
+   */
+  eventDate: date("event_date", { mode: "string" }),
   /**
    * Stable event key used by accrual/carry-forward jobs and request
    * transitions. Nullable keeps this additive for existing ledger rows.

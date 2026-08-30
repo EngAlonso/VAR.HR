@@ -19,4 +19,15 @@ export interface LeaveBalance {
   total: number;
   periodStart: string;
   periodEnd: string;
+  /**
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  allowedBalanceMonths: number[];
+  /** @minimum 0 */
+  monthlyDeductionLimit: number;
+  /** @minimum 0 */
+  deductedThisMonth: number;
+  /** @minimum 0 */
+  unauthorizedAbsenceDays: number;
 }

@@ -774,6 +774,8 @@ const defaultAttendanceRules = {
   absenceLeaveDeductionDays: 1,
   annualLeaveEntitlement: 21,
   annualLeavePeriodStartMonth: 1,
+  annualLeaveAllowedMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  annualLeaveMonthlyDeductionLimit: 1,
   gpsPolicy: "optional" as const,
   locationRadiusMeters: 180,
   version: 1,
@@ -832,6 +834,14 @@ function rulesConfiguration(
       "annualLeavePeriodStartMonth" in rules
         ? rules.annualLeavePeriodStartMonth
         : defaultAttendanceRules.annualLeavePeriodStartMonth,
+    annualLeaveAllowedMonths:
+      "annualLeaveAllowedMonths" in rules
+        ? rules.annualLeaveAllowedMonths
+        : defaultAttendanceRules.annualLeaveAllowedMonths,
+    annualLeaveMonthlyDeductionLimit:
+      "annualLeaveMonthlyDeductionLimit" in rules
+        ? rules.annualLeaveMonthlyDeductionLimit
+        : defaultAttendanceRules.annualLeaveMonthlyDeductionLimit,
     workingDays: rules.workingDays,
     gpsPolicy: rules.gpsPolicy,
     locationRadiusMeters: rules.locationRadiusMeters,
@@ -910,6 +920,8 @@ async function attendanceRulesFor(
       ...defaultAttendanceRules,
       annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
       annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
+      annualLeaveAllowedMonths: annualPolicy?.allowedBalanceMonths ?? defaultAttendanceRules.annualLeaveAllowedMonths,
+      annualLeaveMonthlyDeductionLimit: annualPolicy?.monthlyDeductionLimit ?? defaultAttendanceRules.annualLeaveMonthlyDeductionLimit,
       id: null,
       companyId,
       effectiveTo: null,
@@ -923,6 +935,8 @@ async function attendanceRulesFor(
     ...(selected.configuration as Record<string, unknown>),
     annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
     annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
+    annualLeaveAllowedMonths: annualPolicy?.allowedBalanceMonths ?? defaultAttendanceRules.annualLeaveAllowedMonths,
+    annualLeaveMonthlyDeductionLimit: annualPolicy?.monthlyDeductionLimit ?? defaultAttendanceRules.annualLeaveMonthlyDeductionLimit,
     id: selected.id,
     companyId: selected.companyId,
     version: selected.version,
@@ -1565,10 +1579,10 @@ async function attendanceCalculationFor(
             : !attendance.checkIn
               ? "missing_attendance"
               : "present";
-  const shouldDeductAnnualLeave =
-    attendanceState === "unexcused_absence" ||
-    (attendanceState === "missing_attendance" &&
-      rules.absenceLeaveDeductionTrigger === "any_absence");
+  // Unauthorized absence is handled by the configured attendance penalty
+  // below. It must never consume annual leave; only an approved permission
+  // can create the separate annual-leave deduction transaction.
+  const shouldDeductAnnualLeave = false;
   if (persist) {
     const [priorAbsenceDeduction] = await db
       .select()
@@ -4818,6 +4832,187 @@ async function absenceDeductedFor(
   );
 }
 
+function policyBalanceMonths(
+  policy: typeof leavePoliciesTable.$inferSelect | null | undefined,
+) {
+  const months = (policy?.allowedBalanceMonths || []).filter(
+    (month): month is number =>
+      Number.isInteger(month) && month >= 1 && month <= 12,
+  );
+  return months.length
+    ? [...new Set(months)].sort((a, b) => a - b)
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+}
+
+function monthBounds(date: string) {
+  const monthStart = `${date.slice(0, 7)}-01`;
+  return {
+    from: monthStart,
+    to: addMonths(monthStart, 1),
+  };
+}
+
+async function annualLeaveDeductedInMonth(
+  companyId: string,
+  employeeId: string,
+  leaveType: string,
+  date: string,
+) {
+  const bounds = monthBounds(date);
+  const transactions = await db
+    .select({ amount: leaveBalanceTransactionsTable.amount })
+    .from(leaveBalanceTransactionsTable)
+    .where(
+      and(
+        eq(leaveBalanceTransactionsTable.companyId, companyId),
+        eq(leaveBalanceTransactionsTable.employeeId, employeeId),
+        eq(leaveBalanceTransactionsTable.leaveType, leaveType),
+        eq(leaveBalanceTransactionsTable.transactionType, "deduction"),
+        gte(leaveBalanceTransactionsTable.eventDate, bounds.from),
+        lt(leaveBalanceTransactionsTable.eventDate, bounds.to),
+      ),
+    );
+  return Math.max(
+    0,
+    transactions.reduce(
+      (total, transaction) => total + Math.max(0, -transaction.amount),
+      0,
+    ),
+  );
+}
+
+async function unauthorizedAbsenceDaysFor(
+  balance: typeof leaveBalancesTable.$inferSelect,
+) {
+  const bounds = monthBounds(TODAY);
+  const [attendanceRows, approvedPermissions] = await Promise.all([
+    db
+      .select({ date: attendanceTable.date, status: attendanceTable.status })
+      .from(attendanceTable)
+      .where(
+        and(
+          eq(attendanceTable.companyId, balance.companyId),
+          eq(attendanceTable.employeeId, balance.employeeId),
+          gte(attendanceTable.date, bounds.from),
+          lt(attendanceTable.date, bounds.to),
+        ),
+      ),
+    db
+      .select({ date: permissionRequestsTable.date })
+      .from(permissionRequestsTable)
+      .where(
+        and(
+          eq(permissionRequestsTable.companyId, balance.companyId),
+          eq(permissionRequestsTable.employeeId, balance.employeeId),
+          eq(permissionRequestsTable.status, "approved"),
+          gte(permissionRequestsTable.date, bounds.from),
+          lt(permissionRequestsTable.date, bounds.to),
+        ),
+      ),
+  ]);
+  const authorizedDates = new Set(approvedPermissions.map((row) => row.date));
+  return attendanceRows.filter(
+    (row) =>
+      ["absent", "unexcused_absence", "missing_attendance"].includes(
+        row.status,
+      ) && !authorizedDates.has(row.date),
+  ).length;
+}
+
+async function cappedAnnualLeaveDeduction(
+  balance: typeof leaveBalancesTable.$inferSelect,
+  policy: typeof leavePoliciesTable.$inferSelect,
+  date: string,
+  requestedDays: number,
+) {
+  if (
+    !isAnnualLeaveType(policy.leaveType) ||
+    requestedDays <= 0 ||
+    !policyBalanceMonths(policy).includes(Number(date.slice(5, 7)))
+  ) {
+    return 0;
+  }
+  const monthlyLimit = Math.max(0, Number(policy.monthlyDeductionLimit ?? 0));
+  const usedThisMonth = await annualLeaveDeductedInMonth(
+    balance.companyId,
+    balance.employeeId,
+    balance.type,
+    date,
+  );
+  const available = Math.max(
+    0,
+    balance.allocated - balance.used - balance.pending,
+  );
+  return Math.min(
+    requestedDays,
+    available,
+    Math.max(0, monthlyLimit - usedThisMonth),
+  );
+}
+
+async function applyApprovedPermissionAnnualLeave(
+  context: TenantContext,
+  request: typeof permissionRequestsTable.$inferSelect,
+) {
+  const rules = await attendanceRulesFor(context.companyId, request.date);
+  if (!rules.absenceDeductsAnnualLeave) return 0;
+  const policy = await annualLeavePolicyFor(context.companyId, request.date);
+  if (!policy || policy.deductionMode !== "automatic") return 0;
+  const [balance] = await db
+    .select()
+    .from(leaveBalancesTable)
+    .where(
+      and(
+        eq(leaveBalancesTable.companyId, context.companyId),
+        eq(leaveBalancesTable.employeeId, request.employeeId),
+        eq(leaveBalancesTable.type, policy.leaveType),
+      ),
+    )
+    .limit(1);
+  if (!balance) return 0;
+  const configuredDays = Math.max(
+    0,
+    Number(rules.absenceLeaveDeductionDays ?? 0),
+  );
+  const deduction = await cappedAnnualLeaveDeduction(
+    balance,
+    policy,
+    request.date,
+    configuredDays,
+  );
+  if (deduction <= 0) return 0;
+  const beforeBalance = balance.allocated - balance.used;
+  const transactionKey = `permission_leave:${request.id}`;
+  const [transaction] = await db
+    .insert(leaveBalanceTransactionsTable)
+    .values({
+      companyId: context.companyId,
+      employeeId: request.employeeId,
+      leaveType: policy.leaveType,
+      amount: -deduction,
+      transactionType: "deduction",
+      beforeBalance,
+      afterBalance: beforeBalance - deduction,
+      actorId: context.accountId,
+      reason: `Annual leave deduction for approved permission on ${request.date}`,
+      eventDate: request.date,
+      transactionKey,
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (!transaction) return 0;
+  await db
+    .update(leaveBalancesTable)
+    .set({ used: sql`${leaveBalancesTable.used} + ${deduction}` })
+    .where(
+      and(
+        eq(leaveBalancesTable.id, balance.id),
+        eq(leaveBalancesTable.companyId, context.companyId),
+      ),
+    );
+  return deduction;
+}
+
 async function effectiveLeavePolicy(
   companyId: string,
   leaveType: string,
@@ -4862,6 +5057,8 @@ function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
     carryForwardExpiryMonths: policy.carryForwardExpiryMonths,
     allowNegative: policy.allowNegative,
     periodStartMonth: policy.periodStartMonth,
+    allowedBalanceMonths: policyBalanceMonths(policy),
+    monthlyDeductionLimit: policy.monthlyDeductionLimit,
     enabled: policy.enabled,
     effectiveFrom: policy.effectiveFrom,
     effectiveTo: policy.effectiveTo,
@@ -4896,19 +5093,29 @@ async function leaveBalanceResponse(
   );
   const bounds = leavePeriodBounds(TODAY, policy?.periodStartMonth ?? 1);
   const absenceDeducted = await absenceDeductedFor(balance);
-  const leaveUsed = Math.max(0, balance.used - absenceDeducted);
+  const deductedThisMonth = await annualLeaveDeductedInMonth(
+    balance.companyId,
+    balance.employeeId,
+    balance.type,
+    TODAY,
+  );
+  const unauthorizedAbsenceDays = await unauthorizedAbsenceDaysFor(balance);
   return {
     id: balance.id,
     employee: employeeReference(employee, department.name),
     type: balance.type,
     allocated: balance.allocated,
     total: balance.allocated,
-    used: leaveUsed,
+    used: balance.used,
     absenceDeducted,
     pending: balance.pending,
     remaining: balance.allocated - balance.used - balance.pending,
     periodStart: bounds.periodStart,
     periodEnd: bounds.periodEnd,
+    allowedBalanceMonths: policyBalanceMonths(policy),
+    monthlyDeductionLimit: Number(policy?.monthlyDeductionLimit ?? 0),
+    deductedThisMonth,
+    unauthorizedAbsenceDays,
   };
 }
 
@@ -5194,7 +5401,9 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
   const parsed = CreateLeavePolicyBody.safeParse(req.body ?? {});
   if (
     !parsed.success ||
-    (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0)
+    (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0) ||
+    new Set(parsed.data.allowedBalanceMonths).size !==
+      parsed.data.allowedBalanceMonths.length
   ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
@@ -5236,6 +5445,8 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
         carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
         allowNegative: parsed.data.allowNegative,
         periodStartMonth: parsed.data.periodStartMonth ?? 1,
+        allowedBalanceMonths: parsed.data.allowedBalanceMonths,
+        monthlyDeductionLimit: parsed.data.monthlyDeductionLimit,
         enabled: parsed.data.enabled ?? true,
       })
       .where(eq(leavePoliciesTable.id, sameDate.id))
@@ -5264,6 +5475,8 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
       carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
       allowNegative: parsed.data.allowNegative,
       periodStartMonth: parsed.data.periodStartMonth ?? 1,
+      allowedBalanceMonths: parsed.data.allowedBalanceMonths,
+      monthlyDeductionLimit: parsed.data.monthlyDeductionLimit,
       enabled: parsed.data.enabled ?? true,
       effectiveFrom: parsed.data.effectiveFrom,
       createdBy: context.accountId,
@@ -6078,6 +6291,9 @@ router.post(
     if (!request) {
       res.status(404).json({ error: message(req, "permissionNotFound") });
       return;
+    }
+    if (parsed.data.decision === "approved") {
+      await applyApprovedPermissionAnnualLeave(context, request);
     }
     await recordAudit(
       context.companyId,
