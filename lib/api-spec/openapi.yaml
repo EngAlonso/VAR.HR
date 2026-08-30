@@ -824,37 +824,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LeaveBalance"
-  /leave/policies:
-    get:
-      operationId: listLeavePolicies
-      tags: [leave]
-      summary: List effective leave policies
-      responses:
-        "200":
-          description: Leave policies
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LeavePolicy"
-    post:
-      operationId: createLeavePolicy
-      tags: [leave]
-      summary: Create a versioned leave policy
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LeavePolicyInput"
-      responses:
-        "201":
-          description: Created leave policy
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LeavePolicy"
   /leave/balances/ledger:
     get:
       operationId: listLeaveBalanceTransactions
@@ -1026,41 +995,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRules"
-  /rules/versions:
+  /rules/changes:
     get:
-      operationId: listAttendanceRuleVersions
+      operationId: listAttendanceRuleChanges
       tags: [rules]
-      summary: List effective-dated attendance rule versions
+      summary: List attendance rule change history
       responses:
         "200":
-          description: Attendance rule versions
+          description: Attendance rule change history
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/AttendanceRuleVersion"
-    post:
-      operationId: createAttendanceRuleVersion
-      tags: [rules]
-      summary: Create a new attendance rule version
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AttendanceRuleVersionInput"
-      responses:
-        "201":
-          description: Created attendance rule version
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttendanceRuleVersion"
+                  $ref: "#/components/schemas/AttendanceRuleChange"
+  /rules:
     put:
       operationId: updateAttendanceRules
       tags: [rules]
-      summary: Update attendance rules
+      summary: Save attendance rules
       requestBody:
         required: true
         content:
@@ -2720,88 +2673,6 @@ components:
         monthlyDeductionLimit: { type: number, minimum: 0 }
         deductedThisMonth: { type: number, minimum: 0 }
         unauthorizedAbsenceDays: { type: number, minimum: 0 }
-    LeavePolicy:
-      type: object
-      required:
-        [
-          id,
-          leaveType,
-          version,
-          annualEntitlement,
-          accrualFrequency,
-          deductionMode,
-          carryForwardAllowed,
-          carryForwardDays,
-          allowNegative,
-           periodStartMonth,
-           allowedBalanceMonths,
-           monthlyDeductionLimit,
-           enabled,
-          effectiveFrom,
-          status,
-        ]
-      properties:
-        id: { type: string }
-        leaveType: { type: string }
-        version: { type: integer }
-        annualEntitlement: { type: number, minimum: 0 }
-        accrualFrequency:
-          type: string
-          enum: [monthly, quarterly, annual, hire_date]
-        deductionMode:
-          type: string
-          enum: [automatic, manual]
-        carryForwardAllowed: { type: boolean }
-        carryForwardDays: { type: number, minimum: 0 }
-        carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
-        allowNegative: { type: boolean }
-        periodStartMonth: { type: integer, minimum: 1, maximum: 12 }
-        allowedBalanceMonths:
-          type: array
-          minItems: 1
-          items: { type: integer, minimum: 1, maximum: 12 }
-        monthlyDeductionLimit: { type: number, minimum: 0 }
-        enabled: { type: boolean }
-        effectiveFrom: { type: string, format: date }
-        effectiveTo: { type: [string, "null"], format: date }
-        status: { type: string, enum: [active, archived] }
-        createdBy: { type: string }
-        createdAt: { type: string, format: date-time }
-    LeavePolicyInput:
-      type: object
-      required:
-        [
-          leaveType,
-          annualEntitlement,
-          accrualFrequency,
-          deductionMode,
-          carryForwardAllowed,
-          carryForwardDays,
-          allowNegative,
-          effectiveFrom,
-        ]
-      properties:
-        leaveType: { type: string, minLength: 1 }
-        annualEntitlement: { type: number, minimum: 0 }
-        accrualFrequency:
-          type: string
-          enum: [monthly, quarterly, annual, hire_date]
-        deductionMode:
-          type: string
-          enum: [automatic, manual]
-        carryForwardAllowed: { type: boolean }
-        carryForwardDays: { type: number, minimum: 0 }
-        carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
-        allowNegative: { type: boolean }
-        periodStartMonth: { type: integer, minimum: 1, maximum: 12, default: 1 }
-        allowedBalanceMonths:
-          type: array
-          minItems: 1
-          items: { type: integer, minimum: 1, maximum: 12 }
-          default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        monthlyDeductionLimit: { type: number, minimum: 0, default: 1 }
-        enabled: { type: boolean, default: true }
-        effectiveFrom: { type: string, format: date }
     LeaveBalanceTransaction:
       type: object
       required:
@@ -3040,8 +2911,6 @@ components:
           type: string
           enum: [disabled, optional, required]
         locationRadiusMeters: { type: integer, minimum: 0 }
-        version: { type: integer }
-        effectiveFrom: { type: string, format: date }
     AttendanceRulesInput:
       type: object
       required:
@@ -3082,6 +2951,7 @@ components:
              annualLeaveMonthlyDeductionLimit,
           gpsPolicy,
           locationRadiusMeters,
+          reason,
         ]
       properties:
         workStart: { type: string }
@@ -3158,36 +3028,23 @@ components:
           type: string
           enum: [disabled, optional, required]
         locationRadiusMeters: { type: integer, minimum: 0 }
-    AttendanceRuleVersion:
+        reason: { type: string, minLength: 1 }
+    AttendanceRuleChange:
       type: object
-      required:
-        [
-          id,
-          version,
-          effectiveFrom,
-          effectiveTo,
-          status,
-          createdBy,
-          createdAt,
-          configuration,
-        ]
+      required: [id, changedBy, field, oldValue, newValue, reason, changedAt]
       properties:
         id: { type: string, format: uuid }
-        version: { type: integer }
-        effectiveFrom: { type: string, format: date }
-        effectiveTo: { type: ["string", "null"], format: date }
-        status: { type: string, enum: [active, archived] }
-        createdBy: { type: string }
-        createdAt: { type: string, format: date-time }
-        configuration:
-          $ref: "#/components/schemas/AttendanceRules"
-    AttendanceRuleVersionInput:
-      allOf:
-        - $ref: "#/components/schemas/AttendanceRulesInput"
-        - type: object
-          required: [effectiveFrom]
+        changedBy:
+          type: object
+          required: [id, name]
           properties:
-            effectiveFrom: { type: string, format: date }
+            id: { type: string, format: uuid }
+            name: { type: string }
+        field: { type: string }
+        oldValue: {}
+        newValue: {}
+        reason: { type: string }
+        changedAt: { type: string, format: date-time }
     AttendanceReport:
       type: object
       required: [from, to, totals, rows]

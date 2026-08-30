@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 import { branchesTable, companiesTable, departmentsTable, employeesTable } from "./organization";
+import { userAccountsTable } from "./auth";
 
 export const attendanceTable = pgTable("var_hr_attendance", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -45,8 +46,6 @@ export const attendanceCalculationsTable = pgTable("var_hr_attendance_calculatio
   attendanceId: uuid("attendance_id").notNull().references(() => attendanceTable.id),
   employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
   attendanceDate: date("attendance_date", { mode: "string" }).notNull(),
-  ruleVersion: integer("rule_version").notNull(),
-  ruleEffectiveFrom: date("rule_effective_from", { mode: "string" }).notNull(),
   scheduleSource: text("schedule_source").notNull(),
   rawLateMinutes: integer("raw_late_minutes").notNull().default(0),
   lateGraceMinutes: integer("late_grace_minutes").notNull().default(0),
@@ -153,8 +152,10 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   workingDays: text("working_days").array().notNull().default(["Mon", "Tue", "Wed", "Thu", "Sun"]),
   gpsPolicy: text("gps_policy").notNull().default("optional"),
   locationRadiusMeters: integer("location_radius_meters").notNull().default(150),
-  version: integer("version").notNull().default(1),
-  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+  annualLeaveEntitlement: numeric("annual_leave_entitlement", { precision: 8, scale: 2, mode: "number" }).notNull().default(21),
+  annualLeavePeriodStartMonth: integer("annual_leave_period_start_month").notNull().default(1),
+  annualLeaveAllowedMonths: integer("annual_leave_allowed_months").array().notNull().default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+  annualLeaveMonthlyDeductionLimit: numeric("annual_leave_monthly_deduction_limit", { precision: 8, scale: 2, mode: "number" }).notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -189,17 +190,18 @@ export const attendanceTimeAdjustmentsTable = pgTable("var_hr_attendance_time_ad
  * The legacy table remains for compatibility with existing clients and is
  * maintained as the current-version mirror. All new edits are stored here.
  */
-export const attendanceRuleVersionsTable = pgTable("var_hr_attendance_rule_versions", {
+export const attendanceRuleChangesTable = pgTable("var_hr_attendance_rule_changes", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
-  version: integer("version").notNull(),
-  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
-  effectiveTo: date("effective_to", { mode: "string" }),
-  status: text("status").notNull().default("active"),
-  createdBy: text("created_by").notNull(),
+  actorId: uuid("actor_id").notNull().references(() => userAccountsTable.id),
+  fieldName: text("field_name").notNull(),
+  oldValue: jsonb("old_value"),
+  newValue: jsonb("new_value").notNull(),
+  reason: text("reason").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  configuration: jsonb("configuration").notNull(),
-});
+}, (table) => ({
+  companyCreatedIndex: index("var_hr_attendance_rule_changes_company_created_idx").on(table.companyId, table.createdAt),
+}));
 
 export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -211,32 +213,6 @@ export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
   pending: numeric("pending", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
 }, (table) => ({
   employeeTypeUnique: uniqueIndex("var_hr_leave_balances_employee_type_uidx").on(table.companyId, table.employeeId, table.type),
-}));
-
-export const leavePoliciesTable = pgTable("var_hr_leave_policies", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
-  leaveType: text("leave_type").notNull(),
-  version: integer("version").notNull().default(1),
-  annualEntitlement: numeric("annual_entitlement", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
-  accrualFrequency: text("accrual_frequency").notNull().default("annual"),
-  deductionMode: text("deduction_mode").notNull().default("automatic"),
-  carryForwardAllowed: boolean("carry_forward_allowed").notNull().default(false),
-  carryForwardDays: numeric("carry_forward_days", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
-  carryForwardExpiryMonths: integer("carry_forward_expiry_months"),
-  allowNegative: boolean("allow_negative").notNull().default(false),
-  periodStartMonth: integer("period_start_month").notNull().default(1),
-  allowedBalanceMonths: integer("allowed_balance_months").array().notNull().default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-  monthlyDeductionLimit: numeric("monthly_deduction_limit", { precision: 8, scale: 2, mode: "number" }).notNull().default(1),
-  enabled: boolean("enabled").notNull().default(true),
-  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
-  effectiveTo: date("effective_to", { mode: "string" }),
-  status: text("status").notNull().default("active"),
-  createdBy: text("created_by").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  companyTypeVersion: uniqueIndex("var_hr_leave_policies_company_type_version_uidx").on(table.companyId, table.leaveType, table.version),
-  effectiveIndex: index("var_hr_leave_policies_effective_idx").on(table.companyId, table.leaveType, table.effectiveFrom),
 }));
 
 export const leaveBalanceTransactionsTable = pgTable("var_hr_leave_balance_transactions", {
@@ -294,9 +270,8 @@ export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;
 export type AttendanceRules = typeof attendanceRulesTable.$inferSelect;
-export type AttendanceRuleVersion = typeof attendanceRuleVersionsTable.$inferSelect;
+export type AttendanceRuleChange = typeof attendanceRuleChangesTable.$inferSelect;
 export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
-export type LeavePolicy = typeof leavePoliciesTable.$inferSelect;
 export type LeaveBalanceTransaction = typeof leaveBalanceTransactionsTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;
 

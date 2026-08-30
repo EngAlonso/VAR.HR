@@ -45,7 +45,6 @@ export const payrollCalculationsTable = pgTable("var_hr_payroll_calculations", {
   absentDays: numeric("absent_days", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
   lineItems: jsonb("line_items").notNull().default([]),
   inputsSnapshot: jsonb("inputs_snapshot").notNull().default({}),
-  attendanceRuleVersionId: uuid("attendance_rule_version_id"),
   calculationVersion: integer("calculation_version").notNull().default(1),
   calculatedAt: timestamp("calculated_at", { withTimezone: true }).notNull().defaultNow(),
 });
