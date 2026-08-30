@@ -702,7 +702,6 @@ const copy = {
     databaseShifts: "Work schedules",
     databaseShiftAssignments: "Employee schedule assignments",
     databaseAttendanceRules: "Attendance rules",
-    databaseAttendanceRuleVersions: "Attendance rule versions",
     databaseAttendanceCalculations: "Attendance calculations",
     databaseAttendance: "Attendance",
     databaseHolidays: "Holidays",
@@ -2502,7 +2501,6 @@ const pageCopy = {
     databaseShifts: "جداول العمل",
     databaseShiftAssignments: "ربط الموظفين بالجداول",
     databaseAttendanceRules: "قواعد الحضور",
-    databaseAttendanceRuleVersions: "إصدارات قواعد الحضور",
     databaseAttendanceCalculations: "حسابات الحضور",
     databaseAttendance: "الحضور",
     databaseHolidays: "العطلات",
@@ -11244,6 +11242,7 @@ function Rules() {
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
   const changes = useListAttendanceRuleChanges();
+  const balances = useListLeaveBalances();
   const [form, setForm] = useState<any>(null);
   useEffect(() => {
     if (q.data && !form)
@@ -11867,6 +11866,48 @@ function Rules() {
           </Button>
         </div>
       </div>
+      <Card className="mt-6 p-6">
+        <div>
+          <h2 className="font-display text-lg font-semibold">
+            {locale === "ar" ? "أرصدة الإجازة السنوية" : "Annual leave balances"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {locale === "ar"
+              ? "الأرصدة الحالية للموظفين وفق إعدادات الإجازة السنوية أعلاه."
+              : "Current employee balances using the annual leave settings above."}
+          </p>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {balances.isLoading ? (
+            <Skeleton className="h-24" />
+          ) : balances.data?.length ? (
+            balances.data
+              .filter((balance: any) =>
+                ["annual", "annual leave"].includes(
+                  String(balance.type).trim().toLowerCase(),
+                ),
+              )
+              .map((balance: any) => (
+                <div key={balance.id} className="rounded-xl border border-border p-4">
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="font-semibold">{balance.employee?.name}</span>
+                    <span className="font-mono text-xs">
+                      {balance.remaining} {locale === "ar" ? "يوم متبقٍ" : "days left"}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <span>{locale === "ar" ? "المخصص" : "Allocated"}: {balance.allocated}</span>
+                    <span>{locale === "ar" ? "المستخدم" : "Used"}: {balance.used}</span>
+                  </div>
+                </div>
+              ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {locale === "ar" ? "لا توجد أرصدة بعد." : "No balances yet."}
+            </p>
+          )}
+        </div>
+      </Card>
       <Card className="mt-6 p-6">
         <div>
           <h2 className="font-display text-lg font-semibold">
@@ -15266,7 +15307,6 @@ const databaseEntityTranslationKeys: Record<string, AppCopyKey> = {
   shifts: "databaseShifts",
   shift_assignments: "databaseShiftAssignments",
   attendance_rules: "databaseAttendanceRules",
-  attendance_rule_versions: "databaseAttendanceRuleVersions",
   attendance_calculations: "databaseAttendanceCalculations",
   attendance: "databaseAttendance",
   holidays: "databaseHolidays",
@@ -15362,7 +15402,6 @@ const databaseGroups = [
       "shifts",
       "shift_assignments",
       "attendance_rules",
-      "attendance_rule_versions",
       "attendance_calculations",
       "attendance",
       "holidays",
