@@ -7553,10 +7553,9 @@ function EmployeeHrProfile({
   const annualLeaveBalance = ((leaveBalances.data || []) as Array<{
     type: string;
     employee?: { id?: string };
-    allocated?: number;
-    total?: number;
-    used?: number;
-    remaining?: number;
+    total: number;
+    used: number;
+    remaining: number;
   }>).find(
     (balance) =>
       balance.employee?.id === employeeId &&
@@ -7678,7 +7677,7 @@ function EmployeeHrProfile({
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Info
                   label={t("allocatedDays")}
-                  value={`${annualLeaveBalance.total ?? annualLeaveBalance.allocated ?? 0} ${t("days")}`}
+                  value={`${annualLeaveBalance.total} ${t("days")}`}
                 />
                 <Info
                   label={t("usedDays")}
