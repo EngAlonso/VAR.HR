@@ -4671,6 +4671,11 @@ function isAnnualLeaveType(value: string) {
   );
 }
 
+async function currentAnnualLeaveEntitlement(companyId: string) {
+  const rules = await attendanceRulesFor(companyId, TODAY);
+  return Number(rules.annualLeaveEntitlement ?? 0);
+}
+
 async function annualPolicyFromAttendanceRules(
   companyId: string,
   date = TODAY,
@@ -4866,6 +4871,9 @@ async function cappedAnnualLeaveDeduction(
     date,
     queryDb,
   );
+  const allocated = isAnnualLeaveType(balance.type)
+    ? await currentAnnualLeaveEntitlement(balance.companyId)
+    : balance.allocated;
   return calculateAnnualLeaveDeduction({
     absenceKind: "approved_permission",
     date,
@@ -4873,7 +4881,7 @@ async function cappedAnnualLeaveDeduction(
     monthlyDeductionLimit: monthlyLimit,
     deductedThisMonth: usedThisMonth,
     requestedDays,
-    allocated: balance.allocated,
+    allocated,
     used: balance.used,
     pending: balance.pending,
   });
@@ -5030,16 +5038,19 @@ async function leaveBalanceResponse(
     TODAY,
   );
   const unauthorizedAbsenceDays = await unauthorizedAbsenceDaysFor(balance);
+  const allocated = isAnnualLeaveType(balance.type)
+    ? await currentAnnualLeaveEntitlement(balance.companyId)
+    : balance.allocated;
   return {
     id: balance.id,
     employee: employeeReference(employee, department.name),
     type: balance.type,
-    allocated: balance.allocated,
-    total: balance.allocated,
+    allocated,
+    total: allocated,
     used: balance.used,
     absenceDeducted,
     pending: balance.pending,
-    remaining: balance.allocated - balance.used - balance.pending,
+    remaining: allocated - balance.used - balance.pending,
     periodStart: bounds.periodStart,
     periodEnd: bounds.periodEnd,
     allowedBalanceMonths: policyBalanceMonths(policy),
@@ -5104,11 +5115,50 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         ),
       ),
   ]);
-  const annualPolicy = await annualPolicyFromAttendanceRules(companyId, through);
+  const annualPolicy = await annualPolicyFromAttendanceRules(companyId, TODAY);
   const accrualPolicies = [
     ...policies.filter((policy) => !isAnnualLeaveType(policy.leaveType)),
-    annualPolicy,
   ];
+  const existingAnnualBalances = await db
+    .select({ employeeId: leaveBalancesTable.employeeId })
+    .from(leaveBalancesTable)
+    .where(
+      and(
+        eq(leaveBalancesTable.companyId, companyId),
+        or(
+          ilike(leaveBalancesTable.type, "annual"),
+          ilike(leaveBalancesTable.type, "annual leave"),
+        ),
+      ),
+    );
+  const employeesWithAnnualBalance = new Set(
+    existingAnnualBalances.map((balance) => balance.employeeId),
+  );
+  for (const employee of employees) {
+    if (employeesWithAnnualBalance.has(employee.id)) continue;
+    await db
+      .insert(leaveBalancesTable)
+      .values({
+        companyId,
+        employeeId: employee.id,
+        type: annualPolicy.leaveType,
+        allocated: annualPolicy.annualEntitlement,
+      })
+      .onConflictDoNothing();
+    employeesWithAnnualBalance.add(employee.id);
+  }
+  await db
+    .update(leaveBalancesTable)
+    .set({ allocated: annualPolicy.annualEntitlement })
+    .where(
+      and(
+        eq(leaveBalancesTable.companyId, companyId),
+        or(
+          ilike(leaveBalancesTable.type, "annual"),
+          ilike(leaveBalancesTable.type, "annual leave"),
+        ),
+      ),
+    );
   for (const policy of accrualPolicies) {
     const periodsPerYear =
       policy.accrualFrequency === "monthly"
@@ -5762,9 +5812,12 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
     parsed.data.type,
     calendarDate(parsed.data.from) ?? TODAY,
   );
+  const allocated = isAnnualLeaveType(parsed.data.type)
+    ? await currentAnnualLeaveEntitlement(context.companyId)
+    : balance.allocated;
   if (
     !requestPolicy?.allowNegative &&
-    balance.allocated - balance.used - balance.pending < days
+    allocated - balance.used - balance.pending < days
   ) {
     res.status(409).json({
       error: message(req, "leaveExceedsBalance", { type: parsed.data.type }),
@@ -6389,6 +6442,9 @@ router.put("/rules", async (req, res): Promise<void> => {
       JSON.stringify(value),
   );
   const appliesFromMonth = monthBounds(TODAY).from;
+  const annualEntitlement = Number(
+    nextValues.annualLeaveEntitlement ?? current.annualLeaveEntitlement ?? 0,
+  );
   const updated = await db.transaction(async (tx) => {
     const [saved] = await tx
       .update(attendanceRulesTable)
@@ -6411,6 +6467,18 @@ router.put("/rules", async (req, res): Promise<void> => {
         appliesFromMonth,
       });
     }
+    await tx
+      .update(leaveBalancesTable)
+      .set({ allocated: annualEntitlement })
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, context.companyId),
+          or(
+            ilike(leaveBalancesTable.type, "annual"),
+            ilike(leaveBalancesTable.type, "annual leave"),
+          ),
+        ),
+      );
     return saved;
   });
   res.json(
@@ -8424,6 +8492,9 @@ async function calculatePayrollPeriod(
         eq(permissionRequestsTable.status, "approved"),
       ),
     );
+  const currentAnnualEntitlement = await currentAnnualLeaveEntitlement(
+    context.companyId,
+  );
   const dates = dateStrings(period.from, period.to);
   const periodRules = await attendanceRulesFor(context.companyId, period.from);
   const rulesByDate = new Map<string, ResolvedAttendanceRules>(
@@ -8519,9 +8590,13 @@ async function calculatePayrollPeriod(
     );
     const employeeLeaveBalances = leaveBalances
       .filter((balance) => balance.employeeId === row.employee.id)
-      .map((balance) => ({
+    .map((balance) => {
+      const allocated = isAnnualLeaveType(balance.type)
+        ? currentAnnualEntitlement
+        : balance.allocated;
+      return {
         type: balance.type,
-        allocated: balance.allocated,
+        allocated,
         used: Math.max(
           0,
           balance.used -
@@ -8534,8 +8609,9 @@ async function calculatePayrollPeriod(
             `${balance.employeeId}:${balance.type}`,
           ) ?? 0,
         pending: balance.pending,
-        remaining: moneyValue(balance.allocated - balance.used),
-      }));
+        remaining: moneyValue(allocated - balance.used),
+      };
+    });
     const leaveDays = employeeLeaveRows.reduce(
       (total, leave) => total + leave.days,
       0,

@@ -70,9 +70,10 @@ test("payroll materializes scheduled absences without replacing approved leave",
 test("leave balances expose configured leave-year boundaries and states", () => {
   assert.match(route, /leavePeriodBounds/);
   assert.match(route, /periodStartMonth/);
-  assert.match(route, /total: balance\.allocated/);
+  assert.match(route, /const allocated = isAnnualLeaveType\(balance\.type\)/);
+  assert.match(route, /total: allocated/);
   assert.match(route, /absenceDeducted/);
-  assert.match(route, /remaining: balance\.allocated - balance\.used - balance\.pending/);
+  assert.match(route, /remaining: allocated - balance\.used - balance\.pending/);
   assert.match(route, /deductedThisMonth/);
   assert.match(route, /unauthorizedAbsenceDays/);
   assert.match(app, /leaveYearStartsIn/);
@@ -89,6 +90,8 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(spec, /absenceDeducted:/);
   assert.match(route, /annualLeavePolicyFor/);
   assert.match(route, /isAnnualLeaveType/);
+  assert.match(route, /currentAnnualLeaveEntitlement/);
+  assert.match(route, /set\(\{ allocated: annualEntitlement \}\)/);
   assert.match(route, /monthStart/);
   assert.match(route, /change\.oldValue/);
   assert.match(route, /effectiveLeavePolicy\([\s\S]*request\.from/);
