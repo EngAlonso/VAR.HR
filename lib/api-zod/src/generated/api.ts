@@ -1124,6 +1124,8 @@ export const previewAttendanceCalculationResponseFinalOvertimeMinutesMin = 0;
 
 export const previewAttendanceCalculationResponseFinalPenaltyMinutesMin = 0;
 
+export const previewAttendanceCalculationResponseAppliedOvertimeMultiplierMin = 0;
+
 
 
 
@@ -1164,6 +1166,8 @@ export const PreviewAttendanceCalculationResponse = zod.object({
   "finalWorkedMinutes": zod.int().min(previewAttendanceCalculationResponseFinalWorkedMinutesMin),
   "finalOvertimeMinutes": zod.int().min(previewAttendanceCalculationResponseFinalOvertimeMinutesMin),
   "finalPenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseFinalPenaltyMinutesMin),
+  "appliedOvertimeMultiplier": zod.number().min(previewAttendanceCalculationResponseAppliedOvertimeMultiplierMin),
+  "multiplierSource": zod.string(),
   "adjustments": zod.array(zod.object({
   "id": zod.string(),
   "attendanceId": zod.string(),
@@ -1242,6 +1246,8 @@ export const recalculateAttendanceResponseFinalOvertimeMinutesMin = 0;
 
 export const recalculateAttendanceResponseFinalPenaltyMinutesMin = 0;
 
+export const recalculateAttendanceResponseAppliedOvertimeMultiplierMin = 0;
+
 
 
 
@@ -1282,6 +1288,8 @@ export const RecalculateAttendanceResponse = zod.object({
   "finalWorkedMinutes": zod.int().min(recalculateAttendanceResponseFinalWorkedMinutesMin),
   "finalOvertimeMinutes": zod.int().min(recalculateAttendanceResponseFinalOvertimeMinutesMin),
   "finalPenaltyMinutes": zod.int().min(recalculateAttendanceResponseFinalPenaltyMinutesMin),
+  "appliedOvertimeMultiplier": zod.number().min(recalculateAttendanceResponseAppliedOvertimeMultiplierMin),
+  "multiplierSource": zod.string(),
   "adjustments": zod.array(zod.object({
   "id": zod.string(),
   "attendanceId": zod.string(),
@@ -1571,7 +1579,10 @@ export const ListLeaveBalancesResponseItem = zod.object({
   "allocated": zod.number(),
   "used": zod.number(),
   "pending": zod.number(),
-  "remaining": zod.number()
+  "remaining": zod.number(),
+  "total": zod.number(),
+  "periodStart": zod.iso.date(),
+  "periodEnd": zod.iso.date()
 })
 export const ListLeaveBalancesResponse = zod.array(ListLeaveBalancesResponseItem)
 
@@ -1584,6 +1595,8 @@ export const listLeavePoliciesResponseAnnualEntitlementMin = 0;
 export const listLeavePoliciesResponseCarryForwardDaysMin = 0;
 
 export const listLeavePoliciesResponseCarryForwardExpiryMonthsMin = 0;
+
+export const listLeavePoliciesResponsePeriodStartMonthMax = 12;
 
 
 
@@ -1598,6 +1611,8 @@ export const ListLeavePoliciesResponseItem = zod.object({
   "carryForwardDays": zod.number().min(listLeavePoliciesResponseCarryForwardDaysMin),
   "carryForwardExpiryMonths": zod.int().min(listLeavePoliciesResponseCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
+  "periodStartMonth": zod.int().min(1).max(listLeavePoliciesResponsePeriodStartMonthMax),
+  "enabled": zod.boolean(),
   "effectiveFrom": zod.iso.date(),
   "effectiveTo": zod.iso.date().nullish(),
   "status": zod.enum(['active', 'archived']),
@@ -1617,7 +1632,10 @@ export const createLeavePolicyBodyCarryForwardDaysMin = 0;
 
 export const createLeavePolicyBodyCarryForwardExpiryMonthsMin = 0;
 
+export const createLeavePolicyBodyPeriodStartMonthDefault = 1;
+export const createLeavePolicyBodyPeriodStartMonthMax = 12;
 
+export const createLeavePolicyBodyEnabledDefault = true;
 
 export const CreateLeavePolicyBody = zod.object({
   "leaveType": zod.string().min(1),
@@ -1628,6 +1646,8 @@ export const CreateLeavePolicyBody = zod.object({
   "carryForwardDays": zod.number().min(createLeavePolicyBodyCarryForwardDaysMin),
   "carryForwardExpiryMonths": zod.int().min(createLeavePolicyBodyCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
+  "periodStartMonth": zod.int().min(1).max(createLeavePolicyBodyPeriodStartMonthMax).default(createLeavePolicyBodyPeriodStartMonthDefault),
+  "enabled": zod.boolean().default(createLeavePolicyBodyEnabledDefault),
   "effectiveFrom": zod.iso.date()
 })
 
@@ -1636,6 +1656,8 @@ export const createLeavePolicyResponseAnnualEntitlementMin = 0;
 export const createLeavePolicyResponseCarryForwardDaysMin = 0;
 
 export const createLeavePolicyResponseCarryForwardExpiryMonthsMin = 0;
+
+export const createLeavePolicyResponsePeriodStartMonthMax = 12;
 
 
 
@@ -1650,6 +1672,8 @@ export const CreateLeavePolicyResponse = zod.object({
   "carryForwardDays": zod.number().min(createLeavePolicyResponseCarryForwardDaysMin),
   "carryForwardExpiryMonths": zod.int().min(createLeavePolicyResponseCarryForwardExpiryMonthsMin).nullish(),
   "allowNegative": zod.boolean(),
+  "periodStartMonth": zod.int().min(1).max(createLeavePolicyResponsePeriodStartMonthMax),
+  "enabled": zod.boolean(),
   "effectiveFrom": zod.iso.date(),
   "effectiveTo": zod.iso.date().nullish(),
   "status": zod.enum(['active', 'archived']),
@@ -1709,7 +1733,10 @@ export const AdjustLeaveBalanceResponse = zod.object({
   "allocated": zod.number(),
   "used": zod.number(),
   "pending": zod.number(),
-  "remaining": zod.number()
+  "remaining": zod.number(),
+  "total": zod.number(),
+  "periodStart": zod.iso.date(),
+  "periodEnd": zod.iso.date()
 })
 
 
@@ -1943,6 +1970,7 @@ export const getAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 
 export const getAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
+
 export const getAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
 
@@ -1973,6 +2001,19 @@ export const GetAttendanceRulesResponse = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(getAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -1999,6 +2040,7 @@ export const listAttendanceRuleVersionsResponseConfigurationLateDeductionFactorM
 export const listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutDeductionFactorMin = 0;
 
 export const listAttendanceRuleVersionsResponseConfigurationAbsenceDeductionFactorMin = 0;
+
 
 export const listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2038,6 +2080,19 @@ export const ListAttendanceRuleVersionsResponseItem = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2067,6 +2122,7 @@ export const createAttendanceRuleVersionBodyOneLateDeductionFactorMin = 0;
 export const createAttendanceRuleVersionBodyOneEarlyCheckoutDeductionFactorMin = 0;
 
 export const createAttendanceRuleVersionBodyOneAbsenceDeductionFactorMin = 0;
+
 
 export const createAttendanceRuleVersionBodyOneLocationRadiusMetersMin = 0;
 
@@ -2098,6 +2154,19 @@ export const CreateAttendanceRuleVersionBody = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionBodyOneLocationRadiusMetersMin)
 }).and(zod.object({
@@ -2120,6 +2189,7 @@ export const createAttendanceRuleVersionResponseConfigurationLateDeductionFactor
 export const createAttendanceRuleVersionResponseConfigurationEarlyCheckoutDeductionFactorMin = 0;
 
 export const createAttendanceRuleVersionResponseConfigurationAbsenceDeductionFactorMin = 0;
+
 
 export const createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2159,6 +2229,19 @@ export const CreateAttendanceRuleVersionResponse = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2187,6 +2270,7 @@ export const updateAttendanceRulesBodyLateDeductionFactorMin = 0;
 export const updateAttendanceRulesBodyEarlyCheckoutDeductionFactorMin = 0;
 
 export const updateAttendanceRulesBodyAbsenceDeductionFactorMin = 0;
+
 
 export const updateAttendanceRulesBodyLocationRadiusMetersMin = 0;
 
@@ -2218,6 +2302,19 @@ export const UpdateAttendanceRulesBody = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesBodyLocationRadiusMetersMin)
 })
@@ -2238,6 +2335,7 @@ export const updateAttendanceRulesResponseLateDeductionFactorMin = 0;
 export const updateAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 
 export const updateAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
+
 
 export const updateAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
@@ -2269,6 +2367,19 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "workingDays": zod.array(zod.string()),
   "holidayDates": zod.array(zod.iso.date()),
+  "holidayPeriods": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "weeklyMultipliers": zod.array(zod.object({
+  "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
+  "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "absenceDeductsAnnualLeave": zod.boolean(),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2710,7 +2821,10 @@ export const ListHolidaysResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "date": zod.iso.date(),
+  "endDate": zod.iso.date().nullable(),
   "recurring": zod.boolean(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true})
 })
 export const ListHolidaysResponse = zod.array(ListHolidaysResponseItem)
@@ -2721,18 +2835,26 @@ export const ListHolidaysResponse = zod.array(ListHolidaysResponseItem)
  */
 
 export const createHolidayBodyRecurringDefault = false;
+export const createHolidayBodyMultiplierDefault = 1;
+export const createHolidayBodyEnabledDefault = true;
 
 export const CreateHolidayBody = zod.object({
   "name": zod.string().min(1),
   "date": zod.iso.date(),
-  "recurring": zod.boolean().default(createHolidayBodyRecurringDefault)
+  "endDate": zod.iso.date().nullish(),
+  "recurring": zod.boolean().default(createHolidayBodyRecurringDefault),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]).default(createHolidayBodyMultiplierDefault),
+  "enabled": zod.boolean().default(createHolidayBodyEnabledDefault)
 })
 
 export const CreateHolidayResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "date": zod.iso.date(),
+  "endDate": zod.iso.date().nullable(),
   "recurring": zod.boolean(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true})
 })
 
@@ -2746,18 +2868,26 @@ export const UpdateHolidayParams = zod.object({
 
 
 export const updateHolidayBodyRecurringDefault = false;
+export const updateHolidayBodyMultiplierDefault = 1;
+export const updateHolidayBodyEnabledDefault = true;
 
 export const UpdateHolidayBody = zod.object({
   "name": zod.string().min(1),
   "date": zod.iso.date(),
-  "recurring": zod.boolean().default(updateHolidayBodyRecurringDefault)
+  "endDate": zod.iso.date().nullish(),
+  "recurring": zod.boolean().default(updateHolidayBodyRecurringDefault),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]).default(updateHolidayBodyMultiplierDefault),
+  "enabled": zod.boolean().default(updateHolidayBodyEnabledDefault)
 })
 
 export const UpdateHolidayResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "date": zod.iso.date(),
+  "endDate": zod.iso.date().nullable(),
   "recurring": zod.boolean(),
+  "multiplier": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean(),
   "createdAt": zod.iso.datetime({"offset":true})
 })
 

@@ -549,7 +549,10 @@ function mapHoliday(holiday: typeof holidaysTable.$inferSelect) {
     id: holiday.id,
     name: holiday.name,
     date: holiday.date,
+    endDate: holiday.endDate,
     recurring: holiday.recurring,
+    multiplier: holiday.multiplier,
+    enabled: holiday.enabled,
     createdAt: holiday.createdAt.toISOString(),
   };
 }
@@ -752,6 +755,19 @@ const defaultAttendanceRules = {
   fullDayPermissionMultiplier: 0,
   workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
   holidayDates: [] as string[],
+  holidayPeriods: [] as Array<{
+    name: string;
+    from: string;
+    to: string;
+    multiplier: 1 | 2 | 3;
+    enabled: boolean;
+  }>,
+  weeklyMultipliers: [] as Array<{
+    weekday: string;
+    multiplier: 1 | 1.5 | 2 | 3;
+    enabled: boolean;
+  }>,
+  absenceDeductsAnnualLeave: false,
   gpsPolicy: "optional" as const,
   locationRadiusMeters: 180,
   version: 1,
@@ -797,6 +813,9 @@ function rulesConfiguration(
       rules.permissionCoveredMinutesMultiplier,
     fullDayPermissionMultiplier: rules.fullDayPermissionMultiplier,
     holidayDates: rules.holidayDates,
+    holidayPeriods: rules.holidayPeriods,
+    weeklyMultipliers: rules.weeklyMultipliers,
+    absenceDeductsAnnualLeave: rules.absenceDeductsAnnualLeave,
     workingDays: rules.workingDays,
     gpsPolicy: rules.gpsPolicy,
     locationRadiusMeters: rules.locationRadiusMeters,
@@ -1120,8 +1139,10 @@ function holidayMatchesDate(
   holiday: typeof holidaysTable.$inferSelect,
   date: string,
 ): boolean {
+  if (!holiday.enabled) return false;
+  const endDate = holiday.endDate ?? holiday.date;
   return (
-    holiday.date === date ||
+    (holiday.date <= date && endDate >= date) ||
     (holiday.recurring && holiday.date.slice(5) === date.slice(5))
   );
 }
@@ -1142,8 +1163,63 @@ function isHolidayDate(
 ): boolean {
   return (
     rules.holidayDates.includes(date) ||
+    rules.holidayPeriods.some(
+      (period) =>
+        period.enabled && period.from <= date && period.to >= date,
+    ) ||
     holidays.some((holiday) => holidayMatchesDate(holiday, date))
   );
+}
+
+function holidayMultiplierForDate(
+  date: string,
+  rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
+  holidays: (typeof holidaysTable.$inferSelect)[],
+): { multiplier: number; source: string } {
+  const candidates = [
+    ...rules.holidayPeriods
+      .filter(
+        (period) =>
+          period.enabled && period.from <= date && period.to >= date,
+      )
+      .map((period) => ({
+        multiplier: period.multiplier,
+        source: `holiday period: ${period.name}`,
+      })),
+    ...holidays
+      .filter((holiday) => holidayMatchesDate(holiday, date))
+      .map((holiday) => ({
+        multiplier: holiday.multiplier,
+        source: `holiday: ${holiday.name}`,
+      })),
+  ];
+  return candidates.sort((a, b) => b.multiplier - a.multiplier)[0] ?? {
+    multiplier: 1,
+    source: "standard",
+  };
+}
+
+function weeklyMultiplierForDate(
+  date: string,
+  rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
+): { multiplier: number; source: string } {
+  const weekday = weekdayFor(date);
+  const candidate = rules.weeklyMultipliers
+    .filter((item) => item.enabled && item.weekday === weekday)
+    .sort((a, b) => b.multiplier - a.multiplier)[0];
+  return candidate
+    ? { multiplier: candidate.multiplier, source: `weekly: ${weekday}` }
+    : { multiplier: 1, source: "standard" };
+}
+
+function overtimeMultiplierForDate(
+  date: string,
+  rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
+  holidays: (typeof holidaysTable.$inferSelect)[],
+) {
+  const holiday = holidayMultiplierForDate(date, rules, holidays);
+  const weekly = weeklyMultiplierForDate(date, rules);
+  return holiday.multiplier >= weekly.multiplier ? holiday : weekly;
 }
 
 function isWorkingScheduleDay(
@@ -1267,15 +1343,18 @@ function attendanceMetrics(input: {
           0,
           Math.round(input.schedule.requiredHours * 60) - netWorkedMinutes,
         );
-  const overtimeMinutes =
-    input.schedule.overtimeEligible && workingDay && !input.holiday
-      ? Math.max(
-          0,
-          netWorkedMinutes -
-            normalScheduledMinutes -
-            input.schedule.overtimeAfterMinutes,
-        )
-      : 0;
+  const overtimeMinutes = input.schedule.overtimeEligible
+    ? input.holiday
+      ? netWorkedMinutes
+      : workingDay
+        ? Math.max(
+            0,
+            netWorkedMinutes -
+              normalScheduledMinutes -
+              input.schedule.overtimeAfterMinutes,
+          )
+        : 0
+    : 0;
   return {
     workedMinutes,
     netWorkedMinutes,
@@ -1326,10 +1405,12 @@ async function attendanceCalculationFor(
         ? false
         : rules.overtimeEligible;
   const calculationSchedule = { ...schedule, overtimeEligible };
-  const holiday = isHolidayDate(
+  const holidays = await holidaysForCompany(context.companyId);
+  const holiday = isHolidayDate(attendance.date, rules, holidays);
+  const overtimeRate = overtimeMultiplierForDate(
     attendance.date,
     rules,
-    await holidaysForCompany(context.companyId),
+    holidays,
   );
   const [approvedLeave] = await db
     .select({ id: leaveRequestsTable.id })
@@ -1463,6 +1544,49 @@ async function attendanceCalculationFor(
             : !attendance.checkIn
               ? "missing_attendance"
               : "present";
+  if (
+    persist &&
+    rules.absenceDeductsAnnualLeave &&
+    (attendanceState === "unexcused_absence" ||
+      attendanceState === "missing_attendance")
+  ) {
+    const [balance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, context.companyId),
+          eq(leaveBalancesTable.employeeId, attendance.employeeId),
+          eq(leaveBalancesTable.type, "annual"),
+        ),
+      )
+      .limit(1);
+    if (balance) {
+      const transactionKey = `absence_leave:${attendance.id}`;
+      const [transaction] = await db
+        .insert(leaveBalanceTransactionsTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: attendance.employeeId,
+          leaveType: "annual",
+          amount: -1,
+          transactionType: "usage",
+          beforeBalance: balance.allocated - balance.used,
+          afterBalance: balance.allocated - balance.used - 1,
+          actorId: "system",
+          reason: `Annual leave deduction for absence on ${attendance.date}`,
+          transactionKey,
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (transaction) {
+        await db
+          .update(leaveBalancesTable)
+          .set({ used: sql`${leaveBalancesTable.used} + 1` })
+          .where(eq(leaveBalancesTable.id, balance.id));
+      }
+    }
+  }
   const latePenaltyMinutes =
     uncoveredLateMinutes * rules.latePenaltyMultiplier +
     permissionCoveredLateMinutes *
@@ -1483,18 +1607,20 @@ async function attendanceCalculationFor(
   const totalPenaltyMinutes =
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
   const automaticOvertimeMinutes = calculationSchedule.overtimeEligible
-    ? Math.max(
-        0,
-        finalWorkedMinutes -
-          Math.max(
-            0,
-            scheduledMinutes -
-              (calculationSchedule.breakPaid
-                ? 0
-                : calculationSchedule.breakDurationMinutes),
-          ) -
-          rules.overtimeAfterMinutes,
-      )
+    ? holiday
+      ? finalWorkedMinutes
+      : Math.max(
+          0,
+          finalWorkedMinutes -
+            Math.max(
+              0,
+              scheduledMinutes -
+                (calculationSchedule.breakPaid
+                  ? 0
+                  : calculationSchedule.breakDurationMinutes),
+            ) -
+            rules.overtimeAfterMinutes,
+        )
     : 0;
   const finalOvertimeMinutes = Math.max(
     0,
@@ -1513,6 +1639,7 @@ async function attendanceCalculationFor(
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+    `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
     `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
     `Permission coverage uses merged approved windows (overlaps counted once): ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes${fullDayPermission ? "; full-day policy applies" : ""}.`,
     `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
@@ -1554,6 +1681,8 @@ async function attendanceCalculationFor(
     finalWorkedMinutes,
     finalOvertimeMinutes,
     finalPenaltyMinutes,
+    appliedOvertimeMultiplier: overtimeRate.multiplier,
+    multiplierSource: overtimeRate.source,
     adjustments: adjustmentRows,
     explanation,
     calculatedAt: new Date(),
@@ -4551,6 +4680,7 @@ async function effectiveLeavePolicy(
           gte(leavePoliciesTable.effectiveTo, date),
         ),
         eq(leavePoliciesTable.status, "active"),
+        eq(leavePoliciesTable.enabled, true),
       ),
     )
     .orderBy(
@@ -4573,11 +4703,51 @@ function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
     carryForwardDays: policy.carryForwardDays,
     carryForwardExpiryMonths: policy.carryForwardExpiryMonths,
     allowNegative: policy.allowNegative,
+    periodStartMonth: policy.periodStartMonth,
+    enabled: policy.enabled,
     effectiveFrom: policy.effectiveFrom,
     effectiveTo: policy.effectiveTo,
     status: policy.status,
     createdBy: policy.createdBy,
     createdAt: policy.createdAt.toISOString(),
+  };
+}
+
+function leavePeriodBounds(date: string, startMonth: number) {
+  const month = Math.min(12, Math.max(1, startMonth || 1));
+  const year =
+    Number(date.slice(5, 7)) >= month
+      ? Number(date.slice(0, 4))
+      : Number(date.slice(0, 4)) - 1;
+  const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  return {
+    periodStart,
+    periodEnd: dateOffset(addMonths(periodStart, 12), -1),
+  };
+}
+
+async function leaveBalanceResponse(
+  balance: typeof leaveBalancesTable.$inferSelect,
+  employee: typeof employeesTable.$inferSelect,
+  department: typeof departmentsTable.$inferSelect,
+) {
+  const policy = await effectiveLeavePolicy(
+    balance.companyId,
+    balance.type,
+    TODAY,
+  );
+  const bounds = leavePeriodBounds(TODAY, policy?.periodStartMonth ?? 1);
+  return {
+    id: balance.id,
+    employee: employeeReference(employee, department.name),
+    type: balance.type,
+    allocated: balance.allocated,
+    total: balance.allocated,
+    used: balance.used,
+    pending: balance.pending,
+    remaining: balance.allocated - balance.used - balance.pending,
+    periodStart: bounds.periodStart,
+    periodEnd: bounds.periodEnd,
   };
 }
 
@@ -4595,7 +4765,7 @@ function accrualPeriodKeys(
   const keys: string[] = [];
   for (let year = startYear; year <= endYear; year += 1) {
     if (policy.accrualFrequency === "annual") {
-      const date = `${year}-01-01`;
+      const date = `${year}-${String(policy.periodStartMonth || 1).padStart(2, "0")}-01`;
       if (date >= start && date <= through) keys.push(`${year}`);
     } else if (policy.accrualFrequency === "monthly") {
       for (let month = 1; month <= 12; month += 1) {
@@ -4636,6 +4806,7 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         and(
           eq(leavePoliciesTable.companyId, companyId),
           eq(leavePoliciesTable.status, "active"),
+          eq(leavePoliciesTable.enabled, true),
         ),
       ),
   ]);
@@ -4706,10 +4877,13 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
           balance.allocated += amount;
         }
       }
-      // Carry-forward is recorded once at the start of each calendar year.
+      // Carry-forward is recorded once at the start of each configured leave year.
       if (policy.carryForwardAllowed && policy.carryForwardDays > 0) {
-        const year = Number(through.slice(0, 4));
-        const yearStart = `${year}-01-01`;
+        const yearStart = leavePeriodBounds(
+          through,
+          policy.periodStartMonth,
+        ).periodStart;
+        const year = Number(yearStart.slice(0, 4));
         if (policy.effectiveFrom <= yearStart && through >= yearStart) {
           const transactionKey = `carry_forward:${policy.id}:${employee.id}:${year}`;
           const [existing] = await db
@@ -4759,10 +4933,13 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         policy.carryForwardExpiryMonths &&
         policy.carryForwardExpiryMonths > 0
       ) {
-        const year = Number(through.slice(0, 4));
-        const priorYear = year - 1;
+        const currentPeriodStart = leavePeriodBounds(
+          through,
+          policy.periodStartMonth,
+        ).periodStart;
+        const priorYear = Number(currentPeriodStart.slice(0, 4)) - 1;
         const expiryDate = addMonths(
-          `${priorYear}-01-01`,
+          `${priorYear}-${String(policy.periodStartMonth || 1).padStart(2, "0")}-01`,
           policy.carryForwardExpiryMonths,
         );
         if (through >= expiryDate) {
@@ -4903,6 +5080,8 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
       carryForwardDays: parsed.data.carryForwardDays,
       carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
       allowNegative: parsed.data.allowNegative,
+      periodStartMonth: parsed.data.periodStartMonth ?? 1,
+      enabled: parsed.data.enabled ?? true,
       effectiveFrom: parsed.data.effectiveFrom,
       createdBy: context.accountId,
     })
@@ -5066,18 +5245,13 @@ router.post(
       .where(eq(employeesTable.id, updated.employeeId))
       .limit(1);
     res.json(
-      AdjustLeaveBalanceResponse.parse({
-        id: updated.id,
-        employee: employeeReference(
+      AdjustLeaveBalanceResponse.parse(
+        await leaveBalanceResponse(
+          updated,
           employee.employee,
-          employee.department.name,
+          employee.department,
         ),
-        type: updated.type,
-        allocated: updated.allocated,
-        used: updated.used,
-        pending: updated.pending,
-        remaining: updated.allocated - updated.used - updated.pending,
-      }),
+      ),
     );
   },
 );
@@ -5112,15 +5286,11 @@ router.get("/leave/balances", async (req, res): Promise<void> => {
     );
   res.json(
     ListLeaveBalancesResponse.parse(
-      balances.map(({ balance, employee, department }) => ({
-        id: balance.id,
-        employee: employeeReference(employee, department.name),
-        type: balance.type,
-        allocated: balance.allocated,
-        used: balance.used,
-        pending: balance.pending,
-        remaining: balance.allocated - balance.used - balance.pending,
-      })),
+      await Promise.all(
+        balances.map(({ balance, employee, department }) =>
+          leaveBalanceResponse(balance, employee, department),
+        ),
+      ),
     ),
   );
 });
@@ -6535,7 +6705,10 @@ router.post("/holidays", async (req, res): Promise<void> => {
       companyId: context.companyId,
       name: parsed.data.name,
       date: parsed.data.date,
+      endDate: parsed.data.endDate ?? null,
       recurring: parsed.data.recurring,
+      multiplier: parsed.data.multiplier,
+      enabled: parsed.data.enabled,
     })
     .returning();
   await recordAudit(
@@ -6598,7 +6771,10 @@ router.patch("/holidays/:holidayId", async (req, res): Promise<void> => {
     .set({
       name: parsed.data.name,
       date: parsed.data.date,
+      endDate: parsed.data.endDate ?? null,
       recurring: parsed.data.recurring,
+      multiplier: parsed.data.multiplier,
+      enabled: parsed.data.enabled,
     })
     .where(eq(holidaysTable.id, existing.id))
     .returning();
@@ -7754,6 +7930,100 @@ async function storedPayrollCalculation(
   };
 }
 
+async function synchronizePayrollAttendance(
+  context: TenantContext,
+  employees: Awaited<ReturnType<typeof employeeRows>>,
+  from: string,
+  to: string,
+) {
+  const through = to < TODAY ? to : TODAY;
+  if (from > through) return;
+  const dates = dateStrings(from, through);
+  const [existing, approvedLeaves, approvedPermissions, holidays, rules, schedules] =
+    await Promise.all([
+      db
+        .select()
+        .from(attendanceTable)
+        .where(
+          and(
+            eq(attendanceTable.companyId, context.companyId),
+            gte(attendanceTable.date, from),
+            lte(attendanceTable.date, through),
+          ),
+        ),
+      db
+        .select()
+        .from(leaveRequestsTable)
+        .where(
+          and(
+            eq(leaveRequestsTable.companyId, context.companyId),
+            eq(leaveRequestsTable.status, "approved"),
+          ),
+        ),
+      db
+        .select()
+        .from(permissionRequestsTable)
+        .where(
+          and(
+            eq(permissionRequestsTable.companyId, context.companyId),
+            eq(permissionRequestsTable.status, "approved"),
+          ),
+        ),
+      holidaysForCompany(context.companyId),
+      attendanceRulesFor(context.companyId, from),
+      scheduleRowsForCompany(context.companyId),
+    ]);
+  const existingKeys = new Set(
+    existing.map((item) => `${item.employeeId}:${item.date}`),
+  );
+  for (const row of employees.filter((item) => item.employee.status === "active")) {
+    for (const date of dates) {
+      const schedule = effectiveScheduleFromRows(
+        row.employee.id,
+        date,
+        rules,
+        schedules,
+      );
+      if (
+        existingKeys.has(`${row.employee.id}:${date}`) ||
+        !isWorkingScheduleDay(schedule, date) ||
+        isHolidayDate(date, rules, holidays) ||
+        approvedLeaves.some(
+          (leave) =>
+            leave.employeeId === row.employee.id &&
+            leave.from <= date &&
+            leave.to >= date,
+        ) ||
+        approvedPermissions.some(
+          (permission) =>
+            permission.employeeId === row.employee.id && permission.date === date,
+        )
+      ) {
+        continue;
+      }
+      const [absent] = await db
+        .insert(attendanceTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: row.employee.id,
+          date,
+          status: "absent",
+          scheduledStart: schedule.startTime,
+          scheduledEnd: schedule.endTime,
+          requiredHours: schedule.requiredHours,
+          source: "payroll_sync",
+          explanation: "Automatically materialized as absent during payroll synchronization.",
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (absent) {
+        existingKeys.add(`${row.employee.id}:${date}`);
+        await attendanceCalculationFor(context, absent, true);
+      }
+    }
+  }
+}
+
 async function calculatePayrollPeriod(
   context: TenantContext,
   req: Request,
@@ -7765,6 +8035,7 @@ async function calculatePayrollPeriod(
   const rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
+  await synchronizePayrollAttendance(context, rows, period.from, period.to);
   const attendance = await getAttendanceRows(context, period.from, period.to);
   const storedAttendanceCalculations = await db
     .select()
@@ -7939,9 +8210,16 @@ async function calculatePayrollPeriod(
     const hourlyRate =
       row.employee.salary / Math.max(1, rules.hourlyRateDivisor);
     const overtime = moneyValue(
-      overtimeHours *
-        hourlyRate *
-        (rules.overtimeMethod === "multiplier" ? rules.overtimeMultiplier : 1),
+      employeeCalculations.reduce(
+        (total, calculation) =>
+          total +
+          (calculation.finalOvertimeMinutes / 60) *
+            hourlyRate *
+            (rules.overtimeMethod === "multiplier"
+              ? calculation.appliedOvertimeMultiplier
+              : 1),
+        0,
+      ),
     );
     const latePenaltyMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.latePenaltyMinutes,

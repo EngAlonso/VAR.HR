@@ -24,5 +24,11 @@ export interface LeavePolicyInput {
      */
   carryForwardExpiryMonths?: number | null;
   allowNegative: boolean;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  periodStartMonth?: number;
+  enabled?: boolean;
   effectiveFrom: string;
 }

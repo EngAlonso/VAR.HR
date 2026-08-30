@@ -10,10 +10,12 @@ import type { AttendanceRulesAbsencePenaltyMultiplier } from './attendanceRulesA
 import type { AttendanceRulesEarlyDeparturePenaltyMultiplier } from './attendanceRulesEarlyDeparturePenaltyMultiplier';
 import type { AttendanceRulesFullDayPermissionMultiplier } from './attendanceRulesFullDayPermissionMultiplier';
 import type { AttendanceRulesGpsPolicy } from './attendanceRulesGpsPolicy';
+import type { AttendanceRulesHolidayPeriodsItem } from './attendanceRulesHolidayPeriodsItem';
 import type { AttendanceRulesLateDeductionMethod } from './attendanceRulesLateDeductionMethod';
 import type { AttendanceRulesLatePenaltyMultiplier } from './attendanceRulesLatePenaltyMultiplier';
 import type { AttendanceRulesOvertimeMethod } from './attendanceRulesOvertimeMethod';
 import type { AttendanceRulesPermissionCoveredMinutesMultiplier } from './attendanceRulesPermissionCoveredMinutesMultiplier';
+import type { AttendanceRulesWeeklyMultipliersItem } from './attendanceRulesWeeklyMultipliersItem';
 
 export interface AttendanceRules {
   workStart: string;
@@ -50,6 +52,9 @@ export interface AttendanceRules {
   fullDayPermissionMultiplier: AttendanceRulesFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
+  holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
+  weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
+  absenceDeductsAnnualLeave: boolean;
   gpsPolicy: AttendanceRulesGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters?: number;

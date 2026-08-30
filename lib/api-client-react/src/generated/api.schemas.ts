@@ -815,6 +815,9 @@ export interface AttendanceCalculation {
   finalOvertimeMinutes: number;
   /** @minimum 0 */
   finalPenaltyMinutes: number;
+  /** @minimum 0 */
+  appliedOvertimeMultiplier: number;
+  multiplierSource: string;
   adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;
@@ -862,6 +865,9 @@ export interface LeaveBalance {
   used: number;
   pending: number;
   remaining: number;
+  total: number;
+  periodStart: string;
+  periodEnd: string;
 }
 
 export type LeavePolicyAccrualFrequency = typeof LeavePolicyAccrualFrequency[keyof typeof LeavePolicyAccrualFrequency];
@@ -907,6 +913,12 @@ export interface LeavePolicy {
      */
   carryForwardExpiryMonths?: number | null;
   allowNegative: boolean;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  periodStartMonth: number;
+  enabled: boolean;
   effectiveFrom: string;
   /** @nullable */
   effectiveTo?: string | null;
@@ -949,6 +961,12 @@ export interface LeavePolicyInput {
      */
   carryForwardExpiryMonths?: number | null;
   allowNegative: boolean;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  periodStartMonth?: number;
+  enabled?: boolean;
   effectiveFrom: string;
 }
 
@@ -1143,6 +1161,53 @@ export const AttendanceRulesFullDayPermissionMultiplier = {
   NUMBER_3: 3,
 } as const;
 
+export type AttendanceRulesHolidayPeriodsItemMultiplier = typeof AttendanceRulesHolidayPeriodsItemMultiplier[keyof typeof AttendanceRulesHolidayPeriodsItemMultiplier];
+
+
+export const AttendanceRulesHolidayPeriodsItemMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesHolidayPeriodsItem = {
+  /** @minLength 1 */
+  name: string;
+  from: string;
+  to: string;
+  multiplier: AttendanceRulesHolidayPeriodsItemMultiplier;
+  enabled: boolean;
+};
+
+export type AttendanceRulesWeeklyMultipliersItemWeekday = typeof AttendanceRulesWeeklyMultipliersItemWeekday[keyof typeof AttendanceRulesWeeklyMultipliersItemWeekday];
+
+
+export const AttendanceRulesWeeklyMultipliersItemWeekday = {
+  Sun: 'Sun',
+  Mon: 'Mon',
+  Tue: 'Tue',
+  Wed: 'Wed',
+  Thu: 'Thu',
+  Fri: 'Fri',
+  Sat: 'Sat',
+} as const;
+
+export type AttendanceRulesWeeklyMultipliersItemMultiplier = typeof AttendanceRulesWeeklyMultipliersItemMultiplier[keyof typeof AttendanceRulesWeeklyMultipliersItemMultiplier];
+
+
+export const AttendanceRulesWeeklyMultipliersItemMultiplier = {
+  NUMBER_1: 1,
+  '15': 1.5,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesWeeklyMultipliersItem = {
+  weekday: AttendanceRulesWeeklyMultipliersItemWeekday;
+  multiplier: AttendanceRulesWeeklyMultipliersItemMultiplier;
+  enabled: boolean;
+};
+
 export type AttendanceRulesGpsPolicy = typeof AttendanceRulesGpsPolicy[keyof typeof AttendanceRulesGpsPolicy];
 
 
@@ -1187,6 +1252,9 @@ export interface AttendanceRules {
   fullDayPermissionMultiplier: AttendanceRulesFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
+  holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
+  weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
+  absenceDeductsAnnualLeave: boolean;
   gpsPolicy: AttendanceRulesGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters?: number;
@@ -1267,6 +1335,53 @@ export const AttendanceRulesInputFullDayPermissionMultiplier = {
   NUMBER_3: 3,
 } as const;
 
+export type AttendanceRulesInputHolidayPeriodsItemMultiplier = typeof AttendanceRulesInputHolidayPeriodsItemMultiplier[keyof typeof AttendanceRulesInputHolidayPeriodsItemMultiplier];
+
+
+export const AttendanceRulesInputHolidayPeriodsItemMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputHolidayPeriodsItem = {
+  /** @minLength 1 */
+  name: string;
+  from: string;
+  to: string;
+  multiplier: AttendanceRulesInputHolidayPeriodsItemMultiplier;
+  enabled: boolean;
+};
+
+export type AttendanceRulesInputWeeklyMultipliersItemWeekday = typeof AttendanceRulesInputWeeklyMultipliersItemWeekday[keyof typeof AttendanceRulesInputWeeklyMultipliersItemWeekday];
+
+
+export const AttendanceRulesInputWeeklyMultipliersItemWeekday = {
+  Sun: 'Sun',
+  Mon: 'Mon',
+  Tue: 'Tue',
+  Wed: 'Wed',
+  Thu: 'Thu',
+  Fri: 'Fri',
+  Sat: 'Sat',
+} as const;
+
+export type AttendanceRulesInputWeeklyMultipliersItemMultiplier = typeof AttendanceRulesInputWeeklyMultipliersItemMultiplier[keyof typeof AttendanceRulesInputWeeklyMultipliersItemMultiplier];
+
+
+export const AttendanceRulesInputWeeklyMultipliersItemMultiplier = {
+  NUMBER_1: 1,
+  '15': 1.5,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type AttendanceRulesInputWeeklyMultipliersItem = {
+  weekday: AttendanceRulesInputWeeklyMultipliersItemWeekday;
+  multiplier: AttendanceRulesInputWeeklyMultipliersItemMultiplier;
+  enabled: boolean;
+};
+
 export type AttendanceRulesInputGpsPolicy = typeof AttendanceRulesInputGpsPolicy[keyof typeof AttendanceRulesInputGpsPolicy];
 
 
@@ -1312,6 +1427,9 @@ export interface AttendanceRulesInput {
   fullDayPermissionMultiplier: AttendanceRulesInputFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
+  holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
+  weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];
+  absenceDeductsAnnualLeave: boolean;
   gpsPolicy: AttendanceRulesInputGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters: number;
@@ -1742,19 +1860,45 @@ export interface EmployeeScheduleInput {
   effectiveTo?: string | null;
 }
 
+export type HolidayMultiplier = typeof HolidayMultiplier[keyof typeof HolidayMultiplier];
+
+
+export const HolidayMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
 export interface Holiday {
   id: string;
   name: string;
   date: string;
+  /** @nullable */
+  endDate: string | null;
   recurring: boolean;
+  multiplier: HolidayMultiplier;
+  enabled: boolean;
   createdAt: string;
 }
+
+export type HolidayInputMultiplier = typeof HolidayInputMultiplier[keyof typeof HolidayInputMultiplier];
+
+
+export const HolidayInputMultiplier = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
 
 export interface HolidayInput {
   /** @minLength 1 */
   name: string;
   date: string;
+  /** @nullable */
+  endDate?: string | null;
   recurring?: boolean;
+  multiplier: HolidayInputMultiplier;
+  enabled: boolean;
 }
 
 export interface EmployeeHrRecord {

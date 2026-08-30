@@ -54,7 +54,10 @@ export const holidaysTable = pgTable("var_hr_holidays", {
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
   name: text("name").notNull(),
   date: date("date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }),
   recurring: boolean("recurring").notNull().default(false),
+  multiplier: integer("multiplier").notNull().default(1),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   companyIndex: index("var_hr_holidays_company_idx").on(table.companyId),

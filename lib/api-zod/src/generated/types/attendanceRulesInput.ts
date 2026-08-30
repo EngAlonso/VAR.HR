@@ -10,10 +10,12 @@ import type { AttendanceRulesInputAbsencePenaltyMultiplier } from './attendanceR
 import type { AttendanceRulesInputEarlyDeparturePenaltyMultiplier } from './attendanceRulesInputEarlyDeparturePenaltyMultiplier';
 import type { AttendanceRulesInputFullDayPermissionMultiplier } from './attendanceRulesInputFullDayPermissionMultiplier';
 import type { AttendanceRulesInputGpsPolicy } from './attendanceRulesInputGpsPolicy';
+import type { AttendanceRulesInputHolidayPeriodsItem } from './attendanceRulesInputHolidayPeriodsItem';
 import type { AttendanceRulesInputLateDeductionMethod } from './attendanceRulesInputLateDeductionMethod';
 import type { AttendanceRulesInputLatePenaltyMultiplier } from './attendanceRulesInputLatePenaltyMultiplier';
 import type { AttendanceRulesInputOvertimeMethod } from './attendanceRulesInputOvertimeMethod';
 import type { AttendanceRulesInputPermissionCoveredMinutesMultiplier } from './attendanceRulesInputPermissionCoveredMinutesMultiplier';
+import type { AttendanceRulesInputWeeklyMultipliersItem } from './attendanceRulesInputWeeklyMultipliersItem';
 
 export interface AttendanceRulesInput {
   workStart: string;
@@ -51,6 +53,9 @@ export interface AttendanceRulesInput {
   fullDayPermissionMultiplier: AttendanceRulesInputFullDayPermissionMultiplier;
   workingDays: string[];
   holidayDates: string[];
+  holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
+  weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];
+  absenceDeductsAnnualLeave: boolean;
   gpsPolicy: AttendanceRulesInputGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters: number;

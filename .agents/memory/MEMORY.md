@@ -11,3 +11,4 @@
 - [Database admin entity schemas](database-admin-entity-schemas.md) — administration entity configs must use each table’s actual timestamp columns, not assumed created_at/updated_at fields.
 - [Database admin SQL identifiers](database-admin-sql-identifiers.md) — raw support queries must quote configured table/column names because entity fields can include reserved words such as from/to.
 - [Tenant-scoped employee uniqueness](tenant-scoped-employee-uniqueness.md) — inspect and reconcile historical duplicates before adding nullable composite identity indexes.
+- [Effective-dated attendance calculations](effective-dated-attendance-calculations.md) — future rule edits must not change historical attendance or payroll outcomes.

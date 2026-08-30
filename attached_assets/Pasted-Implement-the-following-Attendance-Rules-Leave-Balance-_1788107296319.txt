@@ -1,0 +1,261 @@
+Implement the following Attendance Rules & Leave Balance system in the existing VAR HR project.
+
+Important constraints
+
+- Do NOT restart or rewrite existing HR modules.
+- Do NOT change the Add Employee form or its 10 fields.
+- Do NOT create a parallel payroll, attendance, leave, or employee-account system.
+- Reuse the existing attendance, leave, payroll, employee, schedule, and permissions architecture.
+- Managers / Company Owners should control these rules according to the existing permission system.
+- Keep all calculations server-side and tenant-scoped.
+- Preserve existing data and behavior unless explicitly required below.
+
+1. Annual Leave Balance Rules
+
+Add configurable company attendance/leave rules allowing authorized managers to define:
+
+- Annual leave balance in days, e.g. 21 days.
+- The period/months from which the annual balance is calculated.
+- Example:
+  - Balance period: January → December
+  - Or July → June
+- The system should calculate the employee's available annual leave based on the configured company period.
+
+Important:
+
+- The manager chooses the start month of the annual balance period.
+- The system automatically determines the end month.
+- The employee should see:
+  - Total annual balance
+  - Used days
+  - Remaining days
+  - Pending days if applicable
+
+2. Absence Handling
+
+When an employee is absent on a working day and the absence is not covered by an approved leave/valid attendance rule:
+
+- Count it as an absence day.
+- The absence must appear in the employee attendance record.
+- It must affect the payroll calculation according to the existing payroll rules.
+- Do not silently deduct annual leave unless the configured rule explicitly says so.
+
+3. Holiday / Eid Period Rules
+
+Add a configurable holiday-period rule.
+
+Authorized managers can define:
+
+- Start date
+- End date
+- Enable/disable toggle
+- Multiplier:
+  - ×1
+  - ×2
+  - ×3
+
+Example:
+Eid period:
+01/06 → 05/06
+Multiplier ×2
+
+If an employee works during an enabled holiday period:
+
+- The existing payroll calculation must receive the correct multiplier.
+- The employee's attendance record should identify that the work occurred during the holiday period.
+- Payroll should calculate the additional amount according to the configured multiplier.
+
+Do NOT hardcode Eid dates. Managers must be able to configure the dates.
+
+4. Weekly Day Multiplier Rules
+
+Allow authorized managers to configure one or more days of the week with a multiplier.
+
+Examples:
+
+Friday → ×2
+
+or
+
+Friday → ×2
+Saturday → ×3
+
+Available multiplier values:
+
+- ×1
+- ×1.5
+- ×2
+- ×3
+
+The rule must apply only to the configured days.
+
+Managers should be able to:
+
+- Add a day
+- Change its multiplier
+- Remove a day
+- Enable/disable the rule
+
+5. Rule Priority / Conflicts
+
+Define deterministic behavior when multiple rules apply to the same attendance day.
+
+For example, if:
+
+- Friday has ×2
+- And the date is inside an Eid ×3 period
+
+Do NOT apply multipliers twice unless explicitly designed that way.
+
+Use one clear priority system and document it in the implementation.
+
+Prefer the highest applicable multiplier unless the existing payroll architecture requires another deterministic approach.
+
+6. Payroll Synchronization
+
+All attendance rules must feed the existing payroll calculation.
+
+The system must correctly distinguish:
+
+- Normal working day
+- Absence
+- Approved leave
+- Weekly multiplier day
+- Configured holiday period
+- Overtime, if already supported
+
+Do NOT create a second payroll calculation engine.
+
+Extend the existing payroll calculation so these rules become inputs to it.
+
+7. Employee Self-Service
+
+In the employee's existing My Profile / Employee Profile area, add a clear section showing:
+
+Annual Leave Balance
+
+- Total balance: XX days
+- Used: XX days
+- Remaining: XX days
+- Pending: XX days
+
+Also show relevant attendance information such as:
+
+- Absence days
+- Approved leave
+- Holiday/extra-pay days where appropriate
+
+Employee access must remain read-only and employee-scoped.
+
+8. Manager UI
+
+Add a dedicated section under the existing Attendance/Rules area for:
+
+Attendance & Leave Rules
+
+It should contain:
+
+Annual Leave
+
+- Annual balance
+- Balance start month
+- Enable/disable
+
+Holiday Periods
+
+- Start date
+- End date
+- Multiplier
+- Enable/disable
+- Add/Edit/Delete
+
+Weekly Multipliers
+
+- Day of week
+- Multiplier
+- Enable/disable
+- Add/Edit/Delete
+
+Use the existing UI design, localization, permissions, and generated API client architecture.
+
+9. Security / Tenant Isolation
+
+All rules must belong to the company/tenant.
+
+Managers must only:
+
+- View their company's rules
+- Modify their company's rules
+- Affect employees within their authorized company scope
+
+Platform Owners should retain their existing platform-level capabilities.
+
+Never trust frontend permission checks alone; enforce authorization server-side.
+
+10. Database Safety
+
+Use the existing Drizzle/PostgreSQL architecture.
+
+Rules must be stored persistently.
+
+Do not modify existing employee attendance/payroll history when a rule is changed.
+
+Historical payroll/attendance records should retain the calculation/result that applied at the time.
+
+11. Strong Tests
+
+Add focused regression tests covering at minimum:
+
+1. Annual balance calculation.
+2. Different balance start months.
+3. Used/remaining/pending calculations.
+4. Unapproved absence detection.
+5. Approved leave not counted as absence.
+6. Holiday period ×1.
+7. Holiday period ×2.
+8. Holiday period ×3.
+9. Weekly day ×1.
+10. Weekly day ×1.5.
+11. Weekly day ×2.
+12. Weekly day ×3.
+13. Multiple weekly multiplier days.
+14. Holiday + weekly multiplier conflict.
+15. Tenant isolation.
+16. Manager authorization.
+17. Employee self-service remains read-only.
+18. Payroll receives the correct multiplier.
+19. Changing future rules does not alter historical calculations.
+20. Disabled rules have no effect.
+
+Then run:
+
+- Full workspace typecheck
+- Full API test suite
+- New attendance-rule regression tests
+- Frontend production build
+- API production build
+- "git diff --check"
+
+If the project already has security/audit tests, run them too.
+
+Final report
+
+At the end report exactly:
+
+- What was implemented
+- Database/schema changes
+- Attendance calculation behavior
+- Annual balance behavior
+- Holiday multiplier behavior
+- Weekly multiplier behavior
+- Conflict priority
+- Payroll integration
+- Employee self-service changes
+- Permissions/tenant isolation
+- Number of tests passed
+- Typecheck result
+- Frontend build result
+- API build result
+- Any remaining issues
+
+Do not make any unrelated changes.

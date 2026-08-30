@@ -1,5 +1,6 @@
 import {
   createContext,
+  Fragment,
   type ButtonHTMLAttributes,
   type ChangeEvent,
   type FormEvent,
@@ -408,7 +409,7 @@ const nav: NavItem[] = [
     href: "/rules",
     key: "rules",
     icon: SlidersHorizontal,
-    roles: ["platform_owner", "company_owner"],
+    roles: ["platform_owner", "company_owner", "manager"],
     capability: "attendance.rules.view",
   },
   {
@@ -7128,6 +7129,25 @@ function EmployeeHrProfile({
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
+  const selfService = workspace.data?.role === "employee" && !employeeIdOverride;
+  const leaveBalances = useListLeaveBalances({
+    query: {
+      enabled: selfService,
+      queryKey: getListLeaveBalancesQueryKey(),
+    },
+  });
+  const leaveRequests = useListLeaveRequests({
+    query: {
+      enabled: selfService,
+      queryKey: getListLeaveRequestsQueryKey(),
+    },
+  });
+  const attendanceHistory = useListAttendanceHistory(undefined, {
+    query: {
+      enabled: selfService,
+      queryKey: getListAttendanceHistoryQueryKey(),
+    },
+  });
   return (
     <div className="animate-in">
       <SectionTitle
@@ -7227,6 +7247,68 @@ function EmployeeHrProfile({
             </div>
           </div>
           <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
+          {selfService && (
+            <div className="mt-6 border-t border-border pt-6">
+              <h3 className="font-display text-lg font-semibold">
+                Leave & attendance summary
+              </h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {(
+                  (leaveBalances.data || []) as Array<{
+                    type: string;
+                    total: number;
+                    used: number;
+                    pending: number;
+                    remaining: number;
+                  }>
+                )
+                  .filter((balance) =>
+                    balance.type.toLowerCase().includes("annual"),
+                  )
+                  .map((balance) => (
+                    <Fragment key={balance.type}>
+                      <Info label="Annual balance" value={`${balance.total} days`} />
+                      <Info label="Used" value={`${balance.used} days`} />
+                      <Info label="Pending" value={`${balance.pending} days`} />
+                      <Info
+                        label="Remaining"
+                        value={`${balance.remaining} days`}
+                      />
+                    </Fragment>
+                  ))}
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <Info
+                  label="Absence days"
+                  value={
+                    (attendanceHistory.data || []).filter((item: any) =>
+                      ["absent", "unexcused_absence", "missing_attendance"].includes(
+                        item.status,
+                      ),
+                    ).length
+                  }
+                />
+                <Info
+                  label="Approved leave days"
+                  value={(leaveRequests.data || [])
+                    .filter((item: any) => item.status === "approved")
+                    .reduce((sum: number, item: any) => sum + Number(item.days), 0)}
+                />
+                <Info
+                  label="Extra-pay days"
+                  value={(attendanceHistory.data || []).filter(
+                    (item: any) =>
+                      item.status === "holiday" ||
+                      Number(item.overtimeHours || 0) > 0,
+                  ).length}
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Extra pay is calculated from the effective attendance rules and
+                the highest applicable holiday or weekly multiplier.
+              </p>
+            </div>
+          )}
           <EmployeePasswordChange />
         </Card>
       ) : (
@@ -10026,6 +10108,8 @@ function Requests() {
     carryForwardDays: 0,
     carryForwardExpiryMonths: "",
     allowNegative: false,
+    periodStartMonth: 1,
+    enabled: true,
     effectiveFrom: new Date().toISOString().slice(0, 10),
   });
   const [adjustment, setAdjustment] = useState<{
@@ -10275,6 +10359,9 @@ function Requests() {
                         : "off"}{" "}
                       · Negative balance:{" "}
                       {p.allowNegative ? "allowed" : "blocked"}
+                      {" · Leave year starts in month "}
+                      {p.periodStartMonth || 1}
+                      {p.enabled ? "" : " · disabled"}
                     </p>
                   </div>
                 ))}
@@ -10318,6 +10405,37 @@ function Requests() {
                     }
                     required
                   />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm font-semibold">
+                    Leave-year start month
+                    <select
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                      value={policyForm.periodStartMonth}
+                      onChange={(e) =>
+                        setPolicyForm({
+                          ...policyForm,
+                          periodStartMonth: Number(e.target.value),
+                        })
+                      }
+                    >
+                      {Array.from({ length: 12 }, (_, index) => (
+                        <option key={index + 1} value={index + 1}>
+                          {index + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={policyForm.enabled}
+                      onChange={(e) =>
+                        setPolicyForm({ ...policyForm, enabled: e.target.checked })
+                      }
+                    />
+                    Policy enabled
+                  </label>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="text-sm font-semibold">
@@ -10821,7 +10939,15 @@ function Rules() {
     new Date().toISOString().slice(0, 10),
   );
   useEffect(() => {
-    if (q.data && !form) setForm({ ...q.data });
+    if (q.data && !form)
+      setForm({
+        ...q.data,
+        holidayPeriods: q.data.holidayPeriods || [],
+        weeklyMultipliers: q.data.weeklyMultipliers || [],
+        absenceDeductsAnnualLeave: Boolean(
+          q.data.absenceDeductsAnnualLeave,
+        ),
+      });
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
@@ -10985,6 +11111,113 @@ function Rules() {
                   setForm({ ...form, overtimeAfterMinutes: value })
                 }
               />
+            </div>
+          </Card>
+          <Card className="p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {locale === "ar"
+                ? "مضاعفات أيام الأسبوع والعطلات"
+                : "Weekly and holiday extra-pay rules"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {locale === "ar"
+                ? "يتم تطبيق أعلى مضاعف فقط عند تعارض أكثر من قاعدة."
+                : "When rules overlap, only the highest applicable multiplier is applied."}
+            </p>
+            <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
+              <input
+                type="checkbox"
+                checked={Boolean(form.absenceDeductsAnnualLeave)}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    absenceDeductsAnnualLeave: event.target.checked,
+                  })
+                }
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                {locale === "ar"
+                  ? "خصم يوم غياب من رصيد الإجازة السنوية"
+                  : "Deduct an annual-leave day for an unapproved absence"}
+                <span className="mt-1 block text-xs font-normal">
+                  {locale === "ar"
+                    ? "مغلق افتراضياً؛ لن يخصم الغياب من الإجازة السنوية دون تفعيل صريح."
+                    : "Off by default; absences never silently consume annual leave."}
+                </span>
+              </span>
+            </label>
+            <div className="mt-5 space-y-3">
+              {(form.weeklyMultipliers || []).map(
+                (item: any, index: number) => (
+                  <div
+                    key={`${item.weekday}-${index}`}
+                    className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <select
+                      value={item.weekday}
+                      onChange={(event) => {
+                        const next = [...form.weeklyMultipliers];
+                        next[index] = { ...item, weekday: event.target.value };
+                        setForm({ ...form, weeklyMultipliers: next });
+                      }}
+                      className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      {scheduleDayOptions.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {t(label)}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={item.multiplier}
+                      onChange={(event) => {
+                        const next = [...form.weeklyMultipliers];
+                        next[index] = {
+                          ...item,
+                          multiplier: Number(event.target.value),
+                        };
+                        setForm({ ...form, weeklyMultipliers: next });
+                      }}
+                      className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value={1}>1×</option>
+                      <option value={1.5}>1.5×</option>
+                      <option value={2}>2×</option>
+                      <option value={3}>3×</option>
+                    </select>
+                    <Button
+                      type="button"
+                      variant="quiet"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          weeklyMultipliers: form.weeklyMultipliers.filter(
+                            (_: any, i: number) => i !== index,
+                          ),
+                        })
+                      }
+                    >
+                      {t("remove")}
+                    </Button>
+                  </div>
+                ),
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    weeklyMultipliers: [
+                      ...(form.weeklyMultipliers || []),
+                      { weekday: "Fri", multiplier: 1.5, enabled: true },
+                    ],
+                  })
+                }
+              >
+                <Plus size={15} /> Add weekly multiplier
+              </Button>
             </div>
           </Card>
           <Card className="p-6">
@@ -13733,16 +13966,26 @@ function Holidays() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
+  const capabilities = workspace.data?.capabilities || [];
   const canAdminister =
     workspace.data?.role === "company_owner" ||
     workspace.data?.role === "platform_owner";
+  const canManageHolidays =
+    canAdminister || capabilities.includes("holidays.manage");
   const q = useListHolidays({ query: { queryKey: getListHolidaysQueryKey() } });
   const create = useCreateHoliday();
   const update = useUpdateHoliday();
   const remove = useDeleteHoliday();
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [draft, setDraft] = useState({ name: "", date: "", recurring: false });
+  const [draft, setDraft] = useState({
+    name: "",
+    date: "",
+    endDate: "",
+    recurring: false,
+    multiplier: 1,
+    enabled: true,
+  });
   function openEditor(holiday?: any) {
     setEditing(holiday || null);
     setDraft(
@@ -13750,9 +13993,19 @@ function Holidays() {
         ? {
             name: holiday.name,
             date: holiday.date,
+            endDate: holiday.endDate || "",
             recurring: Boolean(holiday.recurring),
+            multiplier: holiday.multiplier || 1,
+            enabled: holiday.enabled !== false,
           }
-        : { name: "", date: "", recurring: false },
+        : {
+            name: "",
+            date: "",
+            endDate: "",
+            recurring: false,
+            multiplier: 1,
+            enabled: true,
+          },
     );
     setShowEditor(true);
   }
@@ -13761,7 +14014,10 @@ function Holidays() {
     const data = {
       name: draft.name.trim(),
       date: draft.date,
+      endDate: draft.endDate || null,
       recurring: draft.recurring,
+      multiplier: Number(draft.multiplier) as 1 | 2 | 3,
+      enabled: draft.enabled,
     };
     const options = {
       onSuccess: () => {
@@ -13798,7 +14054,7 @@ function Holidays() {
         title={t("holidaysTitle")}
         detail={t("holidaysDetail")}
         action={
-          canAdminister ? (
+          canManageHolidays ? (
             <Button onClick={() => openEditor()}>
               <Plus size={16} />
               {t("addHoliday")}
@@ -13824,11 +14080,14 @@ function Holidays() {
                 <div>
                   <div className="font-semibold">{holiday.name}</div>
                   <div className="mt-1 text-sm text-muted-foreground">
-                    {date(holiday.date)}{" "}
+                    {date(holiday.date)}
+                    {holiday.endDate ? ` – ${date(holiday.endDate)}` : ""}{" "}
                     {holiday.recurring ? `· ${t("recurringHoliday")}` : ""}
+                    {` · ${holiday.multiplier}×`}
+                    {!holiday.enabled ? " · disabled" : ""}
                   </div>
                 </div>
-                {canAdminister && (
+                {canManageHolidays && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -13853,7 +14112,7 @@ function Holidays() {
             title={t("noHolidays")}
             detail={t("noHolidaysDetail")}
             action={
-              canAdminister ? (
+              canManageHolidays ? (
                 <Button onClick={() => openEditor()}>
                   <Plus size={15} />
                   {t("addHoliday")}
@@ -13882,6 +14141,26 @@ function Holidays() {
               value={draft.date}
               onChange={(value) => setDraft({ ...draft, date: value })}
             />
+            <Field
+              label="End date (optional)"
+              type="date"
+              value={draft.endDate}
+              onChange={(value) => setDraft({ ...draft, endDate: value })}
+            />
+            <label className="block text-sm font-semibold">
+              Extra-pay multiplier
+              <select
+                value={draft.multiplier}
+                onChange={(event) =>
+                  setDraft({ ...draft, multiplier: Number(event.target.value) })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value={1}>1×</option>
+                <option value={2}>2×</option>
+                <option value={3}>3×</option>
+              </select>
+            </label>
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"
@@ -13891,6 +14170,16 @@ function Holidays() {
                 }
               />
               {t("recurringHoliday")}
+            </label>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={draft.enabled}
+                onChange={(event) =>
+                  setDraft({ ...draft, enabled: event.target.checked })
+                }
+              />
+              Enabled
             </label>
             <div className="flex justify-end gap-2">
               <Button

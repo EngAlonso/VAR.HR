@@ -70,6 +70,9 @@ export interface AttendanceCalculation {
   finalOvertimeMinutes: number;
   /** @minimum 0 */
   finalPenaltyMinutes: number;
+  /** @minimum 0 */
+  appliedOvertimeMultiplier: number;
+  multiplierSource: string;
   adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;

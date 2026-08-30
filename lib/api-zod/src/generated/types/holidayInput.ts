@@ -5,10 +5,15 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { HolidayInputMultiplier } from './holidayInputMultiplier';
 
 export interface HolidayInput {
   /** @minLength 1 */
   name: string;
   date: string;
+  /** @nullable */
+  endDate?: string | null;
   recurring?: boolean;
+  multiplier: HolidayInputMultiplier;
+  enabled: boolean;
 }

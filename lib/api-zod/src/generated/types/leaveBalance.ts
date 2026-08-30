@@ -15,4 +15,7 @@ export interface LeaveBalance {
   used: number;
   pending: number;
   remaining: number;
+  total: number;
+  periodStart: string;
+  periodEnd: string;
 }

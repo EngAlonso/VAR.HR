@@ -2566,6 +2566,8 @@ components:
           finalWorkedMinutes,
           finalOvertimeMinutes,
           finalPenaltyMinutes,
+           appliedOvertimeMultiplier,
+           multiplierSource,
           adjustments,
           explanation,
           calculatedAt,
@@ -2622,6 +2624,8 @@ components:
         finalWorkedMinutes: { type: integer, minimum: 0 }
         finalOvertimeMinutes: { type: integer, minimum: 0 }
         finalPenaltyMinutes: { type: integer, minimum: 0 }
+        appliedOvertimeMultiplier: { type: number, minimum: 0 }
+        multiplierSource: { type: string }
         adjustments:
           type: array
           items:
@@ -2696,7 +2700,7 @@ components:
         department: { type: string }
     LeaveBalance:
       type: object
-      required: [id, employee, type, allocated, used, pending, remaining]
+      required: [id, employee, type, allocated, used, pending, remaining, total, periodStart, periodEnd]
       properties:
         id: { type: string }
         employee:
@@ -2706,6 +2710,9 @@ components:
         used: { type: number }
         pending: { type: number }
         remaining: { type: number }
+        total: { type: number }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
     LeavePolicy:
       type: object
       required:
@@ -2719,6 +2726,8 @@ components:
           carryForwardAllowed,
           carryForwardDays,
           allowNegative,
+           periodStartMonth,
+           enabled,
           effectiveFrom,
           status,
         ]
@@ -2737,6 +2746,8 @@ components:
         carryForwardDays: { type: number, minimum: 0 }
         carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
         allowNegative: { type: boolean }
+        periodStartMonth: { type: integer, minimum: 1, maximum: 12 }
+        enabled: { type: boolean }
         effectiveFrom: { type: string, format: date }
         effectiveTo: { type: [string, "null"], format: date }
         status: { type: string, enum: [active, archived] }
@@ -2768,6 +2779,8 @@ components:
         carryForwardDays: { type: number, minimum: 0 }
         carryForwardExpiryMonths: { type: [integer, "null"], minimum: 0 }
         allowNegative: { type: boolean }
+        periodStartMonth: { type: integer, minimum: 1, maximum: 12, default: 1 }
+        enabled: { type: boolean, default: true }
         effectiveFrom: { type: string, format: date }
     LeaveBalanceTransaction:
       type: object
@@ -2921,6 +2934,9 @@ components:
           fullDayPermissionMultiplier,
           workingDays,
           holidayDates,
+           holidayPeriods,
+           weeklyMultipliers,
+           absenceDeductsAnnualLeave,
           gpsPolicy,
         ]
       properties:
@@ -2960,6 +2976,29 @@ components:
         holidayDates:
           type: array
           items: { type: string, format: date }
+        holidayPeriods:
+          type: array
+          items:
+            type: object
+            required: [name, from, to, multiplier, enabled]
+            properties:
+              name: { type: string, minLength: 1 }
+              from: { type: string, format: date }
+              to: { type: string, format: date }
+              multiplier: { type: integer, enum: [1, 2, 3] }
+              enabled: { type: boolean }
+        weeklyMultipliers:
+          type: array
+          items:
+            type: object
+            required: [weekday, multiplier, enabled]
+            properties:
+              weekday:
+                type: string
+                enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+              multiplier: { type: number, enum: [1, 1.5, 2, 3] }
+              enabled: { type: boolean }
+        absenceDeductsAnnualLeave: { type: boolean }
         gpsPolicy:
           type: string
           enum: [disabled, optional, required]
@@ -2995,6 +3034,9 @@ components:
           fullDayPermissionMultiplier,
           workingDays,
           holidayDates,
+           holidayPeriods,
+           weeklyMultipliers,
+           absenceDeductsAnnualLeave,
           gpsPolicy,
           locationRadiusMeters,
         ]
@@ -3035,6 +3077,29 @@ components:
         holidayDates:
           type: array
           items: { type: string, format: date }
+        holidayPeriods:
+          type: array
+          items:
+            type: object
+            required: [name, from, to, multiplier, enabled]
+            properties:
+              name: { type: string, minLength: 1 }
+              from: { type: string, format: date }
+              to: { type: string, format: date }
+              multiplier: { type: integer, enum: [1, 2, 3] }
+              enabled: { type: boolean }
+        weeklyMultipliers:
+          type: array
+          items:
+            type: object
+            required: [weekday, multiplier, enabled]
+            properties:
+              weekday:
+                type: string
+                enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+              multiplier: { type: number, enum: [1, 1.5, 2, 3] }
+              enabled: { type: boolean }
+        absenceDeductsAnnualLeave: { type: boolean }
         gpsPolicy:
           type: string
           enum: [disabled, optional, required]
@@ -3530,20 +3595,26 @@ components:
         effectiveTo: { type: ["string", "null"], format: date }
     Holiday:
       type: object
-      required: [id, name, date, recurring, createdAt]
+      required: [id, name, date, endDate, recurring, multiplier, enabled, createdAt]
       properties:
         id: { type: string }
         name: { type: string }
         date: { type: string, format: date }
+        endDate: { type: ["string", "null"], format: date }
         recurring: { type: boolean }
+        multiplier: { type: integer, enum: [1, 2, 3] }
+        enabled: { type: boolean }
         createdAt: { type: string, format: date-time }
     HolidayInput:
       type: object
-      required: [name, date]
+      required: [name, date, multiplier, enabled]
       properties:
         name: { type: string, minLength: 1 }
         date: { type: string, format: date }
+        endDate: { type: ["string", "null"], format: date }
         recurring: { type: boolean, default: false }
+        multiplier: { type: integer, enum: [1, 2, 3], default: 1 }
+        enabled: { type: boolean, default: true }
     EmployeeHrRecord:
       type: object
       required:
