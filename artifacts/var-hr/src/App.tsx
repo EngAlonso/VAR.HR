@@ -7534,7 +7534,7 @@ function EmployeeHrProfile({
   const selfService = workspace.data?.role === "employee" && !employeeIdOverride;
   const leaveBalances = useListLeaveBalances({
     query: {
-      enabled: selfService,
+      enabled: Boolean(employeeId),
       queryKey: getListLeaveBalancesQueryKey(),
     },
   });
@@ -7550,6 +7550,18 @@ function EmployeeHrProfile({
       queryKey: getListAttendanceHistoryQueryKey(),
     },
   });
+  const annualLeaveBalance = ((leaveBalances.data || []) as Array<{
+    type: string;
+    employee?: { id?: string };
+    allocated?: number;
+    total?: number;
+    used?: number;
+    remaining?: number;
+  }>).find(
+    (balance) =>
+      balance.employee?.id === employeeId &&
+      balance.type.toLowerCase().includes("annual"),
+  );
   return (
     <div className="animate-in">
       <SectionTitle
@@ -7649,6 +7661,40 @@ function EmployeeHrProfile({
             </div>
           </div>
           <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
+          <div className="mt-6 border-t border-border pt-6">
+            <div className="flex items-center gap-2">
+              <CalendarDays size={17} className="text-primary" />
+              <h3 className="font-display text-lg font-semibold">
+                {t("annualLeaveBalances")}
+              </h3>
+            </div>
+            {leaveBalances.isLoading ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+              </div>
+            ) : annualLeaveBalance ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <Info
+                  label={t("allocatedDays")}
+                  value={`${annualLeaveBalance.total ?? annualLeaveBalance.allocated ?? 0} ${t("days")}`}
+                />
+                <Info
+                  label={t("usedDays")}
+                  value={`${annualLeaveBalance.used ?? 0} ${t("days")}`}
+                />
+                <Info
+                  label={t("daysRemaining")}
+                  value={`${Math.max(0, annualLeaveBalance.remaining ?? 0)} ${t("days")}`}
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                {t("notAvailable")}
+              </p>
+            )}
+          </div>
           {selfService && (
             <div className="mt-6 border-t border-border pt-6">
               <h3 className="font-display text-lg font-semibold">
