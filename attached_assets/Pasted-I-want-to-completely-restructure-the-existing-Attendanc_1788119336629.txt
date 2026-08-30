@@ -1,0 +1,108 @@
+I want to completely restructure the existing Attendance Rules page from the beginning.
+
+IMPORTANT:
+
+- Do NOT introduce versions, policy versions, publishing, issuing, effective versions, or any similar concept.
+- Attendance Rules must behave like normal phone settings: I change a value → press Save → it stays saved exactly as entered → refresh the page → the same value is still there.
+- The saved rules apply to the month in which they are saved. They must NOT be retroactively applied to previous months.
+- Do not create a versioning system to achieve this.
+- All settings must remain in the existing قواعد الحضور page.
+- Do not create another page for these settings.
+- At the very bottom of the same Attendance Rules page, add only a حركة التعديلات / Change History section that records who changed what and why.
+- Do not add anything else that I did not request.
+
+Reorder the page exactly like this:
+
+1 ـ حدود الحضور والعمل الإضافي
+
+Contains:
+
+- فترة السماح للوصول المتأخر
+- فترة السماح للانصراف المبكر
+- يبدأ العمل الإضافي بعد
+- زرار: احتساب الإضافي تلقائياً
+
+2 ـ جزاءات الحضور والإذن
+
+Contains:
+
+- مضاعفة التأخير
+- مضاعفة الانصراف المبكر
+- مضاعفة الغياب
+- دقائق الإذن المغطاة
+- إذن ليوم كامل
+- زر: الإذن يغطي التأخير
+- زر: الإذن يغطي الانصراف المبكر
+
+3 ـ مضاعفات يوم معين
+
+This must be a separate standalone box.
+
+It contains:
+
+- نظام مضاعفات أيام الأسبوع
+- نظام مضاعفات العطلات
+
+The available multiplier values must follow the existing requested system:
+×1
+×1.5
+×2
+×3
+
+4 ـ نظام الرصيد السنوي
+
+This must contain the complete annual leave balance system in ONE place, including the settings we already defined:
+
+- عدد أيام الرصيد السنوي
+- الشهور التي يطبق فيها خصم الرصيد
+- الحد الأقصى لخصم الرصيد في الشهر
+- قاعدة خصم الغياب بإذن من الرصيد
+- الغياب بدون إذن لا يخصم من الرصيد، ويطبق عليه مضاعفة الغياب المحددة في جزاءات الحضور والإذن
+- الموظف الذي لديه إذن يخصم من رصيده حسب قواعد الرصيد والشهر المحدد
+- الرصيد المتبقي للموظف يجب أن يتأثر فعلياً بهذه القواعد
+
+5 ـ التحقق من الموقع
+
+Keep the existing location-verification settings here.
+
+Change History
+
+At the very bottom of the SAME Attendance Rules page:
+
+- سجل كل تعديل على قواعد الحضور.
+- من قام بالتعديل.
+- ماذا تم تغييره.
+- القيمة القديمة.
+- القيمة الجديدة.
+- سبب التغيير.
+- تاريخ ووقت التعديل.
+
+Do NOT create a separate page for Change History.
+
+CRITICAL IMPLEMENTATION REQUIREMENT:
+
+Before changing anything, inspect the current Attendance Rules implementation and identify all existing settings and logic.
+
+Then restructure it according to the exact five sections above.
+
+Do NOT simply rearrange the UI while leaving disconnected or fake controls.
+
+Every setting shown on the page must be connected to the actual attendance/permission/overtime/annual-balance/location logic already used by the system.
+
+When I change a setting and press Save:
+
+1. It must be saved.
+2. Refreshing the page must show the saved value.
+3. The saved rule must actually be used by the relevant calculation.
+4. It must not rewrite historical months.
+5. It must apply to the month in which the change was saved and forward from there.
+
+Do NOT create versions or “issue/publish” concepts.
+
+Do NOT change unrelated HR modules.
+
+Do NOT create duplicate settings or duplicate pages.
+
+Arabic must be used when the application language is Arabic, through the existing localization system. English should appear only when English is selected.
+
+Before implementation, verify that each of the five sections maps to real existing backend data and real calculation logic. If something required above does not currently exist, tell me exactly what is missing before inventing an alternative.
