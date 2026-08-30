@@ -70,6 +70,10 @@ test("payroll materializes scheduled absences without replacing approved leave",
 test("leave balances expose configured leave-year boundaries and states", () => {
   assert.match(route, /leavePeriodBounds/);
   assert.match(route, /periodStartMonth/);
+  assert.match(
+    route,
+    /canUseCapability\(context, "leave\.view", true\)[\s\S]*canUseCapability\(context, "employees\.view", true\)/,
+  );
   assert.match(route, /const allocated = isAnnualLeaveType\(balance\.type\)/);
   assert.match(route, /total: allocated/);
   assert.match(route, /absenceDeducted/);
@@ -80,6 +84,8 @@ test("leave balances expose configured leave-year boundaries and states", () => 
   assert.match(app, /label="Annual balance"/);
   assert.match(app, /label="Deducted for absence"/);
   assert.match(app, /label="Deducted this month"/);
+  assert.match(app, /function EmployeeProfilePage\(\)/);
+  assert.match(app, /text-profile-annual-total-\$\{employee\.data\.id\}/);
 });
 
 test("attendance rules and leave balances share the policy contract", () => {

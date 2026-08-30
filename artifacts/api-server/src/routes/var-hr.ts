@@ -5699,7 +5699,10 @@ router.post(
 
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "leave.view", true)) {
+  const canViewScopedEmployeeBalances =
+    canUseCapability(context, "leave.view", true) ||
+    canUseCapability(context, "employees.view", true);
+  if (!canViewScopedEmployeeBalances) {
     denyCapability(res, req, "leave.view");
     return;
   }

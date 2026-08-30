@@ -8779,6 +8779,23 @@ function EmployeeProfilePage() {
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
+  const leaveBalances = useListLeaveBalances({
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getListLeaveBalancesQueryKey(),
+    },
+  });
+  const annualLeaveBalance = ((leaveBalances.data || []) as Array<{
+    type: string;
+    employee?: { id?: string };
+    total: number;
+    used: number;
+    remaining: number;
+  }>).find(
+    (balance) =>
+      balance.employee?.id === employeeId &&
+      balance.type.toLowerCase().includes("annual"),
+  );
   const update = useUpdateEmployee();
   const remove = useDeleteEmployee();
   const departments = useListDepartments();
@@ -9228,6 +9245,41 @@ function EmployeeProfilePage() {
               canEdit={canEditEmployees}
             />
           </div>
+
+          <EmployeeProfileSection
+            title={t("annualLeaveBalances")}
+            icon={<CalendarDays size={17} />}
+          >
+            {leaveBalances.isLoading ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+              </div>
+            ) : annualLeaveBalance ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Info
+                  label={t("allocatedDays")}
+                  value={`${annualLeaveBalance.total} ${t("days")}`}
+                  testId={`text-profile-annual-total-${employee.data.id}`}
+                />
+                <Info
+                  label={t("usedDays")}
+                  value={`${annualLeaveBalance.used} ${t("days")}`}
+                  testId={`text-profile-annual-used-${employee.data.id}`}
+                />
+                <Info
+                  label={t("daysRemaining")}
+                  value={`${Math.max(0, annualLeaveBalance.remaining)} ${t("days")}`}
+                  testId={`text-profile-annual-remaining-${employee.data.id}`}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {t("notAvailable")}
+              </p>
+            )}
+          </EmployeeProfileSection>
 
           <EmployeeCredentialManager
             employeeId={employee.data.id}
