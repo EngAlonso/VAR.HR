@@ -7261,6 +7261,10 @@ function EmployeeHrProfile({
                     absenceDeducted: number;
                     pending: number;
                     remaining: number;
+                    allowedBalanceMonths: number[];
+                    monthlyDeductionLimit: number;
+                    deductedThisMonth: number;
+                    unauthorizedAbsenceDays: number;
                   }>
                 )
                   .filter((balance) =>
@@ -7283,7 +7287,23 @@ function EmployeeHrProfile({
                       <Info label="Pending" value={`${balance.pending} days`} />
                       <Info
                         label="Remaining"
-                        value={`${balance.remaining} days`}
+                        value={`${Math.max(0, balance.remaining)} days`}
+                      />
+                      <Info
+                        label="Deduction months"
+                        value={balance.allowedBalanceMonths.join(", ")}
+                      />
+                      <Info
+                        label="Monthly maximum"
+                        value={`${balance.monthlyDeductionLimit} days`}
+                      />
+                      <Info
+                        label="Deducted this month"
+                        value={`${balance.deductedThisMonth} days`}
+                      />
+                      <Info
+                        label="Unauthorized absence"
+                        value={`${balance.unauthorizedAbsenceDays} days`}
                       />
                     </Fragment>
                   ))}
@@ -10120,6 +10140,8 @@ function Requests() {
     carryForwardExpiryMonths: "",
     allowNegative: false,
     periodStartMonth: 1,
+    allowedBalanceMonths: Array.from({ length: 12 }, (_, index) => index + 1),
+    monthlyDeductionLimit: 1,
     enabled: true,
     effectiveFrom: new Date().toISOString().slice(0, 10),
   });
@@ -10239,6 +10261,8 @@ function Requests() {
           ...policyForm,
           annualEntitlement: Number(policyForm.annualEntitlement),
           carryForwardDays: Number(policyForm.carryForwardDays),
+          allowedBalanceMonths: policyForm.allowedBalanceMonths.map(Number),
+          monthlyDeductionLimit: Number(policyForm.monthlyDeductionLimit),
           carryForwardExpiryMonths:
             policyForm.carryForwardExpiryMonths === ""
               ? null
@@ -10372,6 +10396,10 @@ function Requests() {
                       {p.allowNegative ? "allowed" : "blocked"}
                       {" · Leave year starts in month "}
                       {p.periodStartMonth || 1}
+                      {" · Deduction months: "}
+                      {(p.allowedBalanceMonths || []).join(", ")}
+                      {" · Monthly maximum: "}
+                      {p.monthlyDeductionLimit}
                       {p.enabled ? "" : " · disabled"}
                     </p>
                   </div>
@@ -10506,6 +10534,49 @@ function Requests() {
                       })
                     }
                   />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    label="Monthly maximum deduction"
+                    type="number"
+                    min={0}
+                    step={0.25}
+                    value={policyForm.monthlyDeductionLimit}
+                    onChange={(value) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        monthlyDeductionLimit: value,
+                      })
+                    }
+                    required
+                  />
+                  <label className="text-sm font-semibold">
+                    Balance deduction months
+                    <select
+                      multiple
+                      className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+                      value={policyForm.allowedBalanceMonths.map(String)}
+                      onChange={(event) =>
+                        setPolicyForm({
+                          ...policyForm,
+                          allowedBalanceMonths: Array.from(
+                            event.target.selectedOptions,
+                            (option) => Number(option.value),
+                          ),
+                        })
+                      }
+                      required
+                    >
+                      {Array.from({ length: 12 }, (_, index) => (
+                        <option key={index + 1} value={index + 1}>
+                          {index + 1}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                      Hold Ctrl/Cmd to select multiple months.
+                    </span>
+                  </label>
                 </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input

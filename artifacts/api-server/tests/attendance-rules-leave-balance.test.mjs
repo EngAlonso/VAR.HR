@@ -10,6 +10,10 @@ const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
 );
+const leaveBalanceLogic = readFileSync(
+  new URL("../src/lib/annual-leave-balance.mjs", import.meta.url),
+  "utf8",
+);
 const spec = readFileSync(
   new URL("../../../lib/api-spec/openapi.yaml", import.meta.url),
   "utf8",
@@ -27,17 +31,20 @@ test("attendance rules expose effective-dated holiday and weekly multipliers", (
 
 test("absence-to-annual-leave deduction is explicit and idempotent", () => {
   assert.match(route, /absenceDeductsAnnualLeave/);
-  assert.match(route, /absenceLeaveDeductionTrigger/);
   assert.match(route, /absenceLeaveDeductionDays/);
-  assert.match(route, /policy\?\.deductionMode === "automatic"/);
-  assert.match(route, /policy\.allowNegative/);
-  assert.match(route, /absence_leave:\$\{attendance\.id\}/);
+  assert.match(route, /calculateAnnualLeaveDeduction/);
+  assert.match(route, /absenceKind: "approved_permission"/);
+  assert.match(route, /permission_leave:\$\{request\.id\}/);
+  assert.doesNotMatch(route, /const shouldDeductAnnualLeave = true/);
+  assert.match(leaveBalanceLogic, /absenceKind !== "approved_permission"/);
+  assert.match(leaveBalanceLogic, /attendanceState !== "unexcused_absence"/);
   assert.match(route, /transactionType: "deduction"/);
   assert.match(route, /absence_leave_reversal:\$\{attendance\.id\}/);
   assert.match(route, /transactionType: "restoration"/);
   assert.match(route, /onConflictDoNothing\(\)/);
-  assert.match(app, /absences never silently consume annual leave/);
-  assert.match(app, /Leave days deducted per absence/);
+  assert.match(app, /Unauthorized absence/);
+  assert.match(app, /Deduction months/);
+  assert.match(app, /Monthly maximum/);
 });
 
 test("payroll materializes scheduled absences without replacing approved leave", () => {
@@ -46,6 +53,10 @@ test("payroll materializes scheduled absences without replacing approved leave",
   assert.match(route, /!isWorkingScheduleDay\(schedule, date\)/);
   assert.match(route, /approvedLeaves\.some/);
   assert.match(route, /approvedPermissions\.some/);
+  assert.match(route, /attendanceDeductions/);
+  assert.match(route, /netSalary/);
+  assert.match(route, /calculationVersion/);
+  assert.match(route, /inputsSnapshot/);
 });
 
 test("leave balances expose configured leave-year boundaries and states", () => {
@@ -54,9 +65,12 @@ test("leave balances expose configured leave-year boundaries and states", () => 
   assert.match(route, /total: balance\.allocated/);
   assert.match(route, /absenceDeducted/);
   assert.match(route, /remaining: balance\.allocated - balance\.used - balance\.pending/);
+  assert.match(route, /deductedThisMonth/);
+  assert.match(route, /unauthorizedAbsenceDays/);
   assert.match(app, /Leave-year start month/);
   assert.match(app, /Annual balance/);
   assert.match(app, /Deducted for absence/);
+  assert.match(app, /Deducted this month/);
 });
 
 test("attendance rules and leave balances share the policy contract", () => {
@@ -67,6 +81,9 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(spec, /absenceDeducted:/);
   assert.match(route, /annualLeavePolicyFor/);
   assert.match(route, /isAnnualLeaveType/);
+  assert.match(route, /effectiveLeavePolicy\([\s\S]*request\.from/);
+  assert.match(route, /attendanceRulesFor\(context\.companyId, request\.date\)/);
+  assert.match(route, /rulesByDate/);
 });
 
 test("employee imports create an effective default shift assignment", () => {
