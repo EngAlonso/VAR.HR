@@ -122,9 +122,7 @@ import {
   useDecidePermissionRequest,
   useGetAttendanceRules,
   useUpdateAttendanceRules,
-  useListAttendanceRuleVersions,
-  useCreateAttendanceRuleVersion,
-  getListAttendanceRuleVersionsQueryKey,
+  useListAttendanceRuleChanges,
   useGetAttendanceReport,
   useGetReport,
   useImportEmployees,
@@ -10682,6 +10680,7 @@ function Requests() {
   );
 }
 
+/*
 type AnnualLeaveControlsContextValue = {
   attendanceForm: any;
   setAttendanceForm: (value: any) => void;
@@ -11237,20 +11236,15 @@ function AnnualLeaveControls() {
   );
 }
 
+*/
+
 function Rules() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
-  const versions = useListAttendanceRuleVersions();
-  const createVersion = useCreateAttendanceRuleVersion();
-  const policies = useListLeavePolicies();
-  const createPolicy = useCreateLeavePolicy();
+  const changes = useListAttendanceRuleChanges();
   const [form, setForm] = useState<any>(null);
-  const [reviewVersion, setReviewVersion] = useState(false);
-  const [effectiveFrom, setEffectiveFrom] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
   useEffect(() => {
     if (q.data && !form)
       setForm({
@@ -11274,8 +11268,51 @@ function Rules() {
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
   function save() {
-    setReviewVersion(true);
+    update.mutate(
+      {
+        data: {
+          ...form,
+          requiredHours: Number(form.requiredHours),
+          graceMinutes: Number(form.graceMinutes),
+          earlyCheckoutGraceMinutes: Number(form.earlyCheckoutGraceMinutes),
+          overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
+          overtimeMultiplier: Number(form.overtimeMultiplier),
+          hourlyRateDivisor: Number(form.hourlyRateDivisor),
+          lateDeductionFactor: Number(form.lateDeductionFactor),
+          earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
+          absenceDeductionFactor: Number(form.absenceDeductionFactor),
+          absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),
+          annualLeaveEntitlement: Number(form.annualLeaveEntitlement),
+          annualLeavePeriodStartMonth: Number(form.annualLeavePeriodStartMonth),
+          annualLeaveMonthlyDeductionLimit: Number(
+            form.annualLeaveMonthlyDeductionLimit ?? 1,
+          ),
+          latePenaltyMultiplier: Number(form.latePenaltyMultiplier),
+          earlyDeparturePenaltyMultiplier: Number(
+            form.earlyDeparturePenaltyMultiplier,
+          ),
+          absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
+          permissionCoveredMinutesMultiplier: Number(
+            form.permissionCoveredMinutesMultiplier,
+          ),
+          fullDayPermissionMultiplier: Number(form.fullDayPermissionMultiplier),
+          locationRadiusMeters: Number(form.locationRadiusMeters),
+          reason: form.reason?.trim() || t("attendancePolicyUpdated"),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("attendancePolicyUpdated"));
+          qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
+          qc.invalidateQueries({ queryKey: changes.queryKey });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+        },
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
+      },
+    );
   }
+  /*
   function saveVersion() {
     const finishSave = () => {
       toast.success(t("attendancePolicyUpdated"));
@@ -11376,6 +11413,7 @@ function Rules() {
       },
     );
   }
+  */
   function saveLegacy(e: FormEvent) {
     e.preventDefault();
     update.mutate(
@@ -11406,20 +11444,6 @@ function Rules() {
     );
   }
   const rules = q.data as any;
-  const localized = {
-    current: t("currentRuleVersion"),
-    historical: t("attendanceRuleHistory"),
-    create: t("createRuleVersion"),
-    effectiveFrom: t("effectiveFrom"),
-    effectiveTo: t("effectiveTo"),
-    status: t("status"),
-    createdBy: t("createdBy"),
-    createdAt: t("createdAt"),
-    historicalNote: t("historicalRulesNote"),
-    retroactiveNote: t("retroactiveRulesNote"),
-    review: t("reviewBeforeSaving"),
-    confirm: t("saveRuleVersion"),
-  };
   return (
     <div className="animate-in">
       <SectionTitle
@@ -11428,7 +11452,7 @@ function Rules() {
         detail={t("attendanceRulesDetail")}
         action={
           <Badge tone="accent">
-            {t("version")} {rules.version || 1}
+            {locale === "ar" ? "إعدادات الشركة الحالية" : "Current company settings"}
           </Badge>
         }
       />
@@ -11537,11 +11561,87 @@ function Rules() {
                   }
                 />
               </div>
-              <AnnualLeaveControlsContext.Provider
-                value={{ attendanceForm: form, setAttendanceForm: setForm }}
-              >
-                <AnnualLeaveControls />
-              </AnnualLeaveControlsContext.Provider>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <Field
+                  label={locale === "ar" ? "استحقاق الإجازة السنوية" : "Annual leave entitlement"}
+                  type="number"
+                  min={0}
+                  value={form.annualLeaveEntitlement}
+                  onChange={(value) =>
+                    setForm({ ...form, annualLeaveEntitlement: value })
+                  }
+                />
+                <label className="block text-sm font-semibold">
+                  {locale === "ar" ? "بداية سنة الإجازة" : "Leave year starts in month"}
+                  <select
+                    value={form.annualLeavePeriodStartMonth}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        annualLeavePeriodStartMonth: Number(event.target.value),
+                      })
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                      (month) => (
+                        <option key={month} value={month}>
+                          {month}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <Field
+                  label={locale === "ar" ? "الحد الشهري للخصم" : "Monthly deduction limit"}
+                  type="number"
+                  min={0}
+                  value={form.annualLeaveMonthlyDeductionLimit ?? 1}
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      annualLeaveMonthlyDeductionLimit: value,
+                    })
+                  }
+                />
+              </div>
+              <div className="mt-4">
+                <span className="text-sm font-semibold">
+                  {locale === "ar" ? "أشهر السماح بخصم الرصيد" : "Months when balance may be deducted"}
+                </span>
+                <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                    (month) => {
+                      const selectedMonths = form.annualLeaveAllowedMonths || [];
+                      return (
+                        <label
+                          key={month}
+                          className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMonths.includes(month)}
+                            onChange={(event) =>
+                              setForm({
+                                ...form,
+                                annualLeaveAllowedMonths: event.target.checked
+                                  ? [...selectedMonths, month].sort(
+                                      (a: number, b: number) => a - b,
+                                    )
+                                  : selectedMonths.filter(
+                                      (item: number) => item !== month,
+                                    ),
+                              })
+                            }
+                            className="h-4 w-4 accent-primary"
+                          />
+                          {month}
+                        </label>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
             </div>
             <div className="mt-5 space-y-3">
               {(form.weeklyMultipliers || []).map(
@@ -11748,6 +11848,15 @@ function Rules() {
               </div>
             </div>
           </Card>
+          <label className="block text-sm font-semibold">
+            {locale === "ar" ? "سبب التغيير (مطلوب للسجل)" : "Change reason (required for history)"}
+            <textarea
+              value={form.reason || ""}
+              onChange={(event) => setForm({ ...form, reason: event.target.value })}
+              required
+              className="mt-1 min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+            />
+          </label>
           <Button
             type="button"
             onClick={save}
@@ -11759,125 +11868,63 @@ function Rules() {
         </div>
       </div>
       <Card className="mt-6 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display text-lg font-semibold">
-              {localized.historical}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {localized.current}: {rules.version || 1}
-            </p>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              {localized.historicalNote}
-            </p>
-          </div>
-          <Button type="button" onClick={() => setReviewVersion(true)}>
-            {localized.create}
-          </Button>
+        <div>
+          <h2 className="font-display text-lg font-semibold">
+            {locale === "ar" ? "سجل تغييرات قواعد الحضور" : "Attendance rules change history"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {locale === "ar"
+              ? "كل تغيير محفوظ باسم المنفذ والشهر الذي يبدأ فيه تطبيقه."
+              : "Every saved change records who made it and the month it starts applying."}
+          </p>
         </div>
         <div className="mt-5 grid gap-3">
-          {(versions.data || []).map((version: any) => (
+          {(changes.data || []).map((change: any) => (
             <div
-              key={version.id}
-              className="grid gap-3 rounded-xl border border-border p-4 text-sm sm:grid-cols-2 lg:grid-cols-6"
+              key={change.id}
+              className="grid gap-3 rounded-xl border border-border p-4 text-sm sm:grid-cols-2 lg:grid-cols-5"
             >
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {t("version")}
+                  {locale === "ar" ? "الحقل" : "Field"}
                 </span>
-                <strong>{version.version}</strong>
+                <strong>{change.field}</strong>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {localized.effectiveFrom}
+                  {locale === "ar" ? "القيمة السابقة" : "Previous value"}
                 </span>
-                <span>{version.effectiveFrom}</span>
+                <span>{JSON.stringify(change.oldValue)}</span>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {localized.effectiveTo}
+                  {locale === "ar" ? "القيمة الجديدة" : "New value"}
                 </span>
-                <span>{version.effectiveTo || "—"}</span>
+                <span>{JSON.stringify(change.newValue)}</span>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {localized.status}
+                  {locale === "ar" ? "يطبق من" : "Applies from"}
+                </span>
+                <span>{change.appliesFromMonth}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-muted-foreground">
+                  {locale === "ar" ? "المنفذ / السبب" : "Actor / reason"}
                 </span>
                 <span>
-                  {version.status === "active"
-                    ? locale === "ar"
-                      ? "نشط"
-                      : "Active"
-                    : locale === "ar"
-                      ? "مؤرشف"
-                      : "Archived"}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-muted-foreground">
-                  {localized.createdBy}
-                </span>
-                <span>{version.createdBy}</span>
-              </div>
-              <div>
-                <span className="block text-xs text-muted-foreground">
-                  {localized.createdAt}
-                </span>
-                <span>
-                  {new Date(version.createdAt).toLocaleDateString(
-                    locale === "ar" ? "ar-EG" : "en-US",
-                  )}
+                  {change.changedBy?.name} · {change.reason}
                 </span>
               </div>
             </div>
           ))}
+          {!changes.data?.length && (
+            <p className="text-sm text-muted-foreground">
+              {locale === "ar" ? "لا توجد تغييرات محفوظة بعد." : "No saved changes yet."}
+            </p>
+          )}
         </div>
       </Card>
-      {reviewVersion && (
-        <Modal title={localized.review} onClose={() => setReviewVersion(false)}>
-          <p className="text-sm text-muted-foreground">
-            {t("rulesEffectiveNote")}
-          </p>
-          <label className="mt-5 block text-sm font-semibold">
-            {localized.effectiveFrom}
-            <input
-              type="date"
-              value={effectiveFrom}
-              onChange={(event) => setEffectiveFrom(event.target.value)}
-              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-            />
-          </label>
-          {effectiveFrom < new Date().toISOString().slice(0, 10) && (
-            <div className="mt-4 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
-              {localized.retroactiveNote}
-            </div>
-          )}
-          <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 p-4 text-sm">
-            <span>
-              {t("gracePeriod")}: {form.graceMinutes}
-            </span>
-            <span>
-              {t("overtimeAfter")}: {form.overtimeAfterMinutes}
-            </span>
-          </div>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="quiet"
-              onClick={() => setReviewVersion(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              type="button"
-              disabled={createVersion.isPending || !effectiveFrom}
-              onClick={saveVersion}
-            >
-              {localized.confirm}
-            </Button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

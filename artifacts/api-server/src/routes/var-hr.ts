@@ -23,8 +23,6 @@ import {
   CheckInResponse,
   CheckOutBody,
   CheckOutResponse,
-  CreateAttendanceRuleVersionBody,
-  CreateAttendanceRuleVersionResponse,
   CorrectAttendanceBody,
   CorrectAttendanceParams,
   CorrectAttendanceResponse,
@@ -111,7 +109,7 @@ import {
   ListBiometricDeviceEventsResponse,
   ListAttendanceHistoryQueryParams,
   ListAttendanceHistoryResponse,
-  ListAttendanceRuleVersionsResponse,
+  ListAttendanceRuleChangesResponse,
   ListAttendanceLocationsResponse,
   ListBiometricProvidersResponse,
   ListDeviceMappingsParams,
@@ -185,8 +183,8 @@ import {
   UpdateWorkScheduleResponse,
 } from "@workspace/api-zod";
 import {
-  attendanceRuleVersionsTable,
   attendanceRulesTable,
+  attendanceRuleChangesTable,
   attendanceLocationsTable,
   attendanceTable,
   attendanceCalculationsTable,
@@ -782,17 +780,13 @@ const defaultAttendanceRules = {
   annualLeaveMonthlyDeductionLimit: 1,
   gpsPolicy: "optional" as const,
   locationRadiusMeters: 180,
-  version: 1,
-  effectiveFrom: TODAY,
 };
 
 type ResolvedAttendanceRules = typeof defaultAttendanceRules & {
   id: string | null;
   companyId: string;
-  effectiveTo: string | null;
-  status: string;
-  createdBy: string;
   createdAt: Date | null;
+  updatedAt: Date | null;
 };
 
 function rulesConfiguration(
@@ -852,33 +846,18 @@ function rulesConfiguration(
   };
 }
 
-async function ensureInitialRuleVersion(companyId: string) {
-  const [existingVersion] = await db
-    .select()
-    .from(attendanceRuleVersionsTable)
-    .where(eq(attendanceRuleVersionsTable.companyId, companyId))
-    .orderBy(desc(attendanceRuleVersionsTable.version))
-    .limit(1);
-  if (existingVersion) return existingVersion;
-  const [legacy] = await db
+async function ensureAttendanceRules(companyId: string) {
+  const [existing] = await db
     .select()
     .from(attendanceRulesTable)
     .where(eq(attendanceRulesTable.companyId, companyId))
     .limit(1);
-  const source = legacy ?? defaultAttendanceRules;
+  if (existing) return existing;
   const [created] = await db
-    .insert(attendanceRuleVersionsTable)
+    .insert(attendanceRulesTable)
     .values({
       companyId,
-      version: source.version || 1,
-      effectiveFrom: source.effectiveFrom || TODAY,
-      status: "active",
-      createdBy: legacy ? "migration" : "system",
-      configuration: {
-        ...rulesConfiguration(source),
-        version: source.version || 1,
-        effectiveFrom: source.effectiveFrom || TODAY,
-      },
+      ...rulesConfiguration(defaultAttendanceRules),
     })
     .returning();
   return created;
@@ -888,67 +867,26 @@ async function attendanceRulesFor(
   companyId: string,
   attendanceDate = TODAY,
 ): Promise<ResolvedAttendanceRules> {
-  await ensureInitialRuleVersion(companyId);
-  const [version] = await db
+  const selected = await ensureAttendanceRules(companyId);
+  const configuration = rulesConfiguration(selected) as Record<string, unknown>;
+  const monthStart = monthBounds(attendanceDate).from;
+  const changes = await db
     .select()
-    .from(attendanceRuleVersionsTable)
-    .where(
-      and(
-        eq(attendanceRuleVersionsTable.companyId, companyId),
-        lte(attendanceRuleVersionsTable.effectiveFrom, attendanceDate),
-        or(
-          sql`${attendanceRuleVersionsTable.effectiveTo} is null`,
-          gte(attendanceRuleVersionsTable.effectiveTo, attendanceDate),
-        ),
-        eq(attendanceRuleVersionsTable.status, "active"),
-      ),
-    )
-    .orderBy(
-      desc(attendanceRuleVersionsTable.effectiveFrom),
-      desc(attendanceRuleVersionsTable.version),
-    )
-    .limit(1);
-  const selected =
-    version ??
-    (
-      await db
-        .select()
-        .from(attendanceRuleVersionsTable)
-        .where(eq(attendanceRuleVersionsTable.companyId, companyId))
-        .orderBy(asc(attendanceRuleVersionsTable.effectiveFrom))
-        .limit(1)
-    )[0];
-  const annualPolicy = await annualLeavePolicyFor(companyId, attendanceDate);
-  if (!selected) {
-    return {
-      ...defaultAttendanceRules,
-      annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
-      annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
-      annualLeaveAllowedMonths: annualPolicy?.allowedBalanceMonths ?? defaultAttendanceRules.annualLeaveAllowedMonths,
-      annualLeaveMonthlyDeductionLimit: annualPolicy?.monthlyDeductionLimit ?? defaultAttendanceRules.annualLeaveMonthlyDeductionLimit,
-      id: null,
-      companyId,
-      effectiveTo: null,
-      status: "active",
-      createdBy: "system",
-      createdAt: null,
-    };
+    .from(attendanceRuleChangesTable)
+    .where(eq(attendanceRuleChangesTable.companyId, companyId))
+    .orderBy(desc(attendanceRuleChangesTable.createdAt));
+  for (const change of changes) {
+    if (change.appliesFromMonth > monthStart && change.fieldName in configuration) {
+      configuration[change.fieldName] = change.oldValue;
+    }
   }
   return {
     ...defaultAttendanceRules,
-    ...(selected.configuration as Record<string, unknown>),
-    annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
-    annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
-    annualLeaveAllowedMonths: annualPolicy?.allowedBalanceMonths ?? defaultAttendanceRules.annualLeaveAllowedMonths,
-    annualLeaveMonthlyDeductionLimit: annualPolicy?.monthlyDeductionLimit ?? defaultAttendanceRules.annualLeaveMonthlyDeductionLimit,
     id: selected.id,
     companyId: selected.companyId,
-    version: selected.version,
-    effectiveFrom: selected.effectiveFrom,
-    effectiveTo: selected.effectiveTo,
-    status: selected.status,
-    createdBy: selected.createdBy,
-    createdAt: selected.createdAt,
+    ...configuration,
+    createdAt: selected.updatedAt,
+    updatedAt: selected.updatedAt,
   } as ResolvedAttendanceRules;
 }
 
@@ -1699,7 +1637,7 @@ async function attendanceCalculationFor(
     totalPenaltyMinutes - manualPermissionMinutes,
   );
   const explanation = [
-    `Rule version ${rules.version} effective from ${rules.effectiveFrom}.`,
+    `Attendance rules applied from ${monthBounds(TODAY).from}.`,
     `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
     `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
     `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
@@ -1717,8 +1655,6 @@ async function attendanceCalculationFor(
     attendanceId: attendance.id,
     employeeId: attendance.employeeId,
     attendanceDate: attendance.date,
-    ruleVersion: rules.version,
-    ruleEffectiveFrom: rules.effectiveFrom,
     scheduleSource: schedule.source,
     rawLateMinutes: metrics.rawLateMinutes,
     lateGraceMinutes: metrics.lateGraceMinutes,
@@ -3775,8 +3711,7 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     .where(
       and(
         eq(leavePoliciesTable.companyId, context.companyId),
-        eq(leavePoliciesTable.status, "active"),
-        lte(leavePoliciesTable.effectiveFrom, TODAY),
+        eq(leavePoliciesTable.enabled, true),
       ),
     );
   for (const policy of activeLeavePolicies) {
@@ -4736,27 +4671,62 @@ function isAnnualLeaveType(value: string) {
   );
 }
 
+async function annualPolicyFromAttendanceRules(
+  companyId: string,
+  date = TODAY,
+): Promise<typeof leavePoliciesTable.$inferSelect> {
+  const rules = await attendanceRulesFor(companyId, date);
+  return {
+    id: rules.id!,
+    companyId,
+    leaveType: "Annual leave",
+    annualEntitlement: Number(rules.annualLeaveEntitlement ?? 0),
+    accrualFrequency: "monthly",
+    deductionMode: "automatic",
+    carryForwardAllowed: false,
+    carryForwardDays: 0,
+    carryForwardExpiryMonths: null,
+    allowNegative: false,
+    periodStartMonth: Number(rules.annualLeavePeriodStartMonth ?? 1),
+    allowedBalanceMonths: rules.annualLeaveAllowedMonths ?? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    monthlyDeductionLimit: Number(rules.annualLeaveMonthlyDeductionLimit ?? 1),
+    enabled: true,
+    createdBy: null,
+    createdAt: rules.createdAt ?? new Date(),
+    updatedAt: rules.updatedAt ?? new Date(),
+  };
+}
+
 async function annualLeavePolicyFor(companyId: string, date = TODAY) {
-  const policies = await db
+  const [policy] = await db
     .select()
     .from(leavePoliciesTable)
     .where(
       and(
         eq(leavePoliciesTable.companyId, companyId),
-        lte(leavePoliciesTable.effectiveFrom, date),
-        eq(leavePoliciesTable.status, "active"),
+        eq(leavePoliciesTable.leaveType, "Annual leave"),
         eq(leavePoliciesTable.enabled, true),
-        or(
-          sql`${leavePoliciesTable.effectiveTo} is null`,
-          gte(leavePoliciesTable.effectiveTo, date),
-        ),
       ),
     )
-    .orderBy(
-      desc(leavePoliciesTable.effectiveFrom),
-      desc(leavePoliciesTable.version),
-    );
-  return policies.find((policy) => isAnnualLeaveType(policy.leaveType));
+    .limit(1);
+  const rulesPolicy = await annualPolicyFromAttendanceRules(companyId, date);
+  return {
+    ...rulesPolicy,
+    ...(policy
+      ? {
+          id: policy.id,
+          accrualFrequency: policy.accrualFrequency,
+          deductionMode: policy.deductionMode,
+          carryForwardAllowed: policy.carryForwardAllowed,
+          carryForwardDays: policy.carryForwardDays,
+          carryForwardExpiryMonths: policy.carryForwardExpiryMonths,
+          allowNegative: policy.allowNegative,
+          createdBy: policy.createdBy,
+          createdAt: policy.createdAt,
+          updatedAt: policy.updatedAt,
+        }
+      : {}),
+  };
 }
 
 async function absenceDeductedFor(
@@ -4913,13 +4883,14 @@ async function applyApprovedPermissionAnnualLeave(
   context: TenantContext,
   request: typeof permissionRequestsTable.$inferSelect,
 ) {
+  await ensureLeaveAccruals(context.companyId, request.date);
   return db.transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`${context.companyId}:${request.employeeId}:${request.date.slice(0, 7)}`}))`,
     );
     const rules = await attendanceRulesFor(context.companyId, request.date);
     if (!rules.absenceDeductsAnnualLeave) return 0;
-    const policy = await annualLeavePolicyFor(context.companyId, request.date);
+    const policy = await annualLeavePolicyFor(context.companyId);
     if (!policy || policy.deductionMode !== "automatic") return 0;
     const [balance] = await tx
       .select()
@@ -4986,27 +4957,21 @@ async function applyApprovedPermissionAnnualLeave(
 async function effectiveLeavePolicy(
   companyId: string,
   leaveType: string,
-  date = TODAY,
+  _date = TODAY,
 ) {
+  if (isAnnualLeaveType(leaveType)) {
+    return annualLeavePolicyFor(companyId, _date);
+  }
   const policies = await db
     .select()
     .from(leavePoliciesTable)
     .where(
       and(
         eq(leavePoliciesTable.companyId, companyId),
-        lte(leavePoliciesTable.effectiveFrom, date),
-        or(
-          sql`${leavePoliciesTable.effectiveTo} is null`,
-          gte(leavePoliciesTable.effectiveTo, date),
-        ),
-        eq(leavePoliciesTable.status, "active"),
         eq(leavePoliciesTable.enabled, true),
       ),
     )
-    .orderBy(
-      desc(leavePoliciesTable.effectiveFrom),
-      desc(leavePoliciesTable.version),
-    );
+    .orderBy(asc(leavePoliciesTable.leaveType));
   return policies.find((policy) =>
     isAnnualLeaveType(leaveType)
       ? isAnnualLeaveType(policy.leaveType)
@@ -5018,7 +4983,6 @@ function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
   return {
     id: policy.id,
     leaveType: policy.leaveType,
-    version: policy.version,
     annualEntitlement: policy.annualEntitlement,
     accrualFrequency: policy.accrualFrequency,
     deductionMode: policy.deductionMode,
@@ -5030,10 +4994,6 @@ function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
     allowedBalanceMonths: policyBalanceMonths(policy),
     monthlyDeductionLimit: policy.monthlyDeductionLimit,
     enabled: policy.enabled,
-    effectiveFrom: policy.effectiveFrom,
-    effectiveTo: policy.effectiveTo,
-    status: policy.status,
-    createdBy: policy.createdBy,
     createdAt: policy.createdAt.toISOString(),
   };
 }
@@ -5094,10 +5054,7 @@ function accrualPeriodKeys(
   employee: { id: string; joinedOn: string },
   through = TODAY,
 ) {
-  const start =
-    policy.effectiveFrom > employee.joinedOn
-      ? policy.effectiveFrom
-      : employee.joinedOn;
+  const start = employee.joinedOn;
   const startYear = Number(start.slice(0, 4));
   const endYear = Number(through.slice(0, 4));
   const keys: string[] = [];
@@ -5143,12 +5100,16 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
       .where(
         and(
           eq(leavePoliciesTable.companyId, companyId),
-          eq(leavePoliciesTable.status, "active"),
           eq(leavePoliciesTable.enabled, true),
         ),
       ),
   ]);
-  for (const policy of policies) {
+  const annualPolicy = await annualPolicyFromAttendanceRules(companyId, through);
+  const accrualPolicies = [
+    ...policies.filter((policy) => !isAnnualLeaveType(policy.leaveType)),
+    annualPolicy,
+  ];
+  for (const policy of accrualPolicies) {
     const periodsPerYear =
       policy.accrualFrequency === "monthly"
         ? 12
@@ -5222,7 +5183,7 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
           policy.periodStartMonth,
         ).periodStart;
         const year = Number(yearStart.slice(0, 4));
-        if (policy.effectiveFrom <= yearStart && through >= yearStart) {
+        if (through >= yearStart) {
           const transactionKey = `carry_forward:${policy.id}:${employee.id}:${year}`;
           const [existing] = await db
             .select({ id: leaveBalanceTransactionsTable.id })
@@ -5343,25 +5304,87 @@ router.get("/leave/policies", async (req, res): Promise<void> => {
     .where(
       and(
         eq(leavePoliciesTable.companyId, context.companyId),
-        eq(leavePoliciesTable.status, "active"),
-        lte(leavePoliciesTable.effectiveFrom, TODAY),
+        eq(leavePoliciesTable.enabled, true),
       ),
     )
-    .orderBy(
-      asc(leavePoliciesTable.leaveType),
-      desc(leavePoliciesTable.version),
-    );
-  const current = policies.filter(
-    (policy) =>
-      !policies.some(
-        (other) =>
-          other.leaveType === policy.leaveType &&
-          other.version > policy.version,
-      ),
-  );
-  res.json(ListLeavePoliciesResponse.parse(current.map(leavePolicyResponse)));
+    .orderBy(asc(leavePoliciesTable.leaveType));
+  res.json(ListLeavePoliciesResponse.parse(policies.map(leavePolicyResponse)));
 });
 
+router.post("/leave/policies", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "leave.manage")) {
+    denyCapability(res, req, "leave.manage");
+    return;
+  }
+  const parsed = CreateLeavePolicyBody.safeParse(req.body ?? {});
+  if (
+    !parsed.success ||
+    (parsed.data.carryForwardAllowed && parsed.data.carryForwardDays < 0) ||
+    new Set(parsed.data.allowedBalanceMonths).size !==
+      parsed.data.allowedBalanceMonths.length
+  ) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [policy] = await db
+    .insert(leavePoliciesTable)
+    .values({
+      companyId: context.companyId,
+      leaveType: parsed.data.leaveType,
+      annualEntitlement: parsed.data.annualEntitlement,
+      accrualFrequency: parsed.data.accrualFrequency,
+      deductionMode: parsed.data.deductionMode,
+      carryForwardAllowed: parsed.data.carryForwardAllowed,
+      carryForwardDays: parsed.data.carryForwardDays,
+      carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
+      allowNegative: parsed.data.allowNegative,
+      periodStartMonth: parsed.data.periodStartMonth ?? 1,
+      allowedBalanceMonths: parsed.data.allowedBalanceMonths,
+      monthlyDeductionLimit: parsed.data.monthlyDeductionLimit,
+      enabled: parsed.data.enabled ?? true,
+      createdBy: context.accountId,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [leavePoliciesTable.companyId, leavePoliciesTable.leaveType],
+      set: {
+        annualEntitlement: parsed.data.annualEntitlement,
+        accrualFrequency: parsed.data.accrualFrequency,
+        deductionMode: parsed.data.deductionMode,
+        carryForwardAllowed: parsed.data.carryForwardAllowed,
+        carryForwardDays: parsed.data.carryForwardDays,
+        carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
+        allowNegative: parsed.data.allowNegative,
+        periodStartMonth: parsed.data.periodStartMonth ?? 1,
+        allowedBalanceMonths: parsed.data.allowedBalanceMonths,
+        monthlyDeductionLimit: parsed.data.monthlyDeductionLimit,
+        enabled: parsed.data.enabled ?? true,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  const employees = await db
+    .select({ id: employeesTable.id })
+    .from(employeesTable)
+    .where(eq(employeesTable.companyId, context.companyId));
+  for (const employee of employees) {
+    await db
+      .insert(leaveBalancesTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: employee.id,
+        type: policy.leaveType,
+        allocated: 0,
+      })
+      .onConflictDoNothing();
+  }
+  res
+    .status(201)
+    .json(CreateLeavePolicyResponse.parse(leavePolicyResponse(policy)));
+});
+
+/*
 router.post("/leave/policies", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (!canUseCapability(context, "leave.manage")) {
@@ -5478,6 +5501,8 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
     .status(201)
     .json(CreateLeavePolicyResponse.parse(leavePolicyResponse(policy)));
 });
+
+*/
 
 router.get("/leave/balances/ledger", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
@@ -6301,20 +6326,101 @@ router.get("/rules", async (req, res): Promise<void> => {
   res.json(GetAttendanceRulesResponse.parse(response));
 });
 
-function ruleVersionResponse(
-  row: typeof attendanceRuleVersionsTable.$inferSelect,
+function attendanceRuleChangeResponse(
+  row: typeof attendanceRuleChangesTable.$inferSelect,
+  actor: typeof userAccountsTable.$inferSelect | undefined,
 ) {
   return {
     id: row.id,
-    version: row.version,
-    effectiveFrom: row.effectiveFrom,
-    effectiveTo: row.effectiveTo,
-    status: row.status,
-    createdBy: row.createdBy,
-    createdAt: row.createdAt.toISOString(),
-    configuration: row.configuration,
+    changedBy: {
+      id: row.actorId,
+      name: actor?.fullName || actor?.username || row.actorId,
+    },
+    field: row.fieldName,
+    oldValue: row.oldValue,
+    newValue: row.newValue,
+    reason: row.reason,
+    changedAt: row.createdAt.toISOString(),
+    appliesFromMonth: row.appliesFromMonth,
   };
 }
+
+router.get("/rules/changes", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.rules.view")) {
+    res.status(403).json({ error: message(req, "attendanceRulesAccess") });
+    return;
+  }
+  const rows = await db
+    .select({ change: attendanceRuleChangesTable, actor: userAccountsTable })
+    .from(attendanceRuleChangesTable)
+    .leftJoin(
+      userAccountsTable,
+      eq(attendanceRuleChangesTable.actorId, userAccountsTable.id),
+    )
+    .where(eq(attendanceRuleChangesTable.companyId, context.companyId))
+    .orderBy(desc(attendanceRuleChangesTable.createdAt));
+  res.json(
+    ListAttendanceRuleChangesResponse.parse(
+      rows.map(({ change, actor }) =>
+        attendanceRuleChangeResponse(change, actor ?? undefined),
+      ),
+    ),
+  );
+});
+
+router.put("/rules", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.rules.manage")) {
+    res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+    return;
+  }
+  const parsed = UpdateAttendanceRulesBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const current = await ensureAttendanceRules(context.companyId);
+  const { reason, ...nextValues } = parsed.data;
+  const previousValues = rulesConfiguration(current);
+  const changedEntries = Object.entries(nextValues).filter(
+    ([field, value]) =>
+      JSON.stringify(previousValues[field as keyof typeof previousValues]) !==
+      JSON.stringify(value),
+  );
+  const appliesFromMonth = monthBounds(TODAY).from;
+  const updated = await db.transaction(async (tx) => {
+    const [saved] = await tx
+      .update(attendanceRulesTable)
+      .set({ ...nextValues, updatedAt: new Date() })
+      .where(
+        and(
+          eq(attendanceRulesTable.id, current.id),
+          eq(attendanceRulesTable.companyId, context.companyId),
+        ),
+      )
+      .returning();
+    for (const [field, value] of changedEntries) {
+      await tx.insert(attendanceRuleChangesTable).values({
+        companyId: context.companyId,
+        actorId: context.accountId,
+        fieldName: field,
+        oldValue: previousValues[field as keyof typeof previousValues],
+        newValue: value,
+        reason,
+        appliesFromMonth,
+      });
+    }
+    return saved;
+  });
+  res.json(
+    UpdateAttendanceRulesResponse.parse(
+      await attendanceRulesFor(context.companyId),
+    ),
+  );
+});
+
+/*
 
 router.get("/rules/versions", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
@@ -6494,6 +6600,8 @@ router.put("/rules", async (req, res): Promise<void> => {
     ),
   );
 });
+
+*/
 
 router.get("/schedules", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
@@ -8669,7 +8777,7 @@ async function calculatePayrollPeriod(
     const rules = employeeCalculations[0]
       ? await attendanceRulesFor(
           context.companyId,
-          employeeCalculations[0].ruleEffectiveFrom,
+          period.from,
         )
       : await attendanceRulesFor(context.companyId, period.from);
     const hourlyRate =
@@ -8877,7 +8985,6 @@ async function calculatePayrollPeriod(
           netSalary,
         },
       },
-      attendanceRuleVersionId: rules.id,
       calculationVersion,
     });
   }

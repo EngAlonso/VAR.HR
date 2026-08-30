@@ -18,8 +18,9 @@ const spec = readFileSync(
   new URL("../../../lib/api-spec/openapi.yaml", import.meta.url),
   "utf8",
 );
+const executableRoute = route.replace(/\/\*[\s\S]*?\*\//g, "");
 
-test("attendance rules expose effective-dated holiday and weekly multipliers", () => {
+test("attendance rules expose calendar multipliers", () => {
   assert.match(route, /holidayMultiplierForDate/);
   assert.match(route, /weeklyMultiplierForDate/);
   assert.match(route, /overtimeMultiplierForDate/);
@@ -42,8 +43,14 @@ test("absence-to-annual-leave deduction is explicit and idempotent", () => {
   assert.match(route, /absence_leave_reversal:\$\{attendance\.id\}/);
   assert.match(route, /transactionType: "restoration"/);
   assert.match(route, /onConflictDoNothing\(\)/);
-  assert.match(app, /function AnnualLeaveControls\(\)/);
-  assert.match(app, /function Rules\(\)[\s\S]*<AnnualLeaveControls \/>/);
+  assert.match(executableRoute, /attendanceRuleChangesTable/);
+  assert.match(executableRoute, /appliesFromMonth/);
+  assert.match(executableRoute, /router\.get\("\/rules\/changes"/);
+  assert.match(executableRoute, /router\.put\("\/rules"/);
+  assert.doesNotMatch(executableRoute, /router\.get\("\/rules\/versions"/);
+  assert.doesNotMatch(executableRoute, /router\.post\("\/rules\/versions"/);
+  assert.match(app, /function Rules\(\)/);
+  assert.doesNotMatch(app, /<AnnualLeaveControls \/>/);
   assert.match(app, /annualLeaveSettings/);
   assert.match(app, /balanceDeductionMonths/);
 });
@@ -82,9 +89,11 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(spec, /absenceDeducted:/);
   assert.match(route, /annualLeavePolicyFor/);
   assert.match(route, /isAnnualLeaveType/);
+  assert.match(route, /monthStart/);
+  assert.match(route, /change\.oldValue/);
   assert.match(route, /effectiveLeavePolicy\([\s\S]*request\.from/);
   assert.match(route, /attendanceRulesFor\(context\.companyId, request\.date\)/);
-  assert.match(route, /rulesByDate/);
+  assert.match(route, /attendanceRuleChangesTable/);
 });
 
 test("employee imports create an effective default shift assignment", () => {

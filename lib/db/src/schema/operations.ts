@@ -157,7 +157,9 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   annualLeaveAllowedMonths: integer("annual_leave_allowed_months").array().notNull().default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
   annualLeaveMonthlyDeductionLimit: numeric("annual_leave_monthly_deduction_limit", { precision: 8, scale: 2, mode: "number" }).notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  companyUnique: uniqueIndex("var_hr_attendance_rules_company_uidx").on(table.companyId),
+}));
 
 export const attendanceTimeAdjustmentsTable = pgTable("var_hr_attendance_time_adjustments", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -184,12 +186,6 @@ export const attendanceTimeAdjustmentsTable = pgTable("var_hr_attendance_time_ad
     .on(table.companyId, table.adjustmentDate, table.employeeId),
 }));
 
-/**
- * Immutable, effective-dated snapshots of attendanceRulesTable.
- *
- * The legacy table remains for compatibility with existing clients and is
- * maintained as the current-version mirror. All new edits are stored here.
- */
 export const attendanceRuleChangesTable = pgTable("var_hr_attendance_rule_changes", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
@@ -198,9 +194,32 @@ export const attendanceRuleChangesTable = pgTable("var_hr_attendance_rule_change
   oldValue: jsonb("old_value"),
   newValue: jsonb("new_value").notNull(),
   reason: text("reason").notNull(),
+  appliesFromMonth: date("applies_from_month", { mode: "string" }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   companyCreatedIndex: index("var_hr_attendance_rule_changes_company_created_idx").on(table.companyId, table.createdAt),
+}));
+
+export const leavePoliciesTable = pgTable("var_hr_leave_policies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  leaveType: text("leave_type").notNull(),
+  annualEntitlement: numeric("annual_entitlement", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
+  accrualFrequency: text("accrual_frequency").notNull().default("annual"),
+  deductionMode: text("deduction_mode").notNull().default("automatic"),
+  carryForwardAllowed: boolean("carry_forward_allowed").notNull().default(false),
+  carryForwardDays: numeric("carry_forward_days", { precision: 8, scale: 2, mode: "number" }).notNull().default(0),
+  carryForwardExpiryMonths: integer("carry_forward_expiry_months"),
+  allowNegative: boolean("allow_negative").notNull().default(false),
+  periodStartMonth: integer("period_start_month").notNull().default(1),
+  allowedBalanceMonths: integer("allowed_balance_months").array().notNull().default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+  monthlyDeductionLimit: numeric("monthly_deduction_limit", { precision: 8, scale: 2, mode: "number" }).notNull().default(1),
+  enabled: boolean("enabled").notNull().default(true),
+  createdBy: uuid("created_by").references(() => userAccountsTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  companyTypeUnique: uniqueIndex("var_hr_leave_policies_company_type_uidx").on(table.companyId, table.leaveType),
 }));
 
 export const leaveBalancesTable = pgTable("var_hr_leave_balances", {
@@ -271,6 +290,7 @@ export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type PermissionRequest = typeof permissionRequestsTable.$inferSelect;
 export type AttendanceRules = typeof attendanceRulesTable.$inferSelect;
 export type AttendanceRuleChange = typeof attendanceRuleChangesTable.$inferSelect;
+export type LeavePolicy = typeof leavePoliciesTable.$inferSelect;
 export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
 export type LeaveBalanceTransaction = typeof leaveBalanceTransactionsTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;

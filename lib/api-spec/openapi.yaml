@@ -810,6 +810,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRecord"
+  /leave/policies:
+    get:
+      operationId: listLeavePolicies
+      tags: [leave]
+      summary: List current leave policies
+      responses:
+        "200":
+          description: Current leave policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeavePolicy"
+    post:
+      operationId: createLeavePolicy
+      tags: [leave]
+      summary: Save a leave policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeavePolicyInput"
+      responses:
+        "201":
+          description: Saved leave policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeavePolicy"
   /leave/balances:
     get:
       operationId: listLeaveBalances
@@ -995,21 +1026,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRules"
-  /rules/changes:
-    get:
-      operationId: listAttendanceRuleChanges
-      tags: [rules]
-      summary: List attendance rule change history
-      responses:
-        "200":
-          description: Attendance rule change history
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AttendanceRuleChange"
-  /rules:
     put:
       operationId: updateAttendanceRules
       tags: [rules]
@@ -1027,6 +1043,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRules"
+  /rules/changes:
+    get:
+      operationId: listAttendanceRuleChanges
+      tags: [rules]
+      summary: List attendance rule change history
+      responses:
+        "200":
+          description: Attendance rule change history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRuleChange"
   /schedules:
     get:
       operationId: listWorkSchedules
@@ -2487,8 +2517,6 @@ components:
           attendanceId,
           employeeId,
           attendanceDate,
-          ruleVersion,
-          ruleEffectiveFrom,
           scheduleSource,
           rawLateMinutes,
           lateGraceMinutes,
@@ -2530,8 +2558,6 @@ components:
         attendanceId: { type: string }
         employeeId: { type: string }
         attendanceDate: { type: string, format: date }
-        ruleVersion: { type: integer }
-        ruleEffectiveFrom: { type: string, format: date }
         scheduleSource:
           {
             type: string,
@@ -3031,7 +3057,7 @@ components:
         reason: { type: string, minLength: 1 }
     AttendanceRuleChange:
       type: object
-      required: [id, changedBy, field, oldValue, newValue, reason, changedAt]
+      required: [id, changedBy, field, oldValue, newValue, reason, changedAt, appliesFromMonth]
       properties:
         id: { type: string, format: uuid }
         changedBy:
@@ -3045,6 +3071,49 @@ components:
         newValue: {}
         reason: { type: string }
         changedAt: { type: string, format: date-time }
+        appliesFromMonth: { type: string, format: date }
+    LeavePolicy:
+      type: object
+      required:
+        [id, leaveType, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, carryForwardExpiryMonths, allowNegative, periodStartMonth, allowedBalanceMonths, monthlyDeductionLimit, enabled, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        leaveType: { type: string }
+        annualEntitlement: { type: number, minimum: 0 }
+        accrualFrequency: { type: string, enum: [monthly, quarterly, annual, hire_date] }
+        deductionMode: { type: string, enum: [automatic, manual] }
+        carryForwardAllowed: { type: boolean }
+        carryForwardDays: { type: number, minimum: 0 }
+        carryForwardExpiryMonths: { type: ["integer", "null"], minimum: 0 }
+        allowNegative: { type: boolean }
+        periodStartMonth: { type: integer, minimum: 1, maximum: 12 }
+        allowedBalanceMonths:
+          type: array
+          minItems: 1
+          items: { type: integer, minimum: 1, maximum: 12 }
+        monthlyDeductionLimit: { type: number, minimum: 0 }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    CreateLeavePolicyInput:
+      type: object
+      required:
+        [leaveType, annualEntitlement, accrualFrequency, deductionMode, carryForwardAllowed, carryForwardDays, allowNegative, periodStartMonth, allowedBalanceMonths, monthlyDeductionLimit]
+      properties:
+        leaveType: { type: string, minLength: 1 }
+        annualEntitlement: { type: number, minimum: 0 }
+        accrualFrequency: { type: string, enum: [monthly, quarterly, annual, hire_date] }
+        deductionMode: { type: string, enum: [automatic, manual] }
+        carryForwardAllowed: { type: boolean }
+        carryForwardDays: { type: number, minimum: 0 }
+        carryForwardExpiryMonths: { type: ["integer", "null"], minimum: 0 }
+        allowNegative: { type: boolean }
+        periodStartMonth: { type: integer, minimum: 1, maximum: 12 }
+        allowedBalanceMonths:
+          type: array
+          minItems: 1
+          items: { type: integer, minimum: 1, maximum: 12 }
+        monthlyDeductionLimit: { type: number, minimum: 0 }
+        enabled: { type: boolean }
     AttendanceReport:
       type: object
       required: [from, to, totals, rows]
