@@ -1772,6 +1772,40 @@ const pageCopy = {
     saveAttendancePolicy: "Save attendance policy",
     savingPolicy: "Saving policy…",
     attendancePolicyUpdated: "Attendance policy updated",
+    attendanceRulesChangeHistory: "Attendance rules change history",
+    attendanceRulesChangeHistoryDetail:
+      "Review who changed each attendance rule, what changed, and when it takes effect.",
+    attendanceRulesHistoryField: "Field",
+    attendanceRulesHistoryPreviousValue: "Previous value",
+    attendanceRulesHistoryNewValue: "New value",
+    attendanceRulesHistoryEffectiveFrom: "Applies from",
+    attendanceRulesHistoryActorReason: "Actor / reason",
+    noAttendanceRulesHistory: "No saved changes yet.",
+    historyOvertimeMethod: "Overtime method",
+    historyOvertimeMultiplier: "Overtime multiplier",
+    historyHourlyRateDivisor: "Hourly rate divisor",
+    historyLateDeductionMethod: "Late deduction method",
+    historyLateDeductionFactor: "Late deduction factor",
+    historyEarlyCheckoutDeductionFactor: "Early checkout deduction factor",
+    historyAbsenceDeductionMethod: "Absence deduction method",
+    historyAbsenceDeductionFactor: "Absence deduction factor",
+    historyHolidayDates: "Holiday dates",
+    historyHolidayPeriods: "Holiday periods",
+    historyWeeklyMultipliers: "Weekly multipliers",
+    historyAnnualLeaveAllowedMonths: "Annual leave balance months",
+    historyLatePenaltyMultiplier: "Late penalty multiplier",
+    historyEarlyDeparturePenaltyMultiplier: "Early departure penalty multiplier",
+    historyAbsencePenaltyMultiplier: "Absence penalty multiplier",
+    historyPermissionCoveredMinutesMultiplier:
+      "Permission-covered minutes multiplier",
+    historyFullDayPermissionMultiplier: "Full-day permission multiplier",
+    historyAbsenceLeaveDeductionTrigger: "Absence deduction trigger",
+    historyAbsenceLeaveDeductionDays: "Leave days per absence",
+    historyAbsenceDeductsAnnualLeave: "Deduct annual leave for absence",
+    historyValueMultiplier: "Multiplier",
+    historyValueHourlyRate: "Hourly rate",
+    historyValueDailyRate: "Daily rate",
+    historyValueStandard: "Standard",
     attendanceThresholdsTitle: "Attendance and overtime thresholds",
     attendanceThresholdsDetail:
       "Set the policy tolerances before late arrival, early departure, or overtime is recorded.",
@@ -2144,6 +2178,40 @@ const pageCopy = {
     saveAttendancePolicy: "حفظ سياسة الحضور",
     savingPolicy: "جارٍ حفظ السياسة…",
     attendancePolicyUpdated: "تم تحديث سياسة الحضور",
+    attendanceRulesChangeHistory: "سجل تغييرات قواعد الحضور",
+    attendanceRulesChangeHistoryDetail:
+      "راجع من غيّر كل قاعدة حضور، وما الذي تغيّر، ومتى يبدأ تطبيقه.",
+    attendanceRulesHistoryField: "الحقل",
+    attendanceRulesHistoryPreviousValue: "القيمة السابقة",
+    attendanceRulesHistoryNewValue: "القيمة الجديدة",
+    attendanceRulesHistoryEffectiveFrom: "يطبق من",
+    attendanceRulesHistoryActorReason: "المنفذ / السبب",
+    noAttendanceRulesHistory: "لا توجد تغييرات محفوظة بعد.",
+    historyOvertimeMethod: "طريقة العمل الإضافي",
+    historyOvertimeMultiplier: "مضاعف العمل الإضافي",
+    historyHourlyRateDivisor: "مقسّم أجر الساعة",
+    historyLateDeductionMethod: "طريقة خصم التأخير",
+    historyLateDeductionFactor: "معامل خصم التأخير",
+    historyEarlyCheckoutDeductionFactor: "معامل خصم الانصراف المبكر",
+    historyAbsenceDeductionMethod: "طريقة خصم الغياب",
+    historyAbsenceDeductionFactor: "معامل خصم الغياب",
+    historyHolidayDates: "تواريخ العطلات",
+    historyHolidayPeriods: "فترات العطلات",
+    historyWeeklyMultipliers: "المضاعفات الأسبوعية",
+    historyAnnualLeaveAllowedMonths: "أشهر خصم الرصيد السنوي",
+    historyLatePenaltyMultiplier: "مضاعف جزاء التأخير",
+    historyEarlyDeparturePenaltyMultiplier: "مضاعف جزاء الانصراف المبكر",
+    historyAbsencePenaltyMultiplier: "مضاعف جزاء الغياب",
+    historyPermissionCoveredMinutesMultiplier:
+      "مضاعف دقائق الإذن المغطاة",
+    historyFullDayPermissionMultiplier: "مضاعف الإذن ليوم كامل",
+    historyAbsenceLeaveDeductionTrigger: "مسبب خصم الغياب",
+    historyAbsenceLeaveDeductionDays: "أيام الإجازة لكل غياب",
+    historyAbsenceDeductsAnnualLeave: "خصم الإجازة السنوية بسبب الغياب",
+    historyValueMultiplier: "مضاعف",
+    historyValueHourlyRate: "أجر الساعة",
+    historyValueDailyRate: "الأجر اليومي",
+    historyValueStandard: "قياسي",
     attendanceThresholdsTitle: "حدود الحضور والعمل الإضافي",
     attendanceThresholdsDetail:
       "حدد فترات السماح التي تطبقها سياسة الحضور قبل تسجيل التأخير أو الانصراف المبكر أو العمل الإضافي.",
@@ -2721,6 +2789,48 @@ const pageCopy = {
     saveAttendancePolicy: "Enregistrer la politique",
     savingPolicy: "Enregistrement de la politique…",
     attendancePolicyUpdated: "Politique de présence mise à jour",
+    attendanceRulesChangeHistory: "Historique des modifications des règles de présence",
+    attendanceRulesChangeHistoryDetail:
+      "Consultez l’auteur, les changements et leur date d’application pour chaque règle.",
+    attendanceRulesHistoryField: "Champ",
+    attendanceRulesHistoryPreviousValue: "Valeur précédente",
+    attendanceRulesHistoryNewValue: "Nouvelle valeur",
+    attendanceRulesHistoryEffectiveFrom: "S’applique à partir du",
+    attendanceRulesHistoryActorReason: "Auteur / motif",
+    noAttendanceRulesHistory: "Aucune modification enregistrée pour le moment.",
+    historyOvertimeMethod: "Méthode des heures supplémentaires",
+    historyOvertimeMultiplier: "Multiplicateur des heures supplémentaires",
+    historyHourlyRateDivisor: "Diviseur du taux horaire",
+    historyLateDeductionMethod: "Méthode de déduction du retard",
+    historyLateDeductionFactor: "Facteur de déduction du retard",
+    historyEarlyCheckoutDeductionFactor:
+      "Facteur de déduction du départ anticipé",
+    historyAbsenceDeductionMethod: "Méthode de déduction de l’absence",
+    historyAbsenceDeductionFactor: "Facteur de déduction de l’absence",
+    historyHolidayDates: "Dates des jours fériés",
+    historyHolidayPeriods: "Périodes de jours fériés",
+    historyWeeklyMultipliers: "Multiplicateurs hebdomadaires",
+    historyAnnualLeaveAllowedMonths:
+      "Mois de déduction du solde annuel",
+    historyLatePenaltyMultiplier: "Multiplicateur de pénalité de retard",
+    historyEarlyDeparturePenaltyMultiplier:
+      "Multiplicateur de pénalité de départ anticipé",
+    historyAbsencePenaltyMultiplier:
+      "Multiplicateur de pénalité d’absence",
+    historyPermissionCoveredMinutesMultiplier:
+      "Multiplicateur des minutes couvertes par l’autorisation",
+    historyFullDayPermissionMultiplier:
+      "Multiplicateur de l’autorisation d’une journée complète",
+    historyAbsenceLeaveDeductionTrigger:
+      "Déclencheur de déduction pour absence",
+    historyAbsenceLeaveDeductionDays:
+      "Jours de congé par absence",
+    historyAbsenceDeductsAnnualLeave:
+      "Déduire le congé annuel pour absence",
+    historyValueMultiplier: "Multiplicateur",
+    historyValueHourlyRate: "Taux horaire",
+    historyValueDailyRate: "Taux journalier",
+    historyValueStandard: "Standard",
     evidenceAnalysis: "Preuves et analyse",
     attendanceReportsTitle: "Rapports de présence",
     reportsDetail:
@@ -3046,6 +3156,48 @@ const pageCopy = {
     saveAttendancePolicy: "Anwesenheitsrichtlinie speichern",
     savingPolicy: "Richtlinie wird gespeichert…",
     attendancePolicyUpdated: "Anwesenheitsrichtlinie aktualisiert",
+    attendanceRulesChangeHistory: "Änderungsverlauf der Anwesenheitsregeln",
+    attendanceRulesChangeHistoryDetail:
+      "Prüfen Sie für jede Anwesenheitsregel den Bearbeiter, die Änderung und den Beginn der Anwendung.",
+    attendanceRulesHistoryField: "Feld",
+    attendanceRulesHistoryPreviousValue: "Vorheriger Wert",
+    attendanceRulesHistoryNewValue: "Neuer Wert",
+    attendanceRulesHistoryEffectiveFrom: "Gültig ab",
+    attendanceRulesHistoryActorReason: "Bearbeiter / Grund",
+    noAttendanceRulesHistory: "Noch keine Änderungen gespeichert.",
+    historyOvertimeMethod: "Methode für Überstunden",
+    historyOvertimeMultiplier: "Überstundenmultiplikator",
+    historyHourlyRateDivisor: "Teiler für Stundenlohn",
+    historyLateDeductionMethod: "Methode für Verspätungsabzug",
+    historyLateDeductionFactor: "Faktor für Verspätungsabzug",
+    historyEarlyCheckoutDeductionFactor:
+      "Faktor für Abzug bei frühem Feierabend",
+    historyAbsenceDeductionMethod: "Methode für Abwesenheitsabzug",
+    historyAbsenceDeductionFactor: "Faktor für Abwesenheitsabzug",
+    historyHolidayDates: "Feiertagsdaten",
+    historyHolidayPeriods: "Feiertagszeiträume",
+    historyWeeklyMultipliers: "Wöchentliche Multiplikatoren",
+    historyAnnualLeaveAllowedMonths:
+      "Monate für den Abzug vom Jahresurlaub",
+    historyLatePenaltyMultiplier: "Multiplikator für Verspätungsstrafe",
+    historyEarlyDeparturePenaltyMultiplier:
+      "Multiplikator für Strafe bei frühem Feierabend",
+    historyAbsencePenaltyMultiplier:
+      "Multiplikator für Abwesenheitsstrafe",
+    historyPermissionCoveredMinutesMultiplier:
+      "Multiplikator für abgedeckte Genehmigungsminuten",
+    historyFullDayPermissionMultiplier:
+      "Multiplikator für ganztägige Genehmigung",
+    historyAbsenceLeaveDeductionTrigger:
+      "Auslöser für Abwesenheitsabzug",
+    historyAbsenceLeaveDeductionDays:
+      "Urlaubstage pro Abwesenheit",
+    historyAbsenceDeductsAnnualLeave:
+      "Jahresurlaub wegen Abwesenheit abziehen",
+    historyValueMultiplier: "Multiplikator",
+    historyValueHourlyRate: "Stundenlohn",
+    historyValueDailyRate: "Tageslohn",
+    historyValueStandard: "Standard",
     evidenceAnalysis: "Belege und Analyse",
     attendanceReportsTitle: "Anwesenheitsberichte",
     reportsDetail:
@@ -4443,6 +4595,138 @@ const I18nContext = createContext<{
 });
 function useI18n() {
   return useContext(I18nContext);
+}
+
+const attendanceRuleFieldCopyKeys: Partial<Record<string, AppCopyKey>> = {
+  workStart: "workStarts",
+  workEnd: "workEnds",
+  scheduleName: "scheduleName",
+  requiredHours: "requiredHours",
+  graceMinutes: "gracePeriod",
+  earlyCheckoutGraceMinutes: "earlyDepartureGrace",
+  overtimeAfterMinutes: "overtimeAfter",
+  overtimeEligible: "overtimeEligible",
+  overtimeMethod: "historyOvertimeMethod",
+  overtimeMultiplier: "historyOvertimeMultiplier",
+  hourlyRateDivisor: "historyHourlyRateDivisor",
+  lateDeductionMethod: "historyLateDeductionMethod",
+  lateDeductionFactor: "historyLateDeductionFactor",
+  earlyCheckoutDeductionFactor: "historyEarlyCheckoutDeductionFactor",
+  absenceDeductionMethod: "historyAbsenceDeductionMethod",
+  absenceDeductionFactor: "historyAbsenceDeductionFactor",
+  latePenaltyMultiplier: "historyLatePenaltyMultiplier",
+  earlyDeparturePenaltyMultiplier: "historyEarlyDeparturePenaltyMultiplier",
+  absencePenaltyMultiplier: "historyAbsencePenaltyMultiplier",
+  permissionCoversLate: "permissionCoversLate",
+  permissionCoversEarly: "permissionCoversEarly",
+  permissionCoveredMinutesMultiplier:
+    "historyPermissionCoveredMinutesMultiplier",
+  fullDayPermissionMultiplier: "historyFullDayPermissionMultiplier",
+  holidayDates: "historyHolidayDates",
+  holidayPeriods: "historyHolidayPeriods",
+  weeklyMultipliers: "historyWeeklyMultipliers",
+  absenceDeductsAnnualLeave: "historyAbsenceDeductsAnnualLeave",
+  absenceLeaveDeductionTrigger: "historyAbsenceLeaveDeductionTrigger",
+  absenceLeaveDeductionDays: "historyAbsenceLeaveDeductionDays",
+  workingDays: "workingDays",
+  gpsPolicy: "gpsPolicy",
+  locationRadiusMeters: "locationRadius",
+  annualLeaveEntitlement: "annualEntitlementDays",
+  annualLeavePeriodStartMonth: "leaveYearStartsIn",
+  annualLeaveAllowedMonths: "historyAnnualLeaveAllowedMonths",
+  annualLeaveMonthlyDeductionLimit: "monthlyMaximumDeduction",
+};
+
+const attendanceRuleValueCopyKeys: Record<
+  string,
+  Partial<Record<string, AppCopyKey>>
+> = {
+  gpsPolicy: {
+    disabled: "disabled",
+    optional: "optional",
+    required: "required",
+  },
+  absenceLeaveDeductionTrigger: {
+    unexcused_absence: "unapprovedAbsencesOnly",
+    any_absence: "anyAbsenceMissing",
+  },
+  overtimeMethod: {
+    multiplier: "historyValueMultiplier",
+  },
+  lateDeductionMethod: {
+    hourly_rate: "historyValueHourlyRate",
+  },
+  absenceDeductionMethod: {
+    daily_rate: "historyValueDailyRate",
+  },
+  multiplierSource: {
+    standard: "historyValueStandard",
+  },
+};
+
+const attendanceRuleDayCopyKeys: Record<string, AppCopyKey> = {
+  Sun: "daySun",
+  Mon: "dayMon",
+  Tue: "dayTue",
+  Wed: "dayWed",
+  Thu: "dayThu",
+  Fri: "dayFri",
+  Sat: "daySat",
+};
+
+function localizedAttendanceRuleField(
+  fieldName: string,
+  t: (key: AppCopyKey) => string,
+) {
+  const copyKey = attendanceRuleFieldCopyKeys[fieldName];
+  return copyKey ? t(copyKey) : fieldName;
+}
+
+function localizedAttendanceRuleValue(
+  fieldName: string,
+  value: unknown,
+  locale: Locale,
+  t: (key: AppCopyKey) => string,
+): string {
+  if (value === null || value === undefined) return t("notAvailable");
+  if (typeof value === "boolean") {
+    return value ? t("enabled") : t("disabledSetting");
+  }
+  if (Array.isArray(value)) {
+    if (
+      value.some(
+        (item) => item !== null && typeof item === "object",
+      )
+    ) {
+      return JSON.stringify(value);
+    }
+    return value
+      .map((item) => {
+        if (fieldName === "workingDays" && typeof item === "string") {
+          return t(attendanceRuleDayCopyKeys[item] ?? "notAvailable");
+        }
+        if (
+          (fieldName === "holidayDates" || fieldName === "holidayPeriods") &&
+          typeof item === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(item)
+        ) {
+          return localizedAttendanceRuleDate(item, locale);
+        }
+        return String(item);
+      })
+      .join(", ");
+  }
+  if (typeof value === "object") return JSON.stringify(value);
+  const copyKey = attendanceRuleValueCopyKeys[fieldName]?.[String(value)];
+  return copyKey ? t(copyKey) : String(value);
+}
+
+function localizedAttendanceRuleDate(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -11659,14 +11943,6 @@ function Rules() {
               className="mt-1 min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
             />
           </label>
-          <Button
-            type="button"
-            onClick={save}
-            disabled={update.isPending}
-            className="order-8 w-full"
-          >
-            {update.isPending ? t("savingPolicy") : t("saveAttendancePolicy")}
-          </Button>
         </div>
       </div>
       <Card className="order-4 p-6">
@@ -11841,16 +12117,22 @@ function Rules() {
             </p>
           )}
         </div>
+        <Button
+          type="button"
+          onClick={save}
+          disabled={update.isPending}
+          className="mt-6 w-full"
+        >
+          {update.isPending ? t("savingPolicy") : t("saveAttendancePolicy")}
+        </Button>
       </Card>
       <Card className="order-9 p-6">
         <div>
           <h2 className="font-display text-lg font-semibold">
-            {locale === "ar" ? "سجل تغييرات قواعد الحضور" : "Attendance rules change history"}
+            {t("attendanceRulesChangeHistory")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {locale === "ar"
-              ? "كل تغيير محفوظ باسم المنفذ والشهر الذي يبدأ فيه تطبيقه."
-              : "Every saved change records who made it and the month it starts applying."}
+            {t("attendanceRulesChangeHistoryDetail")}
           </p>
         </div>
         <div className="mt-5 grid gap-3">
@@ -11861,31 +12143,52 @@ function Rules() {
             >
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {locale === "ar" ? "الحقل" : "Field"}
+                  {t("attendanceRulesHistoryField")}
                 </span>
-                <strong>{change.field}</strong>
+                <strong>
+                  {localizedAttendanceRuleField(change.field, t)}
+                </strong>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {locale === "ar" ? "القيمة السابقة" : "Previous value"}
+                  {t("attendanceRulesHistoryPreviousValue")}
                 </span>
-                <span>{JSON.stringify(change.oldValue)}</span>
+                <span>
+                  {localizedAttendanceRuleValue(
+                    change.field,
+                    change.oldValue,
+                    locale,
+                    t,
+                  )}
+                </span>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {locale === "ar" ? "القيمة الجديدة" : "New value"}
+                  {t("attendanceRulesHistoryNewValue")}
                 </span>
-                <span>{JSON.stringify(change.newValue)}</span>
+                <span>
+                  {localizedAttendanceRuleValue(
+                    change.field,
+                    change.newValue,
+                    locale,
+                    t,
+                  )}
+                </span>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {locale === "ar" ? "يطبق من" : "Applies from"}
+                  {t("attendanceRulesHistoryEffectiveFrom")}
                 </span>
-                <span>{change.appliesFromMonth}</span>
+                <span>
+                  {localizedAttendanceRuleDate(
+                    change.appliesFromMonth,
+                    locale,
+                  )}
+                </span>
               </div>
               <div>
                 <span className="block text-xs text-muted-foreground">
-                  {locale === "ar" ? "المنفذ / السبب" : "Actor / reason"}
+                  {t("attendanceRulesHistoryActorReason")}
                 </span>
                 <span>
                   {change.changedBy?.name} · {change.reason}
@@ -11895,7 +12198,7 @@ function Rules() {
           ))}
           {!changes.data?.length && (
             <p className="text-sm text-muted-foreground">
-              {locale === "ar" ? "لا توجد تغييرات محفوظة بعد." : "No saved changes yet."}
+              {t("noAttendanceRulesHistory")}
             </p>
           )}
         </div>
