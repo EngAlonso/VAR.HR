@@ -13,6 +13,7 @@ export interface LeaveBalance {
   type: string;
   allocated: number;
   used: number;
+  absenceDeducted: number;
   pending: number;
   remaining: number;
   total: number;

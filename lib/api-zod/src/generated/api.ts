@@ -1578,6 +1578,7 @@ export const ListLeaveBalancesResponseItem = zod.object({
   "type": zod.string(),
   "allocated": zod.number(),
   "used": zod.number(),
+  "absenceDeducted": zod.number(),
   "pending": zod.number(),
   "remaining": zod.number(),
   "total": zod.number(),
@@ -1732,6 +1733,7 @@ export const AdjustLeaveBalanceResponse = zod.object({
   "type": zod.string(),
   "allocated": zod.number(),
   "used": zod.number(),
+  "absenceDeducted": zod.number(),
   "pending": zod.number(),
   "remaining": zod.number(),
   "total": zod.number(),
@@ -1971,6 +1973,12 @@ export const getAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 export const getAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
 
+export const getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
+
+export const getAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
+
+export const getAttendanceRulesResponseAnnualLeavePeriodStartMonthMax = 12;
+
 export const getAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
 
@@ -2014,6 +2022,10 @@ export const GetAttendanceRulesResponse = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(getAttendanceRulesResponseAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(getAttendanceRulesResponseAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(getAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2041,6 +2053,12 @@ export const listAttendanceRuleVersionsResponseConfigurationEarlyCheckoutDeducti
 
 export const listAttendanceRuleVersionsResponseConfigurationAbsenceDeductionFactorMin = 0;
 
+
+export const listAttendanceRuleVersionsResponseConfigurationAbsenceLeaveDeductionDaysMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationAnnualLeaveEntitlementMin = 0;
+
+export const listAttendanceRuleVersionsResponseConfigurationAnnualLeavePeriodStartMonthMax = 12;
 
 export const listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2093,6 +2111,10 @@ export const ListAttendanceRuleVersionsResponseItem = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(listAttendanceRuleVersionsResponseConfigurationAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(listAttendanceRuleVersionsResponseConfigurationAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(listAttendanceRuleVersionsResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2123,6 +2145,12 @@ export const createAttendanceRuleVersionBodyOneEarlyCheckoutDeductionFactorMin =
 
 export const createAttendanceRuleVersionBodyOneAbsenceDeductionFactorMin = 0;
 
+
+export const createAttendanceRuleVersionBodyOneAbsenceLeaveDeductionDaysMin = 0;
+
+export const createAttendanceRuleVersionBodyOneAnnualLeaveEntitlementMin = 0;
+
+export const createAttendanceRuleVersionBodyOneAnnualLeavePeriodStartMonthMax = 12;
 
 export const createAttendanceRuleVersionBodyOneLocationRadiusMetersMin = 0;
 
@@ -2167,6 +2195,10 @@ export const CreateAttendanceRuleVersionBody = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(createAttendanceRuleVersionBodyOneAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(createAttendanceRuleVersionBodyOneAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(createAttendanceRuleVersionBodyOneAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionBodyOneLocationRadiusMetersMin)
 }).and(zod.object({
@@ -2190,6 +2222,12 @@ export const createAttendanceRuleVersionResponseConfigurationEarlyCheckoutDeduct
 
 export const createAttendanceRuleVersionResponseConfigurationAbsenceDeductionFactorMin = 0;
 
+
+export const createAttendanceRuleVersionResponseConfigurationAbsenceLeaveDeductionDaysMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationAnnualLeaveEntitlementMin = 0;
+
+export const createAttendanceRuleVersionResponseConfigurationAnnualLeavePeriodStartMonthMax = 12;
 
 export const createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin = 0;
 
@@ -2242,6 +2280,10 @@ export const CreateAttendanceRuleVersionResponse = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(createAttendanceRuleVersionResponseConfigurationAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(createAttendanceRuleVersionResponseConfigurationAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(createAttendanceRuleVersionResponseConfigurationAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(createAttendanceRuleVersionResponseConfigurationLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -2271,6 +2313,12 @@ export const updateAttendanceRulesBodyEarlyCheckoutDeductionFactorMin = 0;
 
 export const updateAttendanceRulesBodyAbsenceDeductionFactorMin = 0;
 
+
+export const updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin = 0;
+
+export const updateAttendanceRulesBodyAnnualLeaveEntitlementMin = 0;
+
+export const updateAttendanceRulesBodyAnnualLeavePeriodStartMonthMax = 12;
 
 export const updateAttendanceRulesBodyLocationRadiusMetersMin = 0;
 
@@ -2315,6 +2363,10 @@ export const UpdateAttendanceRulesBody = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(updateAttendanceRulesBodyAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(updateAttendanceRulesBodyAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesBodyLocationRadiusMetersMin)
 })
@@ -2336,6 +2388,12 @@ export const updateAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 
 export const updateAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
+
+export const updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
+
+export const updateAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
+
+export const updateAttendanceRulesResponseAnnualLeavePeriodStartMonthMax = 12;
 
 export const updateAttendanceRulesResponseLocationRadiusMetersMin = 0;
 
@@ -2380,6 +2438,10 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
+  "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
+  "absenceLeaveDeductionDays": zod.number().min(updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin),
+  "annualLeaveEntitlement": zod.number().min(updateAttendanceRulesResponseAnnualLeaveEntitlementMin),
+  "annualLeavePeriodStartMonth": zod.int().min(1).max(updateAttendanceRulesResponseAnnualLeavePeriodStartMonthMax),
   "gpsPolicy": zod.enum(['disabled', 'optional', 'required']),
   "locationRadiusMeters": zod.int().min(updateAttendanceRulesResponseLocationRadiusMetersMin).optional(),
   "version": zod.int().optional(),
@@ -3200,6 +3262,7 @@ export const CalculatePayrollResponse = zod.object({
   "type": zod.string(),
   "allocated": zod.number(),
   "used": zod.number(),
+  "absenceDeducted": zod.number(),
   "pending": zod.number(),
   "remaining": zod.number()
 })),
@@ -3270,6 +3333,7 @@ export const GetPayrollCalculationResponse = zod.object({
   "type": zod.string(),
   "allocated": zod.number(),
   "used": zod.number(),
+  "absenceDeducted": zod.number(),
   "pending": zod.number(),
   "remaining": zod.number()
 })),
@@ -3438,6 +3502,7 @@ export const GetMyPayrollResponse = zod.object({
   "type": zod.string(),
   "allocated": zod.number(),
   "used": zod.number(),
+  "absenceDeducted": zod.number(),
   "pending": zod.number(),
   "remaining": zod.number()
 })),

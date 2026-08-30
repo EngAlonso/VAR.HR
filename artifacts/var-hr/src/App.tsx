@@ -7258,6 +7258,7 @@ function EmployeeHrProfile({
                     type: string;
                     total: number;
                     used: number;
+                    absenceDeducted: number;
                     pending: number;
                     remaining: number;
                   }>
@@ -7267,8 +7268,18 @@ function EmployeeHrProfile({
                   )
                   .map((balance) => (
                     <Fragment key={balance.type}>
-                      <Info label="Annual balance" value={`${balance.total} days`} />
-                      <Info label="Used" value={`${balance.used} days`} />
+                      <Info
+                        label="Annual balance"
+                        value={`${balance.total} days`}
+                      />
+                      <Info
+                        label="Used leave"
+                        value={`${balance.used} days`}
+                      />
+                      <Info
+                        label="Deducted for absence"
+                        value={`${balance.absenceDeducted} days`}
+                      />
                       <Info label="Pending" value={`${balance.pending} days`} />
                       <Info
                         label="Remaining"
@@ -10933,6 +10944,8 @@ function Rules() {
   const update = useUpdateAttendanceRules();
   const versions = useListAttendanceRuleVersions();
   const createVersion = useCreateAttendanceRuleVersion();
+  const policies = useListLeavePolicies();
+  const createPolicy = useCreateLeavePolicy();
   const [form, setForm] = useState<any>(null);
   const [reviewVersion, setReviewVersion] = useState(false);
   const [effectiveFrom, setEffectiveFrom] = useState(
@@ -10947,6 +10960,15 @@ function Rules() {
         absenceDeductsAnnualLeave: Boolean(
           q.data.absenceDeductsAnnualLeave,
         ),
+        absenceLeaveDeductionTrigger:
+          q.data.absenceLeaveDeductionTrigger || "unexcused_absence",
+        absenceLeaveDeductionDays: Number(
+          q.data.absenceLeaveDeductionDays ?? 1,
+        ),
+        annualLeaveEntitlement: Number(q.data.annualLeaveEntitlement ?? 21),
+        annualLeavePeriodStartMonth: Number(
+          q.data.annualLeavePeriodStartMonth ?? 1,
+        ),
       });
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
@@ -10956,6 +10978,16 @@ function Rules() {
     setReviewVersion(true);
   }
   function saveVersion() {
+    const finishSave = () => {
+      toast.success(t("attendancePolicyUpdated"));
+      setReviewVersion(false);
+      qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
+      qc.invalidateQueries({
+        queryKey: getListAttendanceRuleVersionsQueryKey(),
+      });
+      qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
+      qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+    };
     createVersion.mutate(
       {
         data: {
@@ -10977,6 +11009,11 @@ function Rules() {
             form.earlyDeparturePenaltyMultiplier,
           ),
           absencePenaltyMultiplier: Number(form.absencePenaltyMultiplier),
+          absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),
+          annualLeaveEntitlement: Number(form.annualLeaveEntitlement),
+          annualLeavePeriodStartMonth: Number(
+            form.annualLeavePeriodStartMonth,
+          ),
           permissionCoveredMinutesMultiplier: Number(
             form.permissionCoveredMinutesMultiplier,
           ),
@@ -10986,12 +11023,48 @@ function Rules() {
       },
       {
         onSuccess: () => {
-          toast.success(t("attendancePolicyUpdated"));
-          setReviewVersion(false);
-          qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
-          qc.invalidateQueries({
-            queryKey: getListAttendanceRuleVersionsQueryKey(),
-          });
+          const annualPolicy = (policies.data || []).find((policy: any) =>
+            ["annual", "annual leave"].includes(
+              String(policy.leaveType).trim().toLowerCase(),
+            ),
+          ) as any;
+          const policyChanged =
+            !annualPolicy ||
+            Number(annualPolicy.annualEntitlement) !==
+              Number(form.annualLeaveEntitlement) ||
+            Number(annualPolicy.periodStartMonth ?? 1) !==
+              Number(form.annualLeavePeriodStartMonth);
+          if (!policyChanged) {
+            finishSave();
+            return;
+          }
+          createPolicy.mutate(
+            {
+              data: {
+                leaveType: annualPolicy?.leaveType || "Annual leave",
+                annualEntitlement: Number(form.annualLeaveEntitlement),
+                accrualFrequency: annualPolicy?.accrualFrequency || "monthly",
+                deductionMode: annualPolicy?.deductionMode || "automatic",
+                carryForwardAllowed: Boolean(
+                  annualPolicy?.carryForwardAllowed ?? false,
+                ),
+                carryForwardDays: Number(
+                  annualPolicy?.carryForwardDays ?? 0,
+                ),
+                carryForwardExpiryMonths:
+                  annualPolicy?.carryForwardExpiryMonths ?? null,
+                allowNegative: Boolean(annualPolicy?.allowNegative ?? false),
+                periodStartMonth: Number(form.annualLeavePeriodStartMonth),
+                enabled: true,
+                effectiveFrom,
+              } as any,
+            },
+            {
+              onSuccess: finishSave,
+              onError: (error) =>
+                toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
+            },
+          );
         },
         onError: (error) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
@@ -11147,6 +11220,100 @@ function Rules() {
                 </span>
               </span>
             </label>
+            <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+              <h3 className="font-semibold">
+                {locale === "ar"
+                  ? "إعدادات الإجازة السنوية"
+                  : "Annual leave settings"}
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {locale === "ar"
+                  ? "تُحفظ هذه القيم كإصدار من سياسة الإجازة السنوية وتستخدم في الرصيد والحضور والرواتب."
+                  : "These values are saved as an annual leave policy version and used by balances, attendance, payroll, and self-service."}
+              </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field
+                  label={
+                    locale === "ar"
+                      ? "أيام الإجازة السنوية"
+                      : "Annual entitlement (days)"
+                  }
+                  type="number"
+                  min={0}
+                  required
+                  value={form.annualLeaveEntitlement}
+                  onChange={(value) =>
+                    setForm({ ...form, annualLeaveEntitlement: value })
+                  }
+                />
+                <label className="block text-sm font-semibold">
+                  {locale === "ar"
+                    ? "بداية سنة الإجازة"
+                    : "Leave year starts in"}
+                  <select
+                    value={form.annualLeavePeriodStartMonth}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        annualLeavePeriodStartMonth: Number(event.target.value),
+                      })
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    {Array.from({ length: 12 }, (_, index) => (
+                      <option key={index + 1} value={index + 1}>
+                        {new Date(2020, index, 1).toLocaleString(
+                          locale === "ar" ? "ar-EG" : "en-US",
+                          { month: "long" },
+                        )}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-semibold">
+                {locale === "ar"
+                  ? "متى يخصم الغياب من الإجازة؟"
+                  : "When should absence deduct leave?"}
+                <select
+                  value={form.absenceLeaveDeductionTrigger}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      absenceLeaveDeductionTrigger: event.target.value,
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="unexcused_absence">
+                    {locale === "ar"
+                      ? "الغياب غير المعتمد فقط"
+                      : "Unapproved absences only"}
+                  </option>
+                  <option value="any_absence">
+                    {locale === "ar"
+                      ? "كل غياب أو عدم تسجيل حضور"
+                      : "Any absence or missing attendance"}
+                  </option>
+                </select>
+              </label>
+              <Field
+                label={
+                  locale === "ar"
+                    ? "أيام الخصم لكل غياب"
+                    : "Leave days deducted per absence"
+                }
+                type="number"
+                min={0}
+                required
+                value={form.absenceLeaveDeductionDays}
+                onChange={(value) =>
+                  setForm({ ...form, absenceLeaveDeductionDays: value })
+                }
+              />
+            </div>
             <div className="mt-5 space-y-3">
               {(form.weeklyMultipliers || []).map(
                 (item: any, index: number) => (

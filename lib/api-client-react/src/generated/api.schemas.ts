@@ -863,6 +863,7 @@ export interface LeaveBalance {
   type: string;
   allocated: number;
   used: number;
+  absenceDeducted: number;
   pending: number;
   remaining: number;
   total: number;
@@ -1208,6 +1209,14 @@ export type AttendanceRulesWeeklyMultipliersItem = {
   enabled: boolean;
 };
 
+export type AttendanceRulesAbsenceLeaveDeductionTrigger = typeof AttendanceRulesAbsenceLeaveDeductionTrigger[keyof typeof AttendanceRulesAbsenceLeaveDeductionTrigger];
+
+
+export const AttendanceRulesAbsenceLeaveDeductionTrigger = {
+  unexcused_absence: 'unexcused_absence',
+  any_absence: 'any_absence',
+} as const;
+
 export type AttendanceRulesGpsPolicy = typeof AttendanceRulesGpsPolicy[keyof typeof AttendanceRulesGpsPolicy];
 
 
@@ -1255,6 +1264,16 @@ export interface AttendanceRules {
   holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
   absenceDeductsAnnualLeave: boolean;
+  absenceLeaveDeductionTrigger: AttendanceRulesAbsenceLeaveDeductionTrigger;
+  /** @minimum 0 */
+  absenceLeaveDeductionDays: number;
+  /** @minimum 0 */
+  annualLeaveEntitlement: number;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  annualLeavePeriodStartMonth: number;
   gpsPolicy: AttendanceRulesGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters?: number;
@@ -1382,6 +1401,14 @@ export type AttendanceRulesInputWeeklyMultipliersItem = {
   enabled: boolean;
 };
 
+export type AttendanceRulesInputAbsenceLeaveDeductionTrigger = typeof AttendanceRulesInputAbsenceLeaveDeductionTrigger[keyof typeof AttendanceRulesInputAbsenceLeaveDeductionTrigger];
+
+
+export const AttendanceRulesInputAbsenceLeaveDeductionTrigger = {
+  unexcused_absence: 'unexcused_absence',
+  any_absence: 'any_absence',
+} as const;
+
 export type AttendanceRulesInputGpsPolicy = typeof AttendanceRulesInputGpsPolicy[keyof typeof AttendanceRulesInputGpsPolicy];
 
 
@@ -1430,6 +1457,16 @@ export interface AttendanceRulesInput {
   holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];
   absenceDeductsAnnualLeave: boolean;
+  absenceLeaveDeductionTrigger: AttendanceRulesInputAbsenceLeaveDeductionTrigger;
+  /** @minimum 0 */
+  absenceLeaveDeductionDays: number;
+  /** @minimum 0 */
+  annualLeaveEntitlement: number;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  annualLeavePeriodStartMonth: number;
   gpsPolicy: AttendanceRulesInputGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters: number;
@@ -1638,6 +1675,7 @@ export type PayrollEmployeeLeaveBalancesItem = {
   type: string;
   allocated: number;
   used: number;
+  absenceDeducted: number;
   pending: number;
   remaining: number;
 };

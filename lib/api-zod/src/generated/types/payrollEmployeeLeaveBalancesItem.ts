@@ -10,6 +10,7 @@ export type PayrollEmployeeLeaveBalancesItem = {
   type: string;
   allocated: number;
   used: number;
+  absenceDeducted: number;
   pending: number;
   remaining: number;
 };

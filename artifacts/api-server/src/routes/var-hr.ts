@@ -768,6 +768,12 @@ const defaultAttendanceRules = {
     enabled: boolean;
   }>,
   absenceDeductsAnnualLeave: false,
+  absenceLeaveDeductionTrigger: "unexcused_absence" as
+    | "unexcused_absence"
+    | "any_absence",
+  absenceLeaveDeductionDays: 1,
+  annualLeaveEntitlement: 21,
+  annualLeavePeriodStartMonth: 1,
   gpsPolicy: "optional" as const,
   locationRadiusMeters: 180,
   version: 1,
@@ -816,6 +822,16 @@ function rulesConfiguration(
     holidayPeriods: rules.holidayPeriods,
     weeklyMultipliers: rules.weeklyMultipliers,
     absenceDeductsAnnualLeave: rules.absenceDeductsAnnualLeave,
+    absenceLeaveDeductionTrigger: rules.absenceLeaveDeductionTrigger,
+    absenceLeaveDeductionDays: rules.absenceLeaveDeductionDays,
+    annualLeaveEntitlement:
+      "annualLeaveEntitlement" in rules
+        ? rules.annualLeaveEntitlement
+        : defaultAttendanceRules.annualLeaveEntitlement,
+    annualLeavePeriodStartMonth:
+      "annualLeavePeriodStartMonth" in rules
+        ? rules.annualLeavePeriodStartMonth
+        : defaultAttendanceRules.annualLeavePeriodStartMonth,
     workingDays: rules.workingDays,
     gpsPolicy: rules.gpsPolicy,
     locationRadiusMeters: rules.locationRadiusMeters,
@@ -888,9 +904,12 @@ async function attendanceRulesFor(
         .orderBy(asc(attendanceRuleVersionsTable.effectiveFrom))
         .limit(1)
     )[0];
+  const annualPolicy = await annualLeavePolicyFor(companyId, attendanceDate);
   if (!selected) {
     return {
       ...defaultAttendanceRules,
+      annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
+      annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
       id: null,
       companyId,
       effectiveTo: null,
@@ -902,6 +921,8 @@ async function attendanceRulesFor(
   return {
     ...defaultAttendanceRules,
     ...(selected.configuration as Record<string, unknown>),
+    annualLeaveEntitlement: annualPolicy?.annualEntitlement ?? defaultAttendanceRules.annualLeaveEntitlement,
+    annualLeavePeriodStartMonth: annualPolicy?.periodStartMonth ?? defaultAttendanceRules.annualLeavePeriodStartMonth,
     id: selected.id,
     companyId: selected.companyId,
     version: selected.version,
@@ -1544,46 +1565,132 @@ async function attendanceCalculationFor(
             : !attendance.checkIn
               ? "missing_attendance"
               : "present";
-  if (
-    persist &&
-    rules.absenceDeductsAnnualLeave &&
-    (attendanceState === "unexcused_absence" ||
-      attendanceState === "missing_attendance")
-  ) {
-    const [balance] = await db
+  const shouldDeductAnnualLeave =
+    attendanceState === "unexcused_absence" ||
+    (attendanceState === "missing_attendance" &&
+      rules.absenceLeaveDeductionTrigger === "any_absence");
+  if (persist) {
+    const [priorAbsenceDeduction] = await db
       .select()
-      .from(leaveBalancesTable)
+      .from(leaveBalanceTransactionsTable)
       .where(
         and(
-          eq(leaveBalancesTable.companyId, context.companyId),
-          eq(leaveBalancesTable.employeeId, attendance.employeeId),
-          eq(leaveBalancesTable.type, "annual"),
+          eq(leaveBalanceTransactionsTable.companyId, context.companyId),
+          eq(leaveBalanceTransactionsTable.employeeId, attendance.employeeId),
+          eq(
+            leaveBalanceTransactionsTable.transactionKey,
+            `absence_leave:${attendance.id}`,
+          ),
         ),
       )
       .limit(1);
-    if (balance) {
-      const transactionKey = `absence_leave:${attendance.id}`;
-      const [transaction] = await db
-        .insert(leaveBalanceTransactionsTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: attendance.employeeId,
-          leaveType: "annual",
-          amount: -1,
-          transactionType: "usage",
-          beforeBalance: balance.allocated - balance.used,
-          afterBalance: balance.allocated - balance.used - 1,
-          actorId: "system",
-          reason: `Annual leave deduction for absence on ${attendance.date}`,
-          transactionKey,
-        })
-        .onConflictDoNothing()
-        .returning();
-      if (transaction) {
-        await db
-          .update(leaveBalancesTable)
-          .set({ used: sql`${leaveBalancesTable.used} + 1` })
-          .where(eq(leaveBalancesTable.id, balance.id));
+    const [priorReversal] = await db
+      .select({ id: leaveBalanceTransactionsTable.id })
+      .from(leaveBalanceTransactionsTable)
+      .where(
+        eq(
+          leaveBalanceTransactionsTable.transactionKey,
+          `absence_leave_reversal:${attendance.id}`,
+        ),
+      )
+      .limit(1);
+    const policy = await annualLeavePolicyFor(
+      context.companyId,
+      attendance.date,
+    );
+    if (
+      rules.absenceDeductsAnnualLeave &&
+      shouldDeductAnnualLeave &&
+      policy?.deductionMode === "automatic" &&
+      !priorAbsenceDeduction
+    ) {
+      const [balance] = await db
+        .select()
+        .from(leaveBalancesTable)
+        .where(
+          and(
+            eq(leaveBalancesTable.companyId, context.companyId),
+            eq(leaveBalancesTable.employeeId, attendance.employeeId),
+            eq(leaveBalancesTable.type, policy.leaveType),
+          ),
+        )
+        .limit(1);
+      const configuredDays = Math.max(
+        0,
+        Number(rules.absenceLeaveDeductionDays ?? 0),
+      );
+      if (balance && configuredDays > 0) {
+        const available = balance.allocated - balance.used - balance.pending;
+        const deduction = policy.allowNegative
+          ? configuredDays
+          : Math.min(configuredDays, Math.max(0, available));
+        if (deduction > 0) {
+          const transactionKey = `absence_leave:${attendance.id}`;
+          const [transaction] = await db
+            .insert(leaveBalanceTransactionsTable)
+            .values({
+              companyId: context.companyId,
+              employeeId: attendance.employeeId,
+              leaveType: policy.leaveType,
+              amount: -deduction,
+              transactionType: "deduction",
+              beforeBalance: balance.allocated - balance.used,
+              afterBalance: balance.allocated - balance.used - deduction,
+              actorId: "system",
+              reason: `Annual leave deduction for absence on ${attendance.date}`,
+              transactionKey,
+            })
+            .onConflictDoNothing()
+            .returning();
+          if (transaction) {
+            await db
+              .update(leaveBalancesTable)
+              .set({ used: sql`${leaveBalancesTable.used} + ${deduction}` })
+              .where(eq(leaveBalancesTable.id, balance.id));
+          }
+        }
+      }
+    } else if (
+      priorAbsenceDeduction &&
+      priorAbsenceDeduction.amount < 0 &&
+      !priorReversal
+    ) {
+      const [balance] = await db
+        .select()
+        .from(leaveBalancesTable)
+        .where(
+          and(
+            eq(leaveBalancesTable.companyId, context.companyId),
+            eq(leaveBalancesTable.employeeId, attendance.employeeId),
+            eq(leaveBalancesTable.type, priorAbsenceDeduction.leaveType),
+          ),
+        )
+        .limit(1);
+      if (balance) {
+        const restoration = -priorAbsenceDeduction.amount;
+        const before = balance.allocated - balance.used;
+        const [transaction] = await db
+          .insert(leaveBalanceTransactionsTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: attendance.employeeId,
+            leaveType: priorAbsenceDeduction.leaveType,
+            amount: restoration,
+            transactionType: "restoration",
+            beforeBalance: before,
+            afterBalance: before + restoration,
+            actorId: "system",
+            reason: `Restored annual leave deduction after attendance correction on ${attendance.date}`,
+            transactionKey: `absence_leave_reversal:${attendance.id}`,
+          })
+          .onConflictDoNothing()
+          .returning();
+        if (transaction) {
+          await db
+            .update(leaveBalancesTable)
+            .set({ used: sql`${leaveBalancesTable.used} - ${restoration}` })
+            .where(eq(leaveBalancesTable.id, balance.id));
+        }
       }
     }
   }
@@ -4662,18 +4769,66 @@ router.patch(
   },
 );
 
-async function effectiveLeavePolicy(
-  companyId: string,
-  leaveType: string,
-  date = TODAY,
-) {
-  const [policy] = await db
+function isAnnualLeaveType(value: string) {
+  return ["annual", "annual leave"].includes(
+    value.trim().toLowerCase().replace(/\s+/g, " "),
+  );
+}
+
+async function annualLeavePolicyFor(companyId: string, date = TODAY) {
+  const policies = await db
     .select()
     .from(leavePoliciesTable)
     .where(
       and(
         eq(leavePoliciesTable.companyId, companyId),
-        eq(leavePoliciesTable.leaveType, leaveType),
+        lte(leavePoliciesTable.effectiveFrom, date),
+        eq(leavePoliciesTable.status, "active"),
+        eq(leavePoliciesTable.enabled, true),
+        or(
+          sql`${leavePoliciesTable.effectiveTo} is null`,
+          gte(leavePoliciesTable.effectiveTo, date),
+        ),
+      ),
+    )
+    .orderBy(
+      desc(leavePoliciesTable.effectiveFrom),
+      desc(leavePoliciesTable.version),
+    );
+  return policies.find((policy) => isAnnualLeaveType(policy.leaveType));
+}
+
+async function absenceDeductedFor(
+  balance: typeof leaveBalancesTable.$inferSelect,
+) {
+  const transactions = await db
+    .select({ amount: leaveBalanceTransactionsTable.amount })
+    .from(leaveBalanceTransactionsTable)
+    .where(
+      and(
+        eq(leaveBalanceTransactionsTable.companyId, balance.companyId),
+        eq(leaveBalanceTransactionsTable.employeeId, balance.employeeId),
+        eq(leaveBalanceTransactionsTable.leaveType, balance.type),
+        ilike(leaveBalanceTransactionsTable.transactionKey, "absence_leave:%"),
+      ),
+    );
+  return Math.max(
+    0,
+    transactions.reduce((total, transaction) => total - transaction.amount, 0),
+  );
+}
+
+async function effectiveLeavePolicy(
+  companyId: string,
+  leaveType: string,
+  date = TODAY,
+) {
+  const policies = await db
+    .select()
+    .from(leavePoliciesTable)
+    .where(
+      and(
+        eq(leavePoliciesTable.companyId, companyId),
         lte(leavePoliciesTable.effectiveFrom, date),
         or(
           sql`${leavePoliciesTable.effectiveTo} is null`,
@@ -4686,9 +4841,12 @@ async function effectiveLeavePolicy(
     .orderBy(
       desc(leavePoliciesTable.effectiveFrom),
       desc(leavePoliciesTable.version),
-    )
-    .limit(1);
-  return policy;
+    );
+  return policies.find((policy) =>
+    isAnnualLeaveType(leaveType)
+      ? isAnnualLeaveType(policy.leaveType)
+      : policy.leaveType === leaveType,
+  );
 }
 
 function leavePolicyResponse(policy: typeof leavePoliciesTable.$inferSelect) {
@@ -4737,13 +4895,16 @@ async function leaveBalanceResponse(
     TODAY,
   );
   const bounds = leavePeriodBounds(TODAY, policy?.periodStartMonth ?? 1);
+  const absenceDeducted = await absenceDeductedFor(balance);
+  const leaveUsed = Math.max(0, balance.used - absenceDeducted);
   return {
     id: balance.id,
     employee: employeeReference(employee, department.name),
     type: balance.type,
     allocated: balance.allocated,
     total: balance.allocated,
-    used: balance.used,
+    used: leaveUsed,
+    absenceDeducted,
     pending: balance.pending,
     remaining: balance.allocated - balance.used - balance.pending,
     periodStart: bounds.periodStart,
@@ -5056,10 +5217,32 @@ router.post("/leave/policies", async (req, res): Promise<void> => {
         item.effectiveFrom < parsed.data.effectiveFrom,
     )
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
-  if (
-    previous.some((item) => item.effectiveFrom === parsed.data.effectiveFrom)
-  ) {
-    res.status(409).json({ error: message(req, "invalidRequest") });
+  const sameDate = previous.find(
+    (item) => item.effectiveFrom === parsed.data.effectiveFrom,
+  );
+  if (sameDate) {
+    if (!isAnnualLeaveType(parsed.data.leaveType) || parsed.data.effectiveFrom < TODAY) {
+      res.status(409).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [updated] = await db
+      .update(leavePoliciesTable)
+      .set({
+        annualEntitlement: parsed.data.annualEntitlement,
+        accrualFrequency: parsed.data.accrualFrequency,
+        deductionMode: parsed.data.deductionMode,
+        carryForwardAllowed: parsed.data.carryForwardAllowed,
+        carryForwardDays: parsed.data.carryForwardDays,
+        carryForwardExpiryMonths: parsed.data.carryForwardExpiryMonths ?? null,
+        allowNegative: parsed.data.allowNegative,
+        periodStartMonth: parsed.data.periodStartMonth ?? 1,
+        enabled: parsed.data.enabled ?? true,
+      })
+      .where(eq(leavePoliciesTable.id, sameDate.id))
+      .returning();
+    res
+      .status(201)
+      .json(CreateLeavePolicyResponse.parse(leavePolicyResponse(updated)));
     return;
   }
   if (prior)
@@ -7522,7 +7705,8 @@ router.post("/employees/import", async (req, res): Promise<void> => {
     res.status(400).json(employeeImportResultSchema.parse(result));
     return;
   }
-  const [existingEmployees, departments, branches] = await Promise.all([
+  const [existingEmployees, departments, branches, company, activeSchedules] =
+    await Promise.all([
     db
       .select({
         id: employeesTable.id,
@@ -7539,7 +7723,22 @@ router.post("/employees/import", async (req, res): Promise<void> => {
       .select()
       .from(branchesTable)
       .where(eq(branchesTable.companyId, context.companyId)),
-  ]);
+      db
+        .select({ defaultScheduleId: companiesTable.defaultScheduleId })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, context.companyId))
+        .limit(1),
+      db
+        .select({ id: workSchedulesTable.id })
+        .from(workSchedulesTable)
+        .where(
+          and(
+            eq(workSchedulesTable.companyId, context.companyId),
+            eq(workSchedulesTable.active, true),
+          ),
+        ),
+    ]);
+  const activeScheduleIds = new Set(activeSchedules.map((schedule) => schedule.id));
   const existingEmails = new Set(
     existingEmployees.map((item) => item.email.toLowerCase()),
   );
@@ -7760,6 +7959,27 @@ router.post("/employees/import", async (req, res): Promise<void> => {
           before: null,
           after: prepared.values,
         });
+        const department = departments.find(
+          (item) => item.id === prepared.values.departmentId,
+        );
+        const scheduleId =
+          (department?.defaultScheduleId &&
+          activeScheduleIds.has(department.defaultScheduleId)
+            ? department.defaultScheduleId
+            : null) ??
+          (company[0]?.defaultScheduleId &&
+          activeScheduleIds.has(company[0].defaultScheduleId)
+            ? company[0].defaultScheduleId
+            : null);
+        if (scheduleId) {
+          await tx.insert(employeeScheduleAssignmentsTable).values({
+            companyId: context.companyId,
+            employeeId: employee.id,
+            scheduleId,
+            effectiveFrom: prepared.values.joinedOn,
+            effectiveTo: null,
+          });
+        }
       }
     });
     result.imported = preparedRows.length;
@@ -8083,6 +8303,28 @@ async function calculatePayrollPeriod(
     .select()
     .from(leaveBalancesTable)
     .where(eq(leaveBalancesTable.companyId, context.companyId));
+  const absenceLeaveTransactions = await db
+    .select({
+      employeeId: leaveBalanceTransactionsTable.employeeId,
+      leaveType: leaveBalanceTransactionsTable.leaveType,
+      amount: leaveBalanceTransactionsTable.amount,
+    })
+    .from(leaveBalanceTransactionsTable)
+    .where(
+      and(
+        eq(leaveBalanceTransactionsTable.companyId, context.companyId),
+        ilike(leaveBalanceTransactionsTable.transactionKey, "absence_leave:%"),
+      ),
+    );
+  const absenceDeductedByBalance = new Map<string, number>();
+  for (const transaction of absenceLeaveTransactions) {
+    const key = `${transaction.employeeId}:${transaction.leaveType}`;
+    absenceDeductedByBalance.set(
+      key,
+      (absenceDeductedByBalance.get(key) ?? 0) +
+        Math.max(0, -transaction.amount),
+    );
+  }
   const adjustments = await db
     .select()
     .from(payrollAdjustmentsTable)
@@ -8143,7 +8385,17 @@ async function calculatePayrollPeriod(
       .map((balance) => ({
         type: balance.type,
         allocated: balance.allocated,
-        used: balance.used,
+        used: Math.max(
+          0,
+          balance.used -
+            (absenceDeductedByBalance.get(
+              `${balance.employeeId}:${balance.type}`,
+            ) ?? 0),
+        ),
+        absenceDeducted:
+          absenceDeductedByBalance.get(
+            `${balance.employeeId}:${balance.type}`,
+          ) ?? 0,
         pending: balance.pending,
         remaining: moneyValue(balance.allocated - balance.used),
       }));

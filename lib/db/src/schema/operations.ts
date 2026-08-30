@@ -148,6 +148,8 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   holidayPeriods: jsonb("holiday_periods").notNull().default([]),
   weeklyMultipliers: jsonb("weekly_multipliers").notNull().default([]),
   absenceDeductsAnnualLeave: boolean("absence_deducts_annual_leave").notNull().default(false),
+  absenceLeaveDeductionTrigger: text("absence_leave_deduction_trigger").notNull().default("unexcused_absence"),
+  absenceLeaveDeductionDays: numeric("absence_leave_deduction_days", { precision: 6, scale: 2, mode: "number" }).notNull().default(1),
   workingDays: text("working_days").array().notNull().default(["Mon", "Tue", "Wed", "Thu", "Sun"]),
   gpsPolicy: text("gps_policy").notNull().default("optional"),
   locationRadiusMeters: integer("location_radius_meters").notNull().default(150),

@@ -2700,7 +2700,7 @@ components:
         department: { type: string }
     LeaveBalance:
       type: object
-      required: [id, employee, type, allocated, used, pending, remaining, total, periodStart, periodEnd]
+      required: [id, employee, type, allocated, used, absenceDeducted, pending, remaining, total, periodStart, periodEnd]
       properties:
         id: { type: string }
         employee:
@@ -2708,6 +2708,7 @@ components:
         type: { type: string }
         allocated: { type: number }
         used: { type: number }
+        absenceDeducted: { type: number }
         pending: { type: number }
         remaining: { type: number }
         total: { type: number }
@@ -2935,8 +2936,12 @@ components:
           workingDays,
           holidayDates,
            holidayPeriods,
-           weeklyMultipliers,
-           absenceDeductsAnnualLeave,
+          weeklyMultipliers,
+          absenceDeductsAnnualLeave,
+          absenceLeaveDeductionTrigger,
+          absenceLeaveDeductionDays,
+          annualLeaveEntitlement,
+          annualLeavePeriodStartMonth,
           gpsPolicy,
         ]
       properties:
@@ -2999,6 +3004,12 @@ components:
               multiplier: { type: number, enum: [1, 1.5, 2, 3] }
               enabled: { type: boolean }
         absenceDeductsAnnualLeave: { type: boolean }
+        absenceLeaveDeductionTrigger:
+          type: string
+          enum: [unexcused_absence, any_absence]
+        absenceLeaveDeductionDays: { type: number, minimum: 0 }
+        annualLeaveEntitlement: { type: number, minimum: 0 }
+        annualLeavePeriodStartMonth: { type: integer, minimum: 1, maximum: 12 }
         gpsPolicy:
           type: string
           enum: [disabled, optional, required]
@@ -3035,8 +3046,12 @@ components:
           workingDays,
           holidayDates,
            holidayPeriods,
-           weeklyMultipliers,
-           absenceDeductsAnnualLeave,
+            weeklyMultipliers,
+            absenceDeductsAnnualLeave,
+            absenceLeaveDeductionTrigger,
+            absenceLeaveDeductionDays,
+            annualLeaveEntitlement,
+            annualLeavePeriodStartMonth,
           gpsPolicy,
           locationRadiusMeters,
         ]
@@ -3100,6 +3115,12 @@ components:
               multiplier: { type: number, enum: [1, 1.5, 2, 3] }
               enabled: { type: boolean }
         absenceDeductsAnnualLeave: { type: boolean }
+        absenceLeaveDeductionTrigger:
+          type: string
+          enum: [unexcused_absence, any_absence]
+        absenceLeaveDeductionDays: { type: number, minimum: 0 }
+        annualLeaveEntitlement: { type: number, minimum: 0 }
+        annualLeavePeriodStartMonth: { type: integer, minimum: 1, maximum: 12 }
         gpsPolicy:
           type: string
           enum: [disabled, optional, required]
@@ -3375,11 +3396,12 @@ components:
           type: array
           items:
             type: object
-            required: [type, allocated, used, pending, remaining]
+            required: [type, allocated, used, absenceDeducted, pending, remaining]
             properties:
               type: { type: string }
               allocated: { type: number }
               used: { type: number }
+              absenceDeducted: { type: number }
               pending: { type: number }
               remaining: { type: number }
         lineItems:

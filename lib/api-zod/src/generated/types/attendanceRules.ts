@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AttendanceRulesAbsenceDeductionMethod } from './attendanceRulesAbsenceDeductionMethod';
+import type { AttendanceRulesAbsenceLeaveDeductionTrigger } from './attendanceRulesAbsenceLeaveDeductionTrigger';
 import type { AttendanceRulesAbsencePenaltyMultiplier } from './attendanceRulesAbsencePenaltyMultiplier';
 import type { AttendanceRulesEarlyDeparturePenaltyMultiplier } from './attendanceRulesEarlyDeparturePenaltyMultiplier';
 import type { AttendanceRulesFullDayPermissionMultiplier } from './attendanceRulesFullDayPermissionMultiplier';
@@ -55,6 +56,16 @@ export interface AttendanceRules {
   holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
   absenceDeductsAnnualLeave: boolean;
+  absenceLeaveDeductionTrigger: AttendanceRulesAbsenceLeaveDeductionTrigger;
+  /** @minimum 0 */
+  absenceLeaveDeductionDays: number;
+  /** @minimum 0 */
+  annualLeaveEntitlement: number;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  annualLeavePeriodStartMonth: number;
   gpsPolicy: AttendanceRulesGpsPolicy;
   /** @minimum 0 */
   locationRadiusMeters?: number;
