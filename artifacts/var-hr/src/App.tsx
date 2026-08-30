@@ -1774,6 +1774,78 @@ const pageCopy = {
     saveAttendancePolicy: "Save attendance policy",
     savingPolicy: "Saving policy…",
     attendancePolicyUpdated: "Attendance policy updated",
+    attendanceThresholdsTitle: "Attendance and overtime thresholds",
+    attendanceThresholdsDetail:
+      "Set the policy tolerances before late arrival, early departure, or overtime is recorded.",
+    weeklyHolidayRulesTitle: "Weekly and holiday extra-pay rules",
+    weeklyHolidayRulesDetail:
+      "When rules overlap, only the highest applicable multiplier is applied.",
+    addWeeklyMultiplier: "Add weekly multiplier",
+    attendancePenaltiesTitle: "Attendance penalties & permissions",
+    attendancePenaltiesDetail:
+      "Set late, early-departure, and absence multipliers, including approved permission coverage.",
+    annualLeaveSettings: "Annual leave settings",
+    annualLeaveSettingsDetail:
+      "These values are saved as an annual leave policy version and used by balances, attendance, payroll, and self-service.",
+    annualEntitlementDays: "Annual entitlement (days)",
+    leaveYearStartsIn: "Leave year starts in",
+    absenceDeductionWhen: "When should absence deduct leave?",
+    unapprovedAbsencesOnly: "Unapproved absences only",
+    anyAbsenceMissing: "Any absence or missing attendance",
+    leaveDaysPerAbsence: "Leave days deducted per absence",
+    deductAnnualLeaveForUnapproved:
+      "Deduct an annual-leave day for an unapproved absence",
+    absenceDeductionDetail:
+      "Off by default; absences never silently consume annual leave.",
+    policyEnabled: "Policy enabled",
+    accrualFrequency: "Accrual frequency",
+    deductionMode: "Deduction mode",
+    automatic: "Automatic",
+    manual: "Manual",
+    carryForwardDays: "Carry-forward days",
+    carryForwardExpiry: "Carry-forward expiry (months)",
+    monthlyMaximumDeduction: "Monthly maximum deduction",
+    balanceDeductionMonths: "Balance deduction months",
+    selectMultipleMonths: "Hold Ctrl/Cmd to select multiple months.",
+    allowCarryForward: "Allow carry-forward",
+    allowNegativeBalance: "Allow negative balance",
+    leaveControls: "Leave controls",
+    policiesBalanceLedger: "Policies & balance ledger",
+    policies: "Policies",
+    ledger: "Ledger",
+    createPolicyVersion: "Create policy version",
+    leavePolicyVersionCreated: "Leave policy version created",
+    couldNotCreateLeavePolicy: "Could not create leave policy",
+    noLeavePolicies: "No leave policies",
+    createFirstEffectivePolicy: "Create the first effective-dated policy.",
+    leaveYearStartsMonth: "Leave year starts in month",
+    deductionMonths: "Deduction months",
+    monthlyMaximum: "Monthly maximum",
+    balanceLedgerEmpty: "Ledger is empty",
+    balanceLedgerDetail: "Accruals and request transitions will appear here.",
+    adjustLeaveBalance: "Adjust leave balance",
+    adjustmentAmount: "Adjustment amount",
+    negativeAdjustmentHint: "Use a negative number to remove days",
+    reasonRequired: "Reason (required)",
+    applyAdjustment: "Apply adjustment",
+    balanceAdjusted: "Balance adjusted",
+    couldNotAdjustBalance: "Could not adjust balance",
+    absenceMultiplier: "Absence multiplier",
+    lateArrivalMultiplier: "Late arrival multiplier",
+    earlyDepartureMultiplier: "Early departure multiplier",
+    permissionCoveredMinutes: "Permission-covered minutes",
+    fullDayPermission: "Full-day permission",
+    permissionCoversLate: "Permission covers late arrival",
+    permissionCoversEarly: "Permission covers early departure",
+    currentRuleVersion: "Current version",
+    attendanceRuleHistory: "Attendance rule history",
+    createRuleVersion: "Create new version",
+    historicalRulesNote:
+      "Historical versions are preserved for attendance and payroll history. They cannot be edited or deleted after their period has ended.",
+    retroactiveRulesNote:
+      "This change will replace the attendance rule applicable from the selected date. Existing attendance calculations for the affected period may need to be recalculated. Finalized or locked payroll will not be changed automatically.",
+    reviewBeforeSaving: "Review before saving",
+    saveRuleVersion: "Save version",
     evidenceAnalysis: "Evidence & analysis",
     attendanceReportsTitle: "Attendance reports",
     reportsDetail:
@@ -2094,6 +2166,78 @@ const pageCopy = {
     saveAttendancePolicy: "حفظ سياسة الحضور",
     savingPolicy: "جارٍ حفظ السياسة…",
     attendancePolicyUpdated: "تم تحديث سياسة الحضور",
+    attendanceThresholdsTitle: "حدود الحضور والعمل الإضافي",
+    attendanceThresholdsDetail:
+      "حدد فترات السماح التي تطبقها سياسة الحضور قبل تسجيل التأخير أو الانصراف المبكر أو العمل الإضافي.",
+    weeklyHolidayRulesTitle: "مضاعفات أيام الأسبوع والعطلات",
+    weeklyHolidayRulesDetail:
+      "يتم تطبيق أعلى مضاعف فقط عند تعارض أكثر من قاعدة.",
+    addWeeklyMultiplier: "إضافة مضاعف أسبوعي",
+    attendancePenaltiesTitle: "جزاءات الحضور والإذن",
+    attendancePenaltiesDetail:
+      "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد.",
+    annualLeaveSettings: "إعدادات الإجازة السنوية",
+    annualLeaveSettingsDetail:
+      "تُحفظ هذه القيم كإصدار من سياسة الإجازة السنوية وتستخدم في الرصيد والحضور والرواتب والخدمة الذاتية.",
+    annualEntitlementDays: "أيام الإجازة السنوية",
+    leaveYearStartsIn: "بداية سنة الإجازة",
+    absenceDeductionWhen: "متى يخصم الغياب من الإجازة؟",
+    unapprovedAbsencesOnly: "الغياب غير المعتمد فقط",
+    anyAbsenceMissing: "كل غياب أو عدم تسجيل حضور",
+    leaveDaysPerAbsence: "أيام الخصم لكل غياب",
+    deductAnnualLeaveForUnapproved:
+      "خصم يوم غياب من رصيد الإجازة السنوية",
+    absenceDeductionDetail:
+      "مغلق افتراضياً؛ لن يخصم الغياب من الإجازة السنوية دون تفعيل صريح.",
+    policyEnabled: "السياسة مفعلة",
+    accrualFrequency: "وتيرة الاستحقاق",
+    deductionMode: "طريقة الخصم",
+    automatic: "تلقائي",
+    manual: "يدوي",
+    carryForwardDays: "أيام الترحيل",
+    carryForwardExpiry: "انتهاء الترحيل (بالأشهر)",
+    monthlyMaximumDeduction: "الحد الأقصى للخصم الشهري",
+    balanceDeductionMonths: "أشهر خصم الرصيد",
+    selectMultipleMonths: "اضغط Ctrl/Cmd لاختيار عدة أشهر.",
+    allowCarryForward: "السماح بترحيل الرصيد",
+    allowNegativeBalance: "السماح برصيد سالب",
+    leaveControls: "إعدادات الإجازات",
+    policiesBalanceLedger: "السياسات وسجل الرصيد",
+    policies: "السياسات",
+    ledger: "السجل",
+    createPolicyVersion: "إنشاء إصدار سياسة",
+    leavePolicyVersionCreated: "تم إنشاء إصدار سياسة الإجازة",
+    couldNotCreateLeavePolicy: "تعذر إنشاء سياسة الإجازة",
+    noLeavePolicies: "لا توجد سياسات إجازات",
+    createFirstEffectivePolicy: "أنشئ أول سياسة مؤرخة النفاذ.",
+    leaveYearStartsMonth: "تبدأ سنة الإجازة في الشهر",
+    deductionMonths: "أشهر الخصم",
+    monthlyMaximum: "الحد الأقصى الشهري",
+    balanceLedgerEmpty: "السجل فارغ",
+    balanceLedgerDetail: "ستظهر الاستحقاقات وتغييرات الطلبات هنا.",
+    adjustLeaveBalance: "تعديل رصيد الإجازة",
+    adjustmentAmount: "مقدار التعديل",
+    negativeAdjustmentHint: "استخدم رقماً سالباً لإزالة أيام",
+    reasonRequired: "السبب (مطلوب)",
+    applyAdjustment: "تطبيق التعديل",
+    balanceAdjusted: "تم تعديل الرصيد",
+    couldNotAdjustBalance: "تعذر تعديل الرصيد",
+    absenceMultiplier: "مضاعف الغياب",
+    lateArrivalMultiplier: "مضاعف التأخير",
+    earlyDepartureMultiplier: "مضاعف الانصراف المبكر",
+    permissionCoveredMinutes: "دقائق الإذن المغطاة",
+    fullDayPermission: "إذن ليوم كامل",
+    permissionCoversLate: "الإذن يغطي التأخير",
+    permissionCoversEarly: "الإذن يغطي الانصراف المبكر",
+    currentRuleVersion: "الإصدار الحالي",
+    attendanceRuleHistory: "سجل قواعد الحضور",
+    createRuleVersion: "إنشاء إصدار جديد",
+    historicalRulesNote:
+      "يتم الاحتفاظ بالإصدارات السابقة لأغراض سجل الحضور والرواتب والتدقيق، ولا يمكن تعديلها أو حذفها بعد انتهاء الفترة الخاصة بها.",
+    retroactiveRulesNote:
+      "سيؤدي هذا التغيير إلى استبدال قاعدة الحضور السارية من التاريخ المحدد. قد تحتاج حسابات الحضور للفترة المتأثرة إلى إعادة حساب. لن يتم تغيير الرواتب النهائية أو المقفلة تلقائياً.",
+    reviewBeforeSaving: "مراجعة قبل الحفظ",
+    saveRuleVersion: "حفظ الإصدار",
     evidenceAnalysis: "الأدلة والتحليل",
     attendanceReportsTitle: "تقارير الحضور",
     reportsDetail: "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
@@ -10123,33 +10267,6 @@ function Requests() {
   const createPermission = useCreatePermissionRequest();
   const decideLeave = useDecideLeaveRequest();
   const cancelLeave = useCancelLeaveRequest();
-  const policies = useListLeavePolicies();
-  const ledger = useListLeaveBalanceTransactions();
-  const createPolicy = useCreateLeavePolicy();
-  const adjustBalance = useAdjustLeaveBalance();
-  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">(
-    "policies",
-  );
-  const [policyForm, setPolicyForm] = useState<any>({
-    leaveType: "Annual leave",
-    annualEntitlement: 21,
-    accrualFrequency: "monthly",
-    deductionMode: "automatic",
-    carryForwardAllowed: false,
-    carryForwardDays: 0,
-    carryForwardExpiryMonths: "",
-    allowNegative: false,
-    periodStartMonth: 1,
-    allowedBalanceMonths: Array.from({ length: 12 }, (_, index) => index + 1),
-    monthlyDeductionLimit: 1,
-    enabled: true,
-    effectiveFrom: new Date().toISOString().slice(0, 10),
-  });
-  const [adjustment, setAdjustment] = useState<{
-    id: string;
-    amount: string;
-    reason: string;
-  } | null>(null);
   const decidePermission = useDecidePermissionRequest();
   const [form, setForm] = useState<any>({
     type: "Annual leave",
@@ -10253,61 +10370,6 @@ function Requests() {
       },
     );
   }
-  function submitPolicy(event: FormEvent) {
-    event.preventDefault();
-    createPolicy.mutate(
-      {
-        data: {
-          ...policyForm,
-          annualEntitlement: Number(policyForm.annualEntitlement),
-          carryForwardDays: Number(policyForm.carryForwardDays),
-          allowedBalanceMonths: policyForm.allowedBalanceMonths.map(Number),
-          monthlyDeductionLimit: Number(policyForm.monthlyDeductionLimit),
-          carryForwardExpiryMonths:
-            policyForm.carryForwardExpiryMonths === ""
-              ? null
-              : Number(policyForm.carryForwardExpiryMonths),
-        },
-      } as any,
-      {
-        onSuccess: () => {
-          toast.success("Leave policy version created");
-          qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
-          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-        },
-        onError: () => toast.error("Could not create leave policy"),
-      },
-    );
-  }
-  function submitAdjustment(event: FormEvent) {
-    event.preventDefault();
-    if (
-      !adjustment ||
-      !adjustment.reason.trim() ||
-      Number(adjustment.amount) === 0
-    )
-      return;
-    adjustBalance.mutate(
-      {
-        balanceId: adjustment.id,
-        data: {
-          amount: Number(adjustment.amount),
-          reason: adjustment.reason.trim(),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success("Balance adjusted");
-          setAdjustment(null);
-          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-          qc.invalidateQueries({
-            queryKey: getListLeaveBalanceTransactionsQueryKey(),
-          });
-        },
-        onError: () => toast.error("Could not adjust balance"),
-      },
-    );
-  }
   function cancelRequest(id: string) {
     cancelLeave.mutate(
       { requestId: id, data: { reason: "Cancelled by requester" } },
@@ -10341,369 +10403,8 @@ function Requests() {
           ) : undefined
         }
       />
-      {canApproveLeave && (
-        <Card className="mb-6 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
-                Leave controls
-              </p>
-              <h2 className="mt-1 font-display text-xl font-semibold">
-                Policies & balance ledger
-              </h2>
-            </div>
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
-              <Button
-                className="px-3 py-1.5 text-xs"
-                variant={leaveAdminTab === "policies" ? "primary" : "quiet"}
-                onClick={() => setLeaveAdminTab("policies")}
-              >
-                Policies
-              </Button>
-              <Button
-                className="px-3 py-1.5 text-xs"
-                variant={leaveAdminTab === "ledger" ? "primary" : "quiet"}
-                onClick={() => setLeaveAdminTab("ledger")}
-              >
-                Ledger
-              </Button>
-            </div>
-          </div>
-          {leaveAdminTab === "policies" ? (
-            <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
-              <div className="space-y-3">
-                {(policies.data || []).map((p: any) => (
-                  <div
-                    key={p.id}
-                    className="rounded-xl border border-border p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold">
-                        {requestTypeLabel(p.leaveType, t)} · v{p.version}
-                      </span>
-                      <Status value={p.status} />
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {p.annualEntitlement} days/year · {p.accrualFrequency} ·{" "}
-                      {p.deductionMode} deduction · effective {p.effectiveFrom}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Carry-forward:{" "}
-                      {p.carryForwardAllowed
-                        ? `${p.carryForwardDays} days`
-                        : "off"}{" "}
-                      · Negative balance:{" "}
-                      {p.allowNegative ? "allowed" : "blocked"}
-                      {" · Leave year starts in month "}
-                      {p.periodStartMonth || 1}
-                      {" · Deduction months: "}
-                      {(p.allowedBalanceMonths || []).join(", ")}
-                      {" · Monthly maximum: "}
-                      {p.monthlyDeductionLimit}
-                      {p.enabled ? "" : " · disabled"}
-                    </p>
-                  </div>
-                ))}
-                {!policies.isLoading && !policies.data?.length && (
-                  <Empty
-                    title="No leave policies"
-                    detail="Create the first effective-dated policy."
-                  />
-                )}
-              </div>
-              <form
-                onSubmit={submitPolicy}
-                className="space-y-3 rounded-xl bg-muted/40 p-4"
-              >
-                <h3 className="font-semibold">Create policy version</h3>
-                <Field
-                  label="Leave type"
-                  value={policyForm.leaveType}
-                  onChange={(value) =>
-                    setPolicyForm({ ...policyForm, leaveType: value })
-                  }
-                  required
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field
-                    label="Annual entitlement"
-                    type="number"
-                    min={0}
-                    value={policyForm.annualEntitlement}
-                    onChange={(value) =>
-                      setPolicyForm({ ...policyForm, annualEntitlement: value })
-                    }
-                    required
-                  />
-                  <Field
-                    label="Effective from"
-                    type="date"
-                    value={policyForm.effectiveFrom}
-                    onChange={(value) =>
-                      setPolicyForm({ ...policyForm, effectiveFrom: value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm font-semibold">
-                    Leave-year start month
-                    <select
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                      value={policyForm.periodStartMonth}
-                      onChange={(e) =>
-                        setPolicyForm({
-                          ...policyForm,
-                          periodStartMonth: Number(e.target.value),
-                        })
-                      }
-                    >
-                      {Array.from({ length: 12 }, (_, index) => (
-                        <option key={index + 1} value={index + 1}>
-                          {index + 1}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-2 self-end pb-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={policyForm.enabled}
-                      onChange={(e) =>
-                        setPolicyForm({ ...policyForm, enabled: e.target.checked })
-                      }
-                    />
-                    Policy enabled
-                  </label>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm font-semibold">
-                    Accrual frequency
-                    <select
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                      value={policyForm.accrualFrequency}
-                      onChange={(e) =>
-                        setPolicyForm({
-                          ...policyForm,
-                          accrualFrequency: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="annual">Annual</option>
-                      <option value="hire_date">Hire date</option>
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold">
-                    Deduction mode
-                    <select
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                      value={policyForm.deductionMode}
-                      onChange={(e) =>
-                        setPolicyForm({
-                          ...policyForm,
-                          deductionMode: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="automatic">Automatic</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field
-                    label="Carry-forward days"
-                    type="number"
-                    min={0}
-                    value={policyForm.carryForwardDays}
-                    onChange={(value) =>
-                      setPolicyForm({ ...policyForm, carryForwardDays: value })
-                    }
-                  />
-                  <Field
-                    label="Carry-forward expiry (months)"
-                    type="number"
-                    min={0}
-                    value={policyForm.carryForwardExpiryMonths}
-                    onChange={(value) =>
-                      setPolicyForm({
-                        ...policyForm,
-                        carryForwardExpiryMonths: value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field
-                    label="Monthly maximum deduction"
-                    type="number"
-                    min={0}
-                    step={0.25}
-                    value={policyForm.monthlyDeductionLimit}
-                    onChange={(value) =>
-                      setPolicyForm({
-                        ...policyForm,
-                        monthlyDeductionLimit: value,
-                      })
-                    }
-                    required
-                  />
-                  <label className="text-sm font-semibold">
-                    Balance deduction months
-                    <select
-                      multiple
-                      className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
-                      value={policyForm.allowedBalanceMonths.map(String)}
-                      onChange={(event) =>
-                        setPolicyForm({
-                          ...policyForm,
-                          allowedBalanceMonths: Array.from(
-                            event.target.selectedOptions,
-                            (option) => Number(option.value),
-                          ),
-                        })
-                      }
-                      required
-                    >
-                      {Array.from({ length: 12 }, (_, index) => (
-                        <option key={index + 1} value={index + 1}>
-                          {index + 1}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                      Hold Ctrl/Cmd to select multiple months.
-                    </span>
-                  </label>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={policyForm.carryForwardAllowed}
-                    onChange={(e) =>
-                      setPolicyForm({
-                        ...policyForm,
-                        carryForwardAllowed: e.target.checked,
-                      })
-                    }
-                  />{" "}
-                  Allow carry-forward
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={policyForm.allowNegative}
-                    onChange={(e) =>
-                      setPolicyForm({
-                        ...policyForm,
-                        allowNegative: e.target.checked,
-                      })
-                    }
-                  />{" "}
-                  Allow negative balance
-                </label>
-                <Button type="submit" disabled={createPolicy.isPending}>
-                  {createPolicy.isPending ? "Saving…" : "Create policy version"}
-                </Button>
-              </form>
-            </div>
-          ) : (
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="p-3">Employee</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Event</th>
-                    <th className="p-3">Amount</th>
-                    <th className="p-3">Balance</th>
-                    <th className="p-3">Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(ledger.data || []).map((item: any) => (
-                    <tr key={item.id} className="border-b border-border/60">
-                      <td className="p-3 font-medium">{item.employee.name}</td>
-                      <td className="p-3">
-                        {requestTypeLabel(item.leaveType, t)}
-                      </td>
-                      <td className="p-3">{item.transactionType}</td>
-                      <td className="p-3 font-mono">
-                        {item.amount > 0 ? "+" : ""}
-                        {item.amount}
-                      </td>
-                      <td className="p-3 font-mono">{item.afterBalance}</td>
-                      <td className="max-w-[240px] p-3 text-muted-foreground">
-                        {item.reason}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!ledger.isLoading && !ledger.data?.length && (
-                <Empty
-                  title="Ledger is empty"
-                  detail="Accruals and request transitions will appear here."
-                />
-              )}
-            </div>
-          )}
-        </Card>
-      )}
       <div className="grid gap-6 lg:grid-cols-[.72fr_1.28fr]">
         <div className="space-y-4">
-          <Card className="p-5">
-            <div className="flex items-center gap-2">
-              <CalendarDays size={17} className="text-primary" />
-              <h2 className="font-display font-semibold">
-                {t("leaveBalances")}
-              </h2>
-            </div>
-            <div className="mt-4 space-y-3">
-              {balances.isLoading ? (
-                <Skeleton className="h-24" />
-              ) : balances.data?.length ? (
-                balances.data.map((b: any) => (
-                  <div key={b.id}>
-                    <div className="flex justify-between gap-3 text-sm">
-                      <span className="font-semibold">
-                        {requestTypeLabel(b.type, t)}
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          {b.employee?.name}
-                        </span>
-                      </span>
-                      <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                        {b.remaining} {t("daysRemaining")}
-                      </span>
-                    </div>
-                    {canApproveLeave && (
-                      <Button
-                        variant="quiet"
-                        className="mt-2 px-2 py-1 text-xs"
-                        onClick={() =>
-                          setAdjustment({ id: b.id, amount: "", reason: "" })
-                        }
-                      >
-                        Adjust balance
-                      </Button>
-                    )}
-                    <div className="mt-2 h-1.5 rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{
-                          width: `${Math.min(100, (b.used / Math.max(1, b.allocated)) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <Empty title={t("notAvailable")} detail={t("requestsAppear")} />
-              )}
-            </div>
-          </Card>
           <Card className="p-5">
             <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
               {t("queueHygiene")}
@@ -10965,21 +10666,528 @@ function Requests() {
           </form>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function AnnualLeaveControls() {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const balances = useListLeaveBalances();
+  const policies = useListLeavePolicies();
+  const ledger = useListLeaveBalanceTransactions();
+  const createPolicy = useCreateLeavePolicy();
+  const adjustBalance = useAdjustLeaveBalance();
+  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">(
+    "policies",
+  );
+  const [policyForm, setPolicyForm] = useState<any>({
+    leaveType: "Annual leave",
+    annualEntitlement: 21,
+    accrualFrequency: "monthly",
+    deductionMode: "automatic",
+    carryForwardAllowed: false,
+    carryForwardDays: 0,
+    carryForwardExpiryMonths: "",
+    allowNegative: false,
+    periodStartMonth: 1,
+    allowedBalanceMonths: Array.from({ length: 12 }, (_, index) => index + 1),
+    monthlyDeductionLimit: 1,
+    enabled: true,
+    effectiveFrom: new Date().toISOString().slice(0, 10),
+  });
+  const [adjustment, setAdjustment] = useState<{
+    id: string;
+    amount: string;
+    reason: string;
+  } | null>(null);
+
+  function policyFrequency(value: string) {
+    return (
+      {
+        monthly: locale === "ar" ? "شهري" : "Monthly",
+        quarterly: locale === "ar" ? "ربع سنوي" : "Quarterly",
+        annual: locale === "ar" ? "سنوي" : "Annual",
+        hire_date: locale === "ar" ? "تاريخ التعيين" : "Hire date",
+      }[value] || value
+    );
+  }
+
+  function deductionMode(value: string) {
+    return value === "automatic" ? t("automatic") : t("manual");
+  }
+
+  function transactionType(value: string) {
+    return (
+      {
+        accrual: locale === "ar" ? "استحقاق" : "Accrual",
+        deduction: locale === "ar" ? "خصم" : "Deduction",
+        restoration: locale === "ar" ? "إعادة" : "Restoration",
+        adjustment: locale === "ar" ? "تعديل" : "Adjustment",
+      }[value] || value
+    );
+  }
+
+  function submitPolicy(event: FormEvent) {
+    event.preventDefault();
+    createPolicy.mutate(
+      {
+        data: {
+          ...policyForm,
+          annualEntitlement: Number(policyForm.annualEntitlement),
+          carryForwardDays: Number(policyForm.carryForwardDays),
+          allowedBalanceMonths: policyForm.allowedBalanceMonths.map(Number),
+          monthlyDeductionLimit: Number(policyForm.monthlyDeductionLimit),
+          carryForwardExpiryMonths:
+            policyForm.carryForwardExpiryMonths === ""
+              ? null
+              : Number(policyForm.carryForwardExpiryMonths),
+        },
+      } as any,
+      {
+        onSuccess: () => {
+          toast.success(t("leavePolicyVersionCreated"));
+          qc.invalidateQueries({ queryKey: getListLeavePoliciesQueryKey() });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+        },
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("couldNotCreateLeavePolicy"))),
+      },
+    );
+  }
+
+  function submitAdjustment(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !adjustment ||
+      !adjustment.reason.trim() ||
+      Number(adjustment.amount) === 0
+    )
+      return;
+    adjustBalance.mutate(
+      {
+        balanceId: adjustment.id,
+        data: {
+          amount: Number(adjustment.amount),
+          reason: adjustment.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("balanceAdjusted"));
+          setAdjustment(null);
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListLeaveBalanceTransactionsQueryKey(),
+          });
+        },
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("couldNotAdjustBalance"))),
+      },
+    );
+  }
+
+  return (
+    <>
+      <Card className="mt-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
+              {t("leaveControls")}
+            </p>
+            <h2 className="mt-1 font-display text-xl font-semibold">
+              {t("policiesBalanceLedger")}
+            </h2>
+          </div>
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant={leaveAdminTab === "policies" ? "primary" : "quiet"}
+              onClick={() => setLeaveAdminTab("policies")}
+            >
+              {t("policies")}
+            </Button>
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant={leaveAdminTab === "ledger" ? "primary" : "quiet"}
+              onClick={() => setLeaveAdminTab("ledger")}
+            >
+              {t("ledger")}
+            </Button>
+          </div>
+        </div>
+        {leaveAdminTab === "policies" ? (
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="space-y-3">
+              {(policies.data || []).map((policy: any) => (
+                <div
+                  key={policy.id}
+                  className="rounded-xl border border-border p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold">
+                      {requestTypeLabel(policy.leaveType, t)} · v
+                      {policy.version}
+                    </span>
+                    <Status value={policy.status} />
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {policy.annualEntitlement} {t("days")} /{" "}
+                    {locale === "ar" ? "سنة" : "year"} ·{" "}
+                    {policyFrequency(policy.accrualFrequency)} ·{" "}
+                    {deductionMode(policy.deductionMode)} ·{" "}
+                    {locale === "ar" ? "ساري من" : "effective"}{" "}
+                    {policy.effectiveFrom}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {locale === "ar" ? "الترحيل" : "Carry-forward"}:{" "}
+                    {policy.carryForwardAllowed
+                      ? `${policy.carryForwardDays} ${t("days")}`
+                      : locale === "ar"
+                        ? "متوقف"
+                        : "off"}{" "}
+                    · {locale === "ar" ? "الرصيد السالب" : "Negative balance"}:{" "}
+                    {policy.allowNegative
+                      ? locale === "ar"
+                        ? "مسموح"
+                        : "allowed"
+                      : locale === "ar"
+                        ? "محظور"
+                        : "blocked"}{" "}
+                    · {t("leaveYearStartsMonth")}{" "}
+                    {policy.periodStartMonth || 1} · {t("deductionMonths")}:{" "}
+                    {(policy.allowedBalanceMonths || []).join(", ")} ·{" "}
+                    {t("monthlyMaximum")}: {policy.monthlyDeductionLimit}
+                    {!policy.enabled && ` · ${t("disabled")}`}
+                  </p>
+                </div>
+              ))}
+              {!policies.isLoading && !policies.data?.length && (
+                <Empty
+                  title={t("noLeavePolicies")}
+                  detail={t("createFirstEffectivePolicy")}
+                />
+              )}
+            </div>
+            <form
+              onSubmit={submitPolicy}
+              className="space-y-3 rounded-xl bg-muted/40 p-4"
+            >
+              <h3 className="font-semibold">{t("createPolicyVersion")}</h3>
+              <Field
+                label={t("leaveType")}
+                value={policyForm.leaveType}
+                onChange={(value) =>
+                  setPolicyForm({ ...policyForm, leaveType: value })
+                }
+                required
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={t("annualEntitlementDays")}
+                  type="number"
+                  min={0}
+                  value={policyForm.annualEntitlement}
+                  onChange={(value) =>
+                    setPolicyForm({ ...policyForm, annualEntitlement: value })
+                  }
+                  required
+                />
+                <Field
+                  label={t("effectiveFrom")}
+                  type="date"
+                  value={policyForm.effectiveFrom}
+                  onChange={(value) =>
+                    setPolicyForm({ ...policyForm, effectiveFrom: value })
+                  }
+                  required
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold">
+                  {t("leaveYearStartsIn")}
+                  <select
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    value={policyForm.periodStartMonth}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        periodStartMonth: Number(event.target.value),
+                      })
+                    }
+                  >
+                    {Array.from({ length: 12 }, (_, index) => (
+                      <option key={index + 1} value={index + 1}>
+                        {new Date(2020, index, 1).toLocaleString(
+                          locale === "ar" ? "ar-EG" : "en-US",
+                          { month: "long" },
+                        )}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={policyForm.enabled}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        enabled: event.target.checked,
+                      })
+                    }
+                  />
+                  {t("policyEnabled")}
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold">
+                  {t("accrualFrequency")}
+                  <select
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    value={policyForm.accrualFrequency}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        accrualFrequency: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="monthly">{policyFrequency("monthly")}</option>
+                    <option value="quarterly">
+                      {policyFrequency("quarterly")}
+                    </option>
+                    <option value="annual">{policyFrequency("annual")}</option>
+                    <option value="hire_date">
+                      {policyFrequency("hire_date")}
+                    </option>
+                  </select>
+                </label>
+                <label className="text-sm font-semibold">
+                  {t("deductionMode")}
+                  <select
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    value={policyForm.deductionMode}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        deductionMode: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="automatic">{t("automatic")}</option>
+                    <option value="manual">{t("manual")}</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={t("carryForwardDays")}
+                  type="number"
+                  min={0}
+                  value={policyForm.carryForwardDays}
+                  onChange={(value) =>
+                    setPolicyForm({ ...policyForm, carryForwardDays: value })
+                  }
+                />
+                <Field
+                  label={t("carryForwardExpiry")}
+                  type="number"
+                  min={0}
+                  value={policyForm.carryForwardExpiryMonths}
+                  onChange={(value) =>
+                    setPolicyForm({
+                      ...policyForm,
+                      carryForwardExpiryMonths: value,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={t("monthlyMaximumDeduction")}
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  value={policyForm.monthlyDeductionLimit}
+                  onChange={(value) =>
+                    setPolicyForm({
+                      ...policyForm,
+                      monthlyDeductionLimit: value,
+                    })
+                  }
+                  required
+                />
+                <label className="text-sm font-semibold">
+                  {t("balanceDeductionMonths")}
+                  <select
+                    multiple
+                    className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+                    value={policyForm.allowedBalanceMonths.map(String)}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        allowedBalanceMonths: Array.from(
+                          event.target.selectedOptions,
+                          (option) => Number(option.value),
+                        ),
+                      })
+                    }
+                    required
+                  >
+                    {Array.from({ length: 12 }, (_, index) => (
+                      <option key={index + 1} value={index + 1}>
+                        {new Date(2020, index, 1).toLocaleString(
+                          locale === "ar" ? "ar-EG" : "en-US",
+                          { month: "long" },
+                        )}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    {t("selectMultipleMonths")}
+                  </span>
+                </label>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={policyForm.carryForwardAllowed}
+                  onChange={(event) =>
+                    setPolicyForm({
+                      ...policyForm,
+                      carryForwardAllowed: event.target.checked,
+                    })
+                  }
+                />
+                {t("allowCarryForward")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={policyForm.allowNegative}
+                  onChange={(event) =>
+                    setPolicyForm({
+                      ...policyForm,
+                      allowNegative: event.target.checked,
+                    })
+                  }
+                />
+                {t("allowNegativeBalance")}
+              </label>
+              <Button type="submit" disabled={createPolicy.isPending}>
+                {createPolicy.isPending
+                  ? t("savingPolicy")
+                  : t("createPolicyVersion")}
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="p-3">{t("employee")}</th>
+                  <th className="p-3">{t("type")}</th>
+                  <th className="p-3">{locale === "ar" ? "الحدث" : "Event"}</th>
+                  <th className="p-3">{locale === "ar" ? "المقدار" : "Amount"}</th>
+                  <th className="p-3">{t("leaveBalances")}</th>
+                  <th className="p-3">{t("reason")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(ledger.data || []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-border/60">
+                    <td className="p-3 font-medium">{item.employee.name}</td>
+                    <td className="p-3">
+                      {requestTypeLabel(item.leaveType, t)}
+                    </td>
+                    <td className="p-3">{transactionType(item.transactionType)}</td>
+                    <td className="p-3 font-mono">
+                      {item.amount > 0 ? "+" : ""}
+                      {item.amount}
+                    </td>
+                    <td className="p-3 font-mono">{item.afterBalance}</td>
+                    <td className="max-w-[240px] p-3 text-muted-foreground">
+                      {item.reason}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!ledger.isLoading && !ledger.data?.length && (
+              <Empty
+                title={t("balanceLedgerEmpty")}
+                detail={t("balanceLedgerDetail")}
+              />
+            )}
+          </div>
+        )}
+      </Card>
+      <Card className="mt-6 p-6">
+        <div className="flex items-center gap-2">
+          <CalendarDays size={17} className="text-primary" />
+          <h2 className="font-display font-semibold">{t("leaveBalances")}</h2>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {balances.isLoading ? (
+            <Skeleton className="h-24" />
+          ) : balances.data?.length ? (
+            balances.data.map((balance: any) => (
+              <div key={balance.id} className="rounded-xl border border-border p-4">
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="font-semibold">
+                    {requestTypeLabel(balance.type, t)}
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {balance.employee?.name}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    {balance.remaining} {t("daysRemaining")}
+                  </span>
+                </div>
+                <Button
+                  variant="quiet"
+                  className="mt-2 px-2 py-1 text-xs"
+                  onClick={() =>
+                    setAdjustment({ id: balance.id, amount: "", reason: "" })
+                  }
+                >
+                  {t("adjustLeaveBalance")}
+                </Button>
+                <div className="mt-2 h-1.5 rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{
+                      width: `${Math.min(100, (balance.used / Math.max(1, balance.allocated)) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <Empty title={t("notAvailable")} detail={t("requestsAppear")} />
+          )}
+        </div>
+      </Card>
       {adjustment && (
-        <Modal title="Adjust leave balance" onClose={() => setAdjustment(null)}>
+        <Modal
+          title={t("adjustLeaveBalance")}
+          onClose={() => setAdjustment(null)}
+        >
           <form onSubmit={submitAdjustment} className="space-y-4">
             <Field
-              label="Adjustment amount"
+              label={t("adjustmentAmount")}
               type="number"
               value={adjustment.amount}
               onChange={(value) =>
                 setAdjustment({ ...adjustment, amount: value })
               }
-              placeholder="Use a negative number to remove days"
+              placeholder={t("negativeAdjustmentHint")}
               required
             />
             <label className="block text-sm font-semibold">
-              Reason (required)
+              {t("reasonRequired")}
               <textarea
                 required
                 value={adjustment.reason}
@@ -10995,16 +11203,18 @@ function Requests() {
                 variant="quiet"
                 onClick={() => setAdjustment(null)}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" disabled={adjustBalance.isPending}>
-                {adjustBalance.isPending ? "Saving…" : "Apply adjustment"}
+                {adjustBalance.isPending
+                  ? t("savingPolicy")
+                  : t("applyAdjustment")}
               </Button>
             </div>
           </form>
         </Modal>
       )}
-    </div>
+    </>
   );
 }
 
@@ -11126,6 +11336,12 @@ function Rules() {
                   annualPolicy?.carryForwardExpiryMonths ?? null,
                 allowNegative: Boolean(annualPolicy?.allowNegative ?? false),
                 periodStartMonth: Number(form.annualLeavePeriodStartMonth),
+                allowedBalanceMonths:
+                  annualPolicy?.allowedBalanceMonths ||
+                  Array.from({ length: 12 }, (_, index) => index + 1),
+                monthlyDeductionLimit: Number(
+                  annualPolicy?.monthlyDeductionLimit ?? 1,
+                ),
                 enabled: true,
                 effectiveFrom,
               } as any,
@@ -11173,25 +11389,18 @@ function Rules() {
   }
   const rules = q.data as any;
   const localized = {
-    current: locale === "ar" ? "الإصدار الحالي" : "Current version",
-    historical:
-      locale === "ar" ? "سجل قواعد الحضور" : "Attendance Rule History",
-    create: locale === "ar" ? "إنشاء إصدار جديد" : "Create New Version",
-    effectiveFrom: locale === "ar" ? "ساري من" : "Effective from",
-    effectiveTo: locale === "ar" ? "ساري حتى" : "Effective to",
-    status: locale === "ar" ? "الحالة" : "Status",
-    createdBy: locale === "ar" ? "أنشأه" : "Created by",
-    createdAt: locale === "ar" ? "تاريخ الإنشاء" : "Created date",
-    historicalNote:
-      locale === "ar"
-        ? "يتم الاحتفاظ بالإصدارات السابقة لأغراض سجل الحضور والرواتب والتدقيق، ولا يمكن تعديلها أو حذفها بعد انتهاء الفترة الخاصة بها."
-        : "Historical versions are preserved for attendance and payroll history. They cannot be edited or deleted after their period has ended.",
-    retroactiveNote:
-      locale === "ar"
-        ? "سيؤدي هذا التغيير إلى استبدال قاعدة الحضور السارية من التاريخ المحدد. قد تحتاج حسابات الحضور للفترة المتأثرة إلى إعادة حساب. لن يتم تغيير الرواتب النهائية أو المقفلة تلقائياً."
-        : "This change will replace the attendance rule applicable from the selected date. Existing attendance calculations for the affected period may need to be recalculated. Finalized or locked payroll will not be changed automatically.",
-    review: locale === "ar" ? "مراجعة قبل الحفظ" : "Review before saving",
-    confirm: locale === "ar" ? "حفظ الإصدار" : "Save version",
+    current: t("currentRuleVersion"),
+    historical: t("attendanceRuleHistory"),
+    create: t("createRuleVersion"),
+    effectiveFrom: t("effectiveFrom"),
+    effectiveTo: t("effectiveTo"),
+    status: t("status"),
+    createdBy: t("createdBy"),
+    createdAt: t("createdAt"),
+    historicalNote: t("historicalRulesNote"),
+    retroactiveNote: t("retroactiveRulesNote"),
+    review: t("reviewBeforeSaving"),
+    confirm: t("saveRuleVersion"),
   };
   return (
     <div className="animate-in">
@@ -11209,22 +11418,10 @@ function Rules() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
-              {locale === "ar"
-                ? "حدود الحضور والعمل الإضافي"
-                : locale === "fr"
-                  ? "Seuils de présence et d’heures supplémentaires"
-                  : locale === "de"
-                    ? "Grenzwerte für Anwesenheit und Überstunden"
-                    : "Attendance and overtime thresholds"}
+              {t("attendanceThresholdsTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "ar"
-                ? "حدد فترات السماح التي تطبقها سياسة الحضور قبل تسجيل التأخير أو الانصراف المبكر أو العمل الإضافي."
-                : locale === "fr"
-                  ? "Définissez les délais appliqués avant de constater un retard, un départ anticipé ou des heures supplémentaires."
-                  : locale === "de"
-                    ? "Legen Sie die Toleranzen fest, bevor Verspätungen, früher Feierabend oder Überstunden erfasst werden."
-                    : "Set the policy tolerances before late arrival, early departure, or overtime is recorded."}
+              {t("attendanceThresholdsDetail")}
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <Field
@@ -11259,14 +11456,10 @@ function Rules() {
           </Card>
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
-              {locale === "ar"
-                ? "مضاعفات أيام الأسبوع والعطلات"
-                : "Weekly and holiday extra-pay rules"}
+              {t("weeklyHolidayRulesTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "ar"
-                ? "يتم تطبيق أعلى مضاعف فقط عند تعارض أكثر من قاعدة."
-                : "When rules overlap, only the highest applicable multiplier is applied."}
+              {t("weeklyHolidayRulesDetail")}
             </p>
             <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
               <input
@@ -11281,34 +11474,22 @@ function Rules() {
                 className="mt-0.5 h-4 w-4 accent-primary"
               />
               <span>
-                {locale === "ar"
-                  ? "خصم يوم غياب من رصيد الإجازة السنوية"
-                  : "Deduct an annual-leave day for an unapproved absence"}
+                {t("deductAnnualLeaveForUnapproved")}
                 <span className="mt-1 block text-xs font-normal">
-                  {locale === "ar"
-                    ? "مغلق افتراضياً؛ لن يخصم الغياب من الإجازة السنوية دون تفعيل صريح."
-                    : "Off by default; absences never silently consume annual leave."}
+                  {t("absenceDeductionDetail")}
                 </span>
               </span>
             </label>
             <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
               <h3 className="font-semibold">
-                {locale === "ar"
-                  ? "إعدادات الإجازة السنوية"
-                  : "Annual leave settings"}
+                {t("annualLeaveSettings")}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                {locale === "ar"
-                  ? "تُحفظ هذه القيم كإصدار من سياسة الإجازة السنوية وتستخدم في الرصيد والحضور والرواتب."
-                  : "These values are saved as an annual leave policy version and used by balances, attendance, payroll, and self-service."}
+                {t("annualLeaveSettingsDetail")}
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={
-                    locale === "ar"
-                      ? "أيام الإجازة السنوية"
-                      : "Annual entitlement (days)"
-                  }
+                  label={t("annualEntitlementDays")}
                   type="number"
                   min={0}
                   required
@@ -11318,9 +11499,7 @@ function Rules() {
                   }
                 />
                 <label className="block text-sm font-semibold">
-                  {locale === "ar"
-                    ? "بداية سنة الإجازة"
-                    : "Leave year starts in"}
+                  {t("leaveYearStartsIn")}
                   <select
                     value={form.annualLeavePeriodStartMonth}
                     onChange={(event) =>
@@ -11345,9 +11524,7 @@ function Rules() {
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-semibold">
-                {locale === "ar"
-                  ? "متى يخصم الغياب من الإجازة؟"
-                  : "When should absence deduct leave?"}
+                {t("absenceDeductionWhen")}
                 <select
                   value={form.absenceLeaveDeductionTrigger}
                   onChange={(event) =>
@@ -11359,23 +11536,15 @@ function Rules() {
                   className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                 >
                   <option value="unexcused_absence">
-                    {locale === "ar"
-                      ? "الغياب غير المعتمد فقط"
-                      : "Unapproved absences only"}
+                    {t("unapprovedAbsencesOnly")}
                   </option>
                   <option value="any_absence">
-                    {locale === "ar"
-                      ? "كل غياب أو عدم تسجيل حضور"
-                      : "Any absence or missing attendance"}
+                    {t("anyAbsenceMissing")}
                   </option>
                 </select>
               </label>
               <Field
-                label={
-                  locale === "ar"
-                    ? "أيام الخصم لكل غياب"
-                    : "Leave days deducted per absence"
-                }
+                label={t("leaveDaysPerAbsence")}
                 type="number"
                 min={0}
                 required
@@ -11454,20 +11623,16 @@ function Rules() {
                   })
                 }
               >
-                <Plus size={15} /> Add weekly multiplier
+                <Plus size={15} /> {t("addWeeklyMultiplier")}
               </Button>
             </div>
           </Card>
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
-              {locale === "ar"
-                ? "جزاءات الحضور والإذن"
-                : "Attendance penalties & permissions"}
+              {t("attendancePenaltiesTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "ar"
-                ? "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد."
-                : "Set late, early-departure, and absence multipliers, including approved permission coverage."}
+              {t("attendancePenaltiesDetail")}
             </p>
             <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
               <input
@@ -11489,29 +11654,23 @@ function Rules() {
               {[
                 [
                   "latePenaltyMultiplier",
-                  locale === "ar" ? "مضاعف التأخير" : "Late arrival multiplier",
+                  t("lateArrivalMultiplier"),
                 ],
                 [
                   "earlyDeparturePenaltyMultiplier",
-                  locale === "ar"
-                    ? "مضاعف الانصراف المبكر"
-                    : "Early departure multiplier",
+                  t("earlyDepartureMultiplier"),
                 ],
                 [
                   "absencePenaltyMultiplier",
-                  locale === "ar" ? "مضاعف الغياب" : "Absence multiplier",
+                  t("absenceMultiplier"),
                 ],
                 [
                   "permissionCoveredMinutesMultiplier",
-                  locale === "ar"
-                    ? "مضاعف دقائق الإذن"
-                    : "Permission-covered minutes",
+                  t("permissionCoveredMinutes"),
                 ],
                 [
                   "fullDayPermissionMultiplier",
-                  locale === "ar"
-                    ? "مضاعف الإذن ليوم كامل"
-                    : "Full-day permission",
+                  t("fullDayPermission"),
                 ],
               ].map(([key, label]) => (
                 <label key={key} className="block text-sm font-semibold">
@@ -11538,15 +11697,11 @@ function Rules() {
               {[
                 [
                   "permissionCoversLate",
-                  locale === "ar"
-                    ? "الإذن يغطي التأخير"
-                    : "Permission covers late arrival",
+                  t("permissionCoversLate"),
                 ],
                 [
                   "permissionCoversEarly",
-                  locale === "ar"
-                    ? "الإذن يغطي الانصراف المبكر"
-                    : "Permission covers early departure",
+                  t("permissionCoversEarly"),
                 ],
               ].map(([key, label]) => (
                 <label
@@ -11609,6 +11764,7 @@ function Rules() {
           </Button>
         </div>
       </form>
+      <AnnualLeaveControls />
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

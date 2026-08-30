@@ -42,9 +42,10 @@ test("absence-to-annual-leave deduction is explicit and idempotent", () => {
   assert.match(route, /absence_leave_reversal:\$\{attendance\.id\}/);
   assert.match(route, /transactionType: "restoration"/);
   assert.match(route, /onConflictDoNothing\(\)/);
-  assert.match(app, /Unauthorized absence/);
-  assert.match(app, /Deduction months/);
-  assert.match(app, /Monthly maximum/);
+  assert.match(app, /function AnnualLeaveControls\(\)/);
+  assert.match(app, /function Rules\(\)[\s\S]*<AnnualLeaveControls \/>/);
+  assert.match(app, /annualLeaveSettings/);
+  assert.match(app, /balanceDeductionMonths/);
 });
 
 test("payroll materializes scheduled absences without replacing approved leave", () => {
@@ -67,10 +68,10 @@ test("leave balances expose configured leave-year boundaries and states", () => 
   assert.match(route, /remaining: balance\.allocated - balance\.used - balance\.pending/);
   assert.match(route, /deductedThisMonth/);
   assert.match(route, /unauthorizedAbsenceDays/);
-  assert.match(app, /Leave-year start month/);
-  assert.match(app, /Annual balance/);
-  assert.match(app, /Deducted for absence/);
-  assert.match(app, /Deducted this month/);
+  assert.match(app, /leaveYearStartsIn/);
+  assert.match(app, /label="Annual balance"/);
+  assert.match(app, /label="Deducted for absence"/);
+  assert.match(app, /label="Deducted this month"/);
 });
 
 test("attendance rules and leave balances share the policy contract", () => {
