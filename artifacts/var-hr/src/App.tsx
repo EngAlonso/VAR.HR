@@ -1021,6 +1021,8 @@ const copy = {
     requestRejected: "Request rejected",
     leaveBalances: "Leave balances",
     daysRemaining: "days remaining",
+    allocatedDays: "Allocated days",
+    usedDays: "Used days",
     queueHygiene: "Queue hygiene",
     pendingDecisionsAcrossBothRequestTypes:
       "pending decisions across both request types",
@@ -1272,6 +1274,8 @@ const copy = {
     currentPlan: "الخطة الحالية",
     date: "التاريخ",
     daysRemaining: "الأيام المتبقية",
+    allocatedDays: "الأيام المخصصة",
+    usedDays: "الأيام المستخدمة",
     department: "القسم",
     departmentCreated: "تم إنشاء القسم",
     departmentsEyebrow: "الهيكل التنظيمي",
@@ -1713,6 +1717,8 @@ const pageCopy = {
     newRequest: "New request",
     leaveBalances: "Leave balances",
     daysRemaining: "days remaining",
+    allocatedDays: "Allocated days",
+    usedDays: "Used days",
     queueHygiene: "Queue hygiene",
     pendingDecisions: "pending decisions across both request types",
     leave: "Leave",
@@ -2105,6 +2111,8 @@ const pageCopy = {
     newRequest: "طلب جديد",
     leaveBalances: "أرصدة الإجازات",
     daysRemaining: "أيام متبقية",
+    allocatedDays: "الأيام المخصصة",
+    usedDays: "الأيام المستخدمة",
     queueHygiene: "حالة قائمة الانتظار",
     pendingDecisions: "قرارات معلقة من نوعي الطلبات",
     leave: "إجازة",
@@ -2694,6 +2702,8 @@ const pageCopy = {
     newRequest: "Nouvelle demande",
     leaveBalances: "Soldes de congés",
     daysRemaining: "jours restants",
+    allocatedDays: "Jours alloués",
+    usedDays: "Jours utilisés",
     queueHygiene: "État de la file",
     pendingDecisions: "décisions en attente pour les deux types de demandes",
     leave: "Congé",
@@ -3011,6 +3021,8 @@ const pageCopy = {
     newRequest: "Neue Anfrage",
     leaveBalances: "Urlaubssalden",
     daysRemaining: "Tage verbleibend",
+    allocatedDays: "Zugewiesene Tage",
+    usedDays: "Verwendete Tage",
     queueHygiene: "Warteschlangenstatus",
     pendingDecisions: "offene Entscheidungen über beide Anfragearten",
     leave: "Urlaub",
@@ -10670,7 +10682,20 @@ function Requests() {
   );
 }
 
+type AnnualLeaveControlsContextValue = {
+  attendanceForm: any;
+  setAttendanceForm: (value: any) => void;
+};
+
+const AnnualLeaveControlsContext =
+  createContext<AnnualLeaveControlsContextValue | null>(null);
+
 function AnnualLeaveControls() {
+  const annualLeaveContext = useContext(AnnualLeaveControlsContext);
+  if (!annualLeaveContext) {
+    throw new Error("Annual leave controls require Attendance Rules context.");
+  }
+  const { attendanceForm, setAttendanceForm } = annualLeaveContext;
   const { t, locale } = useI18n();
   const qc = useQueryClient();
   const balances = useListLeaveBalances();
@@ -10678,19 +10703,16 @@ function AnnualLeaveControls() {
   const ledger = useListLeaveBalanceTransactions();
   const createPolicy = useCreateLeavePolicy();
   const adjustBalance = useAdjustLeaveBalance();
-  const [leaveAdminTab, setLeaveAdminTab] = useState<"policies" | "ledger">(
-    "policies",
-  );
   const [policyForm, setPolicyForm] = useState<any>({
     leaveType: "Annual leave",
-    annualEntitlement: 21,
+    annualEntitlement: Number(attendanceForm.annualLeaveEntitlement ?? 21),
     accrualFrequency: "monthly",
     deductionMode: "automatic",
     carryForwardAllowed: false,
     carryForwardDays: 0,
     carryForwardExpiryMonths: "",
     allowNegative: false,
-    periodStartMonth: 1,
+    periodStartMonth: Number(attendanceForm.annualLeavePeriodStartMonth ?? 1),
     allowedBalanceMonths: Array.from({ length: 12 }, (_, index) => index + 1),
     monthlyDeductionLimit: 1,
     enabled: true,
@@ -10788,8 +10810,7 @@ function AnnualLeaveControls() {
   }
 
   return (
-    <>
-      <Card className="mt-6 p-6">
+    <div className="mt-5 border-t border-border pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
@@ -10799,25 +10820,8 @@ function AnnualLeaveControls() {
               {t("policiesBalanceLedger")}
             </h2>
           </div>
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
-            <Button
-              className="px-3 py-1.5 text-xs"
-              variant={leaveAdminTab === "policies" ? "primary" : "quiet"}
-              onClick={() => setLeaveAdminTab("policies")}
-            >
-              {t("policies")}
-            </Button>
-            <Button
-              className="px-3 py-1.5 text-xs"
-              variant={leaveAdminTab === "ledger" ? "primary" : "quiet"}
-              onClick={() => setLeaveAdminTab("ledger")}
-            >
-              {t("ledger")}
-            </Button>
-          </div>
         </div>
-        {leaveAdminTab === "policies" ? (
-          <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
             <div className="space-y-3">
               {(policies.data || []).map((policy: any) => (
                 <div
@@ -10888,9 +10892,13 @@ function AnnualLeaveControls() {
                   type="number"
                   min={0}
                   value={policyForm.annualEntitlement}
-                  onChange={(value) =>
-                    setPolicyForm({ ...policyForm, annualEntitlement: value })
-                  }
+                  onChange={(value) => {
+                    setPolicyForm({ ...policyForm, annualEntitlement: value });
+                    setAttendanceForm({
+                      ...attendanceForm,
+                      annualLeaveEntitlement: value,
+                    });
+                  }}
                   required
                 />
                 <Field
@@ -10909,12 +10917,17 @@ function AnnualLeaveControls() {
                   <select
                     className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                     value={policyForm.periodStartMonth}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
                       setPolicyForm({
                         ...policyForm,
-                        periodStartMonth: Number(event.target.value),
-                      })
-                    }
+                        periodStartMonth: value,
+                      });
+                      setAttendanceForm({
+                        ...attendanceForm,
+                        annualLeavePeriodStartMonth: value,
+                      });
+                    }}
                   >
                     {Array.from({ length: 12 }, (_, index) => (
                       <option key={index + 1} value={index + 1}>
@@ -11082,8 +11095,8 @@ function AnnualLeaveControls() {
               </Button>
             </form>
           </div>
-        ) : (
-          <div className="mt-5 overflow-x-auto">
+          <div className="mt-6 border-t border-border pt-5">
+            <h3 className="font-semibold">{t("ledger")}</h3>
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
@@ -11122,14 +11135,12 @@ function AnnualLeaveControls() {
               />
             )}
           </div>
-        )}
-      </Card>
-      <Card className="mt-6 p-6">
-        <div className="flex items-center gap-2">
+        <div className="mt-6 border-t border-border pt-5">
+          <div className="flex items-center gap-2">
           <CalendarDays size={17} className="text-primary" />
-          <h2 className="font-display font-semibold">{t("leaveBalances")}</h2>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <h3 className="font-semibold">{t("leaveBalances")}</h3>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {balances.isLoading ? (
             <Skeleton className="h-24" />
           ) : balances.data?.length ? (
@@ -11146,6 +11157,14 @@ function AnnualLeaveControls() {
                     {balance.remaining} {t("daysRemaining")}
                   </span>
                 </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <span>
+                      {t("allocatedDays")}: {balance.allocated}
+                    </span>
+                    <span>
+                      {t("usedDays")}: {balance.used}
+                    </span>
+                  </div>
                 <Button
                   variant="quiet"
                   className="mt-2 px-2 py-1 text-xs"
@@ -11168,8 +11187,8 @@ function AnnualLeaveControls() {
           ) : (
             <Empty title={t("notAvailable")} detail={t("requestsAppear")} />
           )}
+          </div>
         </div>
-      </Card>
       {adjustment && (
         <Modal
           title={t("adjustLeaveBalance")}
@@ -11214,7 +11233,7 @@ function AnnualLeaveControls() {
           </form>
         </Modal>
       )}
-    </>
+    </div>
   );
 }
 
@@ -11254,8 +11273,7 @@ function Rules() {
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
-  function save(e: FormEvent) {
-    e.preventDefault();
+  function save() {
     setReviewVersion(true);
   }
   function saveVersion() {
@@ -11414,7 +11432,7 @@ function Rules() {
           </Badge>
         }
       />
-      <form onSubmit={save} className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-display text-lg font-semibold">
@@ -11461,25 +11479,6 @@ function Rules() {
             <p className="mt-1 text-sm text-muted-foreground">
               {t("weeklyHolidayRulesDetail")}
             </p>
-            <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
-              <input
-                type="checkbox"
-                checked={Boolean(form.absenceDeductsAnnualLeave)}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    absenceDeductsAnnualLeave: event.target.checked,
-                  })
-                }
-                className="mt-0.5 h-4 w-4 accent-primary"
-              />
-              <span>
-                {t("deductAnnualLeaveForUnapproved")}
-                <span className="mt-1 block text-xs font-normal">
-                  {t("absenceDeductionDetail")}
-                </span>
-              </span>
-            </label>
             <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
               <h3 className="font-semibold">
                 {t("annualLeaveSettings")}
@@ -11487,72 +11486,62 @@ function Rules() {
               <p className="mt-1 text-xs text-muted-foreground">
                 {t("annualLeaveSettingsDetail")}
               </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field
-                  label={t("annualEntitlementDays")}
-                  type="number"
-                  min={0}
-                  required
-                  value={form.annualLeaveEntitlement}
-                  onChange={(value) =>
-                    setForm({ ...form, annualLeaveEntitlement: value })
+              <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.absenceDeductsAnnualLeave)}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      absenceDeductsAnnualLeave: event.target.checked,
+                    })
                   }
+                  className="mt-0.5 h-4 w-4 accent-primary"
                 />
+                <span>
+                  {t("deductAnnualLeaveForUnapproved")}
+                  <span className="mt-1 block text-xs font-normal">
+                    {t("absenceDeductionDetail")}
+                  </span>
+                </span>
+              </label>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold">
-                  {t("leaveYearStartsIn")}
+                  {t("absenceDeductionWhen")}
                   <select
-                    value={form.annualLeavePeriodStartMonth}
+                    value={form.absenceLeaveDeductionTrigger}
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        annualLeavePeriodStartMonth: Number(event.target.value),
+                        absenceLeaveDeductionTrigger: event.target.value,
                       })
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                   >
-                    {Array.from({ length: 12 }, (_, index) => (
-                      <option key={index + 1} value={index + 1}>
-                        {new Date(2020, index, 1).toLocaleString(
-                          locale === "ar" ? "ar-EG" : "en-US",
-                          { month: "long" },
-                        )}
-                      </option>
-                    ))}
+                    <option value="unexcused_absence">
+                      {t("unapprovedAbsencesOnly")}
+                    </option>
+                    <option value="any_absence">
+                      {t("anyAbsenceMissing")}
+                    </option>
                   </select>
                 </label>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-semibold">
-                {t("absenceDeductionWhen")}
-                <select
-                  value={form.absenceLeaveDeductionTrigger}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      absenceLeaveDeductionTrigger: event.target.value,
-                    })
+                <Field
+                  label={t("leaveDaysPerAbsence")}
+                  type="number"
+                  min={0}
+                  required
+                  value={form.absenceLeaveDeductionDays}
+                  onChange={(value) =>
+                    setForm({ ...form, absenceLeaveDeductionDays: value })
                   }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="unexcused_absence">
-                    {t("unapprovedAbsencesOnly")}
-                  </option>
-                  <option value="any_absence">
-                    {t("anyAbsenceMissing")}
-                  </option>
-                </select>
-              </label>
-              <Field
-                label={t("leaveDaysPerAbsence")}
-                type="number"
-                min={0}
-                required
-                value={form.absenceLeaveDeductionDays}
-                onChange={(value) =>
-                  setForm({ ...form, absenceLeaveDeductionDays: value })
-                }
-              />
+                />
+              </div>
+              <AnnualLeaveControlsContext.Provider
+                value={{ attendanceForm: form, setAttendanceForm: setForm }}
+              >
+                <AnnualLeaveControls />
+              </AnnualLeaveControlsContext.Provider>
             </div>
             <div className="mt-5 space-y-3">
               {(form.weeklyMultipliers || []).map(
@@ -11759,12 +11748,16 @@ function Rules() {
               </div>
             </div>
           </Card>
-          <Button type="submit" disabled={update.isPending} className="w-full">
+          <Button
+            type="button"
+            onClick={save}
+            disabled={update.isPending}
+            className="w-full"
+          >
             {update.isPending ? t("savingPolicy") : t("saveAttendancePolicy")}
           </Button>
         </div>
-      </form>
-      <AnnualLeaveControls />
+      </div>
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
