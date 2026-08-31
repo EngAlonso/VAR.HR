@@ -1071,6 +1071,19 @@ export const AttendanceRulesFullDayPermissionMultiplier = {
   NUMBER_3: 3,
 } as const;
 
+export type AttendanceRulesWorkingDaysItem = typeof AttendanceRulesWorkingDaysItem[keyof typeof AttendanceRulesWorkingDaysItem];
+
+
+export const AttendanceRulesWorkingDaysItem = {
+  Sun: 'Sun',
+  Mon: 'Mon',
+  Tue: 'Tue',
+  Wed: 'Wed',
+  Thu: 'Thu',
+  Fri: 'Fri',
+  Sat: 'Sat',
+} as const;
+
 export type AttendanceRulesHolidayPeriodsItemMultiplier = typeof AttendanceRulesHolidayPeriodsItemMultiplier[keyof typeof AttendanceRulesHolidayPeriodsItemMultiplier];
 
 
@@ -1168,7 +1181,8 @@ export interface AttendanceRules {
   permissionCoversEarly: boolean;
   permissionCoveredMinutesMultiplier: AttendanceRulesPermissionCoveredMinutesMultiplier;
   fullDayPermissionMultiplier: AttendanceRulesFullDayPermissionMultiplier;
-  workingDays: string[];
+  /** @minItems 1 */
+  workingDays: AttendanceRulesWorkingDaysItem[];
   holidayDates: string[];
   holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
@@ -1269,6 +1283,19 @@ export const AttendanceRulesInputFullDayPermissionMultiplier = {
   NUMBER_3: 3,
 } as const;
 
+export type AttendanceRulesInputWorkingDaysItem = typeof AttendanceRulesInputWorkingDaysItem[keyof typeof AttendanceRulesInputWorkingDaysItem];
+
+
+export const AttendanceRulesInputWorkingDaysItem = {
+  Sun: 'Sun',
+  Mon: 'Mon',
+  Tue: 'Tue',
+  Wed: 'Wed',
+  Thu: 'Thu',
+  Fri: 'Fri',
+  Sat: 'Sat',
+} as const;
+
 export type AttendanceRulesInputHolidayPeriodsItemMultiplier = typeof AttendanceRulesInputHolidayPeriodsItemMultiplier[keyof typeof AttendanceRulesInputHolidayPeriodsItemMultiplier];
 
 
@@ -1367,7 +1394,8 @@ export interface AttendanceRulesInput {
   permissionCoversEarly: boolean;
   permissionCoveredMinutesMultiplier: AttendanceRulesInputPermissionCoveredMinutesMultiplier;
   fullDayPermissionMultiplier: AttendanceRulesInputFullDayPermissionMultiplier;
-  workingDays: string[];
+  /** @minItems 1 */
+  workingDays: AttendanceRulesInputWorkingDaysItem[];
   holidayDates: string[];
   holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];

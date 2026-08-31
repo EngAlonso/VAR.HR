@@ -959,7 +959,7 @@ function effectiveScheduleFromRows(
   if (!assignment) return defaultScheduleFromRules(rules);
   return {
     name: assignment.schedule.name,
-    workingDays: assignment.schedule.workingDays,
+    workingDays: rules.workingDays,
     startTime: assignment.schedule.startTime,
     endTime: assignment.schedule.endTime,
     requiredHours: assignment.schedule.requiredHours,
@@ -1012,7 +1012,7 @@ async function effectiveScheduleFor(
   if (assignment) {
     return {
       name: assignment.schedule.name,
-      workingDays: assignment.schedule.workingDays,
+      workingDays: rules.workingDays,
       startTime: assignment.schedule.startTime,
       endTime: assignment.schedule.endTime,
       requiredHours: assignment.schedule.requiredHours,
@@ -1064,7 +1064,7 @@ async function effectiveScheduleFor(
     if (schedule) {
       return {
         name: schedule.name,
-        workingDays: schedule.workingDays,
+        workingDays: rules.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
@@ -1099,7 +1099,7 @@ async function effectiveScheduleFor(
   return schedule
     ? {
         name: schedule.name,
-        workingDays: schedule.workingDays,
+        workingDays: rules.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
@@ -8745,6 +8745,10 @@ async function calculatePayrollPeriod(
         !isHolidayDate(dateValue, dateRules, holidays)
       );
     });
+    const scheduledDateSet = new Set(scheduledDates);
+    const scheduledAttendanceCalculations = employeeCalculations.filter(
+      (calculation) => scheduledDateSet.has(calculation.attendanceDate),
+    );
     const scheduledDayCount = Math.max(1, scheduledDates.length);
     const absentDays = scheduledDates.filter(
       (dateValue) =>
@@ -8827,7 +8831,7 @@ async function calculatePayrollPeriod(
         rules.earlyCheckoutDeductionFactor,
     );
     const calculatedAbsenceDays = Math.max(
-      employeeCalculations.filter(
+      scheduledAttendanceCalculations.filter(
         (calculation) =>
           calculation.attendanceState === "unexcused_absence" ||
           calculation.attendanceState === "missing_attendance",

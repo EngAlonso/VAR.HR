@@ -17,6 +17,7 @@ import type { AttendanceRulesInputLatePenaltyMultiplier } from './attendanceRule
 import type { AttendanceRulesInputOvertimeMethod } from './attendanceRulesInputOvertimeMethod';
 import type { AttendanceRulesInputPermissionCoveredMinutesMultiplier } from './attendanceRulesInputPermissionCoveredMinutesMultiplier';
 import type { AttendanceRulesInputWeeklyMultipliersItem } from './attendanceRulesInputWeeklyMultipliersItem';
+import type { AttendanceRulesInputWorkingDaysItem } from './attendanceRulesInputWorkingDaysItem';
 
 export interface AttendanceRulesInput {
   workStart: string;
@@ -52,7 +53,8 @@ export interface AttendanceRulesInput {
   permissionCoversEarly: boolean;
   permissionCoveredMinutesMultiplier: AttendanceRulesInputPermissionCoveredMinutesMultiplier;
   fullDayPermissionMultiplier: AttendanceRulesInputFullDayPermissionMultiplier;
-  workingDays: string[];
+  /** @minItems 1 */
+  workingDays: AttendanceRulesInputWorkingDaysItem[];
   holidayDates: string[];
   holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];

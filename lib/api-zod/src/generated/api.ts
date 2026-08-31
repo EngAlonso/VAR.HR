@@ -2006,6 +2006,7 @@ export const getAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 export const getAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
 
+
 export const getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
 
 export const getAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
@@ -2045,7 +2046,7 @@ export const GetAttendanceRulesResponse = zod.object({
   "permissionCoversEarly": zod.boolean(),
   "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
-  "workingDays": zod.array(zod.string()),
+  "workingDays": zod.array(zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])).min(1),
   "holidayDates": zod.array(zod.iso.date()),
   "holidayPeriods": zod.array(zod.object({
   "name": zod.string().min(1),
@@ -2093,6 +2094,7 @@ export const updateAttendanceRulesBodyEarlyCheckoutDeductionFactorMin = 0;
 export const updateAttendanceRulesBodyAbsenceDeductionFactorMin = 0;
 
 
+
 export const updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin = 0;
 
 export const updateAttendanceRulesBodyAnnualLeaveEntitlementMin = 0;
@@ -2133,7 +2135,7 @@ export const UpdateAttendanceRulesBody = zod.object({
   "permissionCoversEarly": zod.boolean(),
   "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
-  "workingDays": zod.array(zod.string()),
+  "workingDays": zod.array(zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])).min(1),
   "holidayDates": zod.array(zod.iso.date()),
   "holidayPeriods": zod.array(zod.object({
   "name": zod.string().min(1),
@@ -2177,6 +2179,7 @@ export const updateAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 export const updateAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
 
+
 export const updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
 
 export const updateAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
@@ -2216,7 +2219,7 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "permissionCoversEarly": zod.boolean(),
   "permissionCoveredMinutesMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
   "fullDayPermissionMultiplier": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(3)]),
-  "workingDays": zod.array(zod.string()),
+  "workingDays": zod.array(zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])).min(1),
   "holidayDates": zod.array(zod.iso.date()),
   "holidayPeriods": zod.array(zod.object({
   "name": zod.string().min(1),

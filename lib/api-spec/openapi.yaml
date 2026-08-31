@@ -2909,7 +2909,10 @@ components:
         fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
-          items: { type: string }
+          minItems: 1
+          items:
+            type: string
+            enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
         holidayDates:
           type: array
           items: { type: string, format: date }
@@ -3026,7 +3029,10 @@ components:
         fullDayPermissionMultiplier: { type: integer, enum: [0, 1, 2, 3] }
         workingDays:
           type: array
-          items: { type: string }
+          minItems: 1
+          items:
+            type: string
+            enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
         holidayDates:
           type: array
           items: { type: string, format: date }

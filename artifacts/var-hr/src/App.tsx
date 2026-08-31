@@ -1070,6 +1070,8 @@ const copy = {
       "Attendance exceptions record their source, location posture, and a human-readable explanation for review.",
     saveAttendancePolicy: "Save attendance policy",
     attendancePolicyUpdated: "Attendance policy updated",
+    attendancePolicyRecalculateHint:
+      "Policy saved. Recalculate any non-finalized payroll period to apply the change.",
     savingPolicy: "Saving policy…",
     evidenceAnalysis: "Evidence & analysis",
     attendanceReports: "Attendance reports",
@@ -1097,6 +1099,7 @@ const copy = {
     payrollCalculationReady: "Payroll calculation ready",
     calculationCouldNotBeCompleted: "Calculation could not be completed",
     calculate: "Calculate",
+    recalculatePayroll: "Recalculate",
     calculating: "Calculating…",
     deviceConfigurationAdded: "Device configuration added",
     couldNotAddDevice: "Could not add device",
@@ -1260,10 +1263,13 @@ const copy = {
     allStatuses: "كل الحالات",
     annualLeave: "إجازة سنوية",
     attendancePolicyUpdated: "تم تحديث سياسة الحضور",
+    attendancePolicyRecalculateHint:
+      "تم حفظ القاعدة. أعد حساب أي فترة راتب غير نهائية لتطبيق التغيير.",
     biometricDevices: "أجهزة البصمة",
     branch: "الفرع",
     branchCreated: "تم إنشاء الفرع",
     calculate: "حساب",
+    recalculatePayroll: "إعادة الحساب",
     calculating: "جارٍ الحساب…",
     calculationExplanation: "شرح الحساب",
     calculationHistory: "سجل الحسابات",
@@ -2822,6 +2828,8 @@ const pageCopy = {
     saveAttendancePolicy: "Enregistrer la politique",
     savingPolicy: "Enregistrement de la politique…",
     attendancePolicyUpdated: "Politique de présence mise à jour",
+    attendancePolicyRecalculateHint:
+      "Règle enregistrée. Recalculez toute période de paie non finalisée pour appliquer la modification.",
     attendanceRulesChangeHistory: "Historique des modifications des règles de présence",
     attendanceRulesChangeHistoryDetail:
       "Consultez l’auteur, les changements et leur date d’application pour chaque règle.",
@@ -2888,6 +2896,7 @@ const pageCopy = {
     calculatedOn: "Calculé le",
     calculationExplanation: "Explication du calcul",
     calculate: "Calculer",
+    recalculatePayroll: "Recalculer",
     calculating: "Calcul…",
     selectPeriodToCalculate:
       "Choisissez Calculer pour créer un aperçu explicable.",
@@ -3194,6 +3203,8 @@ const pageCopy = {
     saveAttendancePolicy: "Anwesenheitsrichtlinie speichern",
     savingPolicy: "Richtlinie wird gespeichert…",
     attendancePolicyUpdated: "Anwesenheitsrichtlinie aktualisiert",
+    attendancePolicyRecalculateHint:
+      "Regel gespeichert. Berechnen Sie nicht abgeschlossene Lohnzeiträume neu, um die Änderung anzuwenden.",
     attendanceRulesChangeHistory: "Änderungsverlauf der Anwesenheitsregeln",
     attendanceRulesChangeHistoryDetail:
       "Prüfen Sie für jede Anwesenheitsregel den Bearbeiter, die Änderung und den Beginn der Anwendung.",
@@ -3260,6 +3271,7 @@ const pageCopy = {
     calculatedOn: "Berechnet am",
     calculationExplanation: "Berechnungserklärung",
     calculate: "Berechnen",
+    recalculatePayroll: "Neu berechnen",
     calculating: "Wird berechnet…",
     selectPeriodToCalculate:
       "Wählen Sie Berechnen, um eine erklärbare Vorschau zu erstellen.",
@@ -4453,7 +4465,11 @@ const task5Copy = {
     scheduleUpdated: "Shift updated",
     scheduleSaveFailed: "The shift could not be saved.",
     scheduleValidation:
-      "Choose at least one working day and provide a valid time range.",
+      "Provide a shift name and a valid time range.",
+    workingDaysTitle: "Working days",
+    workingDaysDetail:
+      "Choose the company workdays used by attendance and absence calculations. This setting is separate from shifts.",
+    workingDaysRequired: "Choose at least one working day before saving.",
     employeeSchedule: "Employee shift assignment",
     assignSchedule: "Assign shift",
     effectiveSchedule: "Effective shift",
@@ -4574,7 +4590,11 @@ const task5Copy = {
     scheduleCreated: "تم إنشاء الشيفت",
     scheduleUpdated: "تم تحديث الشيفت",
     scheduleSaveFailed: "تعذر حفظ الشيفت.",
-    scheduleValidation: "اختر يوم عمل واحداً على الأقل وأدخل نطاق وقت صالحاً.",
+    scheduleValidation: "أدخل اسم الشيفت ونطاق وقت صالحاً.",
+    workingDaysTitle: "تحديد أيام العمل",
+    workingDaysDetail:
+      "اختر أيام العمل التي تستخدمها قواعد الحضور واحتساب الغياب. هذا الإعداد منفصل عن الشيفتات.",
+    workingDaysRequired: "اختر يوم عمل واحداً على الأقل قبل الحفظ.",
     employeeSchedule: "ربط الموظف بالشيفت",
     assignSchedule: "ربط الشيفت",
     effectiveSchedule: "الشيفت الفعّال",
@@ -4588,7 +4608,7 @@ const task5Copy = {
     noEffectiveScheduleDetail: "لا يوجد ربط شيفت نشط لهذا الموظف.",
     shiftOrganization: "تنظيم الشيفتات",
     shiftOrganizationDetail:
-      "أنشئ وأدر الشيفتات وأيام العمل والاستراحات وفترات السماح والإضافي والشيفت الافتراضي للشركة.",
+      "أنشئ وأدر الشيفتات ومواعيدها والاستراحات وفترات السماح والإضافي والشيفت الافتراضي للشركة.",
     employeeShiftAssignment: "ربط الموظفين بالشيفتات",
     employeeShiftAssignmentDetail:
       "اربط الشيفتات بالموظفين وحدد تواريخ السريان والربط الجماعي وراجع سجل التعيينات.",
@@ -9562,11 +9582,6 @@ function EmployeeProfilePage() {
                   <div className="mt-1 font-medium">
                     {employeeSchedule.data.schedule.startTime}–{" "}
                     {employeeSchedule.data.schedule.endTime}
-                    {employeeSchedule.data.schedule.workingDays?.length
-                      ? ` · ${employeeSchedule.data.schedule.workingDays
-                          .map((day: string) => scheduleDayLabel(day, t))
-                          .join(", ")}`
-                      : ""}
                   </div>
                 </div>
               )}
@@ -12057,6 +12072,9 @@ function Rules() {
         absenceLeaveDeductionDays: Number(
           q.data.absenceLeaveDeductionDays ?? 1,
         ),
+        workingDays: Array.isArray(q.data.workingDays)
+          ? q.data.workingDays
+          : ["Sun", "Mon", "Tue", "Wed", "Thu"],
         annualLeaveEntitlement: Number(q.data.annualLeaveEntitlement ?? 21),
         annualLeavePeriodStartMonth: Number(
           q.data.annualLeavePeriodStartMonth ?? 1,
@@ -12066,6 +12084,10 @@ function Rules() {
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
   if (q.isError) return <ErrorState retry={() => q.refetch()} />;
   function save() {
+    if (!form.workingDays?.length) {
+      toast.error(t("workingDaysRequired"));
+      return;
+    }
     const ruleInput = { ...form };
     for (const field of ["id", "companyId", "createdAt", "updatedAt"]) {
       delete ruleInput[field];
@@ -12111,7 +12133,7 @@ function Rules() {
       },
       {
         onSuccess: () => {
-          toast.success(t("attendancePolicyUpdated"));
+          toast.success(t("attendancePolicyRecalculateHint"));
           qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
           qc.invalidateQueries({ queryKey: changes.queryKey });
           qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
@@ -12189,6 +12211,39 @@ function Rules() {
                 </span>
               </span>
             </label>
+          </Card>
+          <Card className="order-2 p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {t("workingDaysTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("workingDaysDetail")}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+              {scheduleDayOptions.map(([day, key]) => (
+                <label
+                  className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm font-semibold"
+                  key={day}
+                >
+                  <input
+                    type="checkbox"
+                    checked={(form.workingDays || []).includes(day)}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        workingDays: event.target.checked
+                          ? [...(form.workingDays || []), day]
+                          : (form.workingDays || []).filter(
+                              (value: string) => value !== day,
+                            ),
+                      })
+                    }
+                    className="h-4 w-4 rounded border-input accent-primary"
+                  />
+                  {t(key)}
+                </label>
+              ))}
+            </div>
           </Card>
           <Card className="order-3 p-6">
             <h2 className="font-display text-lg font-semibold">
@@ -12367,7 +12422,7 @@ function Rules() {
               </Button>
             </div>
           </Card>
-          <Card className="order-2 p-6">
+          <Card className="order-3 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("attendancePenaltiesTitle")}
             </h2>
@@ -13958,7 +14013,11 @@ function Payroll() {
                         onClick={() => calculate(p.id)}
                         disabled={calc.isPending}
                       >
-                        {calc.isPending ? t("calculating") : t("calculate")}
+                        {calc.isPending
+                          ? t("calculating")
+                          : p.status === "calculated"
+                            ? t("recalculatePayroll")
+                            : t("calculate")}
                       </Button>
                     )}
                     {p.status !== "finalized" && p.status !== "locked" && (
@@ -14571,7 +14630,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     event.preventDefault();
     if (
       !draft.name.trim() ||
-      !draft.workingDays.length ||
       !draft.startTime ||
       !draft.endTime
     ) {
@@ -14725,7 +14783,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 {t("schedules")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {t("workingDays")} · {t("startTime")} → {t("endTime")}
+                {t("startTime")} → {t("endTime")}
               </p>
             </div>
             {schedules.isLoading ? (
@@ -14752,17 +14810,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                               : t("statusInactive")}
                           </Badge>
                         </div>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {schedule.workingDays
-                            .map((day: string) =>
-                              t(
-                                scheduleDayOptions.find(
-                                  ([key]) => key === day,
-                                )?.[1] || "workingDays",
-                              ),
-                            )
-                            .join(" · ")}
-                        </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {!schedule.isDefault && (
@@ -14850,8 +14897,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                   <div className="font-semibold">{effectiveSchedule.name}</div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {effectiveSchedule.startTime} → {effectiveSchedule.endTime}{" "}
-                    · {effectiveSchedule.workingDays.join(", ")}
+                    {effectiveSchedule.startTime} → {effectiveSchedule.endTime}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {t("effectiveFrom")}:{" "}
@@ -15064,10 +15110,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   value={effectiveSchedule.name}
                 />
                 <Info
-                  label={t("workingDays")}
-                  value={effectiveSchedule.workingDays.join(", ")}
-                />
-                <Info
                   label={t("startTime")}
                   value={`${effectiveSchedule.startTime} → ${effectiveSchedule.endTime}`}
                 />
@@ -15098,33 +15140,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
               value={draft.nameAr}
               onChange={(value) => setDraft({ ...draft, nameAr: value })}
             />
-            <div>
-              <p className="text-sm font-semibold">{t("workingDays")}</p>
-              <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-7">
-                {scheduleDayOptions.map(([day, key]) => (
-                  <label
-                    className="flex items-center gap-1.5 rounded-lg border border-border p-2 text-xs"
-                    key={day}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={draft.workingDays.includes(day)}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          workingDays: event.target.checked
-                            ? [...draft.workingDays, day]
-                            : draft.workingDays.filter(
-                                (value: string) => value !== day,
-                              ),
-                        })
-                      }
-                    />
-                    {t(key)}
-                  </label>
-                ))}
-              </div>
-            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={t("startTime")}

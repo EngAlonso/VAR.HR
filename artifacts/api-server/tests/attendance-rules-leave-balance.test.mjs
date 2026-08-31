@@ -115,6 +115,14 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(route, /attendanceRuleChangesTable/);
 });
 
+test("working days are configured in attendance rules, not shifts", () => {
+  assert.match(app, /workingDaysTitle/);
+  assert.match(app, /workingDaysDetail/);
+  assert.doesNotMatch(app, /checked=\{draft\.workingDays\.includes\(day\)\}/);
+  assert.match(route, /workingDays: rules\.workingDays/);
+  assert.match(spec, /workingDays:[\s\S]*minItems: 1[\s\S]*enum: \[Sun, Mon, Tue, Wed, Thu, Fri, Sat\]/);
+});
+
 test("employee movement records expose monthly calculated attendance details", () => {
   assert.match(app, /function EmployeeAttendanceMovement/);
   assert.match(app, /useGetReport\(reportParams/);
