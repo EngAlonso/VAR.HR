@@ -684,13 +684,18 @@ const copy = {
     supportEdit: "Support edit",
     supportEditHint:
       "Only approved operational fields are editable. Company ownership and authentication fields are locked.",
-    inspectionOnly: "Inspection only — no records are edited or deleted from this view.",
+    inspectionOnly:
+      "Platform owner support access — record deletions are permanent and audited.",
     beforeValue: "Before value",
     afterValue: "After value",
     changedFields: "Changed fields",
     noHistoryDetail: "This record has no recorded changes yet.",
     unknownCompany: "Unknown company",
     archiveConfirmation: "Archive this record?",
+    deleteRecordConfirmation:
+      "Delete this record permanently? This cannot be undone.",
+    recordDeleted: "Record deleted successfully.",
+    recordCouldNotBeDeleted: "This record could not be deleted.",
     couldNotSaveSupportedChanges: "Could not save the supported changes.",
     recordCouldNotBeArchived: "This record could not be archived.",
     couldNotLoadRecordHistory: "Could not load record history.",
@@ -2516,7 +2521,8 @@ const pageCopy = {
     supportEdit: "تعديل الدعم",
     supportEditHint:
       "يمكن تعديل الحقول التشغيلية المعتمدة فقط. ملكية الشركة وحقول المصادقة مقفلة.",
-    inspectionOnly: "للاطلاع فقط — لا يتم تعديل السجلات أو حذفها من هذا العرض.",
+    inspectionOnly:
+      "وصول دعم لمالك المنصة — حذف السجلات نهائي ويتم تسجيله في سجل التدقيق.",
     beforeValue: "القيمة قبل التغيير",
     afterValue: "القيمة بعد التغيير",
     changedFields: "الحقول التي تغيرت",
@@ -2524,6 +2530,10 @@ const pageCopy = {
     noHistoryDetail: "لا توجد تغييرات مسجلة لهذا السجل بعد.",
     unknownCompany: "شركة غير معروفة",
     archiveConfirmation: "هل تريد أرشفة هذا السجل؟",
+    deleteRecordConfirmation:
+      "هل تريد حذف هذا السجل نهائياً؟ لا يمكن التراجع عن هذا الإجراء.",
+    recordDeleted: "تم حذف السجل بنجاح.",
+    recordCouldNotBeDeleted: "تعذر حذف هذا السجل.",
     couldNotSaveSupportedChanges: "تعذر حفظ التغييرات المدعومة.",
     recordCouldNotBeArchived: "تعذر أرشفة هذا السجل.",
     couldNotLoadRecordHistory: "تعذر تحميل سجل التغييرات.",
@@ -16026,6 +16036,7 @@ type AdminEntity = {
   editable: string[];
   supportEditable?: string[];
   canArchive?: boolean;
+  canDelete?: boolean;
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
 type AdminDataResponse = AdminData & { entity?: string };

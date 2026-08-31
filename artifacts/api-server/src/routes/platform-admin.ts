@@ -26,6 +26,7 @@ type EntityConfig = {
   editable: string[];
   supportEditable?: string[];
   canArchive?: boolean;
+  canDelete?: boolean;
   hasUpdatedAt?: boolean;
   companyColumn?: string;
   orderColumn?: string;
@@ -342,6 +343,7 @@ const entities: Record<string, EntityConfig> = {
     label: "Permissions",
     columns: ["key", "label", "description", "created_at"],
     editable: [],
+    canDelete: false,
   },
   payroll_calculations: {
     table: "var_hr_payroll_calculations",
@@ -388,6 +390,7 @@ const entities: Record<string, EntityConfig> = {
       "created_at",
     ],
     editable: [],
+    canDelete: false,
     companyColumn: "company_id",
   },
   backups: {
@@ -616,6 +619,7 @@ router.get("/platform/database/entities", async (req, res): Promise<void> => {
       editable: value.editable,
       supportEditable: value.supportEditable ?? [],
       canArchive: value.canArchive ?? false,
+      canDelete: value.canDelete ?? true,
     })),
   );
 });
@@ -997,6 +1001,81 @@ router.post(
       after,
     });
     res.json({ row: after });
+  },
+);
+
+router.delete(
+  "/platform/database/:entity/:id",
+  async (req, res): Promise<void> => {
+    const config = configFor(req.params.entity);
+    const context = await requirePlatformOwner(req);
+    if (config.canDelete === false) {
+      res
+        .status(403)
+        .json({ error: "This entity is protected from platform deletion." });
+      return;
+    }
+    if (!idSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: "A valid record id is required." });
+      return;
+    }
+    if (
+      req.params.entity === "users" &&
+      req.params.id === context.accountId
+    ) {
+      res.status(409).json({ error: "Your current platform account cannot be deleted." });
+      return;
+    }
+    const table = sql.raw(sqlIdentifier(config.table));
+    const idColumn = sql.raw(sqlIdentifier("id"));
+    try {
+      const deleted = await db.transaction(async (tx) => {
+        const beforeResult = await tx.execute(
+          sql`SELECT * FROM ${table} WHERE ${idColumn} = ${req.params.id} LIMIT 1`,
+        );
+        const before = (beforeResult.rows[0] ?? null) as Record<
+          string,
+          unknown
+        > | null;
+        if (!before) return null;
+        const result = await tx.execute(
+          sql`DELETE FROM ${table} WHERE ${idColumn} = ${req.params.id} RETURNING ${idColumn}`,
+        );
+        return {
+          before,
+          deleted: result.rows.length > 0,
+        };
+      });
+      if (!deleted) {
+        res.status(404).json({ error: "Record not found." });
+        return;
+      }
+      await audit(req, "database_deleted", req.params.entity, req.params.id, {
+        companyId: deleted.before.company_id ?? null,
+        deletedColumns: config.columns,
+      });
+      res.sendStatus(204);
+    } catch (cause) {
+      const code =
+        typeof cause === "object" &&
+        cause !== null &&
+        "code" in cause &&
+        typeof cause.code === "string"
+          ? cause.code
+          : "";
+      if (
+        code === "23503" ||
+        (cause instanceof Error &&
+          /foreign key|violates/i.test(cause.message))
+      ) {
+        res.status(409).json({
+          error:
+            "This record cannot be deleted while related records still reference it.",
+        });
+        return;
+      }
+      throw cause;
+    }
   },
 );
 
