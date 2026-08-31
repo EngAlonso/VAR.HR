@@ -76,6 +76,17 @@ test("employee numbers remain in numeric order after manual renumbering", () => 
   assert.match(employeeProfilePage, /getListEmployeesQueryKey\(\)/);
 });
 
+test("mobile navigation gestures follow the current language direction", () => {
+  const shell = app.slice(
+    app.indexOf("function Shell("),
+    app.indexOf("function Overview("),
+  );
+  assert.match(shell, /event\.currentTarget\.setPointerCapture/);
+  assert.match(shell, /const swipedTowardClosedEdge = isArabic \? deltaX > 0 : deltaX < 0/);
+  assert.match(shell, /isArabic \? deltaX < 0 : deltaX > 0/);
+  assert.match(shell, /touchAction: isMobile \? "pan-y" : undefined/);
+});
+
 test("department and branch UI use granular management capabilities", () => {
   const departmentsPage = app.slice(
     app.indexOf("function Departments()"),

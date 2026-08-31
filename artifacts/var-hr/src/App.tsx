@@ -6618,7 +6618,7 @@ function Shell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!isArabic || !isMobile || event.pointerType !== "touch") return;
+    if (!isMobile || event.pointerType !== "touch") return;
     pointerStart.current = { id: event.pointerId, x: event.clientX };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -6628,7 +6628,6 @@ function Shell({ children }: { children: ReactNode }) {
     if (
       !start ||
       start.id !== event.pointerId ||
-      !isArabic ||
       !isMobile ||
       event.pointerType !== "touch"
     ) {
@@ -6637,8 +6636,9 @@ function Shell({ children }: { children: ReactNode }) {
     const deltaX = event.clientX - start.x;
     if (Math.abs(deltaX) < 48) return;
     if (open) {
-      if (deltaX > 0) setOpen(false);
-    } else if (deltaX < 0) {
+      const swipedTowardClosedEdge = isArabic ? deltaX > 0 : deltaX < 0;
+      if (swipedTowardClosedEdge) setOpen(false);
+    } else if (isArabic ? deltaX < 0 : deltaX > 0) {
       setOpen(true);
     }
   };
@@ -6690,7 +6690,7 @@ function Shell({ children }: { children: ReactNode }) {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       style={{
-        touchAction: isArabic && isMobile ? "pan-y" : undefined,
+        touchAction: isMobile ? "pan-y" : undefined,
       }}
     >
       <aside
