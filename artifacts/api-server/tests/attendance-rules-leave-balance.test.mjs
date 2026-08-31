@@ -115,6 +115,16 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(route, /attendanceRuleChangesTable/);
 });
 
+test("attendance rule change history is restricted to company owners", () => {
+  assert.match(
+    executableRoute,
+    /router\.get\("\/rules\/changes"[\s\S]*context\.role !== "company_owner"/,
+  );
+  assert.match(app, /const canViewRuleHistory = account\.accountType === "company_owner"/);
+  assert.match(app, /useListAttendanceRuleChanges\(\{\s*query: \{ enabled: canViewRuleHistory \}/);
+  assert.match(app, /\{canViewRuleHistory && \(\s*<Card className="order-9 p-6">/);
+});
+
 test("working days are configured in attendance rules, not shifts", () => {
   assert.match(app, /workingDaysTitle/);
   assert.match(app, /workingDaysDetail/);

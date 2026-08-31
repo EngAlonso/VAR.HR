@@ -12089,10 +12089,14 @@ function AnnualLeaveControls() {
 
 function Rules() {
   const { t, locale } = useI18n();
+  const { account } = useAuth();
   const qc = useQueryClient();
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
-  const changes = useListAttendanceRuleChanges();
+  const canViewRuleHistory = account.accountType === "company_owner";
+  const changes = useListAttendanceRuleChanges({
+    query: { enabled: canViewRuleHistory },
+  });
   const balances = useListLeaveBalances();
   const [form, setForm] = useState<any>(null);
   useEffect(() => {
@@ -12765,7 +12769,8 @@ function Rules() {
           {update.isPending ? t("savingPolicy") : t("saveAttendancePolicy")}
         </Button>
       </Card>
-      <Card className="order-9 p-6">
+      {canViewRuleHistory && (
+        <Card className="order-9 p-6">
         <div>
           <h2 className="font-display text-lg font-semibold">
             {t("attendanceRulesChangeHistory")}
@@ -12841,7 +12846,8 @@ function Rules() {
             </p>
           )}
         </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

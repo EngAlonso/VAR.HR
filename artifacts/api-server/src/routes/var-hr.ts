@@ -6446,8 +6446,8 @@ function attendanceRuleChangeResponse(
 
 router.get("/rules/changes", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "attendance.rules.view")) {
-    res.status(403).json({ error: message(req, "attendanceRulesAccess") });
+  if (context.role !== "company_owner") {
+    res.status(403).json({ error: message(req, "attendanceRulesHistoryAccess") });
     return;
   }
   const rows = await db
