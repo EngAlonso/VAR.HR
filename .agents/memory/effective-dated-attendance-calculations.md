@@ -7,4 +7,4 @@ Attendance and payroll history must be immutable with respect to future rule edi
 
 **Why:** Payroll disputes require historical results to remain reproducible even after managers change schedules, leave settings, holidays, or overtime policies.
 
-**How to apply:** Persist applied rule metadata with each calculation and make payroll consume stored calculations rather than re-evaluating old attendance against today’s rules. Current and future attendance records may be re-evaluated after a policy save; past records must remain unchanged.
+**How to apply:** Persist applied rule metadata with each calculation and make payroll consume stored calculations rather than re-evaluating old attendance against today’s rules. The current month may be re-evaluated after a policy save; past months must remain unchanged.

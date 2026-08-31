@@ -1742,13 +1742,13 @@ async function recalculateCurrentAttendanceForRuleChange(
     .where(
       and(
         eq(attendanceTable.companyId, context.companyId),
-        gte(attendanceTable.date, TODAY),
+        gte(attendanceTable.date, monthBounds(TODAY).from),
       ),
     )
     .orderBy(asc(attendanceTable.date));
 
-  // Recalculate only today and future records. Past attendance remains an
-  // immutable historical result even when the current policy changes.
+  // Recalculate the whole current month. Past months remain immutable
+  // historical results even when the current policy changes.
   for (const row of rows) {
     await attendanceCalculationFor(context, row, true);
   }
