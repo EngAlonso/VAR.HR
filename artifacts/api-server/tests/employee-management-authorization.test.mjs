@@ -63,6 +63,19 @@ test("employee edit and delete UI use separate capabilities", () => {
   );
 });
 
+test("employee numbers remain in numeric order after manual renumbering", () => {
+  const employeeListRoute = route.slice(
+    route.indexOf('router.get("/employees"'),
+    route.indexOf('router.post("/employees"'),
+  );
+  assert.match(employeeListRoute, /employeeRows\(context\)/);
+  assert.match(
+    route,
+    /orderBy\(\s*sql`CASE WHEN \$\{employeesTable\.employeeNumber\} ~ '\^\[0-9\]\+\$' THEN \$\{employeesTable\.employeeNumber\}::bigint/s,
+  );
+  assert.match(employeeProfilePage, /getListEmployeesQueryKey\(\)/);
+});
+
 test("department and branch UI use granular management capabilities", () => {
   const departmentsPage = app.slice(
     app.indexOf("function Departments()"),
