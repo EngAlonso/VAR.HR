@@ -184,6 +184,7 @@ import {
   getListPermissionRequestsQueryKey,
   getGetAttendanceRulesQueryKey,
   getGetAttendanceReportQueryKey,
+  getGetReportQueryKey,
   getListPayrollPeriodsQueryKey,
   getGetMyPayrollQueryKey,
   getGetPayrollCalculationQueryKey,
@@ -1006,6 +1007,7 @@ const copy = {
     whenDayStartsEventsAppearHere:
       "When the day starts, events will appear here.",
     date: "Date",
+    day: "Day",
     checkIn: "Check in",
     checkOut: "Check out",
     hours: "Hours",
@@ -1914,6 +1916,7 @@ const pageCopy = {
     regularHours: "Regular hours",
     lateMinutes: "Late minutes",
     earlyCheckoutMinutes: "Early checkout minutes",
+    minutes: "minutes",
     missingHours: "Missing hours",
     absentDays: "Absent days",
     attendanceDeductions: "Attendance deductions",
@@ -3450,6 +3453,7 @@ const commonCopy = {
     status: "الحالة",
     joined: "تاريخ الانضمام",
     date: "التاريخ",
+    day: "اليوم",
     checkIn: "الحضور",
     checkOut: "الانصراف",
     hours: "الساعات",
@@ -3992,6 +3996,21 @@ const reportCopy = {
     attendanceStatus: "Attendance status",
     lateMinutes: "Late minutes",
     earlyCheckoutMinutes: "Early checkout minutes",
+    attendanceMovementTitle: "Employee movement record",
+    attendanceMovementDetail:
+      "Full monthly attendance, fingerprint, deductions, and overtime details.",
+    showAttendanceMovement: "View movement record",
+    hideAttendanceMovement: "Hide movement record",
+    printAttendanceMovement: "Print movement record",
+    attendanceMonth: "Month",
+    scheduledEnd: "Scheduled end",
+    deductedMinutes: "Deducted minutes",
+    doublePay: "2× pay",
+    multiplier: "Multiplier",
+    fingerprintSource: "Fingerprint / source",
+    noAttendanceMovement: "No movement records for this month",
+    yes: "Yes",
+    no: "No",
     company: "Company",
     periodLabel: "Period",
     fromTo: "Reporting window",
@@ -4077,6 +4096,22 @@ const reportCopy = {
     attendanceStatus: "حالة الحضور",
     lateMinutes: "دقائق التأخر",
     earlyCheckoutMinutes: "دقائق الانصراف المبكر",
+    minutes: "دقيقة",
+    attendanceMovementTitle: "سجل حركة الموظف",
+    attendanceMovementDetail:
+      "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
+    showAttendanceMovement: "عرض سجل الحركة",
+    hideAttendanceMovement: "إخفاء سجل الحركة",
+    printAttendanceMovement: "طباعة سجل الحركة",
+    attendanceMonth: "الشهر",
+    scheduledEnd: "نهاية الدوام المجدولة",
+    deductedMinutes: "دقائق الخصم",
+    doublePay: "مضاعف ٢×",
+    multiplier: "المضاعف",
+    fingerprintSource: "البصمة / المصدر",
+    noAttendanceMovement: "لا توجد حركة مسجلة لهذا الشهر",
+    yes: "نعم",
+    no: "لا",
     company: "الشركة",
     periodLabel: "الفترة",
     fromTo: "نطاق التقرير",
@@ -4150,6 +4185,7 @@ const reportCopy = {
     email: "E-mail",
     joinedOn: "Arrivée",
     date: "Date",
+    day: "Jour",
     type: "Type",
     status: "Statut",
     reason: "Motif",
@@ -4164,6 +4200,22 @@ const reportCopy = {
     attendanceStatus: "Statut présence",
     lateMinutes: "Minutes de retard",
     earlyCheckoutMinutes: "Minutes de départ anticipé",
+    minutes: "minutes",
+    attendanceMovementTitle: "Registre de mouvement de l’employé",
+    attendanceMovementDetail:
+      "Présence mensuelle complète, empreinte, retenues et heures supplémentaires.",
+    showAttendanceMovement: "Voir le registre de mouvement",
+    hideAttendanceMovement: "Masquer le registre de mouvement",
+    printAttendanceMovement: "Imprimer le registre de mouvement",
+    attendanceMonth: "Mois",
+    scheduledEnd: "Fin planifiée",
+    deductedMinutes: "Minutes déduites",
+    doublePay: "Paie 2×",
+    multiplier: "Multiplicateur",
+    fingerprintSource: "Empreinte / source",
+    noAttendanceMovement: "Aucun mouvement pour ce mois",
+    yes: "Oui",
+    no: "Non",
     company: "Entreprise",
     periodLabel: "Période",
     fromTo: "Période du rapport",
@@ -4237,6 +4289,7 @@ const reportCopy = {
     email: "E-Mail",
     joinedOn: "Beigetreten",
     date: "Datum",
+    day: "Tag",
     type: "Typ",
     status: "Status",
     reason: "Grund",
@@ -4251,6 +4304,22 @@ const reportCopy = {
     attendanceStatus: "Anwesenheitsstatus",
     lateMinutes: "Verspätungsminuten",
     earlyCheckoutMinutes: "Frühe Abgangsminuten",
+    minutes: "Minuten",
+    attendanceMovementTitle: "Mitarbeiter-Bewegungsprotokoll",
+    attendanceMovementDetail:
+      "Vollständige monatliche Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht.",
+    showAttendanceMovement: "Bewegungsprotokoll anzeigen",
+    hideAttendanceMovement: "Bewegungsprotokoll ausblenden",
+    printAttendanceMovement: "Bewegungsprotokoll drucken",
+    attendanceMonth: "Monat",
+    scheduledEnd: "Geplantes Ende",
+    deductedMinutes: "Abgezogene Minuten",
+    doublePay: "2×-Vergütung",
+    multiplier: "Multiplikator",
+    fingerprintSource: "Fingerabdruck / Quelle",
+    noAttendanceMovement: "Keine Bewegungsdaten für diesen Monat",
+    yes: "Ja",
+    no: "Nein",
     company: "Unternehmen",
     periodLabel: "Zeitraum",
     fromTo: "Berichtszeitraum",
@@ -7787,6 +7856,12 @@ function EmployeeHrProfile({
               </p>
             </div>
           )}
+          <EmployeeAttendanceMovement
+            employeeId={employee.data.id}
+            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
+            biometricCode={employee.data.biometricCode}
+            canPrint={workspace.data?.role !== "employee"}
+          />
           <EmployeePasswordChange />
         </Card>
       ) : (
@@ -7794,6 +7869,258 @@ function EmployeeHrProfile({
           title={t("employeeProfileLoadFailed")}
           detail={t("checkWorkspace")}
         />
+      )}
+    </div>
+  );
+}
+
+function EmployeeAttendanceMovement({
+  employeeId,
+  employeeName,
+  biometricCode,
+  canPrint,
+}: {
+  employeeId: string;
+  employeeName: string;
+  biometricCode?: string | null;
+  canPrint: boolean;
+}) {
+  const { locale, t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [year, monthNumber] = month.split("-").map(Number);
+  const from = `${month}-01`;
+  const to = new Date(Date.UTC(year, monthNumber, 0))
+    .toISOString()
+    .slice(0, 10);
+  const reportParams = useMemo(
+    () => ({
+      type: "attendance" as const,
+      from,
+      to,
+      employeeId,
+    }),
+    [employeeId, from, to],
+  );
+  const report = useGetReport(reportParams, {
+    query: {
+      enabled: open && Boolean(employeeId),
+      queryKey: getGetReportQueryKey(reportParams),
+    },
+  });
+
+  const rows = report.data?.rows ?? [];
+  const weekday = (value?: string | null) =>
+    value
+      ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
+          weekday: "long",
+          timeZone: "UTC",
+        }).format(new Date(`${value}T00:00:00Z`))
+      : "—";
+  const sourceLabel = (row: (typeof rows)[number]) => {
+    if (row.source === "biometric") {
+      return `${t("biometricCode")}: ${row.biometricCode || biometricCode || "—"}`;
+    }
+    return row.source || "—";
+  };
+  const hours = (value?: number) =>
+    `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
+  const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
+
+  function printMovement() {
+    if (!report.data) return;
+    const escapeHtml = (value: unknown) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    const header = [
+      t("date"),
+      t("day"),
+      t("fingerprintSource"),
+      t("scheduledStart"),
+      t("scheduledEnd"),
+      t("checkIn"),
+      t("checkOut"),
+      t("deductedMinutes"),
+      t("doublePay"),
+      t("workedHours"),
+      t("attendanceStatus"),
+    ]
+      .map((item) => `<th>${escapeHtml(item)}</th>`)
+      .join("");
+    const body = rows
+      .map(
+        (row) => `
+          <tr>
+            <td>${escapeHtml(date(row.date ?? undefined))}</td>
+            <td>${escapeHtml(weekday(row.date))}</td>
+            <td>${escapeHtml(sourceLabel(row))}</td>
+            <td>${escapeHtml(row.scheduledStart || "—")}</td>
+            <td>${escapeHtml(row.scheduledEnd || "—")}</td>
+            <td>${escapeHtml(time(row.checkIn))}</td>
+            <td>${escapeHtml(time(row.checkOut))}</td>
+            <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
+            <td>${escapeHtml(row.doublePay ? t("yes") : t("no"))}</td>
+            <td>${escapeHtml(hours(row.workedHours))}</td>
+            <td>${escapeHtml(row.attendanceStatus || "—")}</td>
+          </tr>`,
+      )
+      .join("");
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceMonth"))}: ${escapeHtml(periodLabel(month))}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+    );
+    printWindow.document.close();
+  }
+
+  return (
+    <div className="mt-6 border-t border-border pt-6" data-testid={`employee-attendance-movement-${employeeId}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">
+            {t("attendanceMovementTitle")}
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("attendanceMovementDetail")}
+          </p>
+        </div>
+        <Button
+          variant={open ? "outline" : "primary"}
+          onClick={() => setOpen((value) => !value)}
+          data-testid={`button-toggle-attendance-movement-${employeeId}`}
+        >
+          <Activity size={16} />
+          {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
+        </Button>
+      </div>
+      {open && (
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
+            <Field
+              label={t("attendanceMonth")}
+              type="month"
+              value={month}
+              onChange={setMonth}
+            />
+            {canPrint && (
+              <Button
+                variant="outline"
+                onClick={printMovement}
+                disabled={!report.data || report.isLoading}
+                data-testid={`button-print-attendance-movement-${employeeId}`}
+              >
+                <Printer size={16} />
+                {t("printAttendanceMovement")}
+              </Button>
+            )}
+          </div>
+          {report.isLoading ? (
+            <Skeleton className="h-56" />
+          ) : report.isError ? (
+            <ErrorState retry={() => report.refetch()} />
+          ) : rows.length ? (
+            <Card className="overflow-hidden">
+              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-3">
+                <Info
+                  label={t("records")}
+                  value={rows.length}
+                  testId={`text-attendance-movement-records-${employeeId}`}
+                />
+                <Info
+                  label={t("workedHours")}
+                  value={hours(
+                    rows.reduce(
+                      (sum, row) => sum + Number(row.workedHours || 0),
+                      0,
+                    ),
+                  )}
+                />
+                <Info
+                  label={t("deductedMinutes")}
+                  value={minutes(
+                    rows.reduce(
+                      (sum, row) => sum + Number(row.deductedMinutes || 0),
+                      0,
+                    ),
+                  )}
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1250px] text-sm">
+                  <thead className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3">{t("date")}</th>
+                      <th className="px-4 py-3">{t("day")}</th>
+                      <th className="px-4 py-3">{t("fingerprintSource")}</th>
+                      <th className="px-4 py-3">{t("scheduledStart")}</th>
+                      <th className="px-4 py-3">{t("scheduledEnd")}</th>
+                      <th className="px-4 py-3">{t("checkIn")}</th>
+                      <th className="px-4 py-3">{t("checkOut")}</th>
+                      <th className="px-4 py-3">{t("deductedMinutes")}</th>
+                      <th className="px-4 py-3">{t("doublePay")}</th>
+                      <th className="px-4 py-3">{t("workedHours")}</th>
+                      <th className="px-4 py-3">{t("attendanceStatus")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {rows.map((row) => (
+                      <tr key={`${row.date}-${row.employee.id}`}>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {date(row.date ?? undefined)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {weekday(row.date)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div>{sourceLabel(row)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {row.lateMinutes || 0} {t("lateMinutes").toLowerCase()} ·{" "}
+                            {row.earlyCheckoutMinutes || 0}{" "}
+                            {t("earlyCheckoutMinutes").toLowerCase()}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          {row.scheduledStart || "—"}
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          {row.scheduledEnd || "—"}
+                        </td>
+                        <td className="px-4 py-3">{time(row.checkIn)}</td>
+                        <td className="px-4 py-3">{time(row.checkOut)}</td>
+                        <td className="px-4 py-3 font-mono">
+                          {minutes(row.deductedMinutes)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={row.doublePay ? "good" : "neutral"}>
+                            {row.doublePay ? t("yes") : t("no")}
+                            {row.overtimeMultiplier
+                              ? ` · ${row.overtimeMultiplier}×`
+                              : ""}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          {hours(row.workedHours)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Status value={row.attendanceStatus || "—"} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          ) : (
+            <Empty
+              title={t("noAttendanceMovement")}
+              detail={t("historyWillAppear")}
+            />
+          )}
+        </div>
       )}
     </div>
   );
@@ -9280,6 +9607,13 @@ function EmployeeProfilePage() {
               </p>
             )}
           </EmployeeProfileSection>
+
+          <EmployeeAttendanceMovement
+            employeeId={employee.data.id}
+            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
+            biometricCode={employee.data.biometricCode}
+            canPrint
+          />
 
           <EmployeeCredentialManager
             employeeId={employee.data.id}

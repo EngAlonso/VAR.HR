@@ -3213,7 +3213,17 @@ components:
         workedHours: { type: number }
         lateMinutes: { type: integer }
         earlyCheckoutMinutes: { type: integer }
+        deductedMinutes: { type: integer }
         overtimeHours: { type: number }
+        overtimeMultiplier: { type: number }
+        multiplierSource: { type: string }
+        doublePay: { type: boolean }
+        attendanceState: { type: string }
+        scheduledStart: { type: string }
+        scheduledEnd: { type: string }
+        requiredHours: { type: number }
+        biometricCode: { type: ["string", "null"] }
+        source: { type: string }
         overtimeAmount: { type: number }
         startTime: { type: ["string", "null"] }
         endTime: { type: ["string", "null"] }

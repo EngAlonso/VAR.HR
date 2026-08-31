@@ -105,6 +105,20 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(route, /attendanceRuleChangesTable/);
 });
 
+test("employee movement records expose monthly calculated attendance details", () => {
+  assert.match(app, /function EmployeeAttendanceMovement/);
+  assert.match(app, /useGetReport\(reportParams/);
+  assert.match(app, /button-print-attendance-movement/);
+  assert.match(app, /canPrint/);
+  assert.match(route, /canUseCapability\(context, "attendance\.view"\)/);
+  assert.match(route, /canUseCapability\(context, "employees\.view"\)/);
+  assert.match(route, /context\.role === "employee"[\s\S]*query\.data\.type === "attendance"/);
+  assert.match(route, /deductedMinutes: calculation\.finalPenaltyMinutes/);
+  assert.match(route, /doublePay: calculation\.appliedOvertimeMultiplier >= 2/);
+  assert.match(spec, /scheduledStart: \{ type: string \}/);
+  assert.match(spec, /biometricCode: \{ type: \["string", "null"\]/);
+});
+
 test("employee imports create an effective default shift assignment", () => {
   assert.match(route, /router\.post\("\/employees\/import"/);
   assert.match(route, /department\?\.defaultScheduleId/);

@@ -1597,7 +1597,18 @@ export interface ReportRow {
   workedHours?: number;
   lateMinutes?: number;
   earlyCheckoutMinutes?: number;
+  deductedMinutes?: number;
   overtimeHours?: number;
+  overtimeMultiplier?: number;
+  multiplierSource?: string;
+  doublePay?: boolean;
+  attendanceState?: string;
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  requiredHours?: number;
+  /** @nullable */
+  biometricCode?: string | null;
+  source?: string;
   overtimeAmount?: number;
   /** @nullable */
   startTime?: string | null;

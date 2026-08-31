@@ -8,6 +8,7 @@ import {
   gt,
   gte,
   ilike,
+  inArray,
   lt,
   lte,
   or,
@@ -7448,10 +7449,6 @@ router.get("/reports/attendance", async (req, res): Promise<void> => {
 
 router.get("/reports/data", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "reports.view", true)) {
-    denyCapability(res, req, "reports.view");
-    return;
-  }
   const query = GetReportQueryParams.safeParse({
     ...req.query,
     from: req.query.from ? String(req.query.from) : undefined,
@@ -7481,6 +7478,16 @@ router.get("/reports/data", async (req, res): Promise<void> => {
   });
   if (!query.success) {
     res.status(400).json({ error: message(req, "reportInvalid") });
+    return;
+  }
+  const canViewReport =
+    context.role === "employee"
+      ? query.data.type === "attendance"
+      : canUseCapability(context, "reports.view") ||
+        canUseCapability(context, "attendance.view") ||
+        canUseCapability(context, "employees.view");
+  if (!canViewReport) {
+    denyCapability(res, req, "employees.view");
     return;
   }
   const filters: ReportFilters = query.data;
@@ -7580,18 +7587,53 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           !filters.attendanceStatus ||
           row.attendance.status === filters.attendanceStatus,
       );
-    response.rows = rows.map((row) => ({
-      employee: employeeReference(row.employee, row.department.name),
-      date: row.attendance.date,
-      attendanceStatus: row.attendance.status,
-      workedHours: row.attendance.workedHours,
-      overtimeHours: row.attendance.overtimeHours,
-      lateMinutes: row.attendance.lateMinutes,
-      earlyCheckoutMinutes: row.attendance.earlyCheckoutMinutes,
-      checkIn: asDate(row.attendance.checkIn),
-      checkOut: asDate(row.attendance.checkOut),
-      locationStatus: row.attendance.locationStatus,
-    }));
+    const attendanceIds = rows.map((row) => row.attendance.id);
+    const storedCalculations = attendanceIds.length
+      ? await db
+          .select({ calculation: attendanceCalculationsTable })
+          .from(attendanceCalculationsTable)
+          .where(
+            and(
+              eq(attendanceCalculationsTable.companyId, context.companyId),
+              inArray(attendanceCalculationsTable.attendanceId, attendanceIds),
+            ),
+          )
+      : [];
+    const calculationByAttendanceId = new Map(
+      storedCalculations.map((row) => [
+        row.calculation.attendanceId,
+        row.calculation,
+      ]),
+    );
+    response.rows = await Promise.all(
+      rows.map(async (row) => {
+        const calculation =
+          calculationByAttendanceId.get(row.attendance.id) ??
+          (await attendanceCalculationFor(context, row.attendance, false));
+        return {
+          employee: employeeReference(row.employee, row.department.name),
+          date: row.attendance.date,
+          attendanceStatus: row.attendance.status,
+          attendanceState: calculation.attendanceState,
+          scheduledStart: row.attendance.scheduledStart,
+          scheduledEnd: row.attendance.scheduledEnd,
+          requiredHours: row.attendance.requiredHours,
+          workedHours: row.attendance.workedHours,
+          overtimeHours: row.attendance.overtimeHours,
+          lateMinutes: row.attendance.lateMinutes,
+          earlyCheckoutMinutes: row.attendance.earlyCheckoutMinutes,
+          deductedMinutes: calculation.finalPenaltyMinutes,
+          overtimeMultiplier: calculation.appliedOvertimeMultiplier,
+          multiplierSource: calculation.multiplierSource,
+          doublePay: calculation.appliedOvertimeMultiplier >= 2,
+          biometricCode: row.employee.biometricCode,
+          source: row.attendance.source,
+          checkIn: asDate(row.attendance.checkIn),
+          checkOut: asDate(row.attendance.checkOut),
+          locationStatus: row.attendance.locationStatus,
+        };
+      }),
+    );
     response.totals.records = rows.length;
     response.totals.workedHours = rows.reduce(
       (t, r) => t + r.attendance.workedHours,
