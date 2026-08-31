@@ -18692,37 +18692,37 @@ function Platform() {
       icon: Building2,
       label: text("Total companies", "إجمالي الشركات"),
       value: metrics.totalCompanies,
-      href: "/platform#platform-companies",
+      href: "/platform/companies",
     },
     {
       icon: Check,
       label: text("Active companies", "الشركات النشطة"),
       value: metrics.activeCompanies,
-      href: "/platform?status=active#platform-companies",
+      href: "/platform/companies/active",
     },
     {
       icon: Bell,
       label: text("Suspended companies", "الشركات الموقوفة"),
       value: metrics.suspendedCompanies,
-      href: "/platform?status=suspended#platform-companies",
+      href: "/platform/companies/suspended",
     },
     {
       icon: Users,
       label: text("Total employees", "إجمالي الموظفين"),
       value: metrics.totalEmployees,
-      href: "/platform/database?entity=employees",
+      href: "/platform/employees",
     },
     {
       icon: UserRound,
       label: text("Platform users", "مستخدمو المنصة"),
       value: metrics.totalPlatformUsers,
-      href: "/platform/database?entity=users",
+      href: "/platform/users",
     },
     {
       icon: Zap,
       label: text("Active subscriptions", "الاشتراكات النشطة"),
       value: metrics.activeSubscriptions,
-      href: "/platform#platform-subscriptions",
+      href: "/platform/subscriptions",
     },
   ];
   return (
@@ -20046,6 +20046,443 @@ function platformActivityLabel(
     labels[locale][normalizedValue] ??
     value.replaceAll("_", " ")
   );
+}
+
+type PlatformCompaniesMetricFilter = "all" | "active" | "suspended";
+
+const platformCompaniesMetricCopy: Record<
+  Locale,
+  Record<
+    PlatformCompaniesMetricFilter,
+    {
+      title: string;
+      detail: string;
+    }
+  > & {
+    eyebrow: string;
+    back: string;
+    registered: string;
+    employees: string;
+    users: string;
+    open: string;
+    noCompanies: string;
+  }
+> = {
+  en: {
+    eyebrow: "Platform administration",
+    all: {
+      title: "All companies",
+      detail: "Review every company registered on the VAR HR platform.",
+    },
+    active: {
+      title: "Active companies",
+      detail: "Review companies that are currently active on the platform.",
+    },
+    suspended: {
+      title: "Suspended companies",
+      detail: "Review companies that are currently suspended.",
+    },
+    back: "Back to platform control center",
+    registered: "registered",
+    employees: "employees",
+    users: "users",
+    open: "Open company details",
+    noCompanies: "No companies found in this category.",
+  },
+  ar: {
+    eyebrow: "إدارة المنصة",
+    all: {
+      title: "كل الشركات",
+      detail: "راجع جميع الشركات المسجلة على منصة VAR HR.",
+    },
+    active: {
+      title: "الشركات النشطة",
+      detail: "راجع الشركات النشطة حاليًا على المنصة.",
+    },
+    suspended: {
+      title: "الشركات الموقوفة",
+      detail: "راجع الشركات الموقوفة حاليًا.",
+    },
+    back: "العودة إلى مركز تحكم المنصة",
+    registered: "مسجلة",
+    employees: "موظف",
+    users: "مستخدم",
+    open: "فتح تفاصيل الشركة",
+    noCompanies: "لا توجد شركات في هذه الفئة.",
+  },
+  fr: {
+    eyebrow: "Administration de la plateforme",
+    all: {
+      title: "Toutes les entreprises",
+      detail: "Consultez toutes les entreprises enregistrées sur la plateforme VAR HR.",
+    },
+    active: {
+      title: "Entreprises actives",
+      detail: "Consultez les entreprises actuellement actives sur la plateforme.",
+    },
+    suspended: {
+      title: "Entreprises suspendues",
+      detail: "Consultez les entreprises actuellement suspendues.",
+    },
+    back: "Retour au centre de contrôle",
+    registered: "enregistrées",
+    employees: "employés",
+    users: "utilisateurs",
+    open: "Ouvrir les détails",
+    noCompanies: "Aucune entreprise dans cette catégorie.",
+  },
+  de: {
+    eyebrow: "Plattformverwaltung",
+    all: {
+      title: "Alle Unternehmen",
+      detail: "Prüfen Sie alle auf der VAR-HR-Plattform registrierten Unternehmen.",
+    },
+    active: {
+      title: "Aktive Unternehmen",
+      detail: "Prüfen Sie die derzeit aktiven Unternehmen der Plattform.",
+    },
+    suspended: {
+      title: "Gesperrte Unternehmen",
+      detail: "Prüfen Sie die derzeit gesperrten Unternehmen.",
+    },
+    back: "Zurück zum Plattform-Kontrollzentrum",
+    registered: "registriert",
+    employees: "Mitarbeiter",
+    users: "Benutzer",
+    open: "Unternehmensdetails öffnen",
+    noCompanies: "Keine Unternehmen in dieser Kategorie.",
+  },
+};
+
+function PlatformCompaniesPage({
+  filter,
+}: {
+  filter: PlatformCompaniesMetricFilter;
+}) {
+  const { locale } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  const copy = platformCompaniesMetricCopy[locale];
+  const [summary, setSummary] = useState<PlatformSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setSummary(await authRequest<PlatformSummary>("/api/platform/summary"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.noCompanies);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  if (loading) return <Skeleton className="h-[520px]" />;
+  if (error) return <ErrorState retry={() => void load()} />;
+
+  const companies =
+    summary?.companies.filter((company) => {
+      if (filter === "all") return true;
+      return company.status === filter;
+    }) ?? [];
+
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={copy.eyebrow}
+        title={copy[filter].title}
+        detail={copy[filter].detail}
+        action={
+          <Button variant="outline" onClick={() => setLocation("/platform")}>
+            <ArrowLeft className="rtl:-scale-x-100" size={16} />
+            {copy.back}
+          </Button>
+        }
+      />
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex items-center gap-2">
+            <Building2 size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {copy[filter].title}
+            </h2>
+          </div>
+          <Badge tone="neutral">
+            {companies.length} {copy.registered}
+          </Badge>
+        </div>
+        {companies.length ? (
+          <div className="grid gap-3 p-4 sm:grid-cols-2">
+            {companies.map((company) => (
+              <button
+                className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
+                key={company.id}
+                onClick={() =>
+                  setLocation(
+                    `/platform/companies/${encodeURIComponent(company.id)}`,
+                  )
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{company.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {company.slug}
+                    </div>
+                  </div>
+                  <Status value={company.status} />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <Info
+                    label={copy.employees}
+                    value={`${company.activeEmployees}/${company.employeeLimit}`}
+                  />
+                  <Info label={copy.users} value={company.userCount} />
+                </div>
+                <div className="mt-3 text-xs font-semibold text-primary">
+                  {copy.open} <ArrowUpRight className="inline" size={13} />
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-sm text-muted-foreground">
+            {copy.noCompanies}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+type PlatformTableMetricEntity = "employees" | "users" | "subscriptions";
+
+const platformTableMetricCopy: Record<
+  Locale,
+  Record<
+    PlatformTableMetricEntity,
+    { title: string; detail: string }
+  > & { eyebrow: string; back: string; records: string; noRecords: string }
+> = {
+  en: {
+    eyebrow: "Platform administration",
+    employees: {
+      title: "All employees",
+      detail: "Review employees across every company on the platform.",
+    },
+    users: {
+      title: "Platform users",
+      detail: "Review user accounts across every company on the platform.",
+    },
+    subscriptions: {
+      title: "Active subscriptions",
+      detail: "Review subscription records across the platform.",
+    },
+    back: "Back to platform control center",
+    records: "records",
+    noRecords: "No records found.",
+  },
+  ar: {
+    eyebrow: "إدارة المنصة",
+    employees: {
+      title: "كل الموظفين",
+      detail: "راجع الموظفين في جميع شركات المنصة.",
+    },
+    users: {
+      title: "مستخدمو المنصة",
+      detail: "راجع حسابات المستخدمين في جميع شركات المنصة.",
+    },
+    subscriptions: {
+      title: "الاشتراكات النشطة",
+      detail: "راجع سجلات الاشتراكات عبر المنصة.",
+    },
+    back: "العودة إلى مركز تحكم المنصة",
+    records: "سجل",
+    noRecords: "لا توجد سجلات.",
+  },
+  fr: {
+    eyebrow: "Administration de la plateforme",
+    employees: {
+      title: "Tous les employés",
+      detail: "Consultez les employés de toutes les entreprises de la plateforme.",
+    },
+    users: {
+      title: "Utilisateurs de la plateforme",
+      detail: "Consultez les comptes utilisateurs de toutes les entreprises.",
+    },
+    subscriptions: {
+      title: "Abonnements actifs",
+      detail: "Consultez les abonnements enregistrés sur la plateforme.",
+    },
+    back: "Retour au centre de contrôle",
+    records: "enregistrements",
+    noRecords: "Aucun enregistrement trouvé.",
+  },
+  de: {
+    eyebrow: "Plattformverwaltung",
+    employees: {
+      title: "Alle Mitarbeiter",
+      detail: "Prüfen Sie Mitarbeiter aus allen Unternehmen der Plattform.",
+    },
+    users: {
+      title: "Plattformbenutzer",
+      detail: "Prüfen Sie Benutzerkonten aus allen Unternehmen.",
+    },
+    subscriptions: {
+      title: "Aktive Abonnements",
+      detail: "Prüfen Sie die auf der Plattform erfassten Abonnements.",
+    },
+    back: "Zurück zum Plattform-Kontrollzentrum",
+    records: "Datensätze",
+    noRecords: "Keine Datensätze gefunden.",
+  },
+};
+
+function PlatformTableMetricPage({
+  entity,
+}: {
+  entity: PlatformTableMetricEntity;
+}) {
+  const { locale, t } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  const copy = platformTableMetricCopy[locale];
+  const [data, setData] = useState<AdminDataResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setData(
+        await authRequest<AdminDataResponse>(
+          `/api/platform/database/${entity}`,
+        ),
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.noRecords);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, [entity]);
+
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  if (loading) return <Skeleton className="h-[620px]" />;
+  if (error) return <ErrorState retry={() => void load()} />;
+
+  const columns = data ? safeDatabaseColumns(data.columns) : [];
+  const databaseValue = (key: string, value: unknown) => {
+    if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
+    if (typeof value === "string" && databaseStatusTranslationKeys[value]) {
+      return t(databaseStatusTranslationKeys[value]);
+    }
+    return String(value ?? "—");
+  };
+
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={copy.eyebrow}
+        title={copy[entity].title}
+        detail={copy[entity].detail}
+        action={
+          <Button variant="outline" onClick={() => setLocation("/platform")}>
+            <ArrowLeft className="rtl:-scale-x-100" size={16} />
+            {copy.back}
+          </Button>
+        }
+      />
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex items-center gap-2">
+            <Database size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">
+              {copy[entity].title}
+            </h2>
+          </div>
+          <Badge tone="neutral">
+            {data?.rows.length ?? 0} {copy.records}
+          </Badge>
+        </div>
+        {data?.rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm rtl:text-right">
+              <thead className="bg-muted/60">
+                <tr>
+                  {columns.map((column) => (
+                    <th className="p-3 font-semibold" key={column}>
+                      {databaseColumnTranslationKeys[column]
+                        ? t(databaseColumnTranslationKeys[column])
+                        : locale === "ar"
+                          ? t("databaseDataField")
+                          : column.replaceAll("_", " ")}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.rows.map((row) => (
+                  <tr key={String(row.id)}>
+                    {columns.map((column) => (
+                      <td className="max-w-[260px] truncate p-3 align-top" key={column}>
+                        {typeof row[column] === "object"
+                          ? JSON.stringify(row[column])
+                          : databaseValue(column, row[column])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-sm text-muted-foreground">
+            {copy.noRecords}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function PlatformAllCompaniesPage() {
+  return <PlatformCompaniesPage filter="all" />;
+}
+
+function PlatformActiveCompaniesPage() {
+  return <PlatformCompaniesPage filter="active" />;
+}
+
+function PlatformSuspendedCompaniesPage() {
+  return <PlatformCompaniesPage filter="suspended" />;
+}
+
+function PlatformEmployeesPage() {
+  return <PlatformTableMetricPage entity="employees" />;
+}
+
+function PlatformUsersPage() {
+  return <PlatformTableMetricPage entity="users" />;
+}
+
+function PlatformSubscriptionsPage() {
+  return <PlatformTableMetricPage entity="subscriptions" />;
 }
 
 const platformActivityPageCopy: Record<
@@ -22251,6 +22688,21 @@ function Router() {
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
+        <Route
+          path="/platform/companies/active"
+          component={PlatformActiveCompaniesPage}
+        />
+        <Route
+          path="/platform/companies/suspended"
+          component={PlatformSuspendedCompaniesPage}
+        />
+        <Route path="/platform/companies" component={PlatformAllCompaniesPage} />
+        <Route path="/platform/employees" component={PlatformEmployeesPage} />
+        <Route path="/platform/users" component={PlatformUsersPage} />
+        <Route
+          path="/platform/subscriptions"
+          component={PlatformSubscriptionsPage}
+        />
         <Route
           path="/platform/companies/:companyId"
           component={PlatformCompanyDetailsPage}
