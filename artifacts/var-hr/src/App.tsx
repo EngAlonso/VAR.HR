@@ -18631,26 +18631,26 @@ function Platform() {
       ar: "نشاط المنصة الأخير",
       fr: "Activité récente de la plateforme",
       de: "Letzte Plattformaktivitäten",
-    },
+    }[locale],
     noRecent: {
       en: "No recent activity",
       ar: "لا يوجد نشاط حديث",
       fr: "Aucune activité récente",
       de: "Keine aktuellen Aktivitäten",
-    },
+    }[locale],
     detail: {
       en: "Platform events will appear here.",
       ar: "ستظهر أحداث المنصة هنا.",
       fr: "Les événements de la plateforme apparaîtront ici.",
       de: "Plattformereignisse werden hier angezeigt.",
-    },
+    }[locale],
     viewAll: {
       en: "View platform activity",
       ar: "عرض نشاط المنصة",
       fr: "Voir l’activité de la plateforme",
       de: "Plattformaktivitäten anzeigen",
-    },
-  }[locale];
+    }[locale],
+  };
   const subscriptionPrice = (company: PlatformCompanyDetail) => {
     const prices = [
       company.monthlyPrice > 0
