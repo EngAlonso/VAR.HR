@@ -185,6 +185,7 @@ import {
   getListLeavePoliciesQueryKey,
   getListPermissionRequestsQueryKey,
   getGetAttendanceRulesQueryKey,
+  getListAttendanceRuleChangesQueryKey,
   getGetAttendanceReportQueryKey,
   getGetReportQueryKey,
   getListPayrollPeriodsQueryKey,
@@ -206,6 +207,42 @@ import {
 } from "@workspace/api-client-react";
 
 const queryClient = new QueryClient();
+
+function invalidateAttendanceRuleDependents(qc: QueryClient) {
+  const queryKeys = [
+    getGetAttendanceRulesQueryKey(),
+    getListAttendanceRuleChangesQueryKey(),
+    getGetDashboardSummaryQueryKey(),
+    getGetAttendanceTodayQueryKey(),
+    getListAttendanceHistoryQueryKey(),
+    getGetAttendanceReportQueryKey(),
+    getGetReportQueryKey(),
+    getListLeaveBalancesQueryKey(),
+    getListLeaveBalanceTransactionsQueryKey(),
+    getListLeavePoliciesQueryKey(),
+    getListLeaveRequestsQueryKey(),
+    getListPermissionRequestsQueryKey(),
+    getListPayrollPeriodsQueryKey(),
+    getGetMyPayrollQueryKey(),
+  ];
+
+  const invalidations = queryKeys.map((queryKey) =>
+    qc.invalidateQueries({ queryKey }),
+  );
+  invalidations.push(
+    qc.invalidateQueries({
+      predicate: ({ queryKey }) => {
+        const root = queryKey[0];
+        return (
+          typeof root === "string" &&
+          (root.startsWith("/api/attendance/") ||
+            root.startsWith("/api/payroll/periods/"))
+        );
+      },
+    }),
+  );
+  return Promise.all(invalidations);
+}
 
 type Locale = "en" | "ar" | "fr" | "de";
 type WorkspaceRole =
@@ -12134,9 +12171,7 @@ function Rules() {
       {
         onSuccess: () => {
           toast.success(t("attendancePolicyRecalculateHint"));
-          qc.invalidateQueries({ queryKey: getGetAttendanceRulesQueryKey() });
-          qc.invalidateQueries({ queryKey: changes.queryKey });
-          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+          void invalidateAttendanceRuleDependents(qc);
         },
         onError: (error) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),

@@ -1696,6 +1696,26 @@ async function attendanceCalculationFor(
     updatedAt: new Date(),
   };
   if (persist) {
+    await db
+      .update(attendanceTable)
+      .set({
+        scheduledStart: schedule.startTime,
+        scheduledEnd: schedule.endTime,
+        requiredHours: schedule.requiredHours,
+        workedHours: metrics.workedHours,
+        overtimeHours: metrics.overtimeHours,
+        lateMinutes: metrics.lateMinutes,
+        earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
+        missingMinutes: metrics.missingMinutes,
+        explanation: explanation.join(" "),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(attendanceTable.id, attendance.id),
+          eq(attendanceTable.companyId, context.companyId),
+        ),
+      );
     const [stored] = await db
       .insert(attendanceCalculationsTable)
       .values(values)
@@ -1711,6 +1731,27 @@ async function attendanceCalculationFor(
     ...values,
     calculatedAt: values.calculatedAt,
   };
+}
+
+async function recalculateCurrentAttendanceForRuleChange(
+  context: TenantContext,
+) {
+  const rows = await db
+    .select()
+    .from(attendanceTable)
+    .where(
+      and(
+        eq(attendanceTable.companyId, context.companyId),
+        gte(attendanceTable.date, TODAY),
+      ),
+    )
+    .orderBy(asc(attendanceTable.date));
+
+  // Recalculate only today and future records. Past attendance remains an
+  // immutable historical result even when the current policy changes.
+  for (const row of rows) {
+    await attendanceCalculationFor(context, row, true);
+  }
 }
 
 type SyncHistoryStatus =
@@ -6486,6 +6527,9 @@ router.put("/rules", async (req, res): Promise<void> => {
       );
     return saved;
   });
+  if (changedEntries.length > 0) {
+    await recalculateCurrentAttendanceForRuleChange(context);
+  }
   res.json(
     UpdateAttendanceRulesResponse.parse(
       await attendanceRulesFor(context.companyId),
