@@ -3108,6 +3108,16 @@ export const CalculatePayrollResponse = zod.object({
 
 
 /**
+ * @summary Delete an unfinalized payroll period and its calculations
+ */
+export const DeletePayrollPeriodParams = zod.object({
+  "periodId": zod.coerce.string()
+})
+
+export const DeletePayrollPeriodResponse = zod.void()
+
+
+/**
  * @summary Get the latest payroll calculation for a period
  */
 export const GetPayrollCalculationParams = zod.object({

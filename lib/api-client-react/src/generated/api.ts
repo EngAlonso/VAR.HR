@@ -6352,6 +6352,77 @@ export const useCalculatePayroll = <TError = ErrorType<unknown>,
       return useMutation(getCalculatePayrollMutationOptions(options));
     }
 
+export const getDeletePayrollPeriodUrl = (periodId: string,) => {
+
+
+
+
+  return `/api/payroll/periods/${periodId}`
+}
+
+/**
+ * @summary Delete an unfinalized payroll period and its calculations
+ */
+export const deletePayrollPeriod = async (periodId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeletePayrollPeriodUrl(periodId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePayrollPeriodMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePayrollPeriod>>, TError,{periodId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePayrollPeriod>>, TError,{periodId: string}, TContext> => {
+
+const mutationKey = ['deletePayrollPeriod'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePayrollPeriod>>, {periodId: string}> = (props) => {
+          const {periodId} = props ?? {};
+
+          return  deletePayrollPeriod(periodId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePayrollPeriodMutationResult = NonNullable<Awaited<ReturnType<typeof deletePayrollPeriod>>>
+
+    export type DeletePayrollPeriodMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an unfinalized payroll period and its calculations
+ */
+export const useDeletePayrollPeriod = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePayrollPeriod>>, TError,{periodId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePayrollPeriod>>,
+        TError,
+        {periodId: string},
+        TContext
+      > => {
+      return useMutation(getDeletePayrollPeriodMutationOptions(options));
+    }
+
 export const getGetPayrollCalculationUrl = (periodId: string,) => {
 
 

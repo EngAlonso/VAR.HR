@@ -129,6 +129,7 @@ import {
   useListPayrollPeriods,
   useGetMyPayroll,
   useCreatePayrollPeriod,
+  useDeletePayrollPeriod,
   useCalculatePayroll,
   useGetPayrollCalculation,
   useFinalizePayroll,
@@ -1907,6 +1908,9 @@ const pageCopy = {
     periodCreateFailed: "Could not create payroll period",
     periodDateRangeInvalid: "The end date must be after the start date.",
     viewPeriod: "View period",
+    deletePeriod: "Delete period",
+    deletePeriodConfirmation:
+      "Delete this payroll period? Its calculations and adjustments will also be deleted.",
     finalize: "Finalize",
     finalized: "Finalized",
     finalizePayroll: "Finalize payroll",
@@ -1946,7 +1950,8 @@ const pageCopy = {
     adjustmentDeleteFailed: "Could not remove adjustment",
     remove: "Remove",
     noAdjustments: "No adjustments for this period",
-    recalculateAfterAdjustment: "Recalculate after changing adjustments.",
+    recalculateAfterAdjustment:
+      "The payroll total is recalculated automatically after an adjustment.",
     connectedOperations: "Connected operations",
     biometricDevices: "Biometric devices",
     devicesDetail:
@@ -2309,6 +2314,9 @@ const pageCopy = {
     periodCreateFailed: "تعذر إنشاء فترة الرواتب",
     periodDateRangeInvalid: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية.",
     viewPeriod: "عرض الفترة",
+    deletePeriod: "حذف الفترة",
+    deletePeriodConfirmation:
+      "هل تريد حذف فترة الرواتب؟ سيتم حذف الحسابات والتعديلات الخاصة بها أيضاً.",
     finalize: "اعتماد نهائي",
     finalized: "معتمد نهائياً",
     finalizePayroll: "اعتماد فترة الرواتب نهائياً",
@@ -2347,7 +2355,8 @@ const pageCopy = {
     adjustmentDeleteFailed: "تعذر إزالة التعديل",
     remove: "إزالة",
     noAdjustments: "لا توجد تعديلات لهذه الفترة",
-    recalculateAfterAdjustment: "أعد الحساب بعد تغيير التعديلات.",
+    recalculateAfterAdjustment:
+      "سيُعاد حساب إجمالي الرواتب تلقائياً بعد إضافة التعديل أو حذفه.",
     connectedOperations: "العمليات المتصلة",
     biometricDevices: "أجهزة البصمة",
     devicesDetail: "يظهر الإعداد هنا وتُعرض حالة الموصل بصدق.",
@@ -2884,6 +2893,9 @@ const pageCopy = {
     periodDateRangeInvalid:
       "La date de fin doit être postérieure à la date de début.",
     viewPeriod: "Voir la période",
+    deletePeriod: "Supprimer la période",
+    deletePeriodConfirmation:
+      "Supprimer cette période de paie ? Ses calculs et ajustements seront également supprimés.",
     finalize: "Finaliser",
     finalized: "Finalisée",
     finalizePayroll: "Finaliser la période de paie",
@@ -2923,7 +2935,7 @@ const pageCopy = {
     remove: "Supprimer",
     noAdjustments: "Aucun ajustement pour cette période",
     recalculateAfterAdjustment:
-      "Recalculez après avoir modifié les ajustements.",
+      "Le total de la paie est recalculé automatiquement après un ajustement.",
     connectedOperations: "Opérations connectées",
     biometricDevices: "Appareils biométriques",
     devicesDetail:
@@ -3252,6 +3264,9 @@ const pageCopy = {
     periodCreateFailed: "Abrechnungszeitraum konnte nicht erstellt werden",
     periodDateRangeInvalid: "Das Enddatum muss nach dem Startdatum liegen.",
     viewPeriod: "Zeitraum anzeigen",
+    deletePeriod: "Zeitraum löschen",
+    deletePeriodConfirmation:
+      "Diesen Abrechnungszeitraum löschen? Die zugehörigen Berechnungen und Anpassungen werden ebenfalls gelöscht.",
     finalize: "Finalisieren",
     finalized: "Finalisiert",
     finalizePayroll: "Abrechnungszeitraum finalisieren",
@@ -3291,7 +3306,7 @@ const pageCopy = {
     remove: "Entfernen",
     noAdjustments: "Keine Anpassungen für diesen Zeitraum",
     recalculateAfterAdjustment:
-      "Nach Änderungen an den Anpassungen neu berechnen.",
+      "Die Abrechnungssumme wird nach einer Anpassung automatisch neu berechnet.",
     connectedOperations: "Verbundene Abläufe",
     biometricDevices: "Biometrische Geräte",
     devicesDetail:
@@ -13652,6 +13667,7 @@ function Payroll() {
     },
   );
   const createPeriod = useCreatePayrollPeriod();
+  const deletePeriod = useDeletePayrollPeriod();
   const calc = useCalculatePayroll();
   const finalize = useFinalizePayroll();
   const createAdjustment = useCreatePayrollAdjustment();
@@ -13713,6 +13729,30 @@ function Payroll() {
   function selectPeriod(id: string) {
     setSelectedPeriodId(id);
     setSelectedEmployeeId(null);
+  }
+  function removePeriod(id: string) {
+    if (!window.confirm(t("deletePeriodConfirmation"))) return;
+    deletePeriod.mutate(
+      { periodId: id },
+      {
+        onSuccess: () => {
+          toast.success(t("deleteSuccessful"));
+          if (selectedPeriodId === id) {
+            setSelectedPeriodId(null);
+            setSelectedEmployeeId(null);
+          }
+          qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() });
+          qc.removeQueries({
+            queryKey: getGetPayrollCalculationQueryKey(id),
+          });
+          qc.removeQueries({
+            queryKey: getListPayrollAdjustmentsQueryKey({ periodId: id }),
+          });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("deleteFailed"))),
+      },
+    );
   }
   function submitPeriod(event: FormEvent) {
     event.preventDefault();
@@ -13798,6 +13838,7 @@ function Payroll() {
               periodId: selectedPeriodId,
             }),
           });
+           calculate(selectedPeriodId);
         },
         onError: () => toast.error(t("adjustmentCreateFailed")),
       },
@@ -13814,6 +13855,7 @@ function Payroll() {
               periodId: selectedPeriodId || undefined,
             }),
           });
+          if (selectedPeriodId) calculate(selectedPeriodId);
         },
         onError: () => toast.error(t("adjustmentDeleteFailed")),
       },
@@ -13902,6 +13944,17 @@ function Payroll() {
                         disabled={calc.isPending}
                       >
                         {calc.isPending ? t("calculating") : t("calculate")}
+                      </Button>
+                    )}
+                    {p.status !== "finalized" && p.status !== "locked" && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        className="px-2 py-1 text-xs"
+                        onClick={() => removePeriod(p.id)}
+                        disabled={deletePeriod.isPending}
+                      >
+                        {t("deletePeriod")}
                       </Button>
                     )}
                   </div>

@@ -138,6 +138,8 @@ import {
   ListWorkSchedulesResponse,
   CreatePayrollPeriodBody,
   CreatePayrollPeriodResponse,
+  DeletePayrollPeriodParams,
+  DeletePayrollPeriodResponse,
   CreatePayrollAdjustmentBody,
   CreatePayrollAdjustmentResponse,
   DeletePayrollAdjustmentParams,
@@ -8276,6 +8278,74 @@ router.post("/payroll/periods", async (req, res): Promise<void> => {
     .status(201)
     .json(CreatePayrollPeriodResponse.parse(payrollPeriodResponse(period)));
 });
+
+router.delete(
+  "/payroll/periods/:periodId",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "payroll.manage")) {
+      denyCapability(res, req, "payroll.manage");
+      return;
+    }
+    const params = DeletePayrollPeriodParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [period] = await db
+      .select()
+      .from(payrollPeriodsTable)
+      .where(
+        and(
+          eq(payrollPeriodsTable.id, params.data.periodId),
+          eq(payrollPeriodsTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!period) {
+      res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
+      return;
+    }
+    if (period.status === "finalized" || period.status === "locked") {
+      res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(payrollAdjustmentsTable)
+        .where(
+          and(
+            eq(payrollAdjustmentsTable.periodId, period.id),
+            eq(payrollAdjustmentsTable.companyId, context.companyId),
+          ),
+        );
+      await tx
+        .delete(payrollCalculationsTable)
+        .where(
+          and(
+            eq(payrollCalculationsTable.periodId, period.id),
+            eq(payrollCalculationsTable.companyId, context.companyId),
+          ),
+        );
+      await tx
+        .delete(payrollPeriodsTable)
+        .where(
+          and(
+            eq(payrollPeriodsTable.id, period.id),
+            eq(payrollPeriodsTable.companyId, context.companyId),
+          ),
+        );
+    });
+    await recordAudit(
+      context.companyId,
+      "deleted",
+      "payroll_period",
+      period.id,
+      period,
+    );
+    res.status(204).send(DeletePayrollPeriodResponse.parse(undefined));
+  },
+);
 
 async function storedPayrollCalculation(
   context: TenantContext,

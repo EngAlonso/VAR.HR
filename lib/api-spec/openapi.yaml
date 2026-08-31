@@ -1409,6 +1409,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PayrollCalculation"
+  /payroll/periods/{periodId}:
+    delete:
+      operationId: deletePayrollPeriod
+      tags: [payroll]
+      summary: Delete an unfinalized payroll period and its calculations
+      parameters:
+        - $ref: "#/components/parameters/PeriodId"
+      responses:
+        "204":
+          description: Payroll period deleted
+        "404":
+          description: Payroll period not found
+        "409":
+          description: Finalized payroll periods cannot be deleted
   /payroll/periods/{periodId}/calculation:
     get:
       operationId: getPayrollCalculation
