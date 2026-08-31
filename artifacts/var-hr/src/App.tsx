@@ -63,6 +63,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   Upload,
   UserPlus,
   UserRound,
@@ -675,6 +676,7 @@ const copy = {
     refresh: "Refresh",
     emergencyDestructiveOperations: "Emergency destructive operations",
     deleteSelected: "Delete selected",
+    deleteRecord: "Delete record",
     clearEntityData: "Clear filtered/entity data",
     actions: "Actions",
     viewDetails: "View Details",
@@ -771,6 +773,7 @@ const copy = {
     databaseActionDatabase_view: "Viewed",
     databaseActionDatabase_export: "Exported",
     databaseActionDatabase_support_updated: "Support update",
+    databaseActionDatabase_deleted: "Deleted",
     edit: "Edit",
     noRecordsFound: "No records found",
     tryAnotherEntityOrFilter: "Try another entity or filter.",
@@ -2512,6 +2515,7 @@ const pageCopy = {
     refresh: "تحديث",
     emergencyDestructiveOperations: "عمليات طارئة مدمرة",
     deleteSelected: "حذف المحدد",
+    deleteRecord: "حذف السجل",
     clearEntityData: "تنظيف البيانات المصفاة/الكيان",
     actions: "الإجراءات",
     viewDetails: "عرض التفاصيل",
@@ -2609,6 +2613,7 @@ const pageCopy = {
     databaseActionDatabase_view: "عرض",
     databaseActionDatabase_export: "تصدير",
     databaseActionDatabase_support_updated: "تحديث دعم",
+    databaseActionDatabase_deleted: "حذف",
     edit: "تعديل",
     noRecordsFound: "لا توجد سجلات",
     tryAnotherEntityOrFilter: "جرّب كياناً أو تصفية أخرى.",
@@ -16210,6 +16215,7 @@ const databaseActionTranslationKeys: Record<string, AppCopyKey> = {
   database_view: "databaseActionDatabase_view",
   database_export: "databaseActionDatabase_export",
   database_support_updated: "databaseActionDatabase_support_updated",
+  database_deleted: "databaseActionDatabase_deleted",
 };
 const databaseGroups = [
   {
@@ -16297,6 +16303,8 @@ function DatabaseAdministration() {
               result.supportEditable ?? entityDefinition?.supportEditable ?? [],
             canArchive:
               result.canArchive ?? entityDefinition?.canArchive ?? false,
+            canDelete:
+              result.canDelete ?? entityDefinition?.canDelete ?? false,
           }));
         })(),
       );
@@ -16372,6 +16380,31 @@ function DatabaseAdministration() {
       await load();
     } catch (cause) {
       setError(t("recordCouldNotBeArchived"));
+    } finally {
+      setPending("");
+    }
+  };
+  const deleteRecord = async (row: Record<string, unknown>) => {
+    if (
+      !data ||
+      !window.confirm(
+        `${t("deleteRecordConfirmation")}\n\n${t(
+          databaseEntityTranslationKeys[data.key] ?? "databaseEntity",
+        )}: ${String(row.name ?? row.full_name ?? row.first_name ?? row.id)}`,
+      )
+    ) {
+      return;
+    }
+    setPending("delete");
+    setError("");
+    try {
+      await authRequest(`/api/platform/database/${data.key}/${row.id}`, {
+        method: "DELETE",
+      });
+      toast.success(t("recordDeleted"));
+      await load();
+    } catch (cause) {
+      setError(apiErrorMessage(cause, t("recordCouldNotBeDeleted")));
     } finally {
       setPending("");
     }
@@ -16557,7 +16590,10 @@ function DatabaseAdministration() {
                            : column.replaceAll("_", " ")}
                     </th>
                   ))}
-                   {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
+                    {(supportsDatabaseActions ||
+                      data.supportEditable?.length ||
+                      data.canArchive ||
+                      data.canDelete) && (
                     <th className="p-3 font-semibold">{t("actions")}</th>
                   )}
                 </tr>
@@ -16586,7 +16622,10 @@ function DatabaseAdministration() {
                           : databaseValue(column, row[column])}
                       </td>
                     ))}
-                     {(supportsDatabaseActions || data.supportEditable?.length || data.canArchive) && (
+                      {(supportsDatabaseActions ||
+                        data.supportEditable?.length ||
+                        data.canArchive ||
+                        data.canDelete) && (
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
                            {supportsDatabaseActions ? (
@@ -16611,6 +16650,16 @@ function DatabaseAdministration() {
                               onClick={() => void archive(row)}
                             >
                                {t("archive")}
+                            </Button>
+                          ) : null}
+                          {data.canDelete ? (
+                            <Button
+                              variant="danger"
+                              disabled={pending !== ""}
+                              onClick={() => void deleteRecord(row)}
+                            >
+                              <Trash2 size={14} />
+                              {pending === "delete" ? "…" : t("deleteRecord")}
                             </Button>
                           ) : null}
                         </div>

@@ -683,6 +683,9 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
         ? config.columns
         : [...config.columns, "company_name"],
     editable: config.editable,
+    supportEditable: config.supportEditable ?? [],
+    canArchive: config.canArchive ?? false,
+    canDelete: config.canDelete ?? true,
     rows,
   });
 });
