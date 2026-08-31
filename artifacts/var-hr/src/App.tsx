@@ -16313,8 +16313,12 @@ const databaseGroups = [
 function DatabaseAdministration() {
   const { locale, t } = useI18n();
   const auth = useAuth();
+  const [location, setLocation] = useLocation();
   const [entities, setEntities] = useState<AdminEntity[]>([]);
-  const [entity, setEntity] = useState("");
+  const [entity, setEntity] = useState(() => {
+    const query = new URLSearchParams(location.split("?")[1] ?? "");
+    return query.get("entity") ?? "";
+  });
   const [companyFilter, setCompanyFilter] = useState("");
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
@@ -16327,7 +16331,6 @@ function DatabaseAdministration() {
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
-  const [, setLocation] = useLocation();
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -18400,7 +18403,7 @@ function Subscription() {
 function Platform() {
   const { t, locale, setLocale } = useI18n();
   const auth = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [summary, setSummary] = useState<PlatformSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18422,6 +18425,13 @@ function Platform() {
   const [saving, setSaving] = useState(false);
   if (auth.account.accountType !== "platform_owner")
     return <WorkspaceState kind="unauthorized" />;
+  const companyStatusFilter = new URLSearchParams(
+    location.split("?")[1]?.split("#")[0] ?? "",
+  ).get("status");
+  const visibleCompanies = summary?.companies.filter(
+    (company) =>
+      !companyStatusFilter || company.status === companyStatusFilter,
+  );
   const load = async () => {
     setLoading(true);
     setError("");
@@ -18445,6 +18455,16 @@ function Platform() {
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    const hash = location.split("#")[1];
+    if (!hash) return;
+    requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [location, summary]);
   const openCompany = (company: PlatformCompanyDetail) => {
     setLocation(`/platform/companies/${encodeURIComponent(company.id)}`);
   };
@@ -18666,36 +18686,43 @@ function Platform() {
     icon: typeof Building2;
     label: string;
     value: number;
+    href: string;
   }> = [
     {
       icon: Building2,
       label: text("Total companies", "إجمالي الشركات"),
       value: metrics.totalCompanies,
+      href: "/platform#platform-companies",
     },
     {
       icon: Check,
       label: text("Active companies", "الشركات النشطة"),
       value: metrics.activeCompanies,
+      href: "/platform?status=active#platform-companies",
     },
     {
       icon: Bell,
       label: text("Suspended companies", "الشركات الموقوفة"),
       value: metrics.suspendedCompanies,
+      href: "/platform?status=suspended#platform-companies",
     },
     {
       icon: Users,
       label: text("Total employees", "إجمالي الموظفين"),
       value: metrics.totalEmployees,
+      href: "/platform/database?entity=employees",
     },
     {
       icon: UserRound,
       label: text("Platform users", "مستخدمو المنصة"),
       value: metrics.totalPlatformUsers,
+      href: "/platform/database?entity=users",
     },
     {
       icon: Zap,
       label: text("Active subscriptions", "الاشتراكات النشطة"),
       value: metrics.activeSubscriptions,
+      href: "/platform#platform-subscriptions",
     },
   ];
   return (
@@ -18726,20 +18753,26 @@ function Platform() {
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        {metricCards.map(({ icon: Icon, label, value }) => (
-          <Card className="p-4 sm:p-5" key={label}>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-semibold uppercase tracking-[.12em]">
-                {label}
-              </span>
-              <span className="rounded-lg bg-primary/10 p-2 text-primary">
-                <Icon size={16} />
-              </span>
-            </div>
-            <div className="mt-5 font-display text-3xl font-semibold">
-              {value}
-            </div>
-          </Card>
+        {metricCards.map(({ icon: Icon, label, value, href }) => (
+          <Link
+            className="block h-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            href={href}
+            key={label}
+          >
+            <Card className="h-full cursor-pointer p-4 transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-5">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-xs font-semibold uppercase tracking-[.12em]">
+                  {label}
+                </span>
+                <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <Icon size={16} />
+                </span>
+              </div>
+              <div className="mt-5 font-display text-3xl font-semibold">
+                {value}
+              </div>
+            </Card>
+          </Link>
         ))}
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
@@ -18790,7 +18823,7 @@ function Platform() {
             />
           )}
         </Card>
-        <Card className="p-5">
+        <Card className="p-5" id="platform-subscriptions">
           <div className="flex items-center gap-2">
             <Zap size={17} className="text-primary" />
             <h2 className="font-display text-lg font-semibold">
@@ -18819,7 +18852,7 @@ function Platform() {
         </Card>
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <Card>
+        <Card id="platform-companies">
           <div className="flex items-center justify-between border-b border-border p-5">
             <div>
               <h2 className="font-display text-lg font-semibold">
@@ -18833,11 +18866,12 @@ function Platform() {
               </p>
             </div>
             <Badge tone="neutral">
-              {summary!.companies.length} {text("registered", "مسجلة")}
+              {visibleCompanies!.length} {text("registered", "مسجلة")}
             </Badge>
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-2">
-            {summary!.companies.map((company) => (
+            {visibleCompanies!.length ? (
+              visibleCompanies!.map((company) => (
               <button
                 className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
                 key={company.id}
@@ -18875,7 +18909,15 @@ function Platform() {
                   <ArrowUpRight className="inline" size={13} />
                 </div>
               </button>
-            ))}
+              ))
+            ) : (
+              <div className="p-2 text-sm text-muted-foreground">
+                {text(
+                  "No companies match this status.",
+                  "لا توجد شركات بهذه الحالة.",
+                )}
+              </div>
+            )}
           </div>
         </Card>
         <div className="space-y-6">
