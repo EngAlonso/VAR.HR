@@ -18625,10 +18625,32 @@ function Platform() {
     cancelled: text("Cancelled", "ملغاة"),
     suspended: text("Suspended", "موقوفة"),
   };
-  const activityLabel = (action: string) =>
-    action
-      .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const platformActivityCopy = {
+    title: {
+      en: "Recent platform activity",
+      ar: "نشاط المنصة الأخير",
+      fr: "Activité récente de la plateforme",
+      de: "Letzte Plattformaktivitäten",
+    },
+    noRecent: {
+      en: "No recent activity",
+      ar: "لا يوجد نشاط حديث",
+      fr: "Aucune activité récente",
+      de: "Keine aktuellen Aktivitäten",
+    },
+    detail: {
+      en: "Platform events will appear here.",
+      ar: "ستظهر أحداث المنصة هنا.",
+      fr: "Les événements de la plateforme apparaîtront ici.",
+      de: "Plattformereignisse werden hier angezeigt.",
+    },
+    viewAll: {
+      en: "View platform activity",
+      ar: "عرض نشاط المنصة",
+      fr: "Voir l’activité de la plateforme",
+      de: "Plattformaktivitäten anzeigen",
+    },
+  }[locale];
   const subscriptionPrice = (company: PlatformCompanyDetail) => {
     const prices = [
       company.monthlyPrice > 0
@@ -18861,7 +18883,7 @@ function Platform() {
             <div className="flex items-center gap-2 border-b border-border p-5">
               <Activity size={17} className="text-primary" />
               <h2 className="font-display text-lg font-semibold">
-                {text("Recent platform activity", "نشاط المنصة الأخير")}
+                {platformActivityCopy.title}
               </h2>
             </div>
             <div className="divide-y divide-border">
@@ -18869,27 +18891,29 @@ function Platform() {
                 summary!.activity.slice(0, 6).map((event) => (
                   <div className="p-4" key={event.id}>
                     <div className="font-semibold text-sm">
-                      {activityLabel(event.action)}
+                      {platformActivityLabel(locale, "action", event.action)}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {event.entityType} · {date(event.createdAt)}{" "}
+                      {platformActivityLabel(
+                        locale,
+                        "entity",
+                        event.entityType,
+                      )}{" "}
+                      · {date(event.createdAt)}{" "}
                       {time(event.createdAt)}
                     </div>
                   </div>
                 ))
               ) : (
                 <Empty
-                  title={text("No recent activity", "لا يوجد نشاط حديث")}
-                  detail={text(
-                    "Platform events will appear here.",
-                    "ستظهر أحداث المنصة هنا.",
-                  )}
+                  title={platformActivityCopy.noRecent}
+                  detail={platformActivityCopy.detail}
                 />
               )}
             </div>
             <div className="border-t border-border p-4">
               <Link href="/platform" className="text-sm font-bold text-primary">
-                {text("View platform activity", "عرض نشاط المنصة")}
+                {platformActivityCopy.viewAll}
               </Link>
             </div>
           </Card>

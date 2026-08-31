@@ -149,6 +149,14 @@ test("platform company details expose the complete activity timeline with actor 
   assert.doesNotMatch(app, /details\.activity\.slice\(0, 20\)/);
 });
 
+test("platform activity card translates its labels for every supported locale", () => {
+  assert.match(app, /en: "Recent platform activity"/);
+  assert.match(app, /ar: "نشاط المنصة الأخير"/);
+  assert.match(app, /fr: "Activité récente de la plateforme"/);
+  assert.match(app, /de: "Letzte Plattformaktivitäten"/);
+  assert.match(app, /platformActivityLabel\(locale, "action", event\.action\)/);
+});
+
 test("working days are configured in attendance rules, not shifts", () => {
   assert.match(app, /workingDaysTitle/);
   assert.match(app, /workingDaysDetail/);
