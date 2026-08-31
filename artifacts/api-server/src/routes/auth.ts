@@ -740,8 +740,7 @@ router.get(
         })
         .from(auditLogsTable)
         .where(eq(auditLogsTable.companyId, company.id))
-        .orderBy(desc(auditLogsTable.createdAt))
-        .limit(100),
+        .orderBy(desc(auditLogsTable.createdAt)),
       db
         .select({
           id: authAuditEventsTable.id,
@@ -754,12 +753,19 @@ router.get(
         })
         .from(authAuditEventsTable)
         .where(eq(authAuditEventsTable.companyId, company.id))
-        .orderBy(desc(authAuditEventsTable.createdAt))
-        .limit(100),
+        .orderBy(desc(authAuditEventsTable.createdAt)),
     ]);
     const activity = [...auditLogs, ...authAuditEvents]
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
-      .slice(0, 100);
+      .map((event) => {
+        const actor = event.actorId
+          ? accounts.find((account) => account.id === event.actorId)
+          : undefined;
+        return {
+          ...event,
+          actorName: actor?.fullName?.trim() || actor?.username || null,
+        };
+      });
     const operationalData = Object.fromEntries(
       Object.entries(backup.payload.data)
         .filter(

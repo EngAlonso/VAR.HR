@@ -6,6 +6,10 @@ const route = readFileSync(
   new URL("../src/routes/var-hr.ts", import.meta.url),
   "utf8",
 );
+const authRoute = readFileSync(
+  new URL("../src/routes/auth.ts", import.meta.url),
+  "utf8",
+);
 const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
@@ -123,6 +127,26 @@ test("attendance rule change history is restricted to company owners", () => {
   assert.match(app, /const canViewRuleHistory = account\.accountType === "company_owner"/);
   assert.match(app, /useListAttendanceRuleChanges\(\{\s*query: \{ enabled: canViewRuleHistory \}/);
   assert.match(app, /\{canViewRuleHistory && \(\s*<Card className="order-9 p-6">/);
+});
+
+test("platform company details expose the complete activity timeline with actor names", () => {
+  const detailsStart = authRoute.indexOf(
+    '"/platform/companies/:companyId/details"',
+  );
+  const detailsRoute = authRoute.slice(
+    detailsStart,
+    authRoute.indexOf(
+      '"/platform/companies/:companyId/owners"',
+      detailsStart,
+    ),
+  );
+  assert.match(detailsRoute, /actorName/);
+  assert.doesNotMatch(detailsRoute, /auditLogsTable\.createdAt\)\s*\.limit\(/);
+  assert.doesNotMatch(detailsRoute, /authAuditEventsTable\.createdAt\)\s*\.limit\(/);
+  assert.match(app, /platformActivityActionLabels/);
+  assert.match(app, /platformActivityEntityLabels/);
+  assert.match(app, /details\.activity\.map\(\(event\) =>/);
+  assert.doesNotMatch(app, /details\.activity\.slice\(0, 20\)/);
 });
 
 test("working days are configured in attendance rules, not shifts", () => {

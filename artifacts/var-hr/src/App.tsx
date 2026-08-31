@@ -348,6 +348,8 @@ type PlatformActivity = {
   accountId: string | null;
   companyId: string | null;
   metadata: Record<string, unknown>;
+  actorType?: string;
+  actorName?: string | null;
   createdAt: string;
 };
 type PlatformSummary = {
@@ -19614,11 +19616,279 @@ function BackButton({ fallback = "/platform" }: { fallback?: string }) {
   );
 }
 
+const platformActivityActionLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    created: "Created",
+    updated: "Updated",
+    deleted: "Deleted",
+    reversed: "Reversed",
+    checked_in: "Checked in",
+    checked_out: "Checked out",
+    corrected: "Corrected",
+    approved: "Approved",
+    rejected: "Rejected",
+    manual_adjustment: "Manual adjustment",
+    login: "Signed in",
+    logout: "Signed out",
+    password_reset: "Password reset",
+    company_created: "Company created",
+    company_updated: "Company updated",
+    company_owner_account_created: "Company owner account created",
+    company_owner_account_deactivated: "Company owner account deactivated",
+    company_owner_password_set: "Company owner password set",
+    company_owner_updated: "Company owner updated",
+    employee_password_changed: "Employee password changed",
+    platform_owner_provisioned: "Platform owner provisioned",
+    staff_account_created: "Staff account created",
+    backup_created: "Backup created",
+    backup_deleted: "Backup deleted",
+    backup_restored: "Backup restored",
+    backup_uploaded: "Backup uploaded",
+    archived: "Archived",
+    database_support_updated: "Database support updated",
+    support_updated: "Support access updated",
+    subscription_pricing_changed: "Subscription pricing changed",
+    subscription_limit_changed: "Subscription limit changed",
+    company_status_changed: "Company status changed",
+  },
+  ar: {
+    created: "تم الإنشاء",
+    updated: "تم التحديث",
+    deleted: "تم الحذف",
+    reversed: "تم العكس",
+    checked_in: "تسجيل حضور",
+    checked_out: "تسجيل انصراف",
+    corrected: "تم التصحيح",
+    approved: "تمت الموافقة",
+    rejected: "تم الرفض",
+    manual_adjustment: "تعديل يدوي",
+    login: "تسجيل دخول",
+    logout: "تسجيل خروج",
+    password_reset: "إعادة تعيين كلمة المرور",
+    company_created: "تم إنشاء الشركة",
+    company_updated: "تم تحديث الشركة",
+    company_owner_account_created: "تم إنشاء حساب مالك الشركة",
+    company_owner_account_deactivated: "تم تعطيل حساب مالك الشركة",
+    company_owner_password_set: "تم تعيين كلمة مرور مالك الشركة",
+    company_owner_updated: "تم تحديث بيانات مالك الشركة",
+    employee_password_changed: "تم تغيير كلمة مرور الموظف",
+    platform_owner_provisioned: "تم تجهيز حساب مالك المنصة",
+    staff_account_created: "تم إنشاء حساب موظف",
+    backup_created: "تم إنشاء نسخة احتياطية",
+    backup_deleted: "تم حذف النسخة الاحتياطية",
+    backup_restored: "تمت استعادة النسخة الاحتياطية",
+    backup_uploaded: "تم رفع النسخة الاحتياطية",
+    archived: "تمت الأرشفة",
+    database_support_updated: "تم تحديث دعم قاعدة البيانات",
+    support_updated: "تم تحديث صلاحيات الدعم",
+    subscription_pricing_changed: "تم تغيير أسعار الاشتراك",
+    subscription_limit_changed: "تم تغيير حد الاشتراك",
+    company_status_changed: "تم تغيير حالة الشركة",
+  },
+  fr: {
+    created: "Créé",
+    updated: "Mis à jour",
+    deleted: "Supprimé",
+    reversed: "Inversé",
+    checked_in: "Pointage d’arrivée",
+    checked_out: "Pointage de départ",
+    corrected: "Corrigé",
+    approved: "Approuvé",
+    rejected: "Rejeté",
+    manual_adjustment: "Ajustement manuel",
+    login: "Connexion",
+    logout: "Déconnexion",
+    password_reset: "Mot de passe réinitialisé",
+    company_created: "Entreprise créée",
+    company_updated: "Entreprise mise à jour",
+    company_owner_account_created: "Compte du propriétaire créé",
+    company_owner_account_deactivated: "Compte du propriétaire désactivé",
+    company_owner_password_set: "Mot de passe du propriétaire défini",
+    company_owner_updated: "Propriétaire mis à jour",
+    employee_password_changed: "Mot de passe de l’employé modifié",
+    platform_owner_provisioned: "Propriétaire de plateforme configuré",
+    staff_account_created: "Compte du personnel créé",
+    backup_created: "Sauvegarde créée",
+    backup_deleted: "Sauvegarde supprimée",
+    backup_restored: "Sauvegarde restaurée",
+    backup_uploaded: "Sauvegarde importée",
+    archived: "Archivé",
+    database_support_updated: "Support de base de données mis à jour",
+    support_updated: "Accès au support mis à jour",
+    subscription_pricing_changed: "Tarifs d’abonnement modifiés",
+    subscription_limit_changed: "Limite d’abonnement modifiée",
+    company_status_changed: "Statut de l’entreprise modifié",
+  },
+  de: {
+    created: "Erstellt",
+    updated: "Aktualisiert",
+    deleted: "Gelöscht",
+    reversed: "Rückgängig gemacht",
+    checked_in: "Eingestempelt",
+    checked_out: "Ausgestempelt",
+    corrected: "Korrigiert",
+    approved: "Genehmigt",
+    rejected: "Abgelehnt",
+    manual_adjustment: "Manuelle Anpassung",
+    login: "Angemeldet",
+    logout: "Abgemeldet",
+    password_reset: "Passwort zurückgesetzt",
+    company_created: "Unternehmen erstellt",
+    company_updated: "Unternehmen aktualisiert",
+    company_owner_account_created: "Unternehmenskonto erstellt",
+    company_owner_account_deactivated: "Unternehmenskonto deaktiviert",
+    company_owner_password_set: "Passwort des Unternehmensinhabers festgelegt",
+    company_owner_updated: "Unternehmensinhaber aktualisiert",
+    employee_password_changed: "Mitarbeiterpasswort geändert",
+    platform_owner_provisioned: "Plattforminhaber eingerichtet",
+    staff_account_created: "Mitarbeiterkonto erstellt",
+    backup_created: "Sicherung erstellt",
+    backup_deleted: "Sicherung gelöscht",
+    backup_restored: "Sicherung wiederhergestellt",
+    backup_uploaded: "Sicherung hochgeladen",
+    archived: "Archiviert",
+    database_support_updated: "Datenbank-Support aktualisiert",
+    support_updated: "Supportzugriff aktualisiert",
+    subscription_pricing_changed: "Abonnementpreise geändert",
+    subscription_limit_changed: "Abonnementlimit geändert",
+    company_status_changed: "Unternehmensstatus geändert",
+  },
+};
+
+const platformActivityEntityLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    company: "Company",
+    account: "Account",
+    department: "Department",
+    branch: "Branch",
+    employee: "Employee",
+    employee_schedule_assignment: "Employee schedule",
+    attendance: "Attendance",
+    attendance_time_adjustment: "Attendance adjustment",
+    attendance_rule: "Attendance rule",
+    leave_policy: "Leave policy",
+    leave_balance: "Leave balance",
+    leave_request: "Leave request",
+    permission_request: "Permission request",
+    payroll_period: "Payroll period",
+    payroll_run: "Payroll run",
+    device: "Device",
+    holiday: "Holiday",
+    schedule: "Work schedule",
+    backup: "Backup",
+    database: "Database",
+  },
+  ar: {
+    company: "الشركة",
+    account: "الحساب",
+    department: "القسم",
+    branch: "الفرع",
+    employee: "الموظف",
+    employee_schedule_assignment: "جدول الموظف",
+    attendance: "الحضور",
+    attendance_time_adjustment: "تعديل الحضور",
+    attendance_rule: "قاعدة الحضور",
+    leave_policy: "سياسة الإجازات",
+    leave_balance: "رصيد الإجازات",
+    leave_request: "طلب الإجازة",
+    permission_request: "طلب الاستئذان",
+    payroll_period: "فترة الرواتب",
+    payroll_run: "تشغيل الرواتب",
+    device: "الجهاز",
+    holiday: "العطلة",
+    schedule: "جدول العمل",
+    backup: "النسخة الاحتياطية",
+    database: "قاعدة البيانات",
+  },
+  fr: {
+    company: "Entreprise",
+    account: "Compte",
+    department: "Département",
+    branch: "Agence",
+    employee: "Employé",
+    employee_schedule_assignment: "Planning de l’employé",
+    attendance: "Présence",
+    attendance_time_adjustment: "Correction de présence",
+    attendance_rule: "Règle de présence",
+    leave_policy: "Politique de congés",
+    leave_balance: "Solde de congés",
+    leave_request: "Demande de congé",
+    permission_request: "Demande d’autorisation",
+    payroll_period: "Période de paie",
+    payroll_run: "Traitement de paie",
+    device: "Appareil",
+    holiday: "Jour férié",
+    schedule: "Planning de travail",
+    backup: "Sauvegarde",
+    database: "Base de données",
+  },
+  de: {
+    company: "Unternehmen",
+    account: "Konto",
+    department: "Abteilung",
+    branch: "Niederlassung",
+    employee: "Mitarbeiter",
+    employee_schedule_assignment: "Mitarbeiterplan",
+    attendance: "Anwesenheit",
+    attendance_time_adjustment: "Anwesenheitskorrektur",
+    attendance_rule: "Anwesenheitsregel",
+    leave_policy: "Urlaubsrichtlinie",
+    leave_balance: "Urlaubssaldo",
+    leave_request: "Urlaubsantrag",
+    permission_request: "Genehmigungsanfrage",
+    payroll_period: "Abrechnungszeitraum",
+    payroll_run: "Abrechnungslauf",
+    device: "Gerät",
+    holiday: "Feiertag",
+    schedule: "Arbeitsplan",
+    backup: "Sicherung",
+    database: "Datenbank",
+  },
+};
+
+const platformActivityActorLabels: Record<Locale, Record<string, string>> = {
+  en: { system: "System", account: "Account" },
+  ar: { system: "النظام", account: "حساب مستخدم" },
+  fr: { system: "Système", account: "Compte" },
+  de: { system: "System", account: "Konto" },
+};
+
+function platformActivityLabel(
+  locale: Locale,
+  kind: "action" | "entity" | "actor",
+  value: string | null | undefined,
+) {
+  if (!value) return "";
+  const labels =
+    kind === "action"
+      ? platformActivityActionLabels
+      : kind === "entity"
+        ? platformActivityEntityLabels
+        : platformActivityActorLabels;
+  return labels[locale][value] ?? value.replaceAll("_", " ");
+}
+
 function PlatformCompanyDetailsPage() {
   const { locale } = useI18n();
   const auth = useAuth();
   const params = useParams<{ companyId: string }>();
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const activityText = {
+    performedBy: { en: "By", ar: "بواسطة", fr: "Par", de: "Durch" }[locale],
+    targetId: { en: "ID", ar: "المعرّف", fr: "ID", de: "ID" }[locale],
+  };
+  const activityTitle = {
+    en: "All company activity",
+    ar: "كل أنشطة الشركة",
+    fr: "Toute l’activité de l’entreprise",
+    de: "Alle Unternehmensaktivitäten",
+  }[locale];
+  const noActivityText = {
+    en: "No company activity recorded.",
+    ar: "لا يوجد نشاط مسجل للشركة.",
+    fr: "Aucune activité d’entreprise enregistrée.",
+    de: "Keine Unternehmensaktivitäten erfasst.",
+  }[locale];
   const [details, setDetails] = useState<PlatformCompanyDetails | null>(null);
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20659,28 +20929,45 @@ function PlatformCompanyDetailsPage() {
         <div className="flex items-center gap-2">
           <Activity size={18} className="text-primary" />
           <h2 className="font-display text-lg font-semibold">
-            {text("Recent company activity", "أحدث نشاط للشركة")}
+            {activityTitle}
           </h2>
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 max-h-[680px] space-y-2 overflow-y-auto pr-1">
           {details.activity.length ? (
-            details.activity.slice(0, 20).map((event) => (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 p-3 text-sm" key={event.id}>
-                <span>
-                  <strong>{event.action}</strong>{" "}
-                  <span className="text-muted-foreground">
-                    · {event.entityType}{event.entityId ? ` · ${event.entityId}` : ""}
+            details.activity.map((event) => {
+              const actor =
+                event.actorName ||
+                platformActivityLabel(locale, "actor", event.actorType) ||
+                platformActivityLabel(locale, "actor", "system");
+              return (
+                <div
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/60 p-3 text-sm"
+                  key={event.id}
+                >
+                  <div className="min-w-0">
+                    <div className="font-semibold">
+                      {platformActivityLabel(locale, "action", event.action)}
+                    </div>
+                    <div className="mt-1 break-words text-xs text-muted-foreground">
+                      {platformActivityLabel(
+                        locale,
+                        "entity",
+                        event.entityType,
+                      )}
+                      {event.entityId
+                        ? ` · ${activityText.targetId}: ${event.entityId}`
+                        : ""}
+                      {` · ${activityText.performedBy}: ${actor}`}
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {date(event.createdAt)} · {time(event.createdAt)}
                   </span>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {date(event.createdAt)}
-                </span>
-              </div>
-            ))
+                </div>
+              );
+            })
           ) : (
-            <span className="text-sm text-muted-foreground">
-              {text("No company activity recorded.", "لا يوجد نشاط مسجل للشركة.")}
-            </span>
+            <span className="text-sm text-muted-foreground">{noActivityText}</span>
           )}
         </div>
       </Card>
