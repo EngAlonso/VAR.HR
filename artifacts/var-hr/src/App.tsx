@@ -7375,6 +7375,10 @@ function EmployeeHrPanel({
     query: {
       enabled: Boolean(employeeId),
       queryKey: getGetEmployeeHrRecordQueryKey(employeeId),
+      // A missing HR record is a valid first-time state (404), not a
+      // transient failure. Avoid waiting through React Query retries before
+      // showing the create form / empty state.
+      retry: false,
     },
   });
   const managers = useListEmployees({ status: "active" });
@@ -7605,6 +7609,15 @@ function EmployeeHrProfile({
     query: {
       enabled: Boolean(employeeId),
       queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
+  // Start loading the HR record with the employee profile instead of waiting
+  // for the profile request to finish before mounting EmployeeHrPanel.
+  useGetEmployeeHrRecord(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeHrRecordQueryKey(employeeId),
+      retry: false,
     },
   });
   const employeeSchedule = useGetEmployeeSchedule(employeeId, {

@@ -2001,7 +2001,7 @@ type PayrollLineItem = {
   explanation: string;
 };
 
-async function employeeRows(context: TenantContext) {
+async function employeeRows(context: TenantContext, employeeId?: string) {
   const rows = await db
     .select({
       employee: employeesTable,
@@ -2018,6 +2018,7 @@ async function employeeRows(context: TenantContext) {
       and(
         eq(employeesTable.companyId, context.companyId),
         employeeScopeCondition(context),
+        employeeId ? eq(employeesTable.id, employeeId) : undefined,
       ),
     )
     .orderBy(
@@ -3493,9 +3494,7 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
     denyCapability(res, req, "employees.view");
     return;
   }
-  const [row] = (await employeeRows(context)).filter(
-    (item) => item.employee.id === params.data.employeeId,
-  );
+  const [row] = await employeeRows(context, params.data.employeeId);
   if (!row) {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
