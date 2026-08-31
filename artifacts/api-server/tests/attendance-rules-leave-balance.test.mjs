@@ -67,6 +67,16 @@ test("payroll materializes scheduled absences without replacing approved leave",
   assert.match(route, /inputsSnapshot/);
 });
 
+test("payroll employee details expose calculated absence days", () => {
+  assert.match(
+    route,
+    /snapshot\.attendance\?\.absentDays[\s\S]*row\.calculation\.absentDays/,
+  );
+  assert.match(route, /absentDays: calculatedAbsenceDays/);
+  assert.match(app, /t\("absentDays"\)/);
+  assert.match(app, /t\("missingHours"\)/);
+});
+
 test("leave balances expose configured leave-year boundaries and states", () => {
   assert.match(route, /leavePeriodBounds/);
   assert.match(route, /periodStartMonth/);

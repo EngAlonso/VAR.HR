@@ -14157,7 +14157,7 @@ function Payroll() {
                       {t("closeDetails")}
                     </Button>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {[
                       [t("regularHours"), selectedEmployee.regularHours],
                       [t("overtimeHours"), selectedEmployee.overtimeHours],
@@ -14166,6 +14166,7 @@ function Payroll() {
                         t("earlyCheckoutMinutes"),
                         selectedEmployee.earlyCheckoutMinutes,
                       ],
+                      [t("missingHours"), selectedEmployee.missingHours],
                       [t("absentDays"), selectedEmployee.absentDays],
                       [t("leaveDays"), selectedEmployee.leaveDays],
                     ].map(([label, value]) => (
@@ -14253,16 +14254,18 @@ function Payroll() {
                   <div className="mt-4 divide-y divide-border rounded-lg border border-border">
                     {adjustments.data.map((item: any) => (
                       <div
-                        className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
+                          className="flex items-start gap-3 p-3 sm:items-center"
                         key={item.id}
                       >
-                        <div>
-                          <span className="font-semibold">
-                            {item.employee.name}
-                          </span>
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {item.reason}
-                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="font-semibold">
+                                {item.employee.name}
+                              </span>
+                              <span className="break-words text-xs text-muted-foreground">
+                                {item.reason}
+                              </span>
+                            </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {item.category === "fixed"
                               ? t("fixed")
@@ -14273,8 +14276,8 @@ function Payroll() {
                               : t("deduction")}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono">
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span className="whitespace-nowrap font-mono">
                             {money(
                               item.type === "deduction"
                                 ? -item.amount

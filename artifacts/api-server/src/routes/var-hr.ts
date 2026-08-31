@@ -8380,37 +8380,39 @@ async function storedPayrollCalculation(
     if (!latest.has(row.calculation.employeeId))
       latest.set(row.calculation.employeeId, row);
   }
-  const items = [...latest.values()].map((row) => ({
-    employee: employeeReference(row.employee, row.department.name),
-    basicSalary: row.calculation.basicSalary,
-    additions: row.calculation.additions,
-    overtime: row.calculation.overtime,
-    attendanceDeductions: row.calculation.attendanceDeductions,
-    otherDeductions: row.calculation.otherDeductions,
-    netSalary: row.calculation.netSalary,
-    regularHours: row.calculation.regularHours,
-    overtimeHours: row.calculation.overtimeHours,
-    lateMinutes: row.calculation.lateMinutes,
-    earlyCheckoutMinutes: row.calculation.earlyCheckoutMinutes,
-    missingHours: row.calculation.missingHours,
-    absentDays: row.calculation.absentDays,
-    leaveDays: Number(
-      (row.calculation.inputsSnapshot as { leaveDays?: number }).leaveDays ?? 0,
-    ),
-    leaveBalances:
-      (
-        row.calculation.inputsSnapshot as {
-          leaveBalances?: Array<{
-            type: string;
-            allocated: number;
-            used: number;
-            pending: number;
-            remaining: number;
-          }>;
-        }
-      ).leaveBalances ?? [],
-    lineItems: row.calculation.lineItems as PayrollLineItem[],
-  }));
+  const items = [...latest.values()].map((row) => {
+    const snapshot = row.calculation.inputsSnapshot as {
+      attendance?: { absentDays?: number };
+      leaveDays?: number;
+      leaveBalances?: Array<{
+        type: string;
+        allocated: number;
+        used: number;
+        pending: number;
+        remaining: number;
+      }>;
+    };
+    return {
+      employee: employeeReference(row.employee, row.department.name),
+      basicSalary: row.calculation.basicSalary,
+      additions: row.calculation.additions,
+      overtime: row.calculation.overtime,
+      attendanceDeductions: row.calculation.attendanceDeductions,
+      otherDeductions: row.calculation.otherDeductions,
+      netSalary: row.calculation.netSalary,
+      regularHours: row.calculation.regularHours,
+      overtimeHours: row.calculation.overtimeHours,
+      lateMinutes: row.calculation.lateMinutes,
+      earlyCheckoutMinutes: row.calculation.earlyCheckoutMinutes,
+      missingHours: row.calculation.missingHours,
+      absentDays: Number(
+        snapshot.attendance?.absentDays ?? row.calculation.absentDays ?? 0,
+      ),
+      leaveDays: Number(snapshot.leaveDays ?? 0),
+      leaveBalances: snapshot.leaveBalances ?? [],
+      lineItems: row.calculation.lineItems as PayrollLineItem[],
+    };
+  });
   if (!items.length) return null;
   const totals = items.reduce(
     (total, item) => ({
@@ -8966,7 +8968,7 @@ async function calculatePayrollPeriod(
       lateMinutes,
       earlyCheckoutMinutes,
       missingHours: moneyValue(missingHours),
-      absentDays,
+      absentDays: calculatedAbsenceDays,
       lineItems,
       inputsSnapshot: {
         rules,
