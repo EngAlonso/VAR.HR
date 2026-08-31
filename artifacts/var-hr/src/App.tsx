@@ -4009,6 +4009,7 @@ const reportCopy = {
       "Full monthly attendance, fingerprint, deductions, and overtime details.",
     showAttendanceMovement: "View movement record",
     hideAttendanceMovement: "Hide movement record",
+    backToEmployeeProfile: "Back to employee profile",
     printAttendanceMovement: "Print movement record",
     attendanceMonth: "Month",
     scheduledEnd: "Scheduled end",
@@ -4110,6 +4111,7 @@ const reportCopy = {
       "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
     showAttendanceMovement: "عرض سجل الحركة",
     hideAttendanceMovement: "إخفاء سجل الحركة",
+    backToEmployeeProfile: "العودة إلى ملف الموظف",
     printAttendanceMovement: "طباعة سجل الحركة",
     attendanceMonth: "الشهر",
     scheduledEnd: "نهاية الدوام المجدولة",
@@ -4214,6 +4216,7 @@ const reportCopy = {
       "Présence mensuelle complète, empreinte, retenues et heures supplémentaires.",
     showAttendanceMovement: "Voir le registre de mouvement",
     hideAttendanceMovement: "Masquer le registre de mouvement",
+    backToEmployeeProfile: "Retour au profil de l’employé",
     printAttendanceMovement: "Imprimer le registre de mouvement",
     attendanceMonth: "Mois",
     scheduledEnd: "Fin planifiée",
@@ -4318,6 +4321,7 @@ const reportCopy = {
       "Vollständige monatliche Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht.",
     showAttendanceMovement: "Bewegungsprotokoll anzeigen",
     hideAttendanceMovement: "Bewegungsprotokoll ausblenden",
+    backToEmployeeProfile: "Zurück zum Mitarbeiterprofil",
     printAttendanceMovement: "Bewegungsprotokoll drucken",
     attendanceMonth: "Monat",
     scheduledEnd: "Geplantes Ende",
@@ -7593,6 +7597,7 @@ function EmployeeHrProfile({
   employeeIdOverride?: string | null;
 } = {}) {
   const { t } = useI18n();
+  const [, setLocation] = useLocation();
   const workspace = useGetWorkspace();
   const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
   const currency = workspace.data?.company?.currency ?? "EGP";
@@ -7668,15 +7673,26 @@ function EmployeeHrProfile({
         </Card>
       ) : employee.data ? (
         <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 font-bold text-primary">
-              {employee.data.avatarInitials}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 font-bold text-primary">
+                {employee.data.avatarInitials}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate font-display text-xl font-semibold">
+                  {employee.data.firstName} {employee.data.lastName}
+                </h2>
+              </div>
             </div>
-            <div>
-              <h2 className="font-display text-xl font-semibold">
-                {employee.data.firstName} {employee.data.lastName}
-              </h2>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setLocation(`/employees/${employee.data.id}/movement`)}
+              className="w-full shrink-0 sm:w-auto"
+              data-testid={`button-open-attendance-movement-${employee.data.id}`}
+            >
+              <Activity size={16} />
+              {t("showAttendanceMovement")}
+            </Button>
           </div>
           <div className="mt-6 border-t border-border pt-6">
             <h3 className="font-display text-lg font-semibold">
@@ -7864,12 +7880,6 @@ function EmployeeHrProfile({
               </p>
             </div>
           )}
-          <EmployeeAttendanceMovement
-            employeeId={employee.data.id}
-            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
-            biometricCode={employee.data.biometricCode}
-            canPrint={workspace.data?.role !== "employee"}
-          />
           <EmployeePasswordChange />
         </Card>
       ) : (
@@ -7887,14 +7897,16 @@ function EmployeeAttendanceMovement({
   employeeName,
   biometricCode,
   canPrint,
+  fullPage = false,
 }: {
   employeeId: string;
   employeeName: string;
   biometricCode?: string | null;
   canPrint: boolean;
+  fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(fullPage);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [year, monthNumber] = month.split("-").map(Number);
   const from = `${month}-01`;
@@ -7986,7 +7998,12 @@ function EmployeeAttendanceMovement({
   }
 
   return (
-    <div className="mt-6 border-t border-border pt-6" data-testid={`employee-attendance-movement-${employeeId}`}>
+    <div
+      className={cn(
+        fullPage ? "space-y-5" : "mt-6 border-t border-border pt-6",
+      )}
+      data-testid={`employee-attendance-movement-${employeeId}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-semibold">
@@ -7996,14 +8013,16 @@ function EmployeeAttendanceMovement({
             {t("attendanceMovementDetail")}
           </p>
         </div>
-        <Button
-          variant={open ? "outline" : "primary"}
-          onClick={() => setOpen((value) => !value)}
-          data-testid={`button-toggle-attendance-movement-${employeeId}`}
-        >
-          <Activity size={16} />
-          {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
-        </Button>
+        {!fullPage && (
+          <Button
+            variant={open ? "outline" : "primary"}
+            onClick={() => setOpen((value) => !value)}
+            data-testid={`button-toggle-attendance-movement-${employeeId}`}
+          >
+            <Activity size={16} />
+            {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
+          </Button>
+        )}
       </div>
       {open && (
         <div className="mt-4 space-y-4">
@@ -8057,7 +8076,47 @@ function EmployeeAttendanceMovement({
                   )}
                 />
               </div>
-              <div className="overflow-x-auto">
+              <div className="divide-y divide-border md:hidden">
+                {rows.map((row) => (
+                  <article
+                    className="space-y-3 p-4"
+                    key={`mobile-${row.date}-${row.employee.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">
+                          {date(row.date ?? undefined)}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {weekday(row.date)}
+                        </p>
+                      </div>
+                      <Status value={row.attendanceStatus || "—"} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <Info label={t("checkIn")} value={time(row.checkIn)} />
+                      <Info label={t("checkOut")} value={time(row.checkOut)} />
+                      <Info
+                        label={t("workedHours")}
+                        value={hours(row.workedHours)}
+                      />
+                      <Info
+                        label={t("deductedMinutes")}
+                        value={minutes(row.deductedMinutes)}
+                      />
+                    </div>
+                    <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
+                      <p>{sourceLabel(row)}</p>
+                      <p>
+                        {row.lateMinutes || 0} {t("lateMinutes").toLowerCase()} ·{" "}
+                        {row.earlyCheckoutMinutes || 0}{" "}
+                        {t("earlyCheckoutMinutes").toLowerCase()}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[1250px] text-sm">
                   <thead className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                     <tr>
@@ -9314,6 +9373,16 @@ function EmployeeProfilePage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
                 <Status value={employee.data.status} />
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setLocation(`/employees/${employee.data.id}/movement`)
+                  }
+                  data-testid={`button-open-attendance-movement-${employee.data.id}`}
+                >
+                  <Activity size={16} />
+                  {t("showAttendanceMovement")}
+                </Button>
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -9616,13 +9685,6 @@ function EmployeeProfilePage() {
               </p>
             )}
           </EmployeeProfileSection>
-
-          <EmployeeAttendanceMovement
-            employeeId={employee.data.id}
-            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
-            biometricCode={employee.data.biometricCode}
-            canPrint
-          />
 
           <EmployeeCredentialManager
             employeeId={employee.data.id}
@@ -21138,6 +21200,108 @@ function EmployeeProfileSection({
   );
 }
 
+function EmployeeMovementPage() {
+  const { t } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  const { employeeId = "" } = useParams<{ employeeId: string }>();
+  const workspace = useGetWorkspace();
+  const employee = useGetEmployee(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
+  const isSelf = auth.account.accountType === "employee";
+  const canPrint = !isSelf;
+
+  if (isSelf && auth.account.employeeId !== employeeId) {
+    return <Redirect to="/profile" />;
+  }
+
+  const returnPath = isSelf ? "/profile" : `/employees/${employeeId}`;
+  if (employee.isLoading || workspace.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-44" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-56" />
+      </div>
+    );
+  }
+  if (employee.isError || !employee.data) {
+    return (
+      <div className="space-y-5">
+        <Button
+          variant="quiet"
+          onClick={() => setLocation(returnPath)}
+          data-testid="button-back-from-attendance-movement"
+        >
+          <ArrowLeft size={16} />
+          {t("backToEmployeeProfile")}
+        </Button>
+        <Card>
+          <Empty
+            title={t("employeeProfileLoadFailed")}
+            detail={t("checkWorkspace")}
+            action={
+              <Button variant="outline" onClick={() => employee.refetch()}>
+                {t("retry")}
+              </Button>
+            }
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-in space-y-5">
+      <Button
+        variant="quiet"
+        onClick={() => setLocation(returnPath)}
+        data-testid="button-back-from-attendance-movement"
+      >
+        <ArrowLeft size={16} />
+        {t("backToEmployeeProfile")}
+      </Button>
+      <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-5 sm:p-6">
+        <div className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15">
+              {employee.data.avatarInitials ||
+                `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">
+                {t("employeeProfile")}
+              </p>
+              <h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">
+                {employee.data.firstName} {employee.data.lastName}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("employeeNumber")}: {employee.data.employeeNumber}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
+            <Status value={employee.data.status} />
+          </div>
+        </div>
+      </Card>
+      <EmployeeAttendanceMovement
+        employeeId={employee.data.id}
+        employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
+        biometricCode={employee.data.biometricCode}
+        canPrint={canPrint}
+        fullPage
+      />
+    </div>
+  );
+}
+
 function scheduleDayLabel(
   value: string,
   t: (key: AppCopyKey) => string,
@@ -21232,9 +21396,13 @@ function Router() {
   const auth = useAuth();
   const [location] = useLocation();
   const employeeAllowedPaths = ["/", "/profile", "/attendance", "/requests", "/payroll"];
+  const isOwnMovementPath =
+    /^\/employees\/[^/]+\/movement$/.test(location) &&
+    location.split("/")[2] === auth.account.employeeId;
   if (
     auth.account.accountType === "employee" &&
-    !employeeAllowedPaths.includes(location)
+    !employeeAllowedPaths.includes(location) &&
+    !isOwnMovementPath
   ) {
     return <Redirect to="/" />;
   }
@@ -21244,6 +21412,10 @@ function Router() {
         <Route path="/" component={Overview} />
         <Route path="/profile" component={Profile} />
         <Route path="/employees/new" component={AddEmployeePage} />
+        <Route
+          path="/employees/:employeeId/movement"
+          component={EmployeeMovementPage}
+        />
         <Route path="/employees/:employeeId" component={EmployeeProfilePage} />
         <Route path="/employees" component={Employees} />
         <Route path="/departments" component={Departments} />
