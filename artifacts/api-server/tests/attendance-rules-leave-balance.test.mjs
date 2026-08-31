@@ -155,6 +155,9 @@ test("platform activity card translates its labels for every supported locale", 
   assert.match(app, /fr: "Activité récente de la plateforme"/);
   assert.match(app, /de: "Letzte Plattformaktivitäten"/);
   assert.match(app, /platformActivityLabel\(locale, "action", event\.action\)/);
+  assert.match(app, /href="\/platform\/activity"/);
+  assert.match(app, /function PlatformActivityPage\(\)/);
+  assert.match(app, /value\.startsWith\("database:"\)/);
 });
 
 test("working days are configured in attendance rules, not shifts", () => {

@@ -1797,9 +1797,33 @@ router.get("/auth/audit", async (req, res): Promise<void> => {
         ? undefined
         : eq(authAuditEventsTable.companyId, context.companyId),
     )
-    .orderBy(asc(authAuditEventsTable.createdAt))
-    .limit(200);
-  res.json(rows.map(({ metadata, ...row }) => ({ ...row, metadata })));
+    .orderBy(desc(authAuditEventsTable.createdAt));
+  const accountIds = rows
+    .map((row) => row.accountId)
+    .filter((accountId): accountId is string => Boolean(accountId));
+  const accounts = accountIds.length
+    ? await db
+        .select({
+          id: userAccountsTable.id,
+          fullName: userAccountsTable.fullName,
+          username: userAccountsTable.username,
+        })
+        .from(userAccountsTable)
+        .where(inArray(userAccountsTable.id, accountIds))
+    : [];
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  res.json(
+    rows.map(({ metadata, ...row }) => ({
+      ...row,
+      actorType: "account",
+      actorName: row.accountId
+        ? accountById.get(row.accountId)?.fullName ||
+          accountById.get(row.accountId)?.username ||
+          null
+        : null,
+      metadata,
+    })),
+  );
 });
 
 export default router;

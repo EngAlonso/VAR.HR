@@ -18912,7 +18912,10 @@ function Platform() {
               )}
             </div>
             <div className="border-t border-border p-4">
-              <Link href="/platform" className="text-sm font-bold text-primary">
+              <Link
+                href="/platform/activity"
+                className="text-sm font-bold text-primary"
+              >
                 {platformActivityCopy.viewAll}
               </Link>
             </div>
@@ -19652,6 +19655,8 @@ const platformActivityActionLabels: Record<Locale, Record<string, string>> = {
     approved: "Approved",
     rejected: "Rejected",
     manual_adjustment: "Manual adjustment",
+    view: "View",
+    database_view: "Database view",
     login: "Signed in",
     logout: "Signed out",
     password_reset: "Password reset",
@@ -19686,6 +19691,8 @@ const platformActivityActionLabels: Record<Locale, Record<string, string>> = {
     approved: "تمت الموافقة",
     rejected: "تم الرفض",
     manual_adjustment: "تعديل يدوي",
+    view: "عرض",
+    database_view: "عرض قاعدة البيانات",
     login: "تسجيل دخول",
     logout: "تسجيل خروج",
     password_reset: "إعادة تعيين كلمة المرور",
@@ -19720,6 +19727,8 @@ const platformActivityActionLabels: Record<Locale, Record<string, string>> = {
     approved: "Approuvé",
     rejected: "Rejeté",
     manual_adjustment: "Ajustement manuel",
+    view: "Voir",
+    database_view: "Consultation de la base de données",
     login: "Connexion",
     logout: "Déconnexion",
     password_reset: "Mot de passe réinitialisé",
@@ -19754,6 +19763,8 @@ const platformActivityActionLabels: Record<Locale, Record<string, string>> = {
     approved: "Genehmigt",
     rejected: "Abgelehnt",
     manual_adjustment: "Manuelle Anpassung",
+    view: "Anzeigen",
+    database_view: "Datenbankansicht",
     login: "Angemeldet",
     logout: "Abgemeldet",
     password_reset: "Passwort zurückgesetzt",
@@ -19877,19 +19888,282 @@ const platformActivityActorLabels: Record<Locale, Record<string, string>> = {
   de: { system: "System", account: "Konto" },
 };
 
+const platformDatabaseEntityLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    companies: "Companies",
+    user_accounts: "User accounts",
+    permissions: "Permissions",
+    plans: "Plans",
+    subscriptions: "Subscriptions",
+    employees: "Employees",
+    departments: "Departments",
+    branches: "Branches",
+    devices: "Devices",
+    attendance: "Attendance",
+    attendance_locations: "Attendance locations",
+    attendance_rules: "Attendance rules",
+    work_schedules: "Work schedules",
+    leave_balances: "Leave balances",
+    leave_requests: "Leave requests",
+    permission_requests: "Permission requests",
+    payroll_periods: "Payroll periods",
+    payroll_calculations: "Payroll calculations",
+    audit_logs: "Audit logs",
+    backups: "Backups",
+  },
+  ar: {
+    companies: "الشركات",
+    user_accounts: "حسابات المستخدمين",
+    permissions: "الصلاحيات",
+    plans: "الخطط",
+    subscriptions: "الاشتراكات",
+    employees: "الموظفون",
+    departments: "الأقسام",
+    branches: "الفروع",
+    devices: "الأجهزة",
+    attendance: "الحضور",
+    attendance_locations: "مواقع الحضور",
+    attendance_rules: "قواعد الحضور",
+    work_schedules: "جداول العمل",
+    leave_balances: "أرصدة الإجازات",
+    leave_requests: "طلبات الإجازات",
+    permission_requests: "طلبات الاستئذان",
+    payroll_periods: "فترات الرواتب",
+    payroll_calculations: "حسابات الرواتب",
+    audit_logs: "سجلات التدقيق",
+    backups: "النسخ الاحتياطية",
+  },
+  fr: {
+    companies: "Entreprises",
+    user_accounts: "Comptes utilisateurs",
+    permissions: "Autorisations",
+    plans: "Forfaits",
+    subscriptions: "Abonnements",
+    employees: "Employés",
+    departments: "Départements",
+    branches: "Agences",
+    devices: "Appareils",
+    attendance: "Présence",
+    attendance_locations: "Lieux de présence",
+    attendance_rules: "Règles de présence",
+    work_schedules: "Plannings de travail",
+    leave_balances: "Soldes de congés",
+    leave_requests: "Demandes de congé",
+    permission_requests: "Demandes d’autorisation",
+    payroll_periods: "Périodes de paie",
+    payroll_calculations: "Calculs de paie",
+    audit_logs: "Journaux d’audit",
+    backups: "Sauvegardes",
+  },
+  de: {
+    companies: "Unternehmen",
+    user_accounts: "Benutzerkonten",
+    permissions: "Berechtigungen",
+    plans: "Pläne",
+    subscriptions: "Abonnements",
+    employees: "Mitarbeiter",
+    departments: "Abteilungen",
+    branches: "Niederlassungen",
+    devices: "Geräte",
+    attendance: "Anwesenheit",
+    attendance_locations: "Anwesenheitsorte",
+    attendance_rules: "Anwesenheitsregeln",
+    work_schedules: "Arbeitspläne",
+    leave_balances: "Urlaubssalden",
+    leave_requests: "Urlaubsanträge",
+    permission_requests: "Genehmigungsanfragen",
+    payroll_periods: "Abrechnungszeiträume",
+    payroll_calculations: "Abrechnungsberechnungen",
+    audit_logs: "Auditprotokolle",
+    backups: "Sicherungen",
+  },
+};
+
 function platformActivityLabel(
   locale: Locale,
   kind: "action" | "entity" | "actor",
   value: string | null | undefined,
 ) {
   if (!value) return "";
+  if (kind === "entity" && value.startsWith("database:")) {
+    const entity = value.slice("database:".length);
+    const label = platformDatabaseEntityLabels[locale][entity];
+    return label
+      ? `${platformActivityEntityLabels[locale].database}: ${label}`
+      : `${platformActivityEntityLabels[locale].database}: ${entity.replaceAll("_", " ")}`;
+  }
   const labels =
     kind === "action"
       ? platformActivityActionLabels
       : kind === "entity"
         ? platformActivityEntityLabels
         : platformActivityActorLabels;
-  return labels[locale][value] ?? value.replaceAll("_", " ");
+  const normalizedValue = value.replaceAll(" ", "_");
+  return (
+    labels[locale][value] ??
+    labels[locale][normalizedValue] ??
+    value.replaceAll("_", " ")
+  );
+}
+
+const platformActivityPageCopy: Record<
+  Locale,
+  {
+    eyebrow: string;
+    title: string;
+    detail: string;
+    back: string;
+    actor: string;
+    company: string;
+    target: string;
+    noActivity: string;
+  }
+> = {
+  en: {
+    eyebrow: "Platform administration",
+    title: "All platform activity",
+    detail: "Review every recorded administrative event across the platform.",
+    back: "Back to platform control center",
+    actor: "By",
+    company: "Company",
+    target: "Target",
+    noActivity: "No platform activity recorded.",
+  },
+  ar: {
+    eyebrow: "إدارة المنصة",
+    title: "كل أنشطة المنصة",
+    detail: "راجع جميع الأحداث الإدارية المسجلة عبر المنصة.",
+    back: "العودة إلى مركز تحكم المنصة",
+    actor: "بواسطة",
+    company: "الشركة",
+    target: "العنصر المتأثر",
+    noActivity: "لا يوجد نشاط مسجل للمنصة.",
+  },
+  fr: {
+    eyebrow: "Administration de la plateforme",
+    title: "Toutes les activités de la plateforme",
+    detail: "Consultez chaque événement administratif enregistré sur la plateforme.",
+    back: "Retour au centre de contrôle",
+    actor: "Par",
+    company: "Entreprise",
+    target: "Cible",
+    noActivity: "Aucune activité de plateforme enregistrée.",
+  },
+  de: {
+    eyebrow: "Plattformverwaltung",
+    title: "Alle Plattformaktivitäten",
+    detail: "Prüfen Sie alle aufgezeichneten Verwaltungsereignisse der Plattform.",
+    back: "Zurück zum Plattform-Kontrollzentrum",
+    actor: "Durch",
+    company: "Unternehmen",
+    target: "Ziel",
+    noActivity: "Keine Plattformaktivitäten erfasst.",
+  },
+};
+
+function PlatformActivityPage() {
+  const { locale } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  const copy = platformActivityPageCopy[locale];
+  const [activity, setActivity] = useState<PlatformActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setActivity(await authRequest<PlatformActivity[]>("/api/auth/audit"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.noActivity);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  if (loading) return <Skeleton className="h-[620px]" />;
+  if (error) return <ErrorState retry={() => void load()} />;
+
+  return (
+    <div className="min-h-[100dvh] bg-background px-4 py-6 sm:px-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              {copy.eyebrow}
+            </div>
+            <h1 className="mt-2 font-display text-3xl font-semibold">
+              {copy.title}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.detail}</p>
+          </div>
+          <Button variant="outline" onClick={() => setLocation("/platform")}>
+            <ArrowLeft className="rtl:-scale-x-100" size={16} />
+            {copy.back}
+          </Button>
+        </div>
+
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border p-5">
+            <Activity size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-semibold">{copy.title}</h2>
+          </div>
+          {activity.length ? (
+            <div className="divide-y divide-border">
+              {activity.map((event) => {
+                const actor =
+                  event.actorName ||
+                  platformActivityLabel(locale, "actor", event.actorType) ||
+                  platformActivityLabel(locale, "actor", "account");
+                return (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-4 p-5"
+                    key={event.id}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold">
+                        {platformActivityLabel(locale, "action", event.action)}
+                      </div>
+                      <div className="mt-1 break-words text-sm text-muted-foreground">
+                        {copy.target}:{" "}
+                        {platformActivityLabel(
+                          locale,
+                          "entity",
+                          event.entityType,
+                        )}
+                        {event.entityId ? ` · ${event.entityId}` : ""}
+                        {event.companyId
+                          ? ` · ${copy.company}: ${event.companyId}`
+                          : ""}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {copy.actor}: {actor}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-xs text-muted-foreground">
+                      {date(event.createdAt)} · {time(event.createdAt)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-6 text-sm text-muted-foreground">
+              {copy.noActivity}
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
 }
 
 function PlatformCompanyDetailsPage() {
@@ -21927,6 +22201,7 @@ function Router() {
         <Route path="/sync-history" component={SyncHistory} />
         <Route path="/backups" component={BackupRestore} />
         <Route path="/platform/database" component={DatabaseAdministration} />
+        <Route path="/platform/activity" component={PlatformActivityPage} />
         <Route
           path="/platform/account-settings"
           component={PlatformAccountSettings}
