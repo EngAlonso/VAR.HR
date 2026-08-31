@@ -21,6 +21,7 @@ const phoneSync = updateEmployeeRoute.slice(
 
 test("changing an employee number does not change the login username", () => {
   assert.doesNotMatch(employeeNumberUpdate, /userAccountsTable/);
+  assert.doesNotMatch(employeeNumberUpdate, /employeeIdentitiesTable|deviceEmployeeMappingsTable/);
   assert.match(phoneSync, /updateData\.phone !== undefined/);
   assert.match(phoneSync, /updateData\.phone !== before\.phone/);
 });

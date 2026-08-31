@@ -950,6 +950,8 @@ const copy = {
     noEmployeeContextDetail:
       "The workspace has not attached an employee identity to this session.",
     employeeNumber: "Employee number",
+    employeeNumberEditHint:
+      "You can change this number manually. Login, attendance history, payroll, and biometric links stay attached to this employee.",
     deleteSuccessful: "Deleted successfully",
     activateDepartment: "Activate department",
     deactivateDepartment: "Deactivate department",
@@ -1310,6 +1312,8 @@ const copy = {
     emergencyContactPhone: "هاتف الطوارئ",
     employee: "الموظف",
     employeeNumber: "رقم الموظف",
+    employeeNumberEditHint:
+      "يمكنك تغيير الرقم يدويًا. يظل تسجيل الدخول وسجل الحضور والرواتب وروابط البصمة مرتبطة بهذا الموظف.",
     deleteSuccessful: "تم الحذف بنجاح",
     activateDepartment: "تفعيل القسم",
     deactivateDepartment: "تعطيل القسم",
@@ -2673,6 +2677,8 @@ const pageCopy = {
     createEmployee: "Créer l’employé",
     employeeProfile: "Profil de l’employé",
     employeeNumber: "Numéro d’employé",
+    employeeNumberEditHint:
+      "Vous pouvez modifier ce numéro. La connexion, l’historique, la paie et les liens biométriques restent liés à cet employé.",
     basicSalary: "Salaire de base",
     deleteSuccessful: "Suppression réussie",
     activateDepartment: "Activer le département",
@@ -3041,6 +3047,8 @@ const pageCopy = {
     createEmployee: "Mitarbeitenden erstellen",
     employeeProfile: "Mitarbeiterprofil",
     employeeNumber: "Mitarbeiternummer",
+    employeeNumberEditHint:
+      "Diese Nummer kann manuell geändert werden. Login, Verlauf, Lohnabrechnung und biometrische Verknüpfungen bleiben diesem Mitarbeitenden zugeordnet.",
     basicSalary: "Grundgehalt",
     deleteSuccessful: "Erfolgreich gelöscht",
     activateDepartment: "Abteilung aktivieren",
@@ -9160,8 +9168,9 @@ function EmployeeProfilePage() {
   }
   function saveEdit(event: FormEvent) {
     event.preventDefault();
+    const employeeNumber = editForm.employeeNumber.trim();
     if (
-      !editForm.employeeNumber.match(/^[1-9][0-9]*$/) ||
+      !employeeNumber.match(/^[1-9][0-9]*$/) ||
       !editForm.firstName.trim() ||
       !editForm.lastName.trim() ||
       !editForm.branchId
@@ -9173,7 +9182,7 @@ function EmployeeProfilePage() {
       {
         employeeId,
         data: {
-          employeeNumber: editForm.employeeNumber.trim(),
+          employeeNumber,
           firstName: editForm.firstName.trim(),
           lastName: editForm.lastName.trim(),
           phone: editForm.phone.trim(),
@@ -9674,10 +9683,14 @@ function EmployeeProfilePage() {
               <Field
                 label={t("employeeNumber")}
                 value={editForm.employeeNumber}
+                name="employeeNumber"
                 inputMode="numeric"
                 required
                 onChange={(value) => setEditForm({ ...editForm, employeeNumber: value })}
               />
+              <p className="sm:col-span-2 -mt-2 text-xs text-muted-foreground">
+                {t("employeeNumberEditHint")}
+              </p>
               <Field
                 label={t("firstName")}
                 value={editForm.firstName}
