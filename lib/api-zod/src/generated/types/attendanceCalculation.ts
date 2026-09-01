@@ -71,6 +71,7 @@ export interface AttendanceCalculation {
   /** @minimum 0 */
   appliedOvertimeMultiplier: number;
   multiplierSource: string;
+  timeMultiplierPremiumMinutes: number;
   adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;

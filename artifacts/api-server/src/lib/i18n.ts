@@ -68,6 +68,9 @@ const messages = {
     payrollFinalizedImmutable: "Finalized payroll cannot be changed.",
     personalPayrollOnly: "Personal payroll is available only to an employee identity.",
     overtimeLineLabel: "Overtime",
+    timeMultiplierPremiumLineLabel: "Time multiplier premium",
+    timeMultiplierPremiumExplanation:
+      "Premium calculated from the employee's monthly salary, company working days, and daily working hours.",
     additionsLineLabel: "Additions",
     lateDeductionLineLabel: "Late deduction",
     earlyCheckoutDeductionLineLabel: "Early checkout deduction",
@@ -182,6 +185,9 @@ const messages = {
     payrollFinalizedImmutable: "لا يمكن تغيير الرواتب المعتمدة نهائياً.",
     personalPayrollOnly: "الرواتب الشخصية متاحة فقط لهوية موظف.",
     overtimeLineLabel: "العمل الإضافي",
+    timeMultiplierPremiumLineLabel: "بدل مضاعفة الساعات",
+    timeMultiplierPremiumExplanation:
+      "يُحسب البدل من الراتب الشهري وعدد أيام عمل الشركة وساعات العمل اليومية للموظف.",
     additionsLineLabel: "الإضافات",
     lateDeductionLineLabel: "خصم التأخير",
     earlyCheckoutDeductionLineLabel: "خصم الانصراف المبكر",
@@ -296,6 +302,9 @@ const messages = {
     payrollFinalizedImmutable: "Une paie finalisée ne peut plus être modifiée.",
     personalPayrollOnly: "La paie personnelle est disponible pour une identité employé uniquement.",
     overtimeLineLabel: "Heures supplémentaires",
+    timeMultiplierPremiumLineLabel: "Prime de multiplicateur horaire",
+    timeMultiplierPremiumExplanation:
+      "Prime calculée selon le salaire mensuel, les jours travaillés de l’entreprise et les heures quotidiennes de l’employé.",
     additionsLineLabel: "Compléments",
     lateDeductionLineLabel: "Retenue pour retard",
     earlyCheckoutDeductionLineLabel: "Retenue pour départ anticipé",
@@ -410,6 +419,9 @@ const messages = {
     payrollFinalizedImmutable: "Eine finalisierte Lohnabrechnung kann nicht geändert werden.",
     personalPayrollOnly: "Die persönliche Lohnabrechnung ist nur für eine Mitarbeiteridentität verfügbar.",
     overtimeLineLabel: "Überstunden",
+    timeMultiplierPremiumLineLabel: "Stundenmultiplikator-Zuschlag",
+    timeMultiplierPremiumExplanation:
+      "Zuschlag berechnet aus Monatsgehalt, Arbeitstagen des Unternehmens und täglichen Arbeitsstunden des Mitarbeiters.",
     additionsLineLabel: "Zuschläge",
     lateDeductionLineLabel: "Abzug wegen Verspätung",
     earlyCheckoutDeductionLineLabel: "Abzug wegen frühem Feierabend",

@@ -816,6 +816,7 @@ export interface AttendanceCalculation {
   /** @minimum 0 */
   appliedOvertimeMultiplier: number;
   multiplierSource: string;
+  timeMultiplierPremiumMinutes: number;
   adjustments: AttendanceTimeAdjustment[];
   explanation: string[];
   calculatedAt: string;
@@ -996,6 +997,16 @@ export interface RequestDecisionInput {
 export interface RequestCancellationInput {
   /** @minLength 1 */
   reason: string;
+}
+
+export interface TimeMultiplier {
+  /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
+  from: string;
+  /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
+  to: string;
+  /** @minimum 0 */
+  multiplier: number;
+  enabled: boolean;
 }
 
 export type AttendanceRulesOvertimeMethod = typeof AttendanceRulesOvertimeMethod[keyof typeof AttendanceRulesOvertimeMethod];
@@ -1186,6 +1197,7 @@ export interface AttendanceRules {
   holidayDates: string[];
   holidayPeriods: AttendanceRulesHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesWeeklyMultipliersItem[];
+  timeMultipliers: TimeMultiplier[];
   absenceDeductsAnnualLeave: boolean;
   absenceLeaveDeductionTrigger: AttendanceRulesAbsenceLeaveDeductionTrigger;
   /** @minimum 0 */
@@ -1399,6 +1411,7 @@ export interface AttendanceRulesInput {
   holidayDates: string[];
   holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];
+  timeMultipliers: TimeMultiplier[];
   absenceDeductsAnnualLeave: boolean;
   absenceLeaveDeductionTrigger: AttendanceRulesInputAbsenceLeaveDeductionTrigger;
   /** @minimum 0 */
@@ -1742,6 +1755,7 @@ export interface PayrollEmployee {
   basicSalary: number;
   additions: number;
   overtime: number;
+  timeMultiplierPremium: number;
   attendanceDeductions: number;
   otherDeductions: number;
   netSalary: number;
@@ -1761,6 +1775,7 @@ export interface PayrollTotals {
   basicSalary: number;
   additions: number;
   overtime: number;
+  timeMultiplierPremium: number;
   attendanceDeductions: number;
   otherDeductions: number;
   netSalary: number;

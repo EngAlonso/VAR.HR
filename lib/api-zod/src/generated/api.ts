@@ -1166,6 +1166,7 @@ export const PreviewAttendanceCalculationResponse = zod.object({
   "finalPenaltyMinutes": zod.int().min(previewAttendanceCalculationResponseFinalPenaltyMinutesMin),
   "appliedOvertimeMultiplier": zod.number().min(previewAttendanceCalculationResponseAppliedOvertimeMultiplierMin),
   "multiplierSource": zod.string(),
+  "timeMultiplierPremiumMinutes": zod.number(),
   "adjustments": zod.array(zod.object({
   "id": zod.string(),
   "attendanceId": zod.string(),
@@ -1286,6 +1287,7 @@ export const RecalculateAttendanceResponse = zod.object({
   "finalPenaltyMinutes": zod.int().min(recalculateAttendanceResponseFinalPenaltyMinutesMin),
   "appliedOvertimeMultiplier": zod.number().min(recalculateAttendanceResponseAppliedOvertimeMultiplierMin),
   "multiplierSource": zod.string(),
+  "timeMultiplierPremiumMinutes": zod.number(),
   "adjustments": zod.array(zod.object({
   "id": zod.string(),
   "attendanceId": zod.string(),
@@ -2007,6 +2009,10 @@ export const getAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
 
 
+export const getAttendanceRulesResponseTimeMultipliersItemFromRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getAttendanceRulesResponseTimeMultipliersItemToRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getAttendanceRulesResponseTimeMultipliersItemMultiplierMin = 0;
+
 export const getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
 
 export const getAttendanceRulesResponseAnnualLeaveEntitlementMin = 0;
@@ -2060,6 +2066,12 @@ export const GetAttendanceRulesResponse = zod.object({
   "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
   "enabled": zod.boolean()
 })),
+  "timeMultipliers": zod.array(zod.object({
+  "from": zod.string().regex(getAttendanceRulesResponseTimeMultipliersItemFromRegExp),
+  "to": zod.string().regex(getAttendanceRulesResponseTimeMultipliersItemToRegExp),
+  "multiplier": zod.number().min(getAttendanceRulesResponseTimeMultipliersItemMultiplierMin),
+  "enabled": zod.boolean()
+})),
   "absenceDeductsAnnualLeave": zod.boolean(),
   "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
   "absenceLeaveDeductionDays": zod.number().min(getAttendanceRulesResponseAbsenceLeaveDeductionDaysMin),
@@ -2094,6 +2106,10 @@ export const updateAttendanceRulesBodyEarlyCheckoutDeductionFactorMin = 0;
 export const updateAttendanceRulesBodyAbsenceDeductionFactorMin = 0;
 
 
+
+export const updateAttendanceRulesBodyTimeMultipliersItemFromRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAttendanceRulesBodyTimeMultipliersItemToRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAttendanceRulesBodyTimeMultipliersItemMultiplierMin = 0;
 
 export const updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin = 0;
 
@@ -2149,6 +2165,12 @@ export const UpdateAttendanceRulesBody = zod.object({
   "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
   "enabled": zod.boolean()
 })),
+  "timeMultipliers": zod.array(zod.object({
+  "from": zod.string().regex(updateAttendanceRulesBodyTimeMultipliersItemFromRegExp),
+  "to": zod.string().regex(updateAttendanceRulesBodyTimeMultipliersItemToRegExp),
+  "multiplier": zod.number().min(updateAttendanceRulesBodyTimeMultipliersItemMultiplierMin),
+  "enabled": zod.boolean()
+})),
   "absenceDeductsAnnualLeave": zod.boolean(),
   "absenceLeaveDeductionTrigger": zod.enum(['unexcused_absence', 'any_absence']),
   "absenceLeaveDeductionDays": zod.number().min(updateAttendanceRulesBodyAbsenceLeaveDeductionDaysMin),
@@ -2179,6 +2201,10 @@ export const updateAttendanceRulesResponseEarlyCheckoutDeductionFactorMin = 0;
 export const updateAttendanceRulesResponseAbsenceDeductionFactorMin = 0;
 
 
+
+export const updateAttendanceRulesResponseTimeMultipliersItemFromRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAttendanceRulesResponseTimeMultipliersItemToRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAttendanceRulesResponseTimeMultipliersItemMultiplierMin = 0;
 
 export const updateAttendanceRulesResponseAbsenceLeaveDeductionDaysMin = 0;
 
@@ -2231,6 +2257,12 @@ export const UpdateAttendanceRulesResponse = zod.object({
   "weeklyMultipliers": zod.array(zod.object({
   "weekday": zod.enum(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']),
   "multiplier": zod.union([zod.literal(1),zod.literal(1.5),zod.literal(2),zod.literal(3)]),
+  "enabled": zod.boolean()
+})),
+  "timeMultipliers": zod.array(zod.object({
+  "from": zod.string().regex(updateAttendanceRulesResponseTimeMultipliersItemFromRegExp),
+  "to": zod.string().regex(updateAttendanceRulesResponseTimeMultipliersItemToRegExp),
+  "multiplier": zod.number().min(updateAttendanceRulesResponseTimeMultipliersItemMultiplierMin),
   "enabled": zod.boolean()
 })),
   "absenceDeductsAnnualLeave": zod.boolean(),
@@ -3073,6 +3105,7 @@ export const CalculatePayrollResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number(),
@@ -3102,6 +3135,7 @@ export const CalculatePayrollResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number()
@@ -3154,6 +3188,7 @@ export const GetPayrollCalculationResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number(),
@@ -3183,6 +3218,7 @@ export const GetPayrollCalculationResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number()
@@ -3323,6 +3359,7 @@ export const GetMyPayrollResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number(),
@@ -3352,6 +3389,7 @@ export const GetMyPayrollResponse = zod.object({
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
   "attendanceDeductions": zod.number(),
   "otherDeductions": zod.number(),
   "netSalary": zod.number()

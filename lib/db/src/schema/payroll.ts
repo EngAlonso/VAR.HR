@@ -34,6 +34,7 @@ export const payrollCalculationsTable = pgTable("var_hr_payroll_calculations", {
   basicSalary: numeric("basic_salary", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   additions: numeric("additions", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   overtime: numeric("overtime", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
+  timeMultiplierPremium: numeric("time_multiplier_premium", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   attendanceDeductions: numeric("attendance_deductions", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   otherDeductions: numeric("other_deductions", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),
   netSalary: numeric("net_salary", { precision: 14, scale: 2, mode: "number" }).notNull().default(0),

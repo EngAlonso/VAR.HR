@@ -2563,6 +2563,7 @@ components:
           finalPenaltyMinutes,
            appliedOvertimeMultiplier,
            multiplierSource,
+           timeMultiplierPremiumMinutes,
           adjustments,
           explanation,
           calculatedAt,
@@ -2619,6 +2620,7 @@ components:
         finalPenaltyMinutes: { type: integer, minimum: 0 }
         appliedOvertimeMultiplier: { type: number, minimum: 0 }
         multiplierSource: { type: string }
+        timeMultiplierPremiumMinutes: { type: number }
         adjustments:
           type: array
           items:
@@ -2836,6 +2838,14 @@ components:
       required: [reason]
       properties:
         reason: { type: string, minLength: 1 }
+    TimeMultiplier:
+      type: object
+      required: [from, to, multiplier, enabled]
+      properties:
+        from: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+        to: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+        multiplier: { type: number, minimum: 0 }
+        enabled: { type: boolean }
     AttendanceRules:
       type: object
       required:
@@ -2867,6 +2877,7 @@ components:
           holidayDates,
            holidayPeriods,
           weeklyMultipliers,
+           timeMultipliers,
           absenceDeductsAnnualLeave,
           absenceLeaveDeductionTrigger,
           absenceLeaveDeductionDays,
@@ -2938,6 +2949,10 @@ components:
                 enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
               multiplier: { type: number, enum: [1, 1.5, 2, 3] }
               enabled: { type: boolean }
+        timeMultipliers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeMultiplier"
         absenceDeductsAnnualLeave: { type: boolean }
         absenceLeaveDeductionTrigger:
           type: string
@@ -2985,6 +3000,7 @@ components:
           holidayDates,
            holidayPeriods,
             weeklyMultipliers,
+             timeMultipliers,
             absenceDeductsAnnualLeave,
             absenceLeaveDeductionTrigger,
             absenceLeaveDeductionDays,
@@ -3058,6 +3074,10 @@ components:
                 enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
               multiplier: { type: number, enum: [1, 1.5, 2, 3] }
               enabled: { type: boolean }
+        timeMultipliers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeMultiplier"
         absenceDeductsAnnualLeave: { type: boolean }
         absenceLeaveDeductionTrigger:
           type: string
@@ -3352,6 +3372,7 @@ components:
           basicSalary,
           additions,
           overtime,
+           timeMultiplierPremium,
           attendanceDeductions,
           otherDeductions,
           netSalary,
@@ -3371,6 +3392,7 @@ components:
         basicSalary: { type: number }
         additions: { type: number }
         overtime: { type: number }
+        timeMultiplierPremium: { type: number }
         attendanceDeductions: { type: number }
         otherDeductions: { type: number }
         netSalary: { type: number }
@@ -3423,6 +3445,7 @@ components:
           basicSalary,
           additions,
           overtime,
+           timeMultiplierPremium,
           attendanceDeductions,
           otherDeductions,
           netSalary,
@@ -3431,6 +3454,7 @@ components:
         basicSalary: { type: number }
         additions: { type: number }
         overtime: { type: number }
+        timeMultiplierPremium: { type: number }
         attendanceDeductions: { type: number }
         otherDeductions: { type: number }
         netSalary: { type: number }

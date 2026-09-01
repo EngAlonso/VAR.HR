@@ -10,6 +10,7 @@ export interface PayrollTotals {
   basicSalary: number;
   additions: number;
   overtime: number;
+  timeMultiplierPremium: number;
   attendanceDeductions: number;
   otherDeductions: number;
   netSalary: number;

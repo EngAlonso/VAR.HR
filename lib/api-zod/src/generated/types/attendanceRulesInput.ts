@@ -18,6 +18,7 @@ import type { AttendanceRulesInputOvertimeMethod } from './attendanceRulesInputO
 import type { AttendanceRulesInputPermissionCoveredMinutesMultiplier } from './attendanceRulesInputPermissionCoveredMinutesMultiplier';
 import type { AttendanceRulesInputWeeklyMultipliersItem } from './attendanceRulesInputWeeklyMultipliersItem';
 import type { AttendanceRulesInputWorkingDaysItem } from './attendanceRulesInputWorkingDaysItem';
+import type { TimeMultiplier } from './timeMultiplier';
 
 export interface AttendanceRulesInput {
   workStart: string;
@@ -58,6 +59,7 @@ export interface AttendanceRulesInput {
   holidayDates: string[];
   holidayPeriods: AttendanceRulesInputHolidayPeriodsItem[];
   weeklyMultipliers: AttendanceRulesInputWeeklyMultipliersItem[];
+  timeMultipliers: TimeMultiplier[];
   absenceDeductsAnnualLeave: boolean;
   absenceLeaveDeductionTrigger: AttendanceRulesInputAbsenceLeaveDeductionTrigger;
   /** @minimum 0 */

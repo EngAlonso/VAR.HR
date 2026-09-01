@@ -1876,6 +1876,17 @@ const pageCopy = {
     weeklyHolidayRulesDetail:
       "Configure weekly-day and holiday multipliers. When rules overlap, only the highest applicable multiplier is applied.",
     addWeeklyMultiplier: "Add weekly multiplier",
+    timeMultipliersTitle: "Time multipliers",
+    timeMultipliersDetail:
+      "Apply a multiplier to actual worked minutes inside a time window, including overnight windows such as 23:00–06:00.",
+    timeMultiplierFrom: "From",
+    timeMultiplierTo: "To",
+    timeMultiplierValue: "Multiplier",
+    addTimeMultiplier: "Add time multiplier",
+    noTimeMultipliers: "No time multipliers configured.",
+    timeMultiplierPremiumLineLabel: "Time multiplier premium",
+    timeMultiplierPremiumExplanation:
+      "Calculated from monthly salary, company working days, and the employee's daily working hours.",
     addHolidayMultiplier: "Add holiday multiplier",
     holidayPeriodName: "Holiday name",
     holidayPeriodFrom: "Start date",
@@ -2288,6 +2299,17 @@ const pageCopy = {
     weeklyHolidayRulesDetail:
       "حدد مضاعفات أيام الأسبوع والعطلات. عند تداخل القواعد يطبق أعلى مضاعف فقط.",
     addWeeklyMultiplier: "إضافة مضاعف أسبوعي",
+    timeMultipliersTitle: "مضاعفة الساعات",
+    timeMultipliersDetail:
+      "طبّق المعامل على الدقائق الفعلية داخل نطاق زمني، مع دعم النطاقات التي تعبر منتصف الليل مثل ٢٣:٠٠–٠٦:٠٠.",
+    timeMultiplierFrom: "من الساعة",
+    timeMultiplierTo: "إلى الساعة",
+    timeMultiplierValue: "المعامل",
+    addTimeMultiplier: "إضافة نطاق مضاعفة",
+    noTimeMultipliers: "لا توجد نطاقات مضاعفة للساعات.",
+    timeMultiplierPremiumLineLabel: "بدل مضاعفة الساعات",
+    timeMultiplierPremiumExplanation:
+      "يُحسب من الراتب الشهري وعدد أيام عمل الشركة وساعات العمل اليومية للموظف.",
     addHolidayMultiplier: "إضافة مضاعف عطلة",
     holidayPeriodName: "اسم العطلة",
     holidayPeriodFrom: "تاريخ البداية",
@@ -2848,6 +2870,17 @@ const pageCopy = {
     weeklyHolidayRulesDetail:
       "Configurez les multiplicateurs des jours de la semaine et des jours fériés. En cas de chevauchement, seul le multiplicateur le plus élevé s’applique.",
     addWeeklyMultiplier: "Ajouter un multiplicateur hebdomadaire",
+    timeMultipliersTitle: "Multiplicateurs horaires",
+    timeMultipliersDetail:
+      "Appliquez un multiplicateur aux minutes réellement travaillées dans une plage horaire, y compris les plages qui passent minuit.",
+    timeMultiplierFrom: "De",
+    timeMultiplierTo: "À",
+    timeMultiplierValue: "Multiplicateur",
+    addTimeMultiplier: "Ajouter une plage horaire",
+    noTimeMultipliers: "Aucun multiplicateur horaire configuré.",
+    timeMultiplierPremiumLineLabel: "Prime de multiplicateur horaire",
+    timeMultiplierPremiumExplanation:
+      "Calculée selon le salaire mensuel, les jours travaillés de l’entreprise et les heures quotidiennes de l’employé.",
     addHolidayMultiplier: "Ajouter un multiplicateur de jour férié",
     holidayPeriodName: "Nom du jour férié",
     holidayPeriodFrom: "Date de début",
@@ -3224,6 +3257,17 @@ const pageCopy = {
     weeklyHolidayRulesDetail:
       "Konfigurieren Sie Multiplikatoren für Wochentage und Feiertage. Bei Überschneidungen gilt nur der höchste Multiplikator.",
     addWeeklyMultiplier: "Wöchentlichen Multiplikator hinzufügen",
+    timeMultipliersTitle: "Stundenmultiplikatoren",
+    timeMultipliersDetail:
+      "Wenden Sie einen Multiplikator auf tatsächlich gearbeitete Minuten innerhalb eines Zeitfensters an, auch über Mitternacht hinweg.",
+    timeMultiplierFrom: "Von",
+    timeMultiplierTo: "Bis",
+    timeMultiplierValue: "Multiplikator",
+    addTimeMultiplier: "Zeitfenster hinzufügen",
+    noTimeMultipliers: "Keine Stundenmultiplikatoren konfiguriert.",
+    timeMultiplierPremiumLineLabel: "Stundenmultiplikator-Zuschlag",
+    timeMultiplierPremiumExplanation:
+      "Berechnet aus Monatsgehalt, Arbeitstagen des Unternehmens und täglichen Arbeitsstunden des Mitarbeiters.",
     addHolidayMultiplier: "Feiertagsmultiplikator hinzufügen",
     holidayPeriodName: "Feiertagsname",
     holidayPeriodFrom: "Startdatum",
@@ -4807,6 +4851,7 @@ const attendanceRuleFieldCopyKeys: Partial<Record<string, AppCopyKey>> = {
   holidayDates: "historyHolidayDates",
   holidayPeriods: "historyHolidayPeriods",
   weeklyMultipliers: "historyWeeklyMultipliers",
+  timeMultipliers: "timeMultipliersTitle",
   absenceDeductsAnnualLeave: "historyAbsenceDeductsAnnualLeave",
   absenceLeaveDeductionTrigger: "historyAbsenceLeaveDeductionTrigger",
   absenceLeaveDeductionDays: "historyAbsenceLeaveDeductionDays",
@@ -12119,6 +12164,7 @@ function Rules() {
         ...q.data,
         holidayPeriods: q.data.holidayPeriods || [],
         weeklyMultipliers: q.data.weeklyMultipliers || [],
+        timeMultipliers: q.data.timeMultipliers || [],
         absenceDeductsAnnualLeave: Boolean(
           q.data.absenceDeductsAnnualLeave,
         ),
@@ -12157,6 +12203,12 @@ function Rules() {
           overtimeAfterMinutes: Number(form.overtimeAfterMinutes),
           overtimeMultiplier: Number(form.overtimeMultiplier),
           hourlyRateDivisor: Number(form.hourlyRateDivisor),
+          timeMultipliers: (form.timeMultipliers || []).map((item: any) => ({
+            from: item.from,
+            to: item.to,
+            multiplier: Number(item.multiplier),
+            enabled: item.enabled !== false,
+          })),
           lateDeductionFactor: Number(form.lateDeductionFactor),
           earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
           absenceDeductionFactor: Number(form.absenceDeductionFactor),
@@ -12247,39 +12299,6 @@ function Rules() {
                   setForm({ ...form, overtimeAfterMinutes: value })
                 }
               />
-              <label className="block text-sm font-semibold">
-                {t("overtimeMultiplier")}
-                <select
-                  value={form.overtimeMultiplier}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      overtimeMultiplier: Number(event.target.value),
-                    })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  {![
-                    1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25,
-                  ].includes(Number(form.overtimeMultiplier)) && (
-                    <option value={form.overtimeMultiplier}>
-                      {form.overtimeMultiplier}×
-                    </option>
-                  )}
-                  {[1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
-                    (multiplier) => (
-                      <option key={multiplier} value={multiplier}>
-                        {multiplier}×
-                      </option>
-                    ),
-                  )}
-                </select>
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                  {locale === "ar"
-                    ? "يُطبّق على ساعات العمل الإضافي عند اختيار طريقة المضاعف."
-                    : "Applied to overtime hours when the multiplier method is selected."}
-                </span>
-              </label>
             </div>
             <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
               <input
@@ -12332,6 +12351,102 @@ function Rules() {
             </div>
           </Card>
           <Card className="order-3 p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {t("timeMultipliersTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("timeMultipliersDetail")}
+            </p>
+            <div className="mt-5 space-y-3">
+              {(form.timeMultipliers || []).map((item: any, index: number) => (
+                <div
+                  key={`${item.from}-${item.to}-${index}`}
+                  className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                >
+                  <Field
+                    label={t("timeMultiplierFrom")}
+                    type="time"
+                    value={item.from}
+                    required
+                    onChange={(value) => {
+                      const next = [...(form.timeMultipliers || [])];
+                      next[index] = { ...item, from: value };
+                      setForm({ ...form, timeMultipliers: next });
+                    }}
+                  />
+                  <Field
+                    label={t("timeMultiplierTo")}
+                    type="time"
+                    value={item.to}
+                    required
+                    onChange={(value) => {
+                      const next = [...(form.timeMultipliers || [])];
+                      next[index] = { ...item, to: value };
+                      setForm({ ...form, timeMultipliers: next });
+                    }}
+                  />
+                  <label className="block text-sm font-semibold">
+                    {t("timeMultiplierValue")}
+                    <select
+                      value={item.multiplier}
+                      onChange={(event) => {
+                        const next = [...(form.timeMultipliers || [])];
+                        next[index] = {
+                          ...item,
+                          multiplier: Number(event.target.value),
+                        };
+                        setForm({ ...form, timeMultipliers: next });
+                      }}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    >
+                      {[1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
+                        (multiplier) => (
+                          <option key={multiplier} value={multiplier}>
+                            {multiplier}×
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        timeMultipliers: (form.timeMultipliers || []).filter(
+                          (_: any, i: number) => i !== index,
+                        ),
+                      })
+                    }
+                  >
+                    {t("remove")}
+                  </Button>
+                </div>
+              ))}
+              {!(form.timeMultipliers || []).length && (
+                <p className="text-sm text-muted-foreground">
+                  {t("noTimeMultipliers")}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    timeMultipliers: [
+                      ...(form.timeMultipliers || []),
+                      { from: "23:00", to: "06:00", multiplier: 1.33, enabled: true },
+                    ],
+                  })
+                }
+              >
+                <Plus size={15} /> {t("addTimeMultiplier")}
+              </Button>
+            </div>
+          </Card>
+          <Card className="order-4 p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("weeklyHolidayRulesTitle")}
             </h2>

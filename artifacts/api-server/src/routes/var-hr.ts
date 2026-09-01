@@ -406,6 +406,118 @@ function scheduleDurationMinutes(startTime: string, endTime: string): number {
   return duration > 0 ? duration : duration + 1440;
 }
 
+type TimeMultiplierRule = {
+  from: string;
+  to: string;
+  multiplier: number;
+  enabled: boolean;
+};
+
+function timeMultiplierRangeOffsets(
+  rule: TimeMultiplierRule,
+  scheduleStart: string,
+) {
+  const from = clockMinutes(rule.from);
+  const to = clockMinutes(rule.to);
+  const end = to <= from ? to + 1440 : to;
+  return {
+    start: from - clockMinutes(scheduleStart),
+    end: end - clockMinutes(scheduleStart),
+  };
+}
+
+function timeMultiplierPremiumMinutes(input: {
+  checkIn: Date | null;
+  checkOut: Date | null;
+  attendanceDate: string;
+  scheduleStart: string;
+  timeZone: string;
+  netWorkedMinutes: number;
+  rules: TimeMultiplierRule[];
+}) {
+  if (!input.checkIn || !input.checkOut || input.netWorkedMinutes <= 0) {
+    return { premiumMinutes: 0, applied: [] as string[] };
+  }
+  const actualStart = localElapsedMinutes(
+    input.checkIn,
+    input.attendanceDate,
+    input.scheduleStart,
+    input.timeZone,
+  );
+  const actualEnd = localElapsedMinutes(
+    input.checkOut,
+    input.attendanceDate,
+    input.scheduleStart,
+    input.timeZone,
+  );
+  if (actualEnd <= actualStart) {
+    return { premiumMinutes: 0, applied: [] as string[] };
+  }
+  const rules = input.rules
+    .filter(
+      (rule) =>
+        rule.enabled &&
+        isValidClockTime(rule.from) &&
+        isValidClockTime(rule.to) &&
+        Number.isFinite(rule.multiplier) &&
+        rule.from !== rule.to,
+    )
+    .map((rule) => ({
+      rule,
+      range: timeMultiplierRangeOffsets(rule, input.scheduleStart),
+    }));
+  if (!rules.length) return { premiumMinutes: 0, applied: [] as string[] };
+
+  const boundaries = [actualStart, actualEnd];
+  for (const { range } of rules) {
+    for (let day = -2; day <= 2; day += 1) {
+      const offset = day * 1440;
+      const start = range.start + offset;
+      const end = range.end + offset;
+      if (end > actualStart && start < actualEnd) {
+        boundaries.push(
+          Math.max(actualStart, start),
+          Math.min(actualEnd, end),
+        );
+      }
+    }
+  }
+  boundaries.sort((a, b) => a - b);
+  const uniqueBoundaries = boundaries.filter(
+    (value, index) => index === 0 || value !== boundaries[index - 1],
+  );
+  const applied = new Set<string>();
+  let premiumMinutes = 0;
+  for (let index = 0; index < uniqueBoundaries.length - 1; index += 1) {
+    const start = uniqueBoundaries[index];
+    const end = uniqueBoundaries[index + 1];
+    if (end <= start) continue;
+    const midpoint = start + (end - start) / 2;
+    const matching = rules.filter(({ range }) =>
+      Array.from({ length: 5 }, (_, day) => day - 2).some((day) => {
+        const offset = day * 1440;
+        return (
+          midpoint >= range.start + offset && midpoint < range.end + offset
+        );
+      }),
+    );
+    const multiplier = Math.max(
+      1,
+      ...matching.map(({ rule }) => {
+        applied.add(`${rule.from}-${rule.to}: ${rule.multiplier}×`);
+        return rule.multiplier;
+      }),
+    );
+    premiumMinutes += (end - start) * (multiplier - 1);
+  }
+  const rawDuration = actualEnd - actualStart;
+  const paidRatio = Math.min(1, input.netWorkedMinutes / rawDuration);
+  return {
+    premiumMinutes: Math.round(premiumMinutes * paidRatio * 1000) / 1000,
+    applied: [...applied],
+  };
+}
+
 function isOvernightSchedule(
   schedule: Pick<EffectiveSchedule, "startTime" | "endTime" | "overnight">,
 ): boolean {
@@ -772,6 +884,7 @@ const defaultAttendanceRules = {
     multiplier: 1 | 1.5 | 2 | 3;
     enabled: boolean;
   }>,
+  timeMultipliers: [] as TimeMultiplierRule[],
   absenceDeductsAnnualLeave: false,
   absenceLeaveDeductionTrigger: "unexcused_absence" as
     | "unexcused_absence"
@@ -824,6 +937,10 @@ function rulesConfiguration(
     holidayDates: rules.holidayDates,
     holidayPeriods: rules.holidayPeriods,
     weeklyMultipliers: rules.weeklyMultipliers,
+    timeMultipliers:
+      "timeMultipliers" in rules && Array.isArray(rules.timeMultipliers)
+        ? rules.timeMultipliers
+        : defaultAttendanceRules.timeMultipliers,
     absenceDeductsAnnualLeave: rules.absenceDeductsAnnualLeave,
     absenceLeaveDeductionTrigger: rules.absenceLeaveDeductionTrigger,
     absenceLeaveDeductionDays: rules.absenceLeaveDeductionDays,
@@ -1199,7 +1316,13 @@ function overtimeMultiplierForDate(
 ) {
   const holiday = holidayMultiplierForDate(date, rules, holidays);
   const weekly = weeklyMultiplierForDate(date, rules);
-  return holiday.multiplier >= weekly.multiplier ? holiday : weekly;
+  const standard = {
+    multiplier: rules.overtimeMultiplier,
+    source: "standard",
+  };
+  return [holiday, weekly, standard].sort(
+    (a, b) => b.multiplier - a.multiplier,
+  )[0];
 }
 
 function isWorkingScheduleDay(
@@ -1468,6 +1591,15 @@ async function attendanceCalculationFor(
     0,
     metrics.netWorkedMinutes + manualMinutes,
   );
+  const timeMultiplier = timeMultiplierPremiumMinutes({
+    checkIn: attendance.checkIn,
+    checkOut: attendance.checkOut,
+    attendanceDate: attendance.date,
+    scheduleStart: schedule.startTime,
+    timeZone: context.company.timezone,
+    netWorkedMinutes: metrics.netWorkedMinutes,
+    rules: rules.timeMultipliers as TimeMultiplierRule[],
+  });
   const scheduledMinutes = scheduleDurationMinutes(
     schedule.startTime,
     schedule.endTime,
@@ -1649,6 +1781,7 @@ async function attendanceCalculationFor(
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
     `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
+    `Time multipliers: ${timeMultiplier.applied.length ? timeMultiplier.applied.join(", ") : "none"}; premium equivalent ${timeMultiplier.premiumMinutes.toFixed(3)} minutes.`,
     `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
     `Permission coverage uses merged approved windows (overlaps counted once): ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes${fullDayPermission ? "; full-day policy applies" : ""}.`,
     `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
@@ -1690,6 +1823,7 @@ async function attendanceCalculationFor(
     finalPenaltyMinutes,
     appliedOvertimeMultiplier: overtimeRate.multiplier,
     multiplierSource: overtimeRate.source,
+    timeMultiplierPremiumMinutes: timeMultiplier.premiumMinutes,
     adjustments: adjustmentRows,
     explanation,
     calculatedAt: new Date(),
@@ -6479,6 +6613,19 @@ router.put("/rules", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
+  if (
+    parsed.data.timeMultipliers.some(
+      (item) =>
+        !isValidClockTime(item.from) ||
+        !isValidClockTime(item.to) ||
+        item.from === item.to ||
+        !Number.isFinite(Number(item.multiplier)) ||
+        Number(item.multiplier) < 0,
+    )
+  ) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
   const current = await ensureAttendanceRules(context.companyId);
   const { reason, ...nextValues } = parsed.data;
   const previousValues = rulesConfiguration(current);
@@ -8441,6 +8588,7 @@ async function storedPayrollCalculation(
       basicSalary: row.calculation.basicSalary,
       additions: row.calculation.additions,
       overtime: row.calculation.overtime,
+      timeMultiplierPremium: row.calculation.timeMultiplierPremium,
       attendanceDeductions: row.calculation.attendanceDeductions,
       otherDeductions: row.calculation.otherDeductions,
       netSalary: row.calculation.netSalary,
@@ -8463,6 +8611,8 @@ async function storedPayrollCalculation(
       basicSalary: total.basicSalary + item.basicSalary,
       additions: total.additions + item.additions,
       overtime: total.overtime + item.overtime,
+      timeMultiplierPremium:
+        total.timeMultiplierPremium + item.timeMultiplierPremium,
       attendanceDeductions:
         total.attendanceDeductions + item.attendanceDeductions,
       otherDeductions: total.otherDeductions + item.otherDeductions,
@@ -8472,6 +8622,7 @@ async function storedPayrollCalculation(
       basicSalary: 0,
       additions: 0,
       overtime: 0,
+      timeMultiplierPremium: 0,
       attendanceDeductions: 0,
       otherDeductions: 0,
       netSalary: 0,
@@ -8837,8 +8988,12 @@ async function calculatePayrollPeriod(
           period.from,
         )
       : await attendanceRulesFor(context.companyId, period.from);
+    const employeeWorkingHours = Math.max(
+      0.01,
+      Number(row.employee.workingHours ?? rules.requiredHours ?? 8),
+    );
     const hourlyRate =
-      row.employee.salary / Math.max(1, rules.hourlyRateDivisor);
+      row.employee.salary / scheduledDayCount / employeeWorkingHours;
     const overtime = moneyValue(
       employeeCalculations.reduce(
         (total, calculation) =>
@@ -8850,6 +9005,15 @@ async function calculatePayrollPeriod(
               : 1),
         0,
       ),
+    );
+    const timeMultiplierPremium = moneyValue(
+      (employeeCalculations.reduce(
+        (total, calculation) =>
+          total + Number(calculation.timeMultiplierPremiumMinutes ?? 0),
+        0,
+      ) /
+        60) *
+        hourlyRate,
     );
     const latePenaltyMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.latePenaltyMinutes,
@@ -8911,7 +9075,8 @@ async function calculatePayrollPeriod(
     const netSalary = moneyValue(
       row.employee.salary +
         additions +
-        overtime -
+        overtime +
+        timeMultiplierPremium -
         attendanceDeductions -
         otherDeductions,
     );
@@ -8934,6 +9099,16 @@ async function calculatePayrollPeriod(
                 "overtimeExplanation",
                 { hours: overtimeHours.toFixed(2) },
               ),
+            },
+          ]
+        : []),
+      ...(timeMultiplierPremium !== 0
+        ? [
+            {
+              label: message(req, "timeMultiplierPremiumLineLabel"),
+              amount: timeMultiplierPremium,
+              type: "addition" as const,
+              explanation: message(req, "timeMultiplierPremiumExplanation"),
             },
           ]
         : []),
@@ -9008,6 +9183,7 @@ async function calculatePayrollPeriod(
       basicSalary: row.employee.salary,
       additions,
       overtime,
+      timeMultiplierPremium,
       attendanceDeductions,
       otherDeductions,
       netSalary,
