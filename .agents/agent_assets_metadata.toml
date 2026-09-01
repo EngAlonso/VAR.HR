@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "7GbPdabz4Bp2Kw5ZelxiB"
+uri = "file://scripts/VAR-HR-USB-Connector-Windows.zip"
+type = "unspecified"
+title = "VAR HR USB Connector for Windows"
+description = "ملف ZIP يحتوي على ملفات الموصل وشرح التثبيت العربي خطوة بخطوة. ثبّت SDK الرسمي من ZKTeco بشكل منفصل ثم اتبع الدليل الموجود داخل الملف."
+logical_id = "85740be4-1d10-4936-9a6b-db35a6e8244d"
+content_hash = "sha256:dae2b95e2595a94a2f9ee8e5ceca87df3371dfde7574eeecfece57388dd31cf0"
+size = 10873
+mtime_ms = 1788224353521
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:bf225b15-9e47-447b-9788-36888a8c7017/85740be4-1d10-4936-9a6b-db35a6e8244d/34957ea2-755d-405a-b3b4-b42bea220806"
+storage_version_token = "1788224357107573"
+content_type = "application/octet-stream"

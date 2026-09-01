@@ -4,6 +4,9 @@ This is the automatic Windows connector for USB-only ZKTeco attendance devices
 such as the LX15. It runs in the background, reads attendance records through
 the ZKTeco `ZKEMKeeper` SDK, and uploads them to VAR HR every few seconds.
 
+For the complete Arabic setup instructions, open
+`VAR-HR-USB-Connector-Install-Guide-ar.md`.
+
 ## One-time setup
 
 1. Install the ZKTeco Windows SDK that provides and registers
