@@ -55,6 +55,7 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
+  MoreHorizontal,
   Network,
   Plus,
   Printer,
@@ -870,6 +871,7 @@ const copy = {
     language: "Language",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
+    more: "More",
     back: "Back",
     goBack: "Go back",
     languageEnglish: "English",
@@ -1244,6 +1246,7 @@ const copy = {
     language: "اللغة",
     openNavigation: "فتح التنقل",
     closeNavigation: "إغلاق التنقل",
+    more: "المزيد",
     back: "رجوع",
     goBack: "العودة",
     languageEnglish: "الإنجليزية",
@@ -1519,6 +1522,7 @@ const copy = {
     language: "Langue",
     openNavigation: "Ouvrir la navigation",
     closeNavigation: "Fermer la navigation",
+    more: "Plus",
     languageEnglish: "Anglais",
     languageArabic: "Arabe",
     languageFrench: "Français",
@@ -1623,6 +1627,7 @@ const copy = {
     language: "Sprache",
     openNavigation: "Navigation öffnen",
     closeNavigation: "Navigation schließen",
+    more: "Mehr",
     languageEnglish: "Englisch",
     languageArabic: "Arabisch",
     languageFrench: "Französisch",
@@ -6936,9 +6941,23 @@ function Shell({ children }: { children: ReactNode }) {
     isPlatformOwner || workspace.role === "company_owner"
       ? []
       : secondaryNav.filter(canSee);
+  const mobileNavPool = isPlatformOwner ? visibleNav : nav.filter(canSee);
+  const mobilePrimaryKeys = isPlatformOwner
+    ? (["platformOwner", "databaseAdministration", "accountSettings"] as const)
+    : (["overview", "attendance", "requests", "hrProfile"] as const);
+  const mobilePrimaryNav = mobilePrimaryKeys
+    .map((key) => mobileNavPool.find((item) => item.key === key))
+    .filter((item): item is NavItem => Boolean(item));
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
+  const accountInitials = auth.account.fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "V";
   return (
     <div
       className="app-noise min-h-[100dvh] bg-background"
@@ -7058,10 +7077,29 @@ function Shell({ children }: { children: ReactNode }) {
             ))}
           </nav>
         </div>
-        <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-3">
-          <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/55">
-            {t("authNotConnected")}
-          </p>
+        <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">
+              {accountInitials}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                {auth.account.fullName}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-sidebar-foreground/55">
+                {roleLabel(workspace.role, t)}
+              </p>
+            </div>
+            <Button
+              variant="quiet"
+              className="ms-auto shrink-0 p-2 text-sidebar-foreground/65 hover:bg-white/10 hover:text-sidebar-foreground"
+              title={authLabel(locale, "logout")}
+              aria-label={authLabel(locale, "logout")}
+              onClick={() => void auth.signOut()}
+            >
+              <LogOut size={17} />
+            </Button>
+          </div>
         </div>
       </aside>
       <button
@@ -7077,11 +7115,11 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-4 sm:flex sm:gap-0 sm:px-8">
+        <header className="relative sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md sm:h-[72px] sm:px-8 sm:flex sm:gap-0">
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
-              className="min-h-10 min-w-10 p-2 lg:hidden"
+              className="min-h-10 min-w-10 rounded-xl p-2 lg:hidden"
               onClick={() => setOpen(true)}
               aria-label={t("openNavigation")}
               aria-controls="workspace-navigation"
@@ -7094,7 +7132,7 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-9 w-[clamp(42px,14vw,56px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-9 w-[clamp(44px,15vw,58px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
                 variant="short"
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
@@ -7143,6 +7181,17 @@ function Shell({ children }: { children: ReactNode }) {
               </select>
             </div>
             <Button
+              variant="outline"
+              className="grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
+              onClick={() => setLocation("/profile")}
+              aria-label={t("profileEmployee")}
+              data-testid="button-mobile-profile"
+            >
+              <span className="font-display text-xs font-bold">
+                {accountInitials}
+              </span>
+            </Button>
+            <Button
               variant="quiet"
               className="hidden p-2 sm:inline-flex"
               title={authLabel(locale, "logout")}
@@ -7162,9 +7211,60 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 py-5 sm:px-8 sm:py-9">
+        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
           {children}
         </main>
+        <nav
+          className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
+          aria-label={t("openNavigation")}
+        >
+          {mobilePrimaryNav.map(({ href, key, icon: Icon }) => {
+            const isActive =
+              location === href ||
+              (href !== "/" && location.startsWith(`${href}/`));
+            const label =
+              key === "hrProfile"
+                ? auth.account.accountType === "company_owner"
+                  ? t("profileCompanyOwner")
+                  : auth.account.accountType === "staff"
+                    ? t("profileStaff")
+                    : t("profileEmployee")
+                : t(key);
+            return (
+              <Link
+                key={`${href}-${key}`}
+                href={href}
+                className={cn(
+                  "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors",
+                  isActive
+                    ? "bg-primary/15 text-primary-dark"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                aria-current={isActive ? "page" : undefined}
+                data-testid={`mobile-nav-${key}`}
+              >
+                <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="max-w-full truncate">{label}</span>
+                {href === "/requests" && pendingRequests > 0 ? (
+                  <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    {pendingRequests}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            onClick={() => setOpen(true)}
+            aria-controls="workspace-navigation"
+            aria-expanded={open}
+            data-testid="button-mobile-more"
+          >
+            <MoreHorizontal size={18} strokeWidth={1.8} />
+            <span className="max-w-full truncate">{t("more")}</span>
+          </button>
+        </nav>
       </div>
     </div>
   );
