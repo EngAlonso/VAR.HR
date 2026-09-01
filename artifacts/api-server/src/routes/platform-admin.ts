@@ -467,6 +467,10 @@ function sqlIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
+function sqlStringLiteral(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 function safeRow(row: Record<string, unknown>) {
   const copy = { ...row };
   delete copy.password_hash;
@@ -641,12 +645,12 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   const predicates = [
     ...(companyId && config.companyColumn
       ? [
-          `${sqlIdentifier(config.companyColumn)} = ${JSON.stringify(companyId)}`,
+          `${sqlIdentifier(config.companyColumn)} = ${sqlStringLiteral(companyId)}`,
         ]
       : []),
     ...(search
       ? [
-          `to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${JSON.stringify(`%${search}%`)}`,
+          `to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${sqlStringLiteral(`%${search}%`)}`,
         ]
       : []),
   ];
@@ -703,7 +707,7 @@ router.get(
     }
     const where =
       companyId && config.companyColumn
-        ? ` WHERE ${config.companyColumn} = ${JSON.stringify(companyId)}`
+        ? ` WHERE ${sqlIdentifier(config.companyColumn)} = ${sqlStringLiteral(companyId)}`
         : "";
     const result = await db.execute(
       sql.raw(
@@ -868,7 +872,7 @@ router.patch(
     const [before] = (
       await db.execute(
         sql.raw(
-          `SELECT * FROM ${config.table} WHERE id = ${JSON.stringify(req.params.id)} LIMIT 1`,
+          `SELECT * FROM ${sqlIdentifier(config.table)} WHERE ${sqlIdentifier("id")} = ${sqlStringLiteral(req.params.id)} LIMIT 1`,
         ),
       )
     ).rows as Record<string, unknown>[];
@@ -982,7 +986,11 @@ router.post(
     const field = req.params.entity === "employees" ? "status" : "active";
     const value = req.params.entity === "employees" ? "inactive" : false;
     const [before] = (
-      await db.execute(sql.raw(`SELECT * FROM ${table} WHERE id = ${JSON.stringify(req.params.id)} LIMIT 1`))
+      await db.execute(
+        sql.raw(
+          `SELECT * FROM ${sqlIdentifier(table)} WHERE ${sqlIdentifier("id")} = ${sqlStringLiteral(req.params.id)} LIMIT 1`,
+        ),
+      )
     ).rows as Record<string, unknown>[];
     if (!before || !idSchema.safeParse(String(before.company_id ?? "")).success) {
       res.status(404).json({ error: "Record not found." });

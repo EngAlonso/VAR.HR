@@ -10,6 +10,10 @@ const authRoute = readFileSync(
   new URL("../src/routes/auth.ts", import.meta.url),
   "utf8",
 );
+const platformAdminRoute = readFileSync(
+  new URL("../src/routes/platform-admin.ts", import.meta.url),
+  "utf8",
+);
 const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
@@ -158,6 +162,15 @@ test("platform activity card translates its labels for every supported locale", 
   assert.match(app, /href="\/platform\/activity"/);
   assert.match(app, /function PlatformActivityPage\(\)/);
   assert.match(app, /value\.startsWith\("database:"\)/);
+});
+
+test("platform database search uses SQL string literals safely", () => {
+  assert.match(platformAdminRoute, /function sqlStringLiteral\(value: string\)/);
+  assert.match(
+    platformAdminRoute,
+    /ILIKE \$\{sqlStringLiteral\(`%\$\{search\}%`\)\}/,
+  );
+  assert.doesNotMatch(platformAdminRoute, /ILIKE \$\{JSON\.stringify/);
 });
 
 test("working days are configured in attendance rules, not shifts", () => {
