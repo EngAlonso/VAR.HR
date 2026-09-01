@@ -725,6 +725,8 @@ const copy = {
     supportEdit: "Support edit",
     supportEditHint:
       "Only approved operational fields are editable. Company ownership and authentication fields are locked.",
+    databaseEditHint:
+      "Only fields approved for this data type are editable. Record IDs, company ownership, and authentication fields stay locked.",
     inspectionOnly:
       "Platform owner support access — record deletions are permanent and audited.",
     beforeValue: "Before value",
@@ -2570,6 +2572,8 @@ const pageCopy = {
     supportEdit: "تعديل الدعم",
     supportEditHint:
       "يمكن تعديل الحقول التشغيلية المعتمدة فقط. ملكية الشركة وحقول المصادقة مقفلة.",
+    databaseEditHint:
+      "يمكن تعديل الحقول المسموح بها لهذا النوع فقط. المعرّفات وملكية الشركة وحقول المصادقة مقفلة.",
     inspectionOnly:
       "وصول دعم لمالك المنصة — حذف السجلات نهائي ويتم تسجيله في سجل التدقيق.",
     beforeValue: "القيمة قبل التغيير",
@@ -16386,6 +16390,14 @@ function DatabaseAdministration() {
   useEffect(() => {
     if (entity) void load();
   }, [entity, companyFilter]);
+  const usesSupportEditor =
+    Boolean(data?.supportEditable?.length) &&
+    supportedDatabaseActions.has(data?.key ?? "");
+  const editFields = data
+    ? usesSupportEditor
+      ? data.supportEditable ?? []
+      : data.editable ?? []
+    : [];
   const exportData = async () => {
     setPending("export");
     try {
@@ -16412,22 +16424,31 @@ function DatabaseAdministration() {
     setEditing(row);
     setEditValues(
       Object.fromEntries(
-        (data?.supportEditable ?? []).map((key) => [key, row[key] ?? ""]),
+        editFields.map((key) => [key, row[key] ?? ""]),
       ),
     );
   };
-  const saveSupport = async () => {
+  const saveEdit = async () => {
     if (!editing || !data) return;
     setPending("save");
     try {
-      await authRequest(`/api/platform/database/${data.key}/${editing.id}/support`, {
+      const endpoint = usesSupportEditor
+        ? `/api/platform/database/${data.key}/${editing.id}/support`
+        : `/api/platform/database/${data.key}/${editing.id}`;
+      await authRequest(endpoint, {
         method: "PATCH",
         body: JSON.stringify({ values: editValues }),
       });
       setEditing(null);
       await load();
     } catch (cause) {
-      setError(t("couldNotSaveSupportedChanges"));
+      setError(
+        t(
+          usesSupportEditor
+            ? "couldNotSaveSupportedChanges"
+            : "couldNotSaveRecord",
+        ),
+      );
     } finally {
       setPending("");
     }
@@ -16655,7 +16676,7 @@ function DatabaseAdministration() {
                     </th>
                   ))}
                     {(supportsDatabaseActions ||
-                      data.supportEditable?.length ||
+                      editFields.length ||
                       data.canArchive ||
                       data.canDelete) && (
                     <th className="p-3 font-semibold">{t("actions")}</th>
@@ -16687,7 +16708,7 @@ function DatabaseAdministration() {
                       </td>
                     ))}
                       {(supportsDatabaseActions ||
-                        data.supportEditable?.length ||
+                        editFields.length ||
                         data.canArchive ||
                         data.canDelete) && (
                       <td className="p-3">
@@ -16702,7 +16723,7 @@ function DatabaseAdministration() {
                                </Button>
                              </>
                            ) : null}
-                          {data.supportEditable?.length ? (
+                          {editFields.length ? (
                             <Button variant="outline" onClick={() => openEdit(row)}>
                               {t("edit")}
                             </Button>
@@ -16743,15 +16764,15 @@ function DatabaseAdministration() {
       </Card>
       {editing && data && (
         <Modal
-           title={`${t("supportEdit")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
+           title={`${t("editRecord")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
           onClose={() => setEditing(null)}
           className="max-w-2xl"
         >
           <p className="mb-4 text-sm text-muted-foreground">
-             {t("supportEditHint")}
+             {t(usesSupportEditor ? "supportEditHint" : "databaseEditHint")}
           </p>
           <div className="space-y-3">
-            {(data.supportEditable ?? []).map((key) => (
+            {editFields.map((key) => (
               <Field
                 key={key}
                  label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
@@ -16766,7 +16787,7 @@ function DatabaseAdministration() {
             <Button variant="quiet" onClick={() => setEditing(null)}>
               {t("cancel")}
             </Button>
-            <Button onClick={() => void saveSupport()} disabled={pending !== ""}>
+            <Button onClick={() => void saveEdit()} disabled={pending !== ""}>
               {pending === "save" ? "…" : t("saveChanges")}
             </Button>
           </div>

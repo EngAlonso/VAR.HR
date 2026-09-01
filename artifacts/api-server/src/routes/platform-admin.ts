@@ -446,6 +446,22 @@ const supportFields: Record<string, string[]> = {
     "radius_meters",
   ],
 };
+const databaseBooleanFields = new Set([
+  "active",
+  "gps_enabled",
+  "overtime_eligible",
+  "recurring",
+]);
+const databaseNumericFields = new Set([
+  "latitude",
+  "longitude",
+  "radius_meters",
+  "required_hours",
+  "grace_minutes",
+  "worked_hours",
+  "overtime_hours",
+  "salary",
+]);
 const safeHistoryValue = (value: unknown): unknown => {
   if (!value || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(safeHistoryValue);
@@ -823,6 +839,112 @@ router.get(
       })),
     ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
     res.json({ entity: req.params.entity, label: config.label, history });
+  },
+);
+
+router.patch(
+  "/platform/database/:entity/:id",
+  async (req, res): Promise<void> => {
+    const config = configFor(req.params.entity);
+    const context = await requirePlatformOwner(req);
+    if (!config.editable.length) {
+      res.status(403).json({ error: "This entity does not support platform editing." });
+      return;
+    }
+    if (!idSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: "A valid record id is required." });
+      return;
+    }
+    const parsed = supportValuesSchema.safeParse(req.body?.values);
+    if (!parsed.success || !Object.keys(parsed.data).length) {
+      res.status(400).json({ error: "Provide fields to update." });
+      return;
+    }
+    const keys = Object.keys(parsed.data);
+    if (keys.some((key) => !config.editable.includes(key))) {
+      res.status(400).json({ error: "One or more fields are not allowed." });
+      return;
+    }
+    const normalizedValues: Record<string, unknown> = {};
+    for (const key of keys) {
+      const value = parsed.data[key];
+      if (databaseBooleanFields.has(key)) {
+        if (typeof value === "boolean") {
+          normalizedValues[key] = value;
+        } else if (value === "true" || value === "false") {
+          normalizedValues[key] = value === "true";
+        } else {
+          res.status(400).json({ error: `${key} must be true or false.` });
+          return;
+        }
+      } else if (databaseNumericFields.has(key)) {
+        if (value === "" || value === null) {
+          normalizedValues[key] = null;
+        } else {
+          const numericValue =
+            typeof value === "number" ? value : Number(value);
+          if (!Number.isFinite(numericValue)) {
+            res.status(400).json({ error: `${key} must be a valid number.` });
+            return;
+          }
+          normalizedValues[key] = numericValue;
+        }
+      } else if (
+        value === null ||
+        typeof value === "string" ||
+        typeof value === "number"
+      ) {
+        normalizedValues[key] = value;
+      } else {
+        res.status(400).json({ error: `${key} has an invalid value.` });
+        return;
+      }
+    }
+    const table = sql.raw(sqlIdentifier(config.table));
+    const idColumn = sql.raw(sqlIdentifier("id"));
+    const [before] = (
+      await db.execute(
+        sql`SELECT * FROM ${table} WHERE ${idColumn} = ${req.params.id} LIMIT 1`,
+      )
+    ).rows as Record<string, unknown>[];
+    if (!before) {
+      res.status(404).json({ error: "Record not found." });
+      return;
+    }
+    const setParts = keys.map(
+      (key) =>
+        sql`${sql.raw(sqlIdentifier(key))} = ${normalizedValues[key]}`,
+    );
+    if (config.hasUpdatedAt) setParts.push(sql`updated_at = now()`);
+    const result = await db.execute(
+      sql`UPDATE ${table} SET ${sql.join(setParts, sql`, `)} WHERE ${idColumn} = ${req.params.id} RETURNING ${sql.raw(config.columns.map(sqlIdentifier).join(", "))}`,
+    );
+    const after = safeRow((result.rows[0] ?? {}) as Record<string, unknown>);
+    const companyId =
+      typeof before.company_id === "string"
+        ? before.company_id
+        : config.companyColumn === "id" && typeof before.id === "string"
+          ? before.id
+          : null;
+    await db.insert(auditLogsTable).values({
+      companyId,
+      actorType: "platform_owner",
+      actorId: context.accountId,
+      action: "updated",
+      entityType: req.params.entity,
+      entityId: req.params.id,
+      before: safeHistoryValue(before),
+      after,
+    });
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId,
+      action: "database_updated",
+      entityType: `database:${req.params.entity}`,
+      entityId: req.params.id,
+      metadata: { fields: keys, actorRole: "platform_owner" },
+    });
+    res.json({ row: after });
   },
 );
 

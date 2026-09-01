@@ -173,6 +173,18 @@ test("platform database search uses SQL string literals safely", () => {
   assert.doesNotMatch(platformAdminRoute, /ILIKE \$\{JSON\.stringify/);
 });
 
+test("platform database editing is restricted to configured fields and wired to the UI", () => {
+  assert.match(
+    platformAdminRoute,
+    /router\.patch\(\s*"\/platform\/database\/:entity\/:id"/,
+  );
+  assert.match(platformAdminRoute, /if \(!config\.editable\.length\)/);
+  assert.match(platformAdminRoute, /action: "database_updated"/);
+  assert.match(app, /const editFields = data/);
+  assert.match(app, /const endpoint = usesSupportEditor/);
+  assert.match(app, /body: JSON\.stringify\(\{ values: editValues \}\)/);
+});
+
 test("working days are configured in attendance rules, not shifts", () => {
   assert.match(app, /workingDaysTitle/);
   assert.match(app, /workingDaysDetail/);
