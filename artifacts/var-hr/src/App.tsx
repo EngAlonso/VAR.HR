@@ -1100,6 +1100,7 @@ const copy = {
     workEnds: "Work ends",
     gracePeriodMinutes: "Grace period (minutes)",
     overtimeAfterMinutes: "Overtime after (minutes)",
+    overtimeMultiplier: "Overtime hour multiplier",
     locationVerification: "Location verification",
     gpsPolicy: "GPS policy",
     disabled: "Disabled",
@@ -2233,6 +2234,7 @@ const pageCopy = {
     earlyDepartureGrace: "فترة السماح للانصراف المبكر (بالدقائق)",
     overtimeStartsAfter: "يبدأ العمل الإضافي بعد (بالدقائق)",
     overtimeAfter: "العمل الإضافي بعد (بالدقائق)",
+    overtimeMultiplier: "مضاعف ساعة العمل الإضافي",
     locationVerification: "التحقق من الموقع",
     gpsPolicy: "سياسة GPS",
     disabled: "معطل",
@@ -2859,6 +2861,7 @@ const pageCopy = {
     earlyDepartureGrace: "Délai de grâce pour départ anticipé (minutes)",
     overtimeStartsAfter: "Les heures supplémentaires commencent après (minutes)",
     overtimeAfter: "Heures supplémentaires après (minutes)",
+    overtimeMultiplier: "Multiplicateur d’une heure supplémentaire",
     locationVerification: "Vérification de localisation",
     gpsPolicy: "Politique GPS",
     disabled: "Désactivé",
@@ -3234,6 +3237,7 @@ const pageCopy = {
     earlyDepartureGrace: "Kulanzzeit bei frühem Feierabend (Minuten)",
     overtimeStartsAfter: "Überstunden beginnen nach (Minuten)",
     overtimeAfter: "Überstunden ab (Minuten)",
+    overtimeMultiplier: "Multiplikator für eine Überstunde",
     locationVerification: "Standortprüfung",
     gpsPolicy: "GPS-Richtlinie",
     disabled: "Deaktiviert",
@@ -12243,6 +12247,39 @@ function Rules() {
                   setForm({ ...form, overtimeAfterMinutes: value })
                 }
               />
+              <label className="block text-sm font-semibold">
+                {t("overtimeMultiplier")}
+                <select
+                  value={form.overtimeMultiplier}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      overtimeMultiplier: Number(event.target.value),
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  {![
+                    1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25,
+                  ].includes(Number(form.overtimeMultiplier)) && (
+                    <option value={form.overtimeMultiplier}>
+                      {form.overtimeMultiplier}×
+                    </option>
+                  )}
+                  {[1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
+                    (multiplier) => (
+                      <option key={multiplier} value={multiplier}>
+                        {multiplier}×
+                      </option>
+                    ),
+                  )}
+                </select>
+                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                  {locale === "ar"
+                    ? "يُطبّق على ساعات العمل الإضافي عند اختيار طريقة المضاعف."
+                    : "Applied to overtime hours when the multiplier method is selected."}
+                </span>
+              </label>
             </div>
             <label className="mt-5 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold">
               <input
