@@ -169,9 +169,36 @@ const zktecoAdmsProvider: BiometricProviderAdapter = {
   },
 };
 
+const zktecoUsbProvider: BiometricProviderAdapter = {
+  key: "zkteco-usb",
+  name: "ZKTeco USB Connector",
+  available: true,
+  description: "Attendance is synchronized by the VAR HR Windows USB Connector.",
+  async connect() {
+    return {
+      status: "unsupported",
+      message:
+        "USB devices are connected through the VAR HR Windows USB Connector.",
+    };
+  },
+  async syncEmployees() {
+    throw new BiometricProviderError(
+      "employee_sync",
+      "The USB Connector is configured for attendance synchronization only.",
+    );
+  },
+  async syncAttendance() {
+    throw new BiometricProviderError(
+      "attendance_sync",
+      "The VAR HR Windows USB Connector must be running on the company computer.",
+    );
+  },
+};
+
 const providers = new Map<string, BiometricProviderAdapter>([
   [mockProvider.key, mockProvider],
   [zktecoAdmsProvider.key, zktecoAdmsProvider],
+  [zktecoUsbProvider.key, zktecoUsbProvider],
   [unavailableProvider.key, unavailableProvider],
 ]);
 

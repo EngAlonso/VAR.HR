@@ -3409,7 +3409,7 @@ export const CreateDeviceBody = zod.object({
   "model": zod.string(),
   "branchId": zod.string(),
   "adapterKey": zod.string().min(1).default(createDeviceBodyAdapterKeyDefault),
-  "connectionType": zod.enum(['unknown', 'lan', 'http', 'cloud']).default(createDeviceBodyConnectionTypeDefault),
+  "connectionType": zod.enum(['unknown', 'usb', 'lan', 'http', 'cloud']).default(createDeviceBodyConnectionTypeDefault),
   "host": zod.string().optional(),
   "port": zod.int().min(1).max(createDeviceBodyPortMax).optional(),
   "deviceIdentifier": zod.string().optional()

@@ -14,6 +14,10 @@ const platformAdminRoute = readFileSync(
   new URL("../src/routes/platform-admin.ts", import.meta.url),
   "utf8",
 );
+const deviceConnectorRoute = readFileSync(
+  new URL("../src/routes/device-connector.ts", import.meta.url),
+  "utf8",
+);
 const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
@@ -183,6 +187,17 @@ test("platform database editing is restricted to configured fields and wired to 
   assert.match(app, /const editFields = data/);
   assert.match(app, /const endpoint = usesSupportEditor/);
   assert.match(app, /body: JSON\.stringify\(\{ values: editValues \}\)/);
+});
+
+test("USB connector ingestion is device-key protected and idempotent", () => {
+  assert.match(
+    deviceConnectorRoute,
+    /"\/connector\/v1\/devices\/:deviceId\/events"/,
+  );
+  assert.match(deviceConnectorRoute, /x-var-hr-registration-key/);
+  assert.match(deviceConnectorRoute, /onConflictDoNothing/);
+  assert.match(deviceConnectorRoute, /applyProviderAttendanceEvent/);
+  assert.match(deviceConnectorRoute, /providerKey: "zkteco-usb"/);
 });
 
 test("working days are configured in attendance rules, not shifts", () => {

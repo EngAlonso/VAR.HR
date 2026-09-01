@@ -9498,7 +9498,7 @@ router.post("/devices", async (req, res): Promise<void> => {
     return;
   }
   const registrationKey =
-    parsed.data.adapterKey === "zkteco-adms" &&
+    ["zkteco-adms", "zkteco-usb"].includes(parsed.data.adapterKey) &&
     parsed.data.manufacturer.trim().toLowerCase() === "zkteco"
       ? randomBytes(32).toString("base64url")
       : null;

@@ -3732,6 +3732,7 @@ const part4Copy = {
     deviceConnectionHttp: "HTTP",
     deviceConnectionCloud: "Cloud",
     deviceConnectionUnknown: "Unknown",
+    deviceConnectionUsb: "USB connector",
     connectionStateUnreachable: "Unreachable",
     connectionStateAuthFailure: "Authentication failure",
     connectionStateUnsupported: "Unsupported",
@@ -3812,6 +3813,7 @@ const part4Copy = {
     deviceConnectionHttp: "HTTP",
     deviceConnectionCloud: "سحابي",
     deviceConnectionUnknown: "غير معروف",
+    deviceConnectionUsb: "موصل USB",
     connectionStateUnreachable: "لا يمكن الوصول إليه",
     connectionStateAuthFailure: "فشل المصادقة",
     connectionStateUnsupported: "غير مدعوم",
@@ -3896,6 +3898,7 @@ const part4Copy = {
     deviceConnectionHttp: "HTTP",
     deviceConnectionCloud: "Cloud",
     deviceConnectionUnknown: "Inconnu",
+    deviceConnectionUsb: "Connecteur USB",
     connectionStateUnreachable: "Injoignable",
     connectionStateAuthFailure: "Échec d’authentification",
     connectionStateUnsupported: "Non pris en charge",
@@ -3982,6 +3985,7 @@ const part4Copy = {
     deviceConnectionHttp: "HTTP",
     deviceConnectionCloud: "Cloud",
     deviceConnectionUnknown: "Unbekannt",
+    deviceConnectionUsb: "USB-Connector",
     connectionStateUnreachable: "Nicht erreichbar",
     connectionStateAuthFailure: "Authentifizierungsfehler",
     connectionStateUnsupported: "Nicht unterstützt",
@@ -17505,6 +17509,7 @@ function Devices() {
   const [show, setShow] = useState(false);
   const [editingBranch, setEditingBranch] = useState<any | null>(null);
   const [registrationKey, setRegistrationKey] = useState<string | null>(null);
+  const [registrationMode, setRegistrationMode] = useState<"usb" | "adms">("adms");
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [form, setForm] = useState({
     name: "",
@@ -17552,7 +17557,8 @@ function Devices() {
       connectionType: form.connectionType as any,
       port: form.port ? Number(form.port) : undefined,
       host: form.host || undefined,
-      adapterKey: form.adapterKey || undefined,
+      adapterKey:
+        form.adapterKey || (form.connectionType === "usb" ? "zkteco-usb" : undefined),
       deviceIdentifier: form.deviceIdentifier || undefined,
     };
     create.mutate(
@@ -17563,6 +17569,7 @@ function Devices() {
           setShow(false);
           if (createdDevice.registrationKey) {
             setRegistrationKey(createdDevice.registrationKey);
+            setRegistrationMode(form.connectionType === "usb" ? "usb" : "adms");
           }
           setForm({
             name: "",
@@ -18136,6 +18143,7 @@ function Devices() {
                   <option value="unknown">
                     {t("deviceConnectionUnknown")}
                   </option>
+                  <option value="usb">{t("deviceConnectionUsb")}</option>
                   <option value="lan">{t("deviceConnectionLan")}</option>
                   <option value="http">{t("deviceConnectionHttp")}</option>
                   <option value="cloud">{t("deviceConnectionCloud")}</option>
@@ -18242,12 +18250,18 @@ function Devices() {
       )}
       {registrationKey && (
         <Modal
-          title="ZKTeco ADMS registration key"
+          title={
+            registrationMode === "usb"
+              ? "ZKTeco USB connector key"
+              : "ZKTeco ADMS registration key"
+          }
           onClose={() => setRegistrationKey(null)}
         >
           <div className="space-y-4">
             <div className="rounded-lg border border-accent/30 bg-accent/10 p-4 text-sm">
-              Save this key now. It is shown only once and is used as the device Comm Key.
+              {registrationMode === "usb"
+                ? "Save this key now. It is shown only once and is used by the VAR HR Windows USB Connector."
+                : "Save this key now. It is shown only once and is used as the device Comm Key."}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
               <code className="min-w-0 flex-1 break-all text-sm">{registrationKey}</code>
@@ -18259,9 +18273,15 @@ function Devices() {
               </Button>
             </div>
             <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-              Configure the K50 Pro to use your published HTTPS host with ADMS path
-              <code className="mx-1 font-semibold text-foreground">/iclock</code>.
-              Keep the device ID equal to its Serial Number.
+              {registrationMode === "usb" ? (
+                "Enter this key in the connector configuration together with the device ID. The connector must run on the Windows computer connected to the LX15."
+              ) : (
+                <>
+                  Configure the K50 Pro to use your published HTTPS host with ADMS path
+                  <code className="mx-1 font-semibold text-foreground">/iclock</code>.
+                  Keep the device ID equal to its Serial Number.
+                </>
+              )}
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setRegistrationKey(null)}>Done</Button>

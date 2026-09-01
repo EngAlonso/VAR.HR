@@ -2114,6 +2114,7 @@ export type DeviceInputConnectionType = typeof DeviceInputConnectionType[keyof t
 
 export const DeviceInputConnectionType = {
   unknown: 'unknown',
+  usb: 'usb',
   lan: 'lan',
   http: 'http',
   cloud: 'cloud',

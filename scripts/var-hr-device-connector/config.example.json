@@ -1,0 +1,7 @@
+{
+  "apiBaseUrl": "https://YOUR-VAR-HR-DOMAIN",
+  "deviceId": "DEVICE_UUID",
+  "registrationKey": "ONE_TIME_DEVICE_REGISTRATION_KEY",
+  "machineNumber": 1,
+  "pollIntervalSeconds": 30
+}
