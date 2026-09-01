@@ -128,6 +128,12 @@ import {
   useGetReport,
   useImportEmployees,
   useListPayrollPeriods,
+  useListPayrollCycles,
+  useCreatePayrollCycle,
+  useUpdatePayrollCycle,
+  useDeletePayrollCycle,
+  useListEmployeePayrollCycleAssignments,
+  useCreateEmployeePayrollCycleAssignment,
   useGetMyPayroll,
   useCreatePayrollPeriod,
   useDeletePayrollPeriod,
@@ -189,6 +195,8 @@ import {
   getGetAttendanceReportQueryKey,
   getGetReportQueryKey,
   getListPayrollPeriodsQueryKey,
+  getListPayrollCyclesQueryKey,
+  getListEmployeePayrollCycleAssignmentsQueryKey,
   getGetMyPayrollQueryKey,
   getGetPayrollCalculationQueryKey,
   getListPayrollAdjustmentsQueryKey,
@@ -1967,6 +1975,37 @@ const pageCopy = {
     additions: "Additions",
     netSalary: "Net salary",
     createPeriod: "Create period",
+    payrollCycles: "Payroll cycles",
+    payrollCyclesDetail:
+      "Create separate payroll schedules for employees paid on different dates.",
+    addPayrollCycle: "Add payroll cycle",
+    editPayrollCycle: "Edit payroll cycle",
+    cycleName: "Cycle name",
+    cycleStartDay: "Cycle start day",
+    cyclePayDay: "Pay day",
+    cycleEmployees: "Assigned employees",
+    cycleActive: "Active",
+    cycleInactive: "Inactive",
+    cycleSaved: "Payroll cycle saved",
+    cycleSaveFailed: "Could not save payroll cycle",
+    cycleDeactivated: "Payroll cycle deactivated",
+    cycleDeactivateConfirmation:
+      "Deactivate this payroll cycle? Existing payroll history will remain unchanged.",
+    noPayrollCycles:
+      "No payroll cycles yet. Add one to separate employees by pay schedule.",
+    payrollCycle: "Payroll cycle",
+    selectPayrollCycle: "Select payroll cycle",
+    noPayrollCycle: "No payroll cycle assigned",
+    payrollCycleHint:
+      "The employee will appear only in payroll periods for this cycle.",
+    payrollCycleEffectiveFrom: "Effective from",
+    payrollCycleAssigned: "Payroll cycle assigned",
+    payrollCycleAssignmentFailed: "Could not assign payroll cycle",
+    payrollCycleHistory: "Payroll cycle history",
+    automaticPeriodDates:
+      "The period dates will be generated automatically from the selected cycle.",
+    cycleRequiredForAutomaticDates: "Select a payroll cycle or enter dates manually.",
+    manualPayrollPeriod: "Manual period",
     periodLabel: "Period label",
     startDate: "Start date",
     endDate: "End date",
@@ -2385,6 +2424,38 @@ const pageCopy = {
     additions: "الإضافات",
     netSalary: "صافي الراتب",
     createPeriod: "إنشاء فترة",
+    payrollCycles: "دورات الرواتب",
+    payrollCyclesDetail:
+      "أنشئ جداول رواتب منفصلة للموظفين الذين تختلف مواعيد صرفهم.",
+    addPayrollCycle: "إضافة دورة رواتب",
+    editPayrollCycle: "تعديل دورة الرواتب",
+    cycleName: "اسم الدورة",
+    cycleStartDay: "يوم بداية الدورة",
+    cyclePayDay: "يوم الصرف",
+    cycleEmployees: "الموظفون المعيّنون",
+    cycleActive: "نشطة",
+    cycleInactive: "غير نشطة",
+    cycleSaved: "تم حفظ دورة الرواتب",
+    cycleSaveFailed: "تعذر حفظ دورة الرواتب",
+    cycleDeactivated: "تم تعطيل دورة الرواتب",
+    cycleDeactivateConfirmation:
+      "هل تريد تعطيل دورة الرواتب؟ سيظل سجل الرواتب السابق بدون تغيير.",
+    noPayrollCycles:
+      "لا توجد دورات رواتب بعد. أضف دورة لفصل الموظفين حسب مواعيد الصرف.",
+    payrollCycle: "دورة الرواتب",
+    selectPayrollCycle: "اختر دورة الرواتب",
+    noPayrollCycle: "لا توجد دورة رواتب معيّنة",
+    payrollCycleHint:
+      "سيظهر الموظف فقط في فترات الرواتب الخاصة بهذه الدورة.",
+    payrollCycleEffectiveFrom: "ساري من",
+    payrollCycleAssigned: "تم تعيين دورة الرواتب",
+    payrollCycleAssignmentFailed: "تعذر تعيين دورة الرواتب",
+    payrollCycleHistory: "سجل دورات الرواتب",
+    automaticPeriodDates:
+      "سيتم توليد تواريخ الفترة تلقائيًا من الدورة المختارة.",
+    cycleRequiredForAutomaticDates:
+      "اختر دورة رواتب أو أدخل التواريخ يدويًا.",
+    manualPayrollPeriod: "فترة يدوية",
     periodLabel: "اسم الفترة",
     startDate: "تاريخ البداية",
     endDate: "تاريخ النهاية",
@@ -5025,6 +5096,42 @@ function periodLabel(value?: string) {
     month: "long",
     year: "numeric",
   }).format(new Date(Date.UTC(Number(match[2]), month, 1)));
+}
+
+function payrollCyclePeriodPreview(startDay: number, referenceDate: string) {
+  const reference = new Date(`${referenceDate}T00:00:00Z`);
+  const daysInMonth = (year: number, month: number) =>
+    new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  let year = reference.getUTCFullYear();
+  let month = reference.getUTCMonth();
+  if (
+    reference.getUTCDate() <
+    Math.min(startDay, daysInMonth(year, month))
+  ) {
+    month -= 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+  }
+  const from = new Date(
+    Date.UTC(year, month, Math.min(startDay, daysInMonth(year, month))),
+  );
+  const next = new Date(
+    Date.UTC(
+      month === 11 ? year + 1 : year,
+      month === 11 ? 0 : month + 1,
+      Math.min(
+        startDay,
+        daysInMonth(month === 11 ? year + 1 : year, month === 11 ? 0 : month + 1),
+      ),
+    ),
+  );
+  next.setUTCDate(next.getUTCDate() - 1);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: next.toISOString().slice(0, 10),
+  };
 }
 
 function Button({
@@ -8920,6 +9027,7 @@ function AddEmployeePage() {
   const depts = useListDepartments();
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
+  const cycles = useListPayrollCycles();
   const create = useCreateEmployee();
   const [credentials, setCredentials] = useState<
     (EmployeeCredential & {
@@ -8943,6 +9051,7 @@ function AddEmployeePage() {
     joinedOn: new Date().toISOString().slice(0, 10),
     salary: "0",
     scheduleId: "",
+    payrollCycleId: "",
   });
 
   useEffect(() => {
@@ -8989,6 +9098,7 @@ function AddEmployeePage() {
           branchId: form.branchId,
           joinedOn: form.joinedOn,
           scheduleId: form.scheduleId,
+          payrollCycleId: form.payrollCycleId || null,
         },
       },
       {
@@ -9204,6 +9314,34 @@ function AddEmployeePage() {
                   : t("selectShiftHint")}
               </p>
             </label>
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span className="block">{t("payrollCycle")}</span>
+              <select
+                name="payrollCycleId"
+                value={form.payrollCycleId}
+                disabled={cycles.isLoading}
+                onChange={(e) =>
+                  setForm({ ...form, payrollCycleId: e.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">
+                  {cycles.isLoading
+                    ? t("loading")
+                    : t("noPayrollCycle")}
+                </option>
+                {cycles.data
+                  ?.filter((cycle: any) => cycle.active)
+                  .map((cycle: any) => (
+                    <option key={cycle.id} value={cycle.id}>
+                      {cycle.name} · {t("cycleStartDay")} {cycle.startDay}
+                    </option>
+                  ))}
+              </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                {t("payrollCycleHint")}
+              </p>
+            </label>
           </div>
         </Card>
 
@@ -9353,7 +9491,22 @@ function EmployeeProfilePage() {
   const remove = useDeleteEmployee();
   const departments = useListDepartments();
   const branches = useListBranches();
+  const payrollCycles = useListPayrollCycles();
+  const payrollCycleAssignments = useListEmployeePayrollCycleAssignments(
+    employeeId,
+    {
+      query: {
+        enabled: Boolean(employeeId),
+        queryKey: getListEmployeePayrollCycleAssignmentsQueryKey(employeeId),
+      },
+    },
+  );
+  const assignPayrollCycle = useCreateEmployeePayrollCycleAssignment();
   const [editing, setEditing] = useState(false);
+  const [cycleForm, setCycleForm] = useState({
+    cycleId: "",
+    effectiveFrom: new Date().toISOString().slice(0, 10),
+  });
   const [editForm, setEditForm] = useState({
     employeeNumber: "",
     firstName: "",
@@ -9367,6 +9520,14 @@ function EmployeeProfilePage() {
     branchId: "",
     status: "active",
   });
+  useEffect(() => {
+    if (employee.data?.payrollCycle?.id) {
+      setCycleForm((current) => ({
+        ...current,
+        cycleId: employee.data?.payrollCycle?.id ?? current.cycleId,
+      }));
+    }
+  }, [employee.data?.payrollCycle?.id]);
   function openEdit() {
     if (!employee.data) return;
     setEditForm({
@@ -9444,6 +9605,36 @@ function EmployeeProfilePage() {
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("deleteFailed"))),
+      },
+    );
+  }
+  function savePayrollCycleAssignment(event: FormEvent) {
+    event.preventDefault();
+    if (!cycleForm.cycleId || !cycleForm.effectiveFrom) {
+      toast.error(t("required"));
+      return;
+    }
+    assignPayrollCycle.mutate(
+      {
+        employeeId,
+        data: {
+          cycleId: cycleForm.cycleId,
+          effectiveFrom: cycleForm.effectiveFrom,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("payrollCycleAssigned"));
+          qc.invalidateQueries({
+            queryKey: getGetEmployeeQueryKey(employeeId),
+          });
+          qc.invalidateQueries({
+            queryKey: getListEmployeePayrollCycleAssignmentsQueryKey(employeeId),
+          });
+          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("payrollCycleAssignmentFailed"))),
       },
     );
   }
@@ -9681,6 +9872,92 @@ function EmployeeProfilePage() {
                   </div>
                 </div>
               )}
+            </div>
+            <div className="mt-5 border-t border-border pt-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-semibold">{t("payrollCycle")}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("payrollCycleHint")}
+                  </p>
+                </div>
+                {employee.data.payrollCycle ? (
+                  <Badge tone="accent">{employee.data.payrollCycle.name}</Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    {t("noPayrollCycle")}
+                  </span>
+                )}
+              </div>
+              {canEditEmployees && (
+                <form
+                  onSubmit={savePayrollCycleAssignment}
+                  className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+                >
+                  <select
+                    value={cycleForm.cycleId}
+                    onChange={(event) =>
+                      setCycleForm({
+                        ...cycleForm,
+                        cycleId: event.target.value,
+                      })
+                    }
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                    disabled={payrollCycles.isLoading}
+                  >
+                    <option value="">{t("selectPayrollCycle")}</option>
+                    {payrollCycles.data
+                      ?.filter((cycle: any) => cycle.active)
+                      .map((cycle: any) => (
+                        <option key={cycle.id} value={cycle.id}>
+                          {cycle.name}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={cycleForm.effectiveFrom}
+                    min={employee.data.joinedOn}
+                    onChange={(event) =>
+                      setCycleForm({
+                        ...cycleForm,
+                        effectiveFrom: event.target.value,
+                      })
+                    }
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                  />
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={assignPayrollCycle.isPending}
+                  >
+                    {assignPayrollCycle.isPending
+                      ? t("saving")
+                      : t("saveChanges")}
+                  </Button>
+                </form>
+              )}
+              {payrollCycleAssignments.data?.length ? (
+                <div className="mt-4 space-y-2">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {t("payrollCycleHistory")}
+                  </div>
+                  {payrollCycleAssignments.data.map((assignment: any) => (
+                    <div
+                      key={assignment.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium">{assignment.cycleName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {date(assignment.effectiveFrom)} –{" "}
+                        {assignment.effectiveTo
+                          ? date(assignment.effectiveTo)
+                          : t("present")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </EmployeeProfileSection>
 
@@ -12154,7 +12431,10 @@ function Rules() {
   const update = useUpdateAttendanceRules();
   const canViewRuleHistory = account.accountType === "company_owner";
   const changes = useListAttendanceRuleChanges({
-    query: { enabled: canViewRuleHistory },
+    query: {
+      enabled: canViewRuleHistory,
+      queryKey: getListAttendanceRuleChangesQueryKey(),
+    },
   });
   const balances = useListLeaveBalances();
   const [form, setForm] = useState<any>(null);
@@ -13927,6 +14207,9 @@ function Payroll() {
   const q = useListPayrollPeriods({
     query: { queryKey: getListPayrollPeriodsQueryKey(), enabled: !isEmployee },
   });
+  const cycles = useListPayrollCycles({
+    query: { queryKey: getListPayrollCyclesQueryKey(), enabled: !isEmployee },
+  });
   const myPayroll = useGetMyPayroll(undefined, {
     query: { queryKey: getGetMyPayrollQueryKey(), enabled: isEmployee },
   });
@@ -13940,6 +14223,9 @@ function Payroll() {
     },
   );
   const createPeriod = useCreatePayrollPeriod();
+  const createCycle = useCreatePayrollCycle();
+  const updateCycle = useUpdatePayrollCycle();
+  const deleteCycle = useDeletePayrollCycle();
   const deletePeriod = useDeletePayrollPeriod();
   const calc = useCalculatePayroll();
   const finalize = useFinalizePayroll();
@@ -13950,8 +14236,22 @@ function Payroll() {
     null,
   );
   const [showPeriod, setShowPeriod] = useState(false);
+  const [showCycles, setShowCycles] = useState(false);
   const [showAdjustment, setShowAdjustment] = useState(false);
-  const [periodForm, setPeriodForm] = useState({ label: "", from: "", to: "" });
+  const [editingCycle, setEditingCycle] = useState<any | null>(null);
+  const [cycleForm, setCycleForm] = useState({
+    name: "",
+    startDay: "1",
+    payDay: "30",
+    active: true,
+  });
+  const [periodForm, setPeriodForm] = useState({
+    label: "",
+    from: "",
+    to: "",
+    cycleId: "",
+    referenceDate: new Date().toISOString().slice(0, 10),
+  });
   const [adjustmentForm, setAdjustmentForm] = useState({
     employeeId: "",
     type: "addition",
@@ -14029,11 +14329,19 @@ function Payroll() {
   }
   function submitPeriod(event: FormEvent) {
     event.preventDefault();
+    const selectedCycle = cycles.data?.find(
+      (cycle: any) => cycle.id === periodForm.cycleId,
+    );
+    const preview = selectedCycle
+      ? payrollCyclePeriodPreview(
+          selectedCycle.startDay,
+          periodForm.referenceDate,
+        )
+      : null;
     if (
-      !periodForm.label.trim() ||
-      !periodForm.from ||
-      !periodForm.to ||
-      periodForm.from > periodForm.to
+      (!periodForm.label.trim() && !selectedCycle) ||
+      (!preview && (!periodForm.from || !periodForm.to)) ||
+      (!preview && periodForm.from > periodForm.to)
     ) {
       toast.error(t("periodDateRangeInvalid"));
       return;
@@ -14042,19 +14350,82 @@ function Payroll() {
       {
         data: {
           label: periodForm.label.trim(),
-          from: periodForm.from,
-          to: periodForm.to,
+          ...(preview
+            ? {
+                cycleId: periodForm.cycleId,
+                referenceDate: periodForm.referenceDate,
+              }
+            : { from: periodForm.from, to: periodForm.to }),
         },
       },
       {
         onSuccess: (period: any) => {
           toast.success(t("periodCreated"));
           setShowPeriod(false);
-          setPeriodForm({ label: "", from: "", to: "" });
+          setPeriodForm({
+            label: "",
+            from: "",
+            to: "",
+            cycleId: "",
+            referenceDate: new Date().toISOString().slice(0, 10),
+          });
           selectPeriod(period.id);
           qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() });
         },
         onError: () => toast.error(t("periodCreateFailed")),
+      },
+    );
+  }
+  function openCycleEditor(cycle?: any) {
+    setEditingCycle(cycle ?? null);
+    setCycleForm({
+      name: cycle?.name ?? "",
+      startDay: String(cycle?.startDay ?? 1),
+      payDay: String(cycle?.payDay ?? 30),
+      active: cycle?.active !== false,
+    });
+    setShowCycles(true);
+  }
+  function submitCycle(event: FormEvent) {
+    event.preventDefault();
+    if (!cycleForm.name.trim()) {
+      toast.error(t("required"));
+      return;
+    }
+    const data = {
+      name: cycleForm.name.trim(),
+      startDay: Number(cycleForm.startDay),
+      payDay: Number(cycleForm.payDay),
+      ...(editingCycle ? { active: cycleForm.active } : {}),
+    };
+    const options = {
+      onSuccess: () => {
+        toast.success(t("cycleSaved"));
+        setShowCycles(false);
+        setEditingCycle(null);
+        qc.invalidateQueries({ queryKey: getListPayrollCyclesQueryKey() });
+        qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+      },
+      onError: (error: unknown) =>
+        toast.error(apiErrorMessage(error, t("cycleSaveFailed"))),
+    };
+    if (editingCycle) {
+      updateCycle.mutate({ cycleId: editingCycle.id, data } as any, options);
+    } else {
+      createCycle.mutate({ data }, options);
+    }
+  }
+  function deactivateCycle(cycle: any) {
+    if (!window.confirm(t("cycleDeactivateConfirmation"))) return;
+    deleteCycle.mutate(
+      { cycleId: cycle.id },
+      {
+        onSuccess: () => {
+          toast.success(t("cycleDeactivated"));
+          qc.invalidateQueries({ queryKey: getListPayrollCyclesQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("cycleSaveFailed"))),
       },
     );
   }
@@ -14153,6 +14524,72 @@ function Payroll() {
           </Button>
         }
       />
+      <Card className="mb-6">
+        <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-display text-lg font-semibold">
+              {t("payrollCycles")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("payrollCyclesDetail")}
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => openCycleEditor()}>
+            <Plus size={16} />
+            {t("addPayrollCycle")}
+          </Button>
+        </div>
+        {cycles.isLoading ? (
+          <div className="p-5">
+            <Skeleton className="h-16" />
+          </div>
+        ) : cycles.data?.length ? (
+          <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+            {cycles.data.map((cycle: any) => (
+              <div key={cycle.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold">{cycle.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {t("cycleStartDay")} {cycle.startDay} · {t("cyclePayDay")}{" "}
+                      {cycle.payDay}
+                    </div>
+                  </div>
+                  <Status value={cycle.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>
+                    {cycle.employeeCount} {t("cycleEmployees").toLowerCase()}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="quiet"
+                      className="px-2 py-1 text-xs"
+                      onClick={() => openCycleEditor(cycle)}
+                    >
+                      {t("edit")}
+                    </Button>
+                    {cycle.active && (
+                      <Button
+                        variant="danger"
+                        className="px-2 py-1 text-xs"
+                        onClick={() => deactivateCycle(cycle)}
+                        disabled={deleteCycle.isPending}
+                      >
+                        {t("cycleInactive")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-5">
+            <Empty title={t("noPayrollCycles")} detail={t("payrollCyclesDetail")} />
+          </div>
+        )}
+      </Card>
       <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
         <Card>
           <div className="border-b border-border p-5">
@@ -14192,6 +14629,11 @@ function Payroll() {
                           {date(p.from)} – {date(p.to)} · {p.employeeCount}{" "}
                           {t("employeeCount")}
                         </div>
+                        {p.cycleName && (
+                          <div className="mt-1 text-xs font-medium text-primary">
+                            {p.cycleName}
+                          </div>
+                        )}
                       </div>
                       <Status value={p.status} />
                     </div>
@@ -14577,34 +15019,91 @@ function Payroll() {
           onClose={() => setShowPeriod(false)}
         >
           <form onSubmit={submitPeriod} className="space-y-4">
+            <label className="block text-sm font-semibold">
+              {t("payrollCycle")}
+              <select
+                value={periodForm.cycleId}
+                onChange={(event) =>
+                  setPeriodForm({
+                    ...periodForm,
+                    cycleId: event.target.value,
+                    from: "",
+                    to: "",
+                  })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="">{t("manualPayrollPeriod")}</option>
+                {cycles.data
+                  ?.filter((cycle: any) => cycle.active)
+                  .map((cycle: any) => (
+                    <option key={cycle.id} value={cycle.id}>
+                      {cycle.name} · {t("cycleStartDay")} {cycle.startDay}
+                    </option>
+                  ))}
+              </select>
+            </label>
             <Field
               label={t("periodLabel")}
               value={periodForm.label}
               onChange={(value) =>
                 setPeriodForm({ ...periodForm, label: value })
               }
-              required
+              required={!periodForm.cycleId}
             />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                label={t("startDate")}
-                type="date"
-                value={periodForm.from}
-                onChange={(value) =>
-                  setPeriodForm({ ...periodForm, from: value })
-                }
-                required
-              />
-              <Field
-                label={t("endDate")}
-                type="date"
-                value={periodForm.to}
-                onChange={(value) =>
-                  setPeriodForm({ ...periodForm, to: value })
-                }
-                required
-              />
-            </div>
+            {periodForm.cycleId ? (
+              <>
+                <Field
+                  label={t("payrollCycleEffectiveFrom")}
+                  type="date"
+                  value={periodForm.referenceDate}
+                  onChange={(value) =>
+                    setPeriodForm({ ...periodForm, referenceDate: value })
+                  }
+                  required
+                />
+                {(() => {
+                  const selectedCycle = cycles.data?.find(
+                    (cycle: any) => cycle.id === periodForm.cycleId,
+                  );
+                  const preview = selectedCycle
+                    ? payrollCyclePeriodPreview(
+                        selectedCycle.startDay,
+                        periodForm.referenceDate,
+                      )
+                    : null;
+                  return preview ? (
+                    <p className="rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">
+                      {t("automaticPeriodDates")}{" "}
+                      <span className="font-medium text-foreground">
+                        {date(preview.from)} – {date(preview.to)}
+                      </span>
+                    </p>
+                  ) : null;
+                })()}
+              </>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={t("startDate")}
+                  type="date"
+                  value={periodForm.from}
+                  onChange={(value) =>
+                    setPeriodForm({ ...periodForm, from: value })
+                  }
+                  required
+                />
+                <Field
+                  label={t("endDate")}
+                  type="date"
+                  value={periodForm.to}
+                  onChange={(value) =>
+                    setPeriodForm({ ...periodForm, to: value })
+                  }
+                  required
+                />
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -14615,6 +15114,78 @@ function Payroll() {
               </Button>
               <Button type="submit" disabled={createPeriod.isPending}>
                 {createPeriod.isPending ? t("saving") : t("createPeriod")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {showCycles && (
+        <Modal
+          title={editingCycle ? t("editPayrollCycle") : t("addPayrollCycle")}
+          onClose={() => {
+            setShowCycles(false);
+            setEditingCycle(null);
+          }}
+        >
+          <form onSubmit={submitCycle} className="space-y-4">
+            <Field
+              label={t("cycleName")}
+              value={cycleForm.name}
+              onChange={(value) => setCycleForm({ ...cycleForm, name: value })}
+              required
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label={t("cycleStartDay")}
+                type="number"
+                min="1"
+                max="31"
+                value={cycleForm.startDay}
+                onChange={(value) =>
+                  setCycleForm({ ...cycleForm, startDay: value })
+                }
+                required
+              />
+              <Field
+                label={t("cyclePayDay")}
+                type="number"
+                min="1"
+                max="31"
+                value={cycleForm.payDay}
+                onChange={(value) =>
+                  setCycleForm({ ...cycleForm, payDay: value })
+                }
+                required
+              />
+            </div>
+            {editingCycle && (
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={cycleForm.active}
+                  onChange={(event) =>
+                    setCycleForm({
+                      ...cycleForm,
+                      active: event.target.checked,
+                    })
+                  }
+                />
+                {t("cycleActive")}
+              </label>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setShowCycles(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={createCycle.isPending || updateCycle.isPending}
+              >
+                {t("saveChanges")}
               </Button>
             </div>
           </form>

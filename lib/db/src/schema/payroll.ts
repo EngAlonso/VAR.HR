@@ -2,19 +2,60 @@ import { createInsertSchema } from "drizzle-zod";
 import {
   date,
   integer,
+  boolean,
   jsonb,
   numeric,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 import { companiesTable, employeesTable } from "./organization";
 
+export const payrollCyclesTable = pgTable(
+  "var_hr_payroll_cycles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+    name: text("name").notNull(),
+    startDay: integer("start_day").notNull(),
+    payDay: integer("pay_day").notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    companyNameUnique: uniqueIndex("var_hr_payroll_cycles_company_name_uidx").on(
+      table.companyId,
+      table.name,
+    ),
+  }),
+);
+
+export const employeePayrollCycleAssignmentsTable = pgTable(
+  "var_hr_employee_payroll_cycle_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+    employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
+    cycleId: uuid("cycle_id").notNull().references(() => payrollCyclesTable.id),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    employeeEffectiveUnique: uniqueIndex(
+      "var_hr_employee_payroll_cycles_employee_effective_uidx",
+    ).on(table.companyId, table.employeeId, table.effectiveFrom),
+  }),
+);
+
 export const payrollPeriodsTable = pgTable("var_hr_payroll_periods", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  cycleId: uuid("cycle_id").references(() => payrollCyclesTable.id),
   label: text("label").notNull(),
   from: date("from", { mode: "string" }).notNull(),
   to: date("to", { mode: "string" }).notNull(),
@@ -88,9 +129,26 @@ export const insertPayrollPeriodSchema = createInsertSchema(payrollPeriodsTable)
   id: true,
   calculatedAt: true,
 });
+export const insertPayrollCycleSchema = createInsertSchema(payrollCyclesTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertEmployeePayrollCycleAssignmentSchema =
+  createInsertSchema(employeePayrollCycleAssignmentsTable).omit({
+    id: true,
+    createdAt: true,
+  });
 export type PayrollPeriod = typeof payrollPeriodsTable.$inferSelect;
+export type PayrollCycle = typeof payrollCyclesTable.$inferSelect;
+export type EmployeePayrollCycleAssignment =
+  typeof employeePayrollCycleAssignmentsTable.$inferSelect;
 export type PayrollCalculation = typeof payrollCalculationsTable.$inferSelect;
 export type PayrollAdjustment = typeof payrollAdjustmentsTable.$inferSelect;
 export type Plan = typeof plansTable.$inferSelect;
 export type Subscription = typeof subscriptionsTable.$inferSelect;
 export type InsertPayrollPeriod = z.infer<typeof insertPayrollPeriodSchema>;
+export type InsertPayrollCycle = z.infer<typeof insertPayrollCycleSchema>;
+export type InsertEmployeePayrollCycleAssignment = z.infer<
+  typeof insertEmployeePayrollCycleAssignmentSchema
+>;

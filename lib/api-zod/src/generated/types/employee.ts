@@ -8,6 +8,7 @@
 import type { Branch } from './branch';
 import type { DepartmentSummary } from './departmentSummary';
 import type { EmployeeAutomaticOvertime } from './employeeAutomaticOvertime';
+import type { EmployeePayrollCycleSummary } from './employeePayrollCycleSummary';
 import type { EmployeeRole } from './employeeRole';
 import type { EmployeeStatus } from './employeeStatus';
 
@@ -37,4 +38,5 @@ export interface Employee {
   joinedOn: string;
   salary: number;
   avatarInitials?: string;
+  payrollCycle?: EmployeePayrollCycleSummary | null;
 }

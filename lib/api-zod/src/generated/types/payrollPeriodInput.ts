@@ -8,7 +8,9 @@
 
 export interface PayrollPeriodInput {
   /** @minLength 1 */
-  label: string;
-  from: string;
-  to: string;
+  label?: string;
+  from?: string;
+  to?: string;
+  cycleId?: string;
+  referenceDate?: string;
 }

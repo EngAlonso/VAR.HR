@@ -790,7 +790,14 @@ export const ListEmployeesResponseItem = zod.object({
   "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
-  "avatarInitials": zod.string().optional()
+  "avatarInitials": zod.string().optional(),
+  "payrollCycle": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date()
+}),zod.null()]).optional()
 })
 export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
 
@@ -822,6 +829,7 @@ export const CreateEmployeeBody = zod.object({
   "joinedOn": zod.iso.date(),
   "salary": zod.number().min(createEmployeeBodySalaryMin),
   "scheduleId": zod.string(),
+  "payrollCycleId": zod.string().nullish(),
   "role": zod.enum(['employee', 'manager']).optional()
 })
 
@@ -863,7 +871,14 @@ export const CreateEmployeeResponse = zod.object({
   "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
-  "avatarInitials": zod.string().optional()
+  "avatarInitials": zod.string().optional(),
+  "payrollCycle": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date()
+}),zod.null()]).optional()
 })
 
 
@@ -912,7 +927,14 @@ export const GetEmployeeResponse = zod.object({
   "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
-  "avatarInitials": zod.string().optional()
+  "avatarInitials": zod.string().optional(),
+  "payrollCycle": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date()
+}),zod.null()]).optional()
 })
 
 
@@ -988,7 +1010,14 @@ export const UpdateEmployeeResponse = zod.object({
   "automaticOvertime": zod.union([zod.literal('default'),zod.literal('enabled'),zod.literal('disabled'),zod.literal(null)]).nullish(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number(),
-  "avatarInitials": zod.string().optional()
+  "avatarInitials": zod.string().optional(),
+  "payrollCycle": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date()
+}),zod.null()]).optional()
 })
 
 
@@ -1000,6 +1029,52 @@ export const DeleteEmployeeParams = zod.object({
 })
 
 export const DeleteEmployeeResponse = zod.void()
+
+
+/**
+ * @summary List an employee's payroll cycle history
+ */
+export const ListEmployeePayrollCycleAssignmentsParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const ListEmployeePayrollCycleAssignmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "employeeId": zod.string(),
+  "cycleId": zod.string(),
+  "cycleName": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})
+export const ListEmployeePayrollCycleAssignmentsResponse = zod.array(ListEmployeePayrollCycleAssignmentsResponseItem)
+
+
+/**
+ * @summary Assign an employee to a payroll cycle from an effective date
+ */
+export const CreateEmployeePayrollCycleAssignmentParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const CreateEmployeePayrollCycleAssignmentBody = zod.object({
+  "cycleId": zod.string(),
+  "effectiveFrom": zod.iso.date()
+})
+
+export const CreateEmployeePayrollCycleAssignmentResponse = zod.object({
+  "id": zod.string(),
+  "employeeId": zod.string(),
+  "cycleId": zod.string(),
+  "cycleName": zod.string(),
+  "startDay": zod.int(),
+  "payDay": zod.int(),
+  "effectiveFrom": zod.iso.date(),
+  "effectiveTo": zod.iso.date().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})
 
 
 /**
@@ -3034,6 +3109,9 @@ export const ImportEmployeesResponse = zod.object({
  */
 export const ListPayrollPeriodsResponseItem = zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),
@@ -3053,13 +3131,18 @@ export const ListPayrollPeriodsResponse = zod.array(ListPayrollPeriodsResponseIt
 
 
 export const CreatePayrollPeriodBody = zod.object({
-  "label": zod.string().min(1),
-  "from": zod.iso.date(),
-  "to": zod.iso.date()
+  "label": zod.string().min(1).optional(),
+  "from": zod.iso.date().optional(),
+  "to": zod.iso.date().optional(),
+  "cycleId": zod.string().optional(),
+  "referenceDate": zod.iso.date().optional()
 })
 
 export const CreatePayrollPeriodResponse = zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),
@@ -3069,6 +3152,111 @@ export const CreatePayrollPeriodResponse = zod.object({
   "finalizedAt": zod.iso.datetime({"offset":true}).nullable(),
   "finalizedBy": zod.string().nullable()
 })
+
+
+/**
+ * @summary List payroll cycles for the active company
+ */
+export const listPayrollCyclesResponseStartDayMax = 31;
+
+export const listPayrollCyclesResponsePayDayMax = 31;
+
+
+
+export const ListPayrollCyclesResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int().min(1).max(listPayrollCyclesResponseStartDayMax),
+  "payDay": zod.int().min(1).max(listPayrollCyclesResponsePayDayMax),
+  "active": zod.boolean(),
+  "employeeCount": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+export const ListPayrollCyclesResponse = zod.array(ListPayrollCyclesResponseItem)
+
+
+/**
+ * @summary Create a payroll cycle
+ */
+
+export const createPayrollCycleBodyStartDayMax = 31;
+
+export const createPayrollCycleBodyPayDayMax = 31;
+
+
+
+export const CreatePayrollCycleBody = zod.object({
+  "name": zod.string().min(1),
+  "startDay": zod.int().min(1).max(createPayrollCycleBodyStartDayMax),
+  "payDay": zod.int().min(1).max(createPayrollCycleBodyPayDayMax)
+})
+
+export const createPayrollCycleResponseStartDayMax = 31;
+
+export const createPayrollCycleResponsePayDayMax = 31;
+
+
+
+export const CreatePayrollCycleResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int().min(1).max(createPayrollCycleResponseStartDayMax),
+  "payDay": zod.int().min(1).max(createPayrollCycleResponsePayDayMax),
+  "active": zod.boolean(),
+  "employeeCount": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Update a payroll cycle
+ */
+export const UpdatePayrollCycleParams = zod.object({
+  "cycleId": zod.coerce.string()
+})
+
+
+export const updatePayrollCycleBodyStartDayMax = 31;
+
+export const updatePayrollCycleBodyPayDayMax = 31;
+
+
+
+export const UpdatePayrollCycleBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "startDay": zod.int().min(1).max(updatePayrollCycleBodyStartDayMax).optional(),
+  "payDay": zod.int().min(1).max(updatePayrollCycleBodyPayDayMax).optional(),
+  "active": zod.boolean().optional()
+})
+
+export const updatePayrollCycleResponseStartDayMax = 31;
+
+export const updatePayrollCycleResponsePayDayMax = 31;
+
+
+
+export const UpdatePayrollCycleResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "startDay": zod.int().min(1).max(updatePayrollCycleResponseStartDayMax),
+  "payDay": zod.int().min(1).max(updatePayrollCycleResponsePayDayMax),
+  "active": zod.boolean(),
+  "employeeCount": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Deactivate a payroll cycle
+ */
+export const DeletePayrollCycleParams = zod.object({
+  "cycleId": zod.coerce.string()
+})
+
+export const DeletePayrollCycleResponse = zod.void()
 
 
 /**
@@ -3085,6 +3273,9 @@ export const calculatePayrollResponseItemsItemLeaveDaysMin = 0;
 export const CalculatePayrollResponse = zod.object({
   "period": zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),
@@ -3168,6 +3359,9 @@ export const getPayrollCalculationResponseItemsItemLeaveDaysMin = 0;
 export const GetPayrollCalculationResponse = zod.object({
   "period": zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),
@@ -3236,6 +3430,9 @@ export const FinalizePayrollParams = zod.object({
 
 export const FinalizePayrollResponse = zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),
@@ -3339,6 +3536,9 @@ export const getMyPayrollResponseItemsItemLeaveDaysMin = 0;
 export const GetMyPayrollResponse = zod.object({
   "period": zod.object({
   "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
   "label": zod.string(),
   "from": zod.iso.date(),
   "to": zod.iso.date(),

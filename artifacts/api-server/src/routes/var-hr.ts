@@ -9,6 +9,7 @@ import {
   gte,
   ilike,
   inArray,
+  isNull,
   lt,
   lte,
   or,
@@ -133,6 +134,19 @@ import {
   CancelLeaveRequestBody,
   CancelLeaveRequestParams,
   ListPayrollPeriodsResponse,
+  ListPayrollCyclesResponse,
+  CreatePayrollCycleBody,
+  CreatePayrollCycleResponse,
+  UpdatePayrollCycleBody,
+  UpdatePayrollCycleParams,
+  UpdatePayrollCycleResponse,
+  DeletePayrollCycleParams,
+  DeletePayrollCycleResponse,
+  ListEmployeePayrollCycleAssignmentsParams,
+  ListEmployeePayrollCycleAssignmentsResponse,
+  CreateEmployeePayrollCycleAssignmentBody,
+  CreateEmployeePayrollCycleAssignmentParams,
+  CreateEmployeePayrollCycleAssignmentResponse,
   ListPayrollAdjustmentsQueryParams,
   ListPayrollAdjustmentsResponse,
   ListWorkSchedulesResponse,
@@ -212,6 +226,8 @@ import {
   leavePoliciesTable,
   leaveBalanceTransactionsTable,
   leaveRequestsTable,
+  employeePayrollCycleAssignmentsTable,
+  payrollCyclesTable,
   payrollCalculationsTable,
   payrollAdjustmentsTable,
   payrollPeriodsTable,
@@ -2128,9 +2144,13 @@ export async function applyProviderAttendanceEvent(
 
 function payrollPeriodResponse(
   period: typeof payrollPeriodsTable.$inferSelect,
+  cycle?: typeof payrollCyclesTable.$inferSelect | null,
 ) {
   return {
     id: period.id,
+    cycleId: period.cycleId,
+    cycleName: cycle?.name ?? null,
+    payDay: cycle?.payDay ?? null,
     label: period.label,
     from: period.from,
     to: period.to,
@@ -2141,6 +2161,109 @@ function payrollPeriodResponse(
     finalizedAt: period.finalizedAt ? period.finalizedAt.toISOString() : null,
     finalizedBy: period.finalizedBy,
   };
+}
+
+function payrollCycleResponse(
+  cycle: typeof payrollCyclesTable.$inferSelect,
+  employeeCount = 0,
+) {
+  return {
+    id: cycle.id,
+    name: cycle.name,
+    startDay: cycle.startDay,
+    payDay: cycle.payDay,
+    active: cycle.active,
+    employeeCount,
+    createdAt: cycle.createdAt.toISOString(),
+    updatedAt: cycle.updatedAt.toISOString(),
+  };
+}
+
+function payrollCycleAssignmentResponse(row: {
+  assignment: typeof employeePayrollCycleAssignmentsTable.$inferSelect;
+  cycle: typeof payrollCyclesTable.$inferSelect;
+}) {
+  return {
+    id: row.assignment.id,
+    employeeId: row.assignment.employeeId,
+    cycleId: row.assignment.cycleId,
+    cycleName: row.cycle.name,
+    startDay: row.cycle.startDay,
+    payDay: row.cycle.payDay,
+    effectiveFrom: row.assignment.effectiveFrom,
+    effectiveTo: row.assignment.effectiveTo,
+    createdAt: row.assignment.createdAt.toISOString(),
+  };
+}
+
+function addCalendarDays(dateValue: string, days: number): string {
+  const result = new Date(`${dateValue}T00:00:00Z`);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result.toISOString().slice(0, 10);
+}
+
+function cyclePeriodRange(startDay: number, referenceDate: string) {
+  const reference = new Date(`${referenceDate}T00:00:00Z`);
+  let year = reference.getUTCFullYear();
+  let month = reference.getUTCMonth();
+  const daysInMonth = (y: number, m: number) =>
+    new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  if (reference.getUTCDate() < Math.min(startDay, daysInMonth(year, month))) {
+    month -= 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+  }
+  const from = new Date(
+    Date.UTC(year, month, Math.min(startDay, daysInMonth(year, month))),
+  );
+  const nextMonth = month === 11 ? 0 : month + 1;
+  const nextYear = month === 11 ? year + 1 : year;
+  const nextStart = new Date(
+    Date.UTC(
+      nextYear,
+      nextMonth,
+      Math.min(startDay, daysInMonth(nextYear, nextMonth)),
+    ),
+  );
+  nextStart.setUTCDate(nextStart.getUTCDate() - 1);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: nextStart.toISOString().slice(0, 10),
+  };
+}
+
+async function payrollCycleRows(context: TenantContext) {
+  const today = localCalendarDate(new Date(), context.company.timezone);
+  const cycles = await db
+    .select()
+    .from(payrollCyclesTable)
+    .where(eq(payrollCyclesTable.companyId, context.companyId))
+    .orderBy(asc(payrollCyclesTable.startDay), asc(payrollCyclesTable.name));
+  const assignments = await db
+    .select({
+      assignment: employeePayrollCycleAssignmentsTable,
+    })
+    .from(employeePayrollCycleAssignmentsTable)
+    .where(
+      and(
+        eq(employeePayrollCycleAssignmentsTable.companyId, context.companyId),
+        lte(employeePayrollCycleAssignmentsTable.effectiveFrom, today),
+        or(
+          isNull(employeePayrollCycleAssignmentsTable.effectiveTo),
+          gte(employeePayrollCycleAssignmentsTable.effectiveTo, today),
+        ),
+      ),
+    );
+  const counts = new Map<string, number>();
+  for (const row of assignments) {
+    counts.set(
+      row.assignment.cycleId,
+      (counts.get(row.assignment.cycleId) ?? 0) + 1,
+    );
+  }
+  return cycles.map((cycle) => payrollCycleResponse(cycle, counts.get(cycle.id) ?? 0));
 }
 
 function dateStrings(from: string, to: string): string[] {
@@ -2179,6 +2302,7 @@ type PayrollLineItem = {
 };
 
 async function employeeRows(context: TenantContext, employeeId?: string) {
+  const today = localCalendarDate(new Date(), context.company.timezone);
   const rows = await db
     .select({
       employee: employeesTable,
@@ -2213,9 +2337,46 @@ async function employeeRows(context: TenantContext, employeeId?: string) {
       (deviceCounts.get(device.branchId) ?? 0) + 1,
     );
   }
+  const currentCycleAssignments = await db
+    .select({
+      assignment: employeePayrollCycleAssignmentsTable,
+      cycle: payrollCyclesTable,
+    })
+    .from(employeePayrollCycleAssignmentsTable)
+    .innerJoin(
+      payrollCyclesTable,
+      eq(employeePayrollCycleAssignmentsTable.cycleId, payrollCyclesTable.id),
+    )
+    .where(
+      and(
+        eq(employeePayrollCycleAssignmentsTable.companyId, context.companyId),
+        lte(employeePayrollCycleAssignmentsTable.effectiveFrom, today),
+        or(
+          isNull(employeePayrollCycleAssignmentsTable.effectiveTo),
+          gte(employeePayrollCycleAssignmentsTable.effectiveTo, today),
+        ),
+      ),
+    )
+    .orderBy(desc(employeePayrollCycleAssignmentsTable.effectiveFrom));
+  const currentCycleByEmployee = new Map<
+    string,
+    { id: string; name: string; startDay: number; payDay: number; effectiveFrom: string }
+  >();
+  for (const row of currentCycleAssignments) {
+    if (!currentCycleByEmployee.has(row.assignment.employeeId)) {
+      currentCycleByEmployee.set(row.assignment.employeeId, {
+        id: row.cycle.id,
+        name: row.cycle.name,
+        startDay: row.cycle.startDay,
+        payDay: row.cycle.payDay,
+        effectiveFrom: row.assignment.effectiveFrom,
+      });
+    }
+  }
   return rows.map((row) => ({
     ...row,
     deviceCount: deviceCounts.get(row.branch.id) ?? 0,
+    payrollCycle: currentCycleByEmployee.get(row.employee.id) ?? null,
   }));
 }
 
@@ -2277,6 +2438,7 @@ function employeeResponse(
       | "disabled",
     joinedOn: calendarDate(row.employee.joinedOn)!,
     salary: row.employee.salary,
+    payrollCycle: row.payrollCycle,
     avatarInitials: initials(row.employee.firstName, row.employee.lastName),
   };
 }
@@ -3518,6 +3680,30 @@ router.post("/employees", async (req, res): Promise<void> => {
   let employeeAccount:
     | typeof userAccountsTable.$inferSelect
     | undefined;
+  let initialPayrollCycle:
+    | typeof payrollCyclesTable.$inferSelect
+    | undefined;
+  if (parsed.data.payrollCycleId) {
+    if (!isUuid(parsed.data.payrollCycleId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    [initialPayrollCycle] = await db
+      .select()
+      .from(payrollCyclesTable)
+      .where(
+        and(
+          eq(payrollCyclesTable.id, parsed.data.payrollCycleId),
+          eq(payrollCyclesTable.companyId, context.companyId),
+          eq(payrollCyclesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (!initialPayrollCycle) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+  }
   let temporaryPassword: string | undefined;
   const employeeNumber = await allocateEmployeeNumber(context.companyId);
   temporaryPassword = generateNumericPassword();
@@ -3577,6 +3763,15 @@ router.post("/employees", async (req, res): Promise<void> => {
         .returning();
       if (!assignment) {
         throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+      }
+      if (initialPayrollCycle) {
+        await tx.insert(employeePayrollCycleAssignmentsTable).values({
+          companyId: context.companyId,
+          employeeId: employee.id,
+          cycleId: initialPayrollCycle.id,
+          effectiveFrom: calendarDate(parsed.data.joinedOn)!,
+          effectiveTo: null,
+        });
       }
     });
   } catch (error) {
@@ -8406,6 +8601,348 @@ router.post("/employees/import", async (req, res): Promise<void> => {
   res.status(201).json(employeeImportResultSchema.parse(result));
 });
 
+router.get(
+  "/employees/:employeeId/payroll-cycle-assignments",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = ListEmployeePayrollCycleAssignmentsParams.safeParse(req.params);
+    if (!params.success || !isUuid(params.data.employeeId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    if (
+      !canUseCapability(context, "employees.view", true) ||
+      (context.role === "employee" && context.employeeId !== params.data.employeeId)
+    ) {
+      denyCapability(res, req, "employees.view");
+      return;
+    }
+    const [employee] = await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+          employeeScopeCondition(context),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    const rows = await db
+      .select({
+        assignment: employeePayrollCycleAssignmentsTable,
+        cycle: payrollCyclesTable,
+      })
+      .from(employeePayrollCycleAssignmentsTable)
+      .innerJoin(
+        payrollCyclesTable,
+        eq(employeePayrollCycleAssignmentsTable.cycleId, payrollCyclesTable.id),
+      )
+      .where(
+        and(
+          eq(employeePayrollCycleAssignmentsTable.companyId, context.companyId),
+          eq(employeePayrollCycleAssignmentsTable.employeeId, params.data.employeeId),
+        ),
+      )
+      .orderBy(desc(employeePayrollCycleAssignmentsTable.effectiveFrom));
+    res.json(
+      ListEmployeePayrollCycleAssignmentsResponse.parse(
+        rows.map(payrollCycleAssignmentResponse),
+      ),
+    );
+  },
+);
+
+router.post(
+  "/employees/:employeeId/payroll-cycle-assignments",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "employees.edit")) {
+      denyCapability(res, req, "employees.edit");
+      return;
+    }
+    const params = CreateEmployeePayrollCycleAssignmentParams.safeParse(req.params);
+    const parsed = CreateEmployeePayrollCycleAssignmentBody.safeParse(req.body);
+    if (
+      !params.success ||
+      !parsed.success ||
+      !isUuid(params.data.employeeId) ||
+      !isUuid(parsed.data.cycleId)
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [employee] = await db
+      .select()
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+          employeeScopeCondition(context),
+        ),
+      )
+      .limit(1);
+    const [cycle] = await db
+      .select()
+      .from(payrollCyclesTable)
+      .where(
+        and(
+          eq(payrollCyclesTable.id, parsed.data.cycleId),
+          eq(payrollCyclesTable.companyId, context.companyId),
+          eq(payrollCyclesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (!employee || !cycle) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    const effectiveFrom = parsed.data.effectiveFrom;
+    if (effectiveFrom < calendarDate(employee.joinedOn)!) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [finalizedPeriod] = await db
+      .select({ id: payrollPeriodsTable.id })
+      .from(payrollPeriodsTable)
+      .where(
+        and(
+          eq(payrollPeriodsTable.companyId, context.companyId),
+          gte(payrollPeriodsTable.to, effectiveFrom),
+          or(
+            eq(payrollPeriodsTable.status, "finalized"),
+            eq(payrollPeriodsTable.status, "locked"),
+          ),
+        ),
+      )
+      .limit(1);
+    if (finalizedPeriod) {
+      res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
+      return;
+    }
+    try {
+      const created = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select()
+          .from(employeePayrollCycleAssignmentsTable)
+          .where(
+            and(
+              eq(employeePayrollCycleAssignmentsTable.companyId, context.companyId),
+              eq(employeePayrollCycleAssignmentsTable.employeeId, employee.id),
+            ),
+          )
+          .orderBy(asc(employeePayrollCycleAssignmentsTable.effectiveFrom));
+        if (existing.some((item) => item.effectiveFrom === effectiveFrom)) {
+          throw new Error("PAYROLL_CYCLE_ASSIGNMENT_DUPLICATE");
+        }
+        const previous = [...existing]
+          .reverse()
+          .find((item) => item.effectiveFrom < effectiveFrom);
+        const next = existing.find((item) => item.effectiveFrom > effectiveFrom);
+        if (previous) {
+          await tx
+            .update(employeePayrollCycleAssignmentsTable)
+            .set({ effectiveTo: addCalendarDays(effectiveFrom, -1) })
+            .where(eq(employeePayrollCycleAssignmentsTable.id, previous.id));
+        }
+        const [inserted] = await tx
+          .insert(employeePayrollCycleAssignmentsTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: employee.id,
+            cycleId: cycle.id,
+            effectiveFrom,
+            effectiveTo: next ? addCalendarDays(next.effectiveFrom, -1) : null,
+          })
+          .returning();
+        return inserted;
+      });
+      if (!created) throw new Error("PAYROLL_CYCLE_ASSIGNMENT_CREATE_FAILED");
+      await recordAudit(
+        context.companyId,
+        "created",
+        "employee_payroll_cycle_assignment",
+        created.id,
+        created,
+      );
+      res
+        .status(201)
+        .json(
+          CreateEmployeePayrollCycleAssignmentResponse.parse(
+            payrollCycleAssignmentResponse({ assignment: created, cycle }),
+          ),
+        );
+    } catch (error) {
+      if (error instanceof Error && error.message === "PAYROLL_CYCLE_ASSIGNMENT_DUPLICATE") {
+        res.status(409).json({ error: message(req, "payrollPeriodOverlap") });
+        return;
+      }
+      throw error;
+    }
+  },
+);
+
+router.get("/payroll/cycles", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "payroll.view")) {
+    denyCapability(res, req, "payroll.view");
+    return;
+  }
+  res.json(ListPayrollCyclesResponse.parse(await payrollCycleRows(context)));
+});
+
+router.post("/payroll/cycles", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "payroll.manage")) {
+    denyCapability(res, req, "payroll.manage");
+    return;
+  }
+  const parsed = CreatePayrollCycleBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  try {
+    const [cycle] = await db
+      .insert(payrollCyclesTable)
+      .values({
+        companyId: context.companyId,
+        name: parsed.data.name.trim(),
+        startDay: parsed.data.startDay,
+        payDay: parsed.data.payDay,
+      })
+      .returning();
+    await recordAudit(context.companyId, "created", "payroll_cycle", cycle.id, cycle);
+    res.status(201).json(CreatePayrollCycleResponse.parse(payrollCycleResponse(cycle)));
+  } catch (error) {
+    if (postgresUniqueConstraint(error)?.includes("payroll_cycles_company_name")) {
+      res.status(409).json({ error: message(req, "reportDuplicate") });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.patch("/payroll/cycles/:cycleId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "payroll.manage")) {
+    denyCapability(res, req, "payroll.manage");
+    return;
+  }
+  const params = UpdatePayrollCycleParams.safeParse(req.params);
+  const parsed = UpdatePayrollCycleBody.safeParse(req.body);
+  if (!params.success || !parsed.success || !isUuid(params.data.cycleId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [before] = await db
+    .select()
+    .from(payrollCyclesTable)
+    .where(
+      and(
+        eq(payrollCyclesTable.id, params.data.cycleId),
+        eq(payrollCyclesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!before) {
+    res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
+    return;
+  }
+  const updateData = {
+    ...(parsed.data.name !== undefined ? { name: parsed.data.name.trim() } : {}),
+    ...(parsed.data.startDay !== undefined ? { startDay: parsed.data.startDay } : {}),
+    ...(parsed.data.payDay !== undefined ? { payDay: parsed.data.payDay } : {}),
+    ...(parsed.data.active !== undefined ? { active: parsed.data.active } : {}),
+    updatedAt: new Date(),
+  };
+  if (!Object.keys(updateData).some((key) => key !== "updatedAt")) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  try {
+    const [cycle] = await db
+      .update(payrollCyclesTable)
+      .set(updateData)
+      .where(
+        and(
+          eq(payrollCyclesTable.id, before.id),
+          eq(payrollCyclesTable.companyId, context.companyId),
+        ),
+      )
+      .returning();
+    await recordAudit(context.companyId, "updated", "payroll_cycle", before.id, cycle, before);
+    res.json(UpdatePayrollCycleResponse.parse(payrollCycleResponse(cycle)));
+  } catch (error) {
+    if (postgresUniqueConstraint(error)?.includes("payroll_cycles_company_name")) {
+      res.status(409).json({ error: message(req, "reportDuplicate") });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.delete("/payroll/cycles/:cycleId", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "payroll.manage")) {
+    denyCapability(res, req, "payroll.manage");
+    return;
+  }
+  const params = DeletePayrollCycleParams.safeParse(req.params);
+  if (!params.success || !isUuid(params.data.cycleId)) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  const [cycle] = await db
+    .select()
+    .from(payrollCyclesTable)
+    .where(
+      and(
+        eq(payrollCyclesTable.id, params.data.cycleId),
+        eq(payrollCyclesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!cycle) {
+    res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
+    return;
+  }
+  const [finalizedPeriod] = await db
+    .select({ id: payrollPeriodsTable.id })
+    .from(payrollPeriodsTable)
+    .where(
+      and(
+        eq(payrollPeriodsTable.companyId, context.companyId),
+        eq(payrollPeriodsTable.cycleId, cycle.id),
+        or(
+          eq(payrollPeriodsTable.status, "finalized"),
+          eq(payrollPeriodsTable.status, "locked"),
+        ),
+      ),
+    )
+    .limit(1);
+  if (finalizedPeriod) {
+    res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
+    return;
+  }
+  await db
+    .update(payrollCyclesTable)
+    .set({ active: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(payrollCyclesTable.id, cycle.id),
+        eq(payrollCyclesTable.companyId, context.companyId),
+      ),
+    );
+  await recordAudit(context.companyId, "updated", "payroll_cycle", cycle.id, { active: false }, cycle);
+  res.status(204).send(DeletePayrollCycleResponse.parse(undefined));
+});
+
 router.get("/payroll/periods", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   if (!canUseCapability(context, "payroll.view")) {
@@ -8417,8 +8954,15 @@ router.get("/payroll/periods", async (req, res): Promise<void> => {
     .from(payrollPeriodsTable)
     .where(eq(payrollPeriodsTable.companyId, context.companyId))
     .orderBy(desc(payrollPeriodsTable.to));
+  const cycles = await db
+    .select()
+    .from(payrollCyclesTable)
+    .where(eq(payrollCyclesTable.companyId, context.companyId));
+  const cyclesById = new Map(cycles.map((cycle) => [cycle.id, cycle]));
   res.json(
-    ListPayrollPeriodsResponse.parse(periods.map(payrollPeriodResponse)),
+    ListPayrollPeriodsResponse.parse(
+      periods.map((period) => payrollPeriodResponse(period, period.cycleId ? cyclesById.get(period.cycleId) : null)),
+    ),
   );
 });
 
@@ -8429,7 +8973,45 @@ router.post("/payroll/periods", async (req, res): Promise<void> => {
     return;
   }
   const parsed = CreatePayrollPeriodBody.safeParse(req.body);
-  if (!parsed.success || parsed.data.from > parsed.data.to) {
+  if (!parsed.success) {
+    res.status(400).json({ error: message(req, "payrollPeriodInvalid") });
+    return;
+  }
+  let cycle: typeof payrollCyclesTable.$inferSelect | null = null;
+  if (parsed.data.cycleId) {
+    if (!isUuid(parsed.data.cycleId)) {
+      res.status(400).json({ error: message(req, "payrollPeriodInvalid") });
+      return;
+    }
+    [cycle] = await db
+      .select()
+      .from(payrollCyclesTable)
+      .where(
+        and(
+          eq(payrollCyclesTable.id, parsed.data.cycleId),
+          eq(payrollCyclesTable.companyId, context.companyId),
+          eq(payrollCyclesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (!cycle) {
+      res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
+      return;
+    }
+  }
+  const range = cycle
+    ? cyclePeriodRange(
+        cycle.startDay,
+        parsed.data.referenceDate ??
+          localCalendarDate(new Date(), context.company.timezone),
+      )
+    : null;
+  const from = range?.from ?? parsed.data.from;
+  const to = range?.to ?? parsed.data.to;
+  const label =
+    parsed.data.label?.trim() ||
+    (cycle ? `${cycle.name} · ${from} – ${to}` : "");
+  if (!from || !to || !label || from > to) {
     res.status(400).json({ error: message(req, "payrollPeriodInvalid") });
     return;
   }
@@ -8439,8 +9021,11 @@ router.post("/payroll/periods", async (req, res): Promise<void> => {
     .where(
       and(
         eq(payrollPeriodsTable.companyId, context.companyId),
-        lte(payrollPeriodsTable.from, parsed.data.to),
-        gte(payrollPeriodsTable.to, parsed.data.from),
+        cycle
+          ? eq(payrollPeriodsTable.cycleId, cycle.id)
+          : isNull(payrollPeriodsTable.cycleId),
+        lte(payrollPeriodsTable.from, to),
+        gte(payrollPeriodsTable.to, from),
       ),
     )
     .limit(1);
@@ -8452,9 +9037,10 @@ router.post("/payroll/periods", async (req, res): Promise<void> => {
     .insert(payrollPeriodsTable)
     .values({
       companyId: context.companyId,
-      label: parsed.data.label,
-      from: parsed.data.from,
-      to: parsed.data.to,
+      cycleId: cycle?.id ?? null,
+      label,
+      from,
+      to,
       status: "draft",
     })
     .returning();
@@ -8467,7 +9053,7 @@ router.post("/payroll/periods", async (req, res): Promise<void> => {
   );
   res
     .status(201)
-    .json(CreatePayrollPeriodResponse.parse(payrollPeriodResponse(period)));
+    .json(CreatePayrollPeriodResponse.parse(payrollPeriodResponse(period, cycle)));
 });
 
 router.delete(
@@ -8760,9 +9346,27 @@ async function calculatePayrollPeriod(
   const existing = await storedPayrollCalculation(context, req, period);
   if (period.status === "finalized" || period.status === "locked")
     return existing;
-  const rows = (await employeeRows(context)).filter(
+  let rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
+  if (period.cycleId) {
+    const assignments = await db
+      .select({ employeeId: employeePayrollCycleAssignmentsTable.employeeId })
+      .from(employeePayrollCycleAssignmentsTable)
+      .where(
+        and(
+          eq(employeePayrollCycleAssignmentsTable.companyId, context.companyId),
+          eq(employeePayrollCycleAssignmentsTable.cycleId, period.cycleId),
+          lte(employeePayrollCycleAssignmentsTable.effectiveFrom, period.from),
+          or(
+            isNull(employeePayrollCycleAssignmentsTable.effectiveTo),
+            gte(employeePayrollCycleAssignmentsTable.effectiveTo, period.from),
+          ),
+        ),
+      );
+    const employeeIds = new Set(assignments.map((item) => item.employeeId));
+    rows = rows.filter((row) => employeeIds.has(row.employee.id));
+  }
   await synchronizePayrollAttendance(context, rows, period.from, period.to);
   const attendance = await getAttendanceRows(context, period.from, period.to);
   const storedAttendanceCalculations = await db

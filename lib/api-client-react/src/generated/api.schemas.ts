@@ -479,6 +479,14 @@ export const EmployeeAutomaticOvertime = {
   disabled: 'disabled',
 } as const;
 
+export interface EmployeePayrollCycleSummary {
+  id: string;
+  name: string;
+  startDay: number;
+  payDay: number;
+  effectiveFrom: string;
+}
+
 export interface Employee {
   id: string;
   employeeNumber: string;
@@ -505,6 +513,7 @@ export interface Employee {
   joinedOn: string;
   salary: number;
   avatarInitials?: string;
+  payrollCycle?: EmployeePayrollCycleSummary | null;
 }
 
 export type EmployeeInputRole = typeof EmployeeInputRole[keyof typeof EmployeeInputRole];
@@ -539,6 +548,8 @@ export interface EmployeeInput {
   /** @minimum 0 */
   salary: number;
   scheduleId: string;
+  /** @nullable */
+  payrollCycleId?: string | null;
   role?: EmployeeInputRole;
 }
 
@@ -1722,6 +1733,12 @@ export const PayrollPeriodStatus = {
 
 export interface PayrollPeriod {
   id: string;
+  /** @nullable */
+  cycleId?: string | null;
+  /** @nullable */
+  cycleName?: string | null;
+  /** @nullable */
+  payDay?: number | null;
   label: string;
   from: string;
   to: string;
@@ -1736,9 +1753,79 @@ export interface PayrollPeriod {
 
 export interface PayrollPeriodInput {
   /** @minLength 1 */
-  label: string;
-  from: string;
-  to: string;
+  label?: string;
+  from?: string;
+  to?: string;
+  cycleId?: string;
+  referenceDate?: string;
+}
+
+export interface PayrollCycle {
+  id: string;
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  startDay: number;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  payDay: number;
+  active: boolean;
+  employeeCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollCycleInput {
+  /** @minLength 1 */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  startDay: number;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  payDay: number;
+}
+
+export interface PayrollCycleUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  startDay?: number;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  payDay?: number;
+  active?: boolean;
+}
+
+export interface EmployeePayrollCycleAssignment {
+  id: string;
+  employeeId: string;
+  cycleId: string;
+  cycleName: string;
+  startDay: number;
+  payDay: number;
+  effectiveFrom: string;
+  /** @nullable */
+  effectiveTo: string | null;
+  createdAt: string;
+}
+
+export interface EmployeePayrollCycleAssignmentInput {
+  cycleId: string;
+  effectiveFrom: string;
 }
 
 export type PayrollEmployeeLeaveBalancesItem = {

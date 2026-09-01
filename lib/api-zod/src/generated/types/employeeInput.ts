@@ -31,5 +31,7 @@ export interface EmployeeInput {
   /** @minimum 0 */
   salary: number;
   scheduleId: string;
+  /** @nullable */
+  payrollCycleId?: string | null;
   role?: EmployeeInputRole;
 }

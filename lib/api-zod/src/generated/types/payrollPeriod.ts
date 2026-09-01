@@ -9,6 +9,12 @@ import type { PayrollPeriodStatus } from './payrollPeriodStatus';
 
 export interface PayrollPeriod {
   id: string;
+  /** @nullable */
+  cycleId?: string | null;
+  /** @nullable */
+  cycleName?: string | null;
+  /** @nullable */
+  payDay?: number | null;
   label: string;
   from: string;
   to: string;

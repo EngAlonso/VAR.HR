@@ -216,6 +216,7 @@ const entities: Record<string, EntityConfig> = {
       "label",
       "from",
       "to",
+      "cycle_id",
       "status",
       "employee_count",
       "total_net",
@@ -225,6 +226,40 @@ const entities: Record<string, EntityConfig> = {
     companyColumn: "company_id",
     editable: ["label", "from", "to", "status"],
     orderColumn: "to",
+  },
+  payroll_cycles: {
+    table: "var_hr_payroll_cycles",
+    label: "Payroll cycles",
+    columns: [
+      "id",
+      "company_id",
+      "name",
+      "start_day",
+      "pay_day",
+      "active",
+      "created_at",
+      "updated_at",
+    ],
+    editable: ["name", "start_day", "pay_day", "active"],
+    hasUpdatedAt: true,
+    companyColumn: "company_id",
+    orderColumn: "created_at",
+  },
+  employee_payroll_cycle_assignments: {
+    table: "var_hr_employee_payroll_cycle_assignments",
+    label: "Employee payroll cycle assignments",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "cycle_id",
+      "effective_from",
+      "effective_to",
+      "created_at",
+    ],
+    editable: ["cycle_id", "effective_from", "effective_to"],
+    companyColumn: "company_id",
+    orderColumn: "effective_from",
   },
   users: {
     table: "var_hr_user_accounts",
@@ -926,16 +961,18 @@ router.patch(
         : config.companyColumn === "id" && typeof before.id === "string"
           ? before.id
           : null;
-    await db.insert(auditLogsTable).values({
-      companyId,
-      actorType: "platform_owner",
-      actorId: context.accountId,
-      action: "updated",
-      entityType: req.params.entity,
-      entityId: req.params.id,
-      before: safeHistoryValue(before),
-      after,
-    });
+    if (companyId) {
+      await db.insert(auditLogsTable).values({
+        companyId,
+        actorType: "platform_owner",
+        actorId: context.accountId,
+        action: "updated",
+        entityType: req.params.entity,
+        entityId: req.params.id,
+        before: safeHistoryValue(before),
+        after,
+      });
+    }
     await writeAuthAudit({
       accountId: context.accountId,
       companyId,
