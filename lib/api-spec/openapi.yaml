@@ -23,6 +23,7 @@ tags:
   - name: payroll
   - name: devices
   - name: subscriptions
+  - name: notifications
   - name: platform
   - name: auth
 paths:
@@ -1885,6 +1886,120 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubscriptionStatus"
+  /notifications/subscribe:
+    post:
+      operationId: subscribeToNotifications
+      tags: [notifications]
+      summary: Register the current browser for Web Push delivery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSubscriptionInput"
+      responses:
+        "201":
+          description: Web Push subscription registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSubscriptionResponse"
+        "400": { description: Invalid subscription data }
+        "401": { description: Workspace session required }
+        "409": { description: Endpoint belongs to another account }
+  /notifications/unsubscribe:
+    post:
+      operationId: unsubscribeFromNotifications
+      tags: [notifications]
+      summary: Remove the current browser's Web Push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint]
+              properties:
+                endpoint: { type: string, format: uri, maxLength: 2048 }
+      responses:
+        "200":
+          description: Subscription removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationUnsubscribeResponse"
+        "400": { description: Invalid endpoint }
+        "401": { description: Workspace session required }
+        "404": { description: Subscription not found in the current scope }
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for the current account
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Paginated notification history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPage"
+        "400": { description: Invalid pagination }
+        "401": { description: Workspace session required }
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Update the read status of a notification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationReadInput"
+      responses:
+        "200":
+          description: Notification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400": { description: Invalid notification id or body }
+        "401": { description: Workspace session required }
+        "404": { description: Notification not found in the current scope }
+  /notifications/send:
+    post:
+      operationId: sendManualNotification
+      tags: [notifications]
+      summary: Save and send a manual notification to the current owner account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationInput"
+      responses:
+        "201":
+          description: Notification saved and delivery attempted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSendResponse"
+        "400": { description: Invalid notification data }
+        "401": { description: Workspace session required }
+        "403": { description: Workspace owner role required }
+        "503": { description: VAPID configuration is missing }
   /platform/companies:
     get:
       operationId: listPlatformCompanies
@@ -4125,6 +4240,84 @@ components:
         features:
           type: array
           items: { type: string }
+    Notification:
+      type: object
+      required:
+        [id, companyId, userId, type, title, message, data, isRead, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        companyId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        type: { type: string }
+        title: { type: string }
+        message: { type: string }
+        data: { type: object, additionalProperties: true }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    NotificationInput:
+      type: object
+      required: [type, title, message]
+      properties:
+        type: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        message: { type: string, minLength: 1, maxLength: 2000 }
+        data: { type: object, additionalProperties: true }
+        icon: { type: string, maxLength: 2048 }
+        badge: { type: string, maxLength: 2048 }
+        tag: { type: string, maxLength: 128 }
+    NotificationSubscriptionInput:
+      type: object
+      required: [endpoint, auth, p256dh]
+      properties:
+        endpoint: { type: string, format: uri, maxLength: 2048 }
+        auth: { type: string, minLength: 1, maxLength: 512 }
+        p256dh: { type: string, minLength: 1, maxLength: 512 }
+        userAgent: { type: string, maxLength: 1024 }
+    NotificationSubscriptionResponse:
+      type: object
+      required: [subscription]
+      properties:
+        subscription:
+          type: object
+          required: [id, endpoint, createdAt]
+          properties:
+            id: { type: string, format: uuid }
+            endpoint: { type: string, format: uri }
+            createdAt: { type: string, format: date-time }
+    NotificationUnsubscribeResponse:
+      type: object
+      required: [removed, message]
+      properties:
+        removed: { type: boolean }
+        message: { type: string }
+    NotificationPage:
+      type: object
+      required: [items, page, pageSize, total, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    NotificationReadInput:
+      type: object
+      properties:
+        isRead: { type: boolean, default: true }
+    NotificationSendResponse:
+      type: object
+      required: [notification, delivery]
+      properties:
+        notification: { $ref: "#/components/schemas/Notification" }
+        delivery:
+          type: object
+          required: [attempted, delivered, removed, failed]
+          properties:
+            attempted: { type: integer }
+            delivered: { type: integer }
+            removed: { type: integer }
+            failed: { type: integer }
     PlatformCompany:
       type: object
       required:

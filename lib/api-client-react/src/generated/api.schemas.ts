@@ -2469,6 +2469,103 @@ export interface SubscriptionStatus {
   features: string[];
 }
 
+export type NotificationData = { [key: string]: unknown };
+
+export interface Notification {
+  id: string;
+  companyId: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  data: NotificationData;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type NotificationInputData = { [key: string]: unknown };
+
+export interface NotificationInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  type: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  message: string;
+  data?: NotificationInputData;
+  /** @maxLength 2048 */
+  icon?: string;
+  /** @maxLength 2048 */
+  badge?: string;
+  /** @maxLength 128 */
+  tag?: string;
+}
+
+export interface NotificationSubscriptionInput {
+  /** @maxLength 2048 */
+  endpoint: string;
+  /**
+     * @minLength 1
+     * @maxLength 512
+     */
+  auth: string;
+  /**
+     * @minLength 1
+     * @maxLength 512
+     */
+  p256dh: string;
+  /** @maxLength 1024 */
+  userAgent?: string;
+}
+
+export type NotificationSubscriptionResponseSubscription = {
+  id: string;
+  endpoint: string;
+  createdAt: string;
+};
+
+export interface NotificationSubscriptionResponse {
+  subscription: NotificationSubscriptionResponseSubscription;
+}
+
+export interface NotificationUnsubscribeResponse {
+  removed: boolean;
+  message: string;
+}
+
+export interface NotificationPage {
+  items: Notification[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface NotificationReadInput {
+  isRead?: boolean;
+}
+
+export type NotificationSendResponseDelivery = {
+  attempted: number;
+  delivered: number;
+  removed: number;
+  failed: number;
+};
+
+export interface NotificationSendResponse {
+  notification: Notification;
+  delivery: NotificationSendResponseDelivery;
+}
+
 export type PlatformCompanyStatus = typeof PlatformCompanyStatus[keyof typeof PlatformCompanyStatus];
 
 
@@ -2747,5 +2844,22 @@ employeeId?: EmployeeIdQueryParameter;
 
 export type GetMyPayrollParams = {
 periodId?: string;
+};
+
+export type UnsubscribeFromNotificationsBody = {
+  /** @maxLength 2048 */
+  endpoint: string;
+};
+
+export type ListNotificationsParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: number;
 };
 

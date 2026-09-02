@@ -5,6 +5,7 @@ import authRouter from "./auth";
 import backupsRouter from "./backups";
 import platformAdminRouter from "./platform-admin";
 import deviceConnectorRouter from "./device-connector";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -13,6 +14,7 @@ router.use(authRouter);
 router.use(backupsRouter);
 router.use(platformAdminRouter);
 router.use(deviceConnectorRouter);
+router.use(notificationsRouter);
 router.use(varHrRouter);
 
 export default router;

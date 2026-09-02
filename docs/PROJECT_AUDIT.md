@@ -2,9 +2,9 @@
 
 **تاريخ التدقيق:** 2 سبتمبر 2026  
 **النطاق:** جرد البنية، فحص الإعدادات، محاولة التشغيل، التحقق من البناء
-والاختبارات، وتوثيق الفجوات. تم تحديث مخطط قاعدة البيانات في مرحلة الإشعارات
-بإضافة جدول الإشعارات وجدول اشتراكات Web Push فقط؛ لم تُنفّذ بعد طبقة Web Push
-أو API أو واجهة المستخدم.
+والاختبارات، وتوثيق الفجوات. اكتملت مرحلتا مخطط الإشعارات وطبقة Backend API
+وWeb Push Service. لم تُنفّذ بعد Service Worker أو واجهة المستخدم أو الربط
+التلقائي بأحداث HR.
 
 ## 1. ملخص تنفيذي
 
@@ -112,13 +112,13 @@ useListAttendanceRuleChanges({ query: { enabled: canViewRuleHistory }
 | Departments & job titles | جزئي | الأقسام موجودة، والمسمى في HR record كنص لا كـcatalog |
 | Roles & permissions | موجود | account types وpermission grants وtenant checks |
 | Reports & statistics | موجود | dashboard وattendance/report endpoints |
-| Notifications | جزئي | alerts مشتقة من dashboard، لا notification inbox/delivery |
+| Notifications | جزئي | schema وBackend API وWeb Push Service موجودة؛ المتبقي Service Worker والواجهة والربط بأحداث HR |
 | Authentication | موجود | database sessions، scrypt، HttpOnly cookie |
 | Input validation | موجود جزئيًا/واسعًا | Zod في routes المهمة؛ يلزم توحيد كل الحدود |
 | Error handling | موجود | middleware مركزي و`{ error, code }` في حالات عديدة |
 | Pagination/filter/search | جزئي | filters موجودة في بعض endpoints؛ لا envelope موحد أو contract عام |
 | Rate limiting | غير موجود | لا توجد middleware مخصصة |
-| API docs | موجود | OpenAPI 3.1، 83 path و116 operation |
+| API docs | موجود | OpenAPI 3.1، 88 path و121 operation |
 | Unit/integration tests | جزئي | 6 ملفات Node test، 52 اختبارًا، لا suite frontend أو integration HTTP كاملة |
 | Deployment config | جزئي | Replit artifact metadata موجود؛ Docker وGitHub Actions غير موجودين |
 
@@ -271,7 +271,8 @@ PostgreSQL. يجب إما ربطه لاحقًا بسياسة مفاتيح واض
 ### P1 — فجوات المنتج الأساسية
 
 - جداول وAPI وواجهة Performance Reviews.
-- نظام Notifications: inbox، read state، channel/delivery policy.
+- Phase 3 للإشعارات: Service Worker، notification inbox في React، وربط
+  delivery بأحداث HR مع retry/rate limiting عند الحاجة.
 - catalog مستقل للمسميات الوظيفية.
 - استكمال payroll domain إذا كان المقصود محاسبة ورواتب إنتاجية كاملة، لا
   مجرد calculation foundation.
@@ -299,9 +300,17 @@ PostgreSQL. يجب إما ربطه لاحقًا بسياسة مفاتيح واض
 - `lib/db/src/schema/notifications.ts` — مخطط الإشعارات واشتراكات Web Push.
 - `lib/db/migrations/0000_same_stryfe.sql` — baseline migration المولد من
   مخطط Drizzle الحالي (40 جدولًا).
+- `artifacts/api-server/src/services/notificationService.ts` — حفظ الإشعار،
+  pagination، القراءة، اشتراكات الأجهزة، وإرسال Web Push.
+- `artifacts/api-server/src/routes/notifications.ts` — endpoints الاشتراك
+  والإلغاء والسجل والقراءة والإرسال اليدوي.
+- `lib/api-spec/openapi.yaml` والملفات المولدة — عقد endpoints الإشعارات وعميل
+  React Query وZod schemas.
 - `.env.example` — المتغيرات المطلوبة والاختيارية مع تنبيهات الأمان.
 - `README.md` — الفكرة، التثبيت، التشغيل، الميزات، البنية، المساهمة،
   والخارطة المختصرة.
 - `SETUP.md` — خطوات Replit، قاعدة البيانات، الأسرار، workflows،
   التحقق، واستكشاف الأخطاء.
+- `docs/WEB_PUSH.md` — إعداد VAPID، أمثلة endpoints، الأخطاء، التحقق، وخطة
+  Phase 3.
 - هذا التقرير — الأدلة والنتائج والفجوات وERD وخارطة الأولويات.

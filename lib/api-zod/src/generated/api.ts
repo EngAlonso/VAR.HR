@@ -4038,6 +4038,160 @@ export const GetSubscriptionResponse = zod.object({
 
 
 /**
+ * @summary Register the current browser for Web Push delivery
+ */
+export const subscribeToNotificationsBodyEndpointMax = 2048;
+
+export const subscribeToNotificationsBodyAuthMax = 512;
+
+export const subscribeToNotificationsBodyP256dhMax = 512;
+
+export const subscribeToNotificationsBodyUserAgentMax = 1024;
+
+
+
+export const SubscribeToNotificationsBody = zod.object({
+  "endpoint": zod.url().max(subscribeToNotificationsBodyEndpointMax),
+  "auth": zod.string().min(1).max(subscribeToNotificationsBodyAuthMax),
+  "p256dh": zod.string().min(1).max(subscribeToNotificationsBodyP256dhMax),
+  "userAgent": zod.string().max(subscribeToNotificationsBodyUserAgentMax).optional()
+})
+
+export const SubscribeToNotificationsResponse = zod.object({
+  "subscription": zod.object({
+  "id": zod.uuid(),
+  "endpoint": zod.url(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})
+})
+
+
+/**
+ * @summary Remove the current browser's Web Push subscription
+ */
+export const unsubscribeFromNotificationsBodyEndpointMax = 2048;
+
+
+
+export const UnsubscribeFromNotificationsBody = zod.object({
+  "endpoint": zod.url().max(unsubscribeFromNotificationsBodyEndpointMax)
+})
+
+export const UnsubscribeFromNotificationsResponse = zod.object({
+  "removed": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary List notifications for the current account
+ */
+export const listNotificationsQueryPageDefault = 1;
+
+export const listNotificationsQueryPageSizeDefault = 20;
+export const listNotificationsQueryPageSizeMax = 100;
+
+
+
+export const ListNotificationsQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).default(listNotificationsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listNotificationsQueryPageSizeMax).default(listNotificationsQueryPageSizeDefault)
+})
+
+export const ListNotificationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "companyId": zod.uuid(),
+  "userId": zod.uuid(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
+  "totalPages": zod.int()
+})
+
+
+/**
+ * @summary Update the read status of a notification
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const markNotificationReadBodyIsReadDefault = true;
+
+export const MarkNotificationReadBody = zod.object({
+  "isRead": zod.boolean().default(markNotificationReadBodyIsReadDefault)
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "id": zod.uuid(),
+  "companyId": zod.uuid(),
+  "userId": zod.uuid(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
+ * @summary Save and send a manual notification to the current owner account
+ */
+export const sendManualNotificationBodyTypeMax = 100;
+
+export const sendManualNotificationBodyTitleMax = 200;
+
+export const sendManualNotificationBodyMessageMax = 2000;
+
+export const sendManualNotificationBodyIconMax = 2048;
+
+export const sendManualNotificationBodyBadgeMax = 2048;
+
+export const sendManualNotificationBodyTagMax = 128;
+
+
+
+export const SendManualNotificationBody = zod.object({
+  "type": zod.string().min(1).max(sendManualNotificationBodyTypeMax),
+  "title": zod.string().min(1).max(sendManualNotificationBodyTitleMax),
+  "message": zod.string().min(1).max(sendManualNotificationBodyMessageMax),
+  "data": zod.record(zod.string(), zod.unknown()).optional(),
+  "icon": zod.string().max(sendManualNotificationBodyIconMax).optional(),
+  "badge": zod.string().max(sendManualNotificationBodyBadgeMax).optional(),
+  "tag": zod.string().max(sendManualNotificationBodyTagMax).optional()
+})
+
+export const SendManualNotificationResponse = zod.object({
+  "notification": zod.object({
+  "id": zod.uuid(),
+  "companyId": zod.uuid(),
+  "userId": zod.uuid(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}),
+  "delivery": zod.object({
+  "attempted": zod.int(),
+  "delivered": zod.int(),
+  "removed": zod.int(),
+  "failed": zod.int()
+})
+})
+
+
+/**
  * @summary List companies for the platform administration experience
  */
 export const ListPlatformCompaniesResponseItem = zod.object({

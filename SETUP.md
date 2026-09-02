@@ -47,6 +47,10 @@ install`. إذا ظهرت مشكلة في lockfile، أصلح سببها أول�
   تطوير مضبوطة؛ أبقه `false` في production.
 - `ZKTECO_ADMS_ALLOW_UNAUTHENTICATED` — يجب أن يبقى `false` حتى لا تقبل
   أجهزة ADMS دون مفتاح تسجيل.
+- `VAPID_SUBJECT` و`VAPID_PUBLIC_KEY` و`VAPID_PRIVATE_KEY` — مطلوبة لإرسال
+  Web Push في Phase 2. ولّدها بالأمر الموثق في
+  [`docs/WEB_PUSH.md`](docs/WEB_PUSH.md)، ثم خزّنها في Replit Secrets أو ملف
+  `.env` محلي غير متتبع.
 
 لا تضبط `PORT` أو `BASE_PATH` يدويًا داخل workflow المُدار؛ Replit يحقنهما
 من artifact metadata.
@@ -140,5 +144,6 @@ pnpm --filter @workspace/api-server test
 - إضافة rate limiting وsecurity headers وCORS allowlist.
 - إضافة اختبارات API integration واختبارات الواجهة الحرجة.
 - إضافة Docker/CI حسب بيئة النشر المستهدفة.
-- إضافة وحدتي performance reviews وnotifications إذا كانت ضمن نطاق المنتج.
+- إضافة Service Worker وواجهة notifications وربط الإشعارات بأحداث HR في
+  Phase 3؛ Backend API وWeb Push Service متاحان الآن.
 - تقليل حجم bundle عبر تقسيم `App.tsx` وdynamic imports.

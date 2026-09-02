@@ -14,3 +14,4 @@
 - [Effective-dated attendance calculations](effective-dated-attendance-calculations.md) — future rule edits must not change historical attendance or payroll outcomes.
 - [Operational attendance rule date](operational-attendance-rule-date.md) — derive automatic rule-month boundaries from the Cairo operational calendar while keeping historical calculations date-scoped.
 - [Settings mutation payloads](settings-mutation-payloads.md) — strip server-owned metadata and coerce generated enum fields at the settings PUT boundary.
+- [Web Push VAPID boot policy](web-push-vapid-boot-policy.md) — configure VAPID lazily so the API remains usable before delivery secrets are provisioned.

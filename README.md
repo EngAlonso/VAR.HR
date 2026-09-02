@@ -115,7 +115,7 @@ Vite تتحقق منهما عند تحميل configuration. في Replit يتول
 ## توثيق API
 
 مصدر العقد هو [`lib/api-spec/openapi.yaml`](lib/api-spec/openapi.yaml)، ويضم
-حاليًا 83 مسارًا و116 عملية موصوفة. الملفات المولدة موجودة في:
+حاليًا 88 مسارًا و121 عملية موصوفة. الملفات المولدة موجودة في:
 
 - `lib/api-client-react/src/generated` — React Query client hooks.
 - `lib/api-zod/src/generated` — مخططات Zod وأنواع الاستجابة.
@@ -129,6 +129,10 @@ pnpm --filter @workspace/api-spec run codegen
 تستخدم الاستجابات الحالية غالبًا JSON مباشرًا (كائن أو مصفوفة)، مع `{ error,
 code }` للأخطاء. توحيد envelope وmetadata الخاصة بالـpagination من الفجوات
 المقترحة للمرحلة التالية.
+
+دليل Phase 2 الخاص بـ Web Push والإشعارات موجود في
+[`docs/WEB_PUSH.md`](docs/WEB_PUSH.md)، ويشرح توليد VAPID keys وإعداد الأسرار
+وأمثلة curl والاستجابات والأخطاء المتوقعة.
 
 ## قاعدة البيانات وERD
 
@@ -192,7 +196,7 @@ code }` للأخطاء. توحيد envelope وmetadata الخاصة بالـpagi
 
 ## خارطة الطريق المختصرة
 
-الأولوية التالية المقترحة هي: إضافة migrations قابلة للتتبع، فصل `App.tsx`
-إلى وحدات، توحيد response/pagination، إضافة performance reviews والإشعارات،
-إضافة rate limiting وsecurity headers، ثم استكمال اختبارات API المتكاملة
-وDocker/CI/CD قبل النشر الإنتاجي.
+تم تنفيذ Phase 1 وPhase 2 من نظام الإشعارات: المخطط، اشتراكات الأجهزة، حفظ
+السجل، وWeb Push من الخادم. المرحلة التالية المقترحة هي Phase 3: Service
+Worker وواجهة الإشعارات في React وربطها بأحداث HR، مع إضافة rate limiting
+وsecurity headers واختبارات API المتكاملة وDocker/CI/CD قبل النشر الإنتاجي.
