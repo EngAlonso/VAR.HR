@@ -27,6 +27,12 @@ install`. إذا ظهرت مشكلة في lockfile، أصلح سببها أول�
 4. خادم API يعيد تنفيذ فحص `push` غير القسري عند الإقلاع، لذلك لا توجد حاجة
    إلى `push-force`.
 
+يوجد baseline migration مولد في `lib/db/migrations/0000_same_stryfe.sql`.
+استخدمه عند إنشاء قاعدة جديدة عبر `pnpm --filter @workspace/db run migrate`.
+أما قاعدة التطوير الحالية التي لم يكن لها migration history من قبل، فطبّق
+التحديثات عبر `pnpm --filter @workspace/db run push` كما هو موضح أعلاه؛ لا
+تشغّل baseline عليها لأنه سيحاول إنشاء الجداول الموجودة مسبقًا.
+
 لا تستخدم `push-force` على قاعدة بها بيانات مهمة. قبل production يجب استبدال
 التدفق الحالي بـSQL migrations مراجعة وقابلة للرجوع.
 

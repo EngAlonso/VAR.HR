@@ -2,8 +2,9 @@
 
 **تاريخ التدقيق:** 2 سبتمبر 2026  
 **النطاق:** جرد البنية، فحص الإعدادات، محاولة التشغيل، التحقق من البناء
-والاختبارات، وتوثيق الفجوات. لم يتضمن هذا العمل إضافة ميزات HR جديدة أو
-تغيير مخطط البيانات.
+والاختبارات، وتوثيق الفجوات. تم تحديث مخطط قاعدة البيانات في مرحلة الإشعارات
+بإضافة جدول الإشعارات وجدول اشتراكات Web Push فقط؛ لم تُنفّذ بعد طبقة Web Push
+أو API أو واجهة المستخدم.
 
 ## 1. ملخص تنفيذي
 
@@ -123,7 +124,7 @@ useListAttendanceRuleChanges({ query: { enabled: canViewRuleHistory }
 
 ## 5. قاعدة البيانات الحالية
 
-يوجد 38 جدولًا فعليًا في مخططات Drizzle:
+يوجد 40 جدولًا فعليًا في مخططات Drizzle:
 
 - **Organization:** `var_hr_companies`, `var_hr_departments`,
   `var_hr_branches`, `var_hr_employees`.
@@ -147,6 +148,21 @@ useListAttendanceRuleChanges({ query: { enabled: canViewRuleHistory }
   `var_hr_account_permissions`, `var_hr_employee_identities`,
   `var_hr_auth_sessions`, `var_hr_auth_audit_events`.
 - **Backups:** `var_hr_backup_records`.
+- **Notifications:** `var_hr_notifications`,
+  `var_hr_notification_subscriptions`.
+
+### تفاصيل جداول الإشعارات
+
+| الجدول | الحقول |
+| --- | --- |
+| `var_hr_notifications` | `id` UUID، `companyId` لعزل المستأجر، `userId` المرتبط بـ`var_hr_user_accounts`، `type`، `title`، `message`، `data` JSONB، `isRead`، `createdAt` |
+| `var_hr_notification_subscriptions` | `id` UUID، `companyId` لعزل المستأجر، `userId` المرتبط بالحساب، `endpoint` الفريد، `auth`، `p256dh`، `userAgent` الاختياري، `createdAt` |
+
+الفهارس الحالية تدعم سجل المستخدم مرتبًا حسب وقت الإنشاء، تصفية المقروء/
+غير المقروء، البحث بنطاق الشركة، وتسجيل endpoint واحد مرة واحدة. تم اختيار
+حساب المستخدم (`userId`) بدل employee id لأن المصادقة الحالية مبنية على
+`var_hr_user_accounts`، مع إبقاء employee relation متاحًا من الحساب عند
+الحاجة.
 
 ### ERD الحالي (logical)
 
@@ -193,18 +209,26 @@ erDiagram
   COMPANIES ||--o{ ATTENDANCE_RULES : owns
   COMPANIES ||--o{ SUBSCRIPTIONS : subscribes
   PLANS ||--o{ SUBSCRIPTIONS : offers
+  USER_ACCOUNTS ||--o{ NOTIFICATIONS : receives
+  COMPANIES ||--o{ NOTIFICATIONS : scopes
+  USER_ACCOUNTS ||--o{ NOTIFICATION_SUBSCRIPTIONS : registers
+  COMPANIES ||--o{ NOTIFICATION_SUBSCRIPTIONS : scopes
 ```
 
 ### فجوة migrations
 
-`lib/db` يحتوي على schema و`drizzle.config.ts` وscripts `push` فقط. لا توجد
-مجلدات `migrations/` أو ملفات SQL migration قابلة للمراجعة. هذا مناسب لتسريع
-بيئة التطوير، لكنه لا يحقق متطلبات production التالية:
+`lib/db` يحتوي الآن على schema و`drizzle.config.ts` وbaseline SQL migration
+مولد في `lib/db/migrations/0000_same_stryfe.sql`. هذا baseline صالح لقاعدة
+جديدة، لكنه لا يمثل history incremental للقاعدة التطويرية القديمة التي كانت
+تُدار بـ`push` فقط. لذلك:
 
-- versioned migrations في Git.
-- مراجعة destructive changes قبل التطبيق.
-- مسار upgrade واضح للبيئات الموجودة.
-- rollback أو خطة استعادة قبل تغيير البيانات.
+- تم تطبيق جداول الإشعارات على قاعدة التطوير الحالية عبر `drizzle-kit push`
+  غير القسري.
+- يمكن تشغيل baseline على قاعدة جديدة عبر `drizzle-kit migrate`.
+- يجب إنشاء baseline/upgrade strategy واضحة قبل استخدام migrations على بيئة
+  موجودة، مع مراجعة destructive changes وخطة استعادة.
+- production في Replit يُحدّث عبر Publish schema diff، وليس عبر DDL داخل
+  deploy أو startup.
 
 ## 6. فجوات الأمان والجودة
 
@@ -272,6 +296,9 @@ PostgreSQL. يجب إما ربطه لاحقًا بسياسة مفاتيح واض
 
 ## 9. الملفات التي أضيفت في هذه المرحلة
 
+- `lib/db/src/schema/notifications.ts` — مخطط الإشعارات واشتراكات Web Push.
+- `lib/db/migrations/0000_same_stryfe.sql` — baseline migration المولد من
+  مخطط Drizzle الحالي (40 جدولًا).
 - `.env.example` — المتغيرات المطلوبة والاختيارية مع تنبيهات الأمان.
 - `README.md` — الفكرة، التثبيت، التشغيل، الميزات، البنية، المساهمة،
   والخارطة المختصرة.

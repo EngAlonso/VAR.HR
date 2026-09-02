@@ -132,10 +132,13 @@ code }` للأخطاء. توحيد envelope وmetadata الخاصة بالـpagi
 
 ## قاعدة البيانات وERD
 
-مخطط Drizzle موزع في `lib/db/src/schema/` ويحتوي على 38 جدولًا فعليًا. يوجد
-وصف بصري للعلاقات الحالية في [`docs/PROJECT_AUDIT.md`](docs/PROJECT_AUDIT.md).
-حاليًا تتم مزامنة المخطط بواسطة `drizzle-kit push` ولا توجد مجلدات migrations
-SQL مولدة قابلة للتتبع؛ لا تستخدم `push-force` على بيانات حقيقية.
+مخطط Drizzle موزع في `lib/db/src/schema/` ويحتوي على 40 جدولًا فعليًا، بما
+في ذلك `var_hr_notifications` و`var_hr_notification_subscriptions`. يوجد وصف
+بصري للعلاقات الحالية في [`docs/PROJECT_AUDIT.md`](docs/PROJECT_AUDIT.md).
+يوجد baseline migration مولد في `lib/db/migrations/0000_same_stryfe.sql`.
+لأن قاعدة التطوير الحالية أُنشئت سابقًا بواسطة `push` دون سجل migrations،
+يستمر تطبيق التغييرات عليها عبر `drizzle-kit push` غير القسري؛ استخدم baseline
+مع قاعدة جديدة فقط ولا تستخدم `push-force` على بيانات حقيقية.
 
 ## شرح المجلدات الرئيسية
 
