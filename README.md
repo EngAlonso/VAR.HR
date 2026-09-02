@@ -117,6 +117,10 @@ Vite تتحقق منهما عند تحميل configuration. في Replit يتول
 مصدر العقد هو [`lib/api-spec/openapi.yaml`](lib/api-spec/openapi.yaml)، ويضم
 حاليًا 88 مسارًا و121 عملية موصوفة. الملفات المولدة موجودة في:
 
+يتطلب تفعيل إشعارات المتصفح إضافة `VITE_VAPID_PUBLIC_KEY` إلى بيئة الواجهة،
+وإضافة مفاتيح VAPID الثلاثة إلى بيئة API كما هو موضح في
+[`docs/WEB_PUSH.md`](docs/WEB_PUSH.md).
+
 - `lib/api-client-react/src/generated` — React Query client hooks.
 - `lib/api-zod/src/generated` — مخططات Zod وأنواع الاستجابة.
 

@@ -271,6 +271,10 @@ import {
   calculateAbsencePenaltyMinutes,
   calculateAnnualLeaveDeduction,
 } from "../lib/annual-leave-balance.mjs";
+import {
+  notifyLeaveRequestCreated,
+  notifyLeaveRequestDecision,
+} from "../services/leaveNotificationService";
 
 const router: IRouter = Router();
 const TODAY = localCalendarDate(new Date(), "Africa/Cairo");
@@ -6254,6 +6258,16 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
   );
   const rows = await leaveRows(context);
   const row = rows.find((item) => item.request.id === request.id)!;
+  void notifyLeaveRequestCreated({
+    companyId: context.companyId,
+    employeeId: request.employeeId,
+    employeeName: row.employee.firstName + " " + row.employee.lastName,
+    type: request.type,
+    from: request.from,
+    to: request.to,
+    days: request.days,
+    reason: request.reason,
+  });
   res.status(201).json(
     CreateLeaveRequestResponse.parse({
       id: request.id,
@@ -6409,6 +6423,20 @@ router.post(
       request.id,
       parsed.data,
     );
+    void notifyLeaveRequestDecision({
+      companyId: context.companyId,
+      employeeId: request.employeeId,
+      employeeName: scopedRequest.employee.firstName +
+        " " +
+        scopedRequest.employee.lastName,
+      type: request.type,
+      from: request.from,
+      to: request.to,
+      days: request.days,
+      reason: request.reason,
+      decision: parsed.data.decision,
+      decisionReason: parsed.data.reason,
+    });
     const rows = await leaveRows(context);
     const row = rows.find((item) => item.request.id === request.id)!;
     res.json(
