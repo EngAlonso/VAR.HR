@@ -1,18 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
+  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build",
   "outputDirectory": "artifacts/var-hr/dist/public",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 60
-    }
-  },
   "rewrites": [
     {
-      "source": "/((?!api(?:/|$)).*)",
+      "source": "^/(?!api(?:/|$))(.*)$",
       "destination": "/index.html"
     }
   ]
