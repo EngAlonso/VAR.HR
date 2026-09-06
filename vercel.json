@@ -6,7 +6,7 @@
   "outputDirectory": "artifacts/var-hr/dist/public",
   "rewrites": [
     {
-      "source": "^/(?!api(?:/|$))(.*)$",
+      "source": "/((?!api).*)",
       "destination": "/index.html"
     }
   ]
