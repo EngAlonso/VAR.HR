@@ -8,7 +8,7 @@
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src"],
+  "exclude": ["src"],
   "references": [
     {
       "path": "../../lib/db"
