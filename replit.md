@@ -61,6 +61,13 @@ The product should feel premium, precise, enterprise-grade, multilingual, and su
 - Do not introduce an auth provider or claim physical biometric hardware success. The deterministic mock provider is intentionally limited to local/test synchronization.
 - Passwords are returned only as one-time temporary values from account creation/reset/onboarding responses and are never persisted in plaintext.
 
+## Vercel + Neon deployment
+
+- The root `vercel.json` builds `@workspace/var-hr` as the static frontend and routes `/api` requests to the Express serverless functions under `api/`.
+- In Vercel, add `DATABASE_URL` using the pooled PostgreSQL connection string from Neon. Also set `NODE_ENV=production` and any enabled API secrets such as `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, and `VAPID_PRIVATE_KEY`.
+- Apply the Drizzle schema to the Neon database before the first production request with `DATABASE_URL=<neon-connection-string> pnpm --filter @workspace/db run push`; do not run schema changes on every serverless invocation.
+- `api-server/src/app.ts` is the serverless-safe Express export. `api-server/src/index.ts` remains the local/Replit long-running server entry and must not be used as the Vercel function entry because it calls `listen()` and runs the development schema check.
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
