@@ -2,6 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "strict": false,
     "noImplicitAny": false
