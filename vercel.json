@@ -1,36 +1,17 @@
 {
-  "version": 2,
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "artifacts/api-server/src/app.ts",
-      "use": "@vercel/node"
+      "source": "/api/:path*",
+      "destination": "/artifacts/api-server/src/app.ts"
     },
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "artifacts/var-hr/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "artifacts/api-server/src/app.ts"
+      "source": "/iclock/:path*",
+      "destination": "/artifacts/api-server/src/app.ts"
     },
     {
-      "src": "/iclock/(.*)",
-      "dest": "artifacts/api-server/src/app.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/var-hr/$1",
-      "check": true
-    },
-    {
-      "src": "/(.*)",
-      "file": "artifacts/var-hr/index.html"
+      "source": "/(.*)",
+      "destination": "/artifacts/var-hr/$1"
     }
   ]
 }
