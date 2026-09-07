@@ -1,17 +1,41 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build",
-  "outputDirectory": "artifacts/var-hr/dist/public",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/iclock/:path*",
-      "destination": "/api/iclock/:path*"
+      "src": "artifacts/api-server/src/app.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "artifacts/api-server/**",
+          "lib/**"
+        ]
+      }
     },
     {
-      "source": "/((?!api|iclock).*)",
-      "destination": "/index.html"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build",
+        "distDir": "artifacts/var-hr/dist/public"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/artifacts/api-server/src/app.ts"
+    },
+    {
+      "src": "/iclock/(.*)",
+      "dest": "/artifacts/api-server/src/app.ts"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
