@@ -103,7 +103,7 @@ paths:
       operationId: provisionInitialPlatformOwner
       tags: [auth]
       summary: Provision the initial Platform Owner account
-      description: Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+      description: One-time initial-deployment endpoint. It is available only while no Platform Owner exists, and in production only when VAR_HR_ENABLE_INITIAL_PROVISIONING=true.
       requestBody:
         required: true
         content:

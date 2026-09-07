@@ -1,0 +1,1 @@
+- [Database driver compatibility](database-driver-compatibility.md) — choose Neon HTTP only for Neon hosts; use node-postgres for Replit PostgreSQL.

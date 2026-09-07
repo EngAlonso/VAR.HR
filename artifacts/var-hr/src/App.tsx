@@ -6774,6 +6774,12 @@ function AuthGate() {
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
+    if (loading || account || !setupAvailable) return;
+    if (location === "/" || location === "/login") {
+      setLocation("/setup");
+    }
+  }, [account, loading, location, setLocation, setupAvailable]);
+  useEffect(() => {
     if (!account) return;
     if (location === "/login") {
       setLocation(account.accountType === "platform_owner" ? "/platform" : "/");
@@ -6784,7 +6790,14 @@ function AuthGate() {
   if (loading) return <WorkspaceState kind="loading" />;
   if (!account)
     if (setupAvailable && location === "/setup")
-      return <InitialFounderSetup onComplete={() => setLocation("/login")} />;
+      return (
+        <InitialFounderSetup
+          onComplete={() => {
+            setSetupAvailable(false);
+            setLocation("/login");
+          }}
+        />
+      );
   if (!account)
     return (
       <Login

@@ -367,9 +367,8 @@ router.post(
   "/auth/provision/platform-owner",
   async (req, res): Promise<void> => {
     const provisioningEnabled =
-      process.env.NODE_ENV !== "production" &&
-      (process.env.NODE_ENV === "development" ||
-        process.env.VAR_HR_ENABLE_INITIAL_PROVISIONING === "true");
+      process.env.NODE_ENV !== "production" ||
+      process.env.VAR_HR_ENABLE_INITIAL_PROVISIONING === "true";
     if (!provisioningEnabled) {
       res.status(404).json({ error: "Not found.", code: "NOT_FOUND" });
       return;
