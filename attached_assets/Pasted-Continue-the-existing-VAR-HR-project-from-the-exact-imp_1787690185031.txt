@@ -1,0 +1,241 @@
+Continue the existing VAR HR project from the exact implementation state described below. This is a continuation from another agent. Do NOT restart the investigation from scratch and do NOT duplicate work that has already been completed.
+
+Previous inspection and current state
+
+We are preparing to connect a real ZKTeco K50 Pro biometric device to VAR HR.
+
+The K50 Pro currently shows these settings:
+
+- TCP Port: 4370
+- Cloud Server / ADMS: available
+- Server Address: currently 0.0.0.0
+- Server Port: 8081
+- HTTPS: ON
+- Enable Domain Name: OFF
+- Device has Serial Number, MAC Address, Platform Info, Manufacturer, and Fingerprint Algorithm fields.
+
+The VAR HR server is hosted on Replit.
+
+A previous inspection confirmed:
+
+- The VAR HR project was not published to a Replit production deployment at that time.
+- There was no verified public production URL.
+- Frontend workflow was running internally.
+- API workflow was running internally.
+- Port 8081 belonged to the mockup sandbox and MUST NOT be used as the biometric server port.
+- The API had no real TCP listener for ZKTeco port 4370.
+- The existing biometric implementation only had mock/generic providers.
+- There was no real ZKTeco/K50 Pro protocol implementation.
+- There was no ADMS/Cloud Server implementation.
+- The existing "/api/devices/:deviceId/events" endpoint was an internal authenticated VAR HR API endpoint and was NOT compatible with ZKTeco ADMS.
+- "/api/healthz" was only a health check.
+- No physical-device settings were changed.
+- No synchronization was started.
+- No real attendance/payroll data was modified.
+
+Previous architectural decision
+
+The correct architecture is:
+
+K50 Pro
+→ outbound Internet connection
+→ HTTPS
+→ VAR HR ADMS/Cloud Server endpoint
+→ device identification
+→ tenant/company validation
+→ employee/device-user mapping
+→ raw biometric event storage
+→ duplicate protection
+→ existing VAR HR attendance pipeline
+→ attendance calculation
+→ payroll remains separate and protected.
+
+ADMS was preferred over direct TCP because the K50 Pro is a remote physical device and VAR HR is hosted in the cloud.
+
+The previous agent researched the ZKTeco ADMS protocol and identified the standard "iclock" protocol paths, especially:
+
+"/iclock/cdata"
+
+The implementation must account for firmware variation and should defensively support the standard ZKTeco ADMS behavior.
+
+Previous implementation progress
+
+The previous agent had already started implementing the backend ADMS listener.
+
+The intended implementation includes:
+
+- Standard ZKTeco "iclock" routes.
+- Device lookup using the device Serial Number.
+- Secure device credential validation using hashed credentials where applicable.
+- Raw event ingestion.
+- Raw event deduplication.
+- Tenant-safe employee mapping.
+- Attendance-pipeline handoff.
+- Device heartbeat/connection status tracking.
+- Device registration.
+- Keeping the existing mock biometric provider for development/testing.
+- Reusing the existing VAR HR device/provider architecture instead of creating a completely separate biometric system.
+
+The previous agent was interrupted by the daily quota while implementing this backend integration.
+
+Important VAR HR requirements
+
+VAR HR is a multi-tenant HR platform.
+
+A device belongs to exactly one company.
+
+A device from Company A must NEVER be able to:
+
+- create attendance for Company B,
+- read Company B employees,
+- access Company B device data,
+- submit events into another tenant,
+- or bypass tenant isolation.
+
+Employee/device-user mapping must therefore be tenant-safe.
+
+Raw device events should remain distinguishable from calculated attendance.
+
+Do not unnecessarily change the existing attendance calculation or payroll architecture. The real device should feed raw events into the existing attendance pipeline.
+
+Duplicate punches/events must be prevented safely.
+
+Device status should track at least:
+
+- online/offline or last communication,
+- last successful synchronization/heartbeat,
+- last received event,
+- device identity.
+
+All device registration, configuration, synchronization, and important support actions should remain auditable.
+
+What I want you to do now
+
+First inspect the CURRENT code and determine exactly what the previous agent already implemented.
+
+Do NOT recreate or duplicate existing work.
+
+Then finish the real ZKTeco K50 Pro ADMS integration.
+
+Implement the remaining backend and frontend pieces required to make this a production-ready device integration.
+
+The system must support:
+
+1. Real K50 Pro ADMS communication.
+2. Device registration.
+3. Device identification by Serial Number.
+4. Secure device authentication.
+5. Company/tenant assignment.
+6. Employee/device-user mapping.
+7. Attendance event ingestion.
+8. Raw event storage.
+9. Duplicate-event protection.
+10. Device heartbeat/status.
+11. Last synchronization information.
+12. Audit logging.
+13. Safe failure handling.
+14. Tenant isolation.
+15. Existing mock provider remaining available for testing.
+16. Existing attendance pipeline integration.
+17. Device management UI showing connection/sync status.
+
+Do NOT implement a generic raw SQL solution.
+
+Do NOT remove existing tenant protections.
+
+Do NOT modify existing attendance/payroll records during implementation.
+
+Do NOT perform destructive database operations.
+
+Deployment requirement
+
+Because the K50 Pro is a real physical device connecting over the Internet, the VAR HR API must have a stable publicly reachable HTTPS endpoint.
+
+The Replit Preview URL must NOT be treated as the final production device endpoint unless the deployment architecture explicitly guarantees that it is stable and publicly reachable for this purpose.
+
+Inspect the current Replit deployment configuration.
+
+If the project is still not published, determine exactly what must be done to publish the API and obtain the stable public URL.
+
+Do not guess the URL.
+
+Physical device configuration
+
+DO NOT ask me to change the K50 Pro yet.
+
+First finish and verify the server-side implementation and deployment.
+
+Only after that provide the exact values I should enter into the K50 Pro.
+
+The final instructions must explicitly tell me:
+
+- Server Address:
+- Server Port:
+- ADMS path:
+- HTTPS:
+- Enable Domain Name:
+- Any required Device ID/Comm Key:
+- Any required protocol/mode:
+- Any required timezone/date configuration.
+
+Testing requirements
+
+Before claiming success:
+
+1. Verify the ADMS endpoint exists.
+2. Verify it is publicly reachable.
+3. Verify HTTPS works.
+4. Verify the K50 Pro can be identified by Serial Number.
+5. Verify a device heartbeat can be received.
+6. Verify a real attendance event can be received.
+7. Verify the event maps to the correct VAR HR employee.
+8. Verify duplicate events are rejected/ignored safely.
+9. Verify the event remains associated with the correct company.
+10. Verify the existing attendance calculation pipeline can consume it.
+
+If a physical K50 Pro cannot be tested in the current environment, clearly separate:
+
+- verified by code/build/runtime,
+  from
+- requires physical-device testing.
+
+Do not claim real hardware compatibility without evidence.
+
+Final report required
+
+When finished, give me a concise but complete report with:
+
+Server
+
+- Public VAR HR URL
+- API port
+- ADMS endpoint
+- HTTPS status
+- Replit deployment status
+
+K50 Pro settings
+
+Tell me exactly what goes into every required field.
+
+VAR HR
+
+- How to register the device
+- How to assign it to a company
+- How to map device users to employees
+- Where to see device online/offline status
+- Where to see synchronization history
+- Where to see imported punches
+
+Testing
+
+Explain exactly how I can perform ONE real fingerprint punch and verify it safely.
+
+Limitations
+
+Clearly state anything that still requires physical K50 Pro testing.
+
+Most important:
+Do not change the physical K50 Pro settings yet.
+Do not modify real attendance/payroll data.
+Do not guess any server URL or ADMS endpoint.
+Continue from the existing implementation state instead of starting over.

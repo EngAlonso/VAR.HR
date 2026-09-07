@@ -1,0 +1,46 @@
+Continue from the exact current implementation state.
+
+The Platform Owner Company Details + Company Backup feature was partially implemented, but verification stopped because the previous session reached its usage limit.
+
+Do NOT restart the implementation or rebuild existing functionality.
+
+First inspect the current changes and continue only what remains unfinished.
+
+Current state:
+- Company Details modal was extended to show the requested Platform Owner-entered company data and company-owned operational data.
+- Company-scoped backup action was added to the Company Details flow.
+- The existing backup infrastructure is being reused.
+- The Platform Owner company-backup endpoint was extended to accept and validate the selected company ID instead of relying only on the current tenant context.
+- HR/Admin/Manager account counting was being corrected so normal employee login accounts are not incorrectly included.
+- Final verification was NOT completed.
+
+Now:
+1. Inspect the current diff and implementation.
+2. Finish only the remaining incomplete parts.
+3. Verify the API and frontend typechecks/builds.
+4. Test the company details API with real development data.
+5. Test creating a company-scoped backup for a selected company.
+6. Verify the backup contains the required company-scoped data.
+7. Verify checksum/integrity validation.
+8. Verify authorization and tenant isolation.
+9. Do NOT perform a real destructive restore against existing company data.
+10. If restore verification is needed, use an isolated development/test company only.
+11. Confirm that creating a backup for Company A cannot include or modify Company B data.
+12. Confirm employee login accounts are not counted as HR/Admin/Manager accounts.
+
+IMPORTANT:
+- Do not change authentication/session behavior.
+- Do not change tenant isolation rules.
+- Do not change Company Owner staff-management behavior.
+- Do not modify unrelated features.
+- Do not create a second backup system.
+- Reuse the existing backup/restore infrastructure.
+- Do not perform screenshots or visual inspection.
+- Do not claim completion unless the checks actually pass.
+
+At the end, report exactly:
+- What was already implemented
+- What you changed
+- What remains incomplete, if anything
+- Exact verification results
+- Any pre-existing errors separately from errors introduced by this feature

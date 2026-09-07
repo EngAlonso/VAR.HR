@@ -1,0 +1,387 @@
+I need to change the Attendance Rule versioning behavior.
+
+The current implementation is too restrictive because it forces the company owner to preserve the old rule interval whenever creating a new rule. That is not the desired business behavior.
+
+The company owner must have full control over when a new attendance rule becomes effective, including retroactive changes, while historical records remain protected.
+
+1. Future/current rule change
+
+If the company owner wants the new rule to apply from today or from a future date:
+
+- Keep the old version as historical data.
+- Close the old version the day before the new effective date.
+- Create the new version from the selected effective date.
+- The old rule must remain available in Attendance Rule History.
+
+Example:
+
+Version 1: August 1 → August 19
+Version 2: August 20 → future
+
+This is a normal future/current change.
+
+---
+
+2. Retroactive rule change
+
+The company owner must also be able to change the rule retroactively.
+
+Example:
+
+Today is August 20.
+
+Existing:
+
+Version 1: August 1 → August 31
+
+The owner decides:
+
+"I want the new attendance rules to apply to the entire current month starting August 1."
+
+The system MUST allow the owner to select August 1 as the effective date.
+
+The resulting timeline must make the new rule the effective rule from August 1.
+
+The system must NOT reject this with:
+
+"The effective date overlaps an existing attendance..."
+
+when the overlap is intentional and the owner is explicitly replacing/superseding the existing rule.
+
+The old version should become superseded/archived for history rather than being physically deleted if it is needed for audit or historical references.
+
+---
+
+3. Owner controls the effective date
+
+Do not force the company owner into a single versioning behavior.
+
+The owner should be able to choose:
+
+- Apply the new rule from today.
+- Apply the new rule from a future date.
+- Apply the new rule from an earlier date.
+- Replace/supersede an existing rule starting from a selected date.
+
+The system should only reject a change if the final resulting timeline would still contain ambiguous overlapping rules.
+
+There must always be exactly one effective rule for a given company/date after the requested replacement is applied.
+
+---
+
+4. Retroactive change confirmation
+
+If the owner selects a past date that will change which attendance rule applies to an existing period, show a clear confirmation before saving.
+
+Example:
+
+"This change will replace the attendance rule applicable from [date]. Existing attendance calculations for the affected period may need to be recalculated. Finalized or locked payroll will not be changed automatically."
+
+Do not silently recalculate attendance or payroll.
+
+---
+
+5. Attendance recalculation
+
+Retroactive rule changes must NOT modify raw attendance data.
+
+Never change:
+
+- Check-in records
+- Check-out records
+- Raw attendance events
+- Original attendance timestamps
+
+Existing calculated attendance must also NOT be silently rewritten.
+
+If the owner explicitly recalculates affected attendance:
+
+- The attendance calculation engine must resolve the new rule based on the new effective date.
+- The recalculated attendance should record the rule version that was actually used.
+
+---
+
+6. Payroll protection
+
+Do not automatically modify finalized or locked payroll.
+
+If a retroactive attendance-rule change affects an editable payroll period, the existing payroll/recalculation workflow may be used explicitly.
+
+Finalized/locked payroll must remain immutable.
+
+Do not change payroll formulas as part of this task.
+
+---
+
+7. Historical rule deletion
+
+Historical attendance rules must be protected.
+
+The company owner MUST NOT be allowed to physically delete a rule belonging to a completed/past period.
+
+For example, if today is August 20:
+
+- July rule → CANNOT be deleted.
+- August current rule → MAY be replaced/removed according to the rules below.
+- September future rule → MAY be edited/cancelled according to the existing permissions.
+
+Historical versions must remain available for:
+
+- Audit
+- Historical attendance calculations
+- Payroll history
+- Rule-version references
+- Compliance/history
+
+Do NOT physically delete historical versions simply because the owner wants a retroactive replacement.
+
+Instead:
+
+- Mark the old rule as superseded/archived where appropriate.
+- Keep its historical data.
+- Remove it from active effective-date resolution where the new rule supersedes it.
+
+---
+
+8. Current rule deletion
+
+The company owner may remove/delete the CURRENT active rule only when it is safe to do so and the resulting rule timeline remains valid.
+
+However, if the current rule is already referenced by attendance calculations or payroll:
+
+- Do not physically delete the underlying historical record.
+- Preserve the record for audit/history.
+- Mark it as superseded/archived if necessary.
+- Remove it from the active rule timeline appropriately.
+
+The UI must clearly distinguish:
+
+Current Rule
+→ Can be changed/replaced according to authorization and business rules.
+
+Future Rule
+→ Can be changed/cancelled according to existing permissions.
+
+Historical/Past Rule
+→ Read-only and cannot be deleted.
+
+---
+
+9. Attendance Rule History UI
+
+Keep the history system because it is part of the attendance calculation architecture.
+
+Rename the section to:
+
+English:
+Attendance Rule History
+
+Arabic:
+سجل قواعد الحضور
+
+Do not call it "Previous Versions" / "الإصدارات السابقة" because that makes it sound like an unnecessary or inactive feature.
+
+The history section should clearly show:
+
+- Version
+- Effective From
+- Effective To
+- Status
+- Created By
+- Created At
+- Superseded/Archived status where applicable
+
+Add a short explanatory note:
+
+"Historical versions are preserved for attendance and payroll history. They cannot be edited or deleted after their period has ended."
+
+Arabic equivalent:
+
+"يتم الاحتفاظ بالإصدارات السابقة لأغراض سجل الحضور والرواتب والتدقيق، ولا يمكن تعديلها أو حذفها بعد انتهاء الفترة الخاصة بها."
+
+---
+
+10. Version replacement logic
+
+Implement the effective-date logic so that inserting a new version can correctly split an existing period.
+
+Example:
+
+Existing:
+
+Version 1: August 1 → August 31
+
+Create a new version effective August 15.
+
+Result:
+
+Version 1: August 1 → August 14
+Version 2: August 15 → August 31
+
+If there is no later scheduled version:
+
+Version 1: August 1 → August 14
+Version 2: August 15 → open-ended
+
+If there is a future version:
+
+Version 1: August 1 → August 14
+Version 2: August 15 → September 30
+Version 3: October 1 → future
+
+For a retroactive replacement starting August 1:
+
+Version 1 should become superseded/archived for history.
+
+Version 2:
+August 1 → future/current applicable period
+
+The effective-date resolver must select Version 2 for August 1 onward.
+
+---
+
+11. Duplicate dates and real conflicts
+
+Do not blindly reject all overlaps.
+
+An intentional replacement by the authorized company owner is valid.
+
+Reject only cases where the final timeline would still be ambiguous, such as:
+
+- Two active versions with the same effective date.
+- Multiple versions covering the same date after the requested operation is completed.
+- Invalid date ranges.
+- Unauthorized users attempting retroactive replacement.
+
+The error should clearly explain the actual conflict.
+
+Do not simply show:
+
+"The effective date overlaps an existing attendance..."
+
+when the owner is intentionally replacing that existing version.
+
+---
+
+12. Authorization
+
+Only authorized users should be able to perform these operations.
+
+Retroactive replacement should require the appropriate company-owner/company-management permission.
+
+Regular employees and unauthorized managers must NOT be able to:
+
+- Delete rules.
+- Replace historical rules.
+- Create retroactive rules.
+- Modify company-wide attendance policies.
+
+Keep existing tenant isolation and authorization.
+
+---
+
+13. Important audit requirement
+
+Every replacement, archival, deletion, or retroactive change must remain auditable.
+
+Record:
+
+- Who performed the action.
+- When it happened.
+- Which rule was replaced/superseded.
+- Which new rule replaced it.
+- The effective date.
+- Whether the change was retroactive.
+
+Do not remove audit/history just because an old rule is no longer active.
+
+---
+
+14. Do NOT redesign unrelated systems
+
+Do not change:
+
+- Phase 2 shift system.
+- Attendance calculation formulas.
+- Payroll formulas.
+- Leave system.
+- Permissions system.
+- Departments.
+- Backup/restore.
+- Employee system.
+- Any unrelated HR module.
+
+Do not create a second versioning system.
+
+Keep the existing attendance-rule version architecture and modify only the effective-date/replacement/deletion behavior required above.
+
+---
+
+15. Verification
+
+After implementation, verify all of the following:
+
+Future change
+
+Create a future rule and confirm the current rule remains active until the selected effective date.
+
+Current/mid-period change
+
+Create a rule effective in the middle of the current month and confirm the timeline is split correctly.
+
+Retroactive change
+
+Create a new rule effective at the beginning of the current month and confirm the new rule becomes effective from that date without the overlap error.
+
+Historical protection
+
+Confirm a completed previous-month rule cannot be physically deleted.
+
+Current rule
+
+Confirm the current rule can be replaced/removed according to the authorization and reference-safety rules.
+
+Effective-date resolution
+
+For every date in a test period, confirm exactly one active rule is selected.
+
+Attendance
+
+Confirm raw attendance records are untouched.
+
+Recalculation
+
+Confirm explicit attendance recalculation uses the rule effective for that attendance date.
+
+Payroll
+
+Confirm finalized/locked payroll remains unchanged.
+
+Audit
+
+Confirm retroactive replacement and superseding actions are logged.
+
+UI
+
+Confirm the section is renamed to:
+
+Attendance Rule History / سجل قواعد الحضور
+
+and that historical rules clearly appear as read-only.
+
+Technical checks
+
+Run:
+
+- API typecheck
+- Frontend typecheck
+- API build
+- Frontend production build with the project's required managed PORT/BASE_PATH
+- OpenAPI/code generation if the contract changed
+- git diff --check
+
+Do NOT start another phase.
+
+Do NOT perform destructive database operations during testing.
+
+Do NOT delete any existing historical attendance-rule data as part of the implementation.

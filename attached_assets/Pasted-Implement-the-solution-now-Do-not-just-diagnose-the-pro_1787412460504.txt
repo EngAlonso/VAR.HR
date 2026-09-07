@@ -1,0 +1,57 @@
+Implement the solution now. Do not just diagnose the problem.
+
+The most likely root cause is that `authRequest` explicitly sends `credentials: "include"`, while the generated API client used by `/api/workspace` does not explicitly send credentials.
+
+Apply the fix at the correct source:
+
+- Update `lib/api-client-react/src/custom-fetch.ts`.
+- Make its `fetch` use `credentials: "include"` by default.
+- Do NOT manually edit generated files such as `api.ts`.
+- Do NOT change the API, database, session system, or cookie configuration.
+- Do NOT change authentication rules, roles, permissions, or tenant isolation.
+- Do NOT introduce permissive CORS or any unnecessary workaround.
+
+The target behavior is:
+
+POST /api/auth/login → 200
+GET /api/workspace → 200
+Dashboard loads normally.
+
+Instead of:
+
+POST /api/auth/login → 200
+GET /api/workspace → 401
+→ redirect to /login
+→ login loop
+
+After making the change, verify the actual browser behavior, not just the build:
+
+1. Clear the existing browser cookies/session.
+2. Open the VAR HR website.
+3. Log in using valid credentials.
+4. Confirm `/api/auth/login` returns 200.
+5. Confirm the following `/api/workspace` request returns 200.
+6. Confirm the dashboard actually loads and the user is NOT redirected back to `/login`.
+7. Refresh the page and confirm the session remains active.
+8. Log out and log in again to confirm the flow still works.
+9. Confirm an invalid/expired session still redirects to `/login`.
+10. Confirm 403 responses are still handled as access-denied states and are NOT treated as expired authentication.
+
+IMPORTANT:
+
+Do NOT consider the task complete just because TypeScript or the production build passes.
+
+This is a browser session/cookie issue, so you MUST perform an actual browser login test and verify that `/api/workspace` returns 200 and the dashboard opens successfully.
+
+If `/api/workspace` still returns 401 after adding `credentials: "include"`, do NOT start making random changes. Inspect the actual browser cookie/request behavior and identify the next root cause before modifying anything else.
+
+Do not change unrelated parts of the application.
+
+At the end, give me a short summary containing:
+
+- What was changed.
+- Whether the login loop was actually fixed.
+- `/api/auth/login` result.
+- `/api/auth/me` result.
+- `/api/workspace` result.
+- Whether the dashboard opened normally after login.

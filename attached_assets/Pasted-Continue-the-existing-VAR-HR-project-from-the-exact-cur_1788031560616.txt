@@ -1,0 +1,114 @@
+Continue the existing VAR HR project from the exact current state.
+
+We were performing a READ-ONLY audit of ONLY this feature:
+
+Employee / Department / Branch Management + Employee Numbering.
+
+Do NOT restart the implementation.
+Do NOT modify anything yet.
+Do NOT install packages.
+Do NOT change the database.
+Do NOT restart workflows.
+
+The previous agent already completed most of the audit and identified one concrete possible gap:
+
+Some Employee / Department / Branch management UI controls are gated by broader or Owner-only capabilities, while the backend supports granular Manager permissions.
+
+Continue the audit from this exact point and finish the final report.
+
+Verify ONLY:
+
+1. Employee numbering
+
+- New employees start at 1, 2, 3...
+- No new EMP-0001 style numbers.
+- Existing employee numbers are preserved.
+- Authorized management can change employee numbers.
+- Duplicate numbers are blocked per company.
+- Numeric sorting works correctly.
+- Changing an employee number changes its position according to the number.
+- Add Employee still has exactly its existing 10 fields and NO employee-number field.
+
+2. Employee management
+
+- Edit
+- Activate/deactivate
+- Delete
+- Safe deletion when dependencies exist
+
+3. Department management
+
+- Edit if already supported
+- Activate/deactivate
+- Safe deletion
+
+4. Branch management
+
+- Edit if already supported
+- Activate/deactivate
+- Safe deletion
+
+5. Authorization
+
+- Company Owner
+- Manager permissions
+- Server-side authorization
+- Tenant isolation
+- Employees cannot perform management operations
+
+6. UI
+
+- Employee List
+- Employee Profile
+- Employee edit
+- Employee number change
+- Activate/deactivate
+- Delete
+- Department controls
+- Branch controls
+
+7. Database/API
+
+- Employee-number constraints/generation
+- Department/Branch relationships
+- Deletion dependency checks
+- Relevant routes/contracts/generated clients
+
+Do NOT inspect or modify unrelated modules.
+
+Do NOT change:
+
+- Add Employee form
+- Employee Accounts / Self-Service
+- Authentication
+- Attendance
+- Payroll
+- Leave
+- Devices
+- Other VAR HR business logic
+
+This is still READ-ONLY.
+
+At the end, provide ONLY:
+
+Employee / Department / Branch Management Audit
+
+Employee Numbering: ✅ / ⚠️ / ❌ / 🔴
+Employee Management: ✅ / ⚠️ / ❌ / 🔴
+Department Management: ✅ / ⚠️ / ❌ / 🔴
+Branch Management: ✅ / ⚠️ / ❌ / 🔴
+Authorization & Tenant Isolation: ✅ / ⚠️ / ❌ / 🔴
+UI: ✅ / ⚠️ / ❌ / 🔴
+Database/API: ✅ / ⚠️ / ❌ / 🔴
+
+Confirmed complete
+
+Partially implemented
+
+Missing
+
+Broken
+
+Recommended next step
+
+Do not make any changes during this audit.

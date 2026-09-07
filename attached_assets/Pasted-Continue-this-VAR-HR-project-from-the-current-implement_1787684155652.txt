@@ -1,0 +1,86 @@
+Continue this VAR HR project from the current implementation state.
+
+Do NOT restart the project from scratch and do NOT repeat previous investigations unless absolutely necessary.
+
+The previous agent was implementing a granular permissions system for the Company Owner.
+
+Current task:
+Create granular permissions for everything available to the Company Owner, so the Company Owner can grant managers, supervisors, and HR staff access to specific modules/actions such as:
+
+- Attendance Rules
+- Attendance
+- Biometric/device integration
+- Leave
+- Payroll
+- Employees
+- Departments
+- Branches
+- Reports
+- Permissions
+- Scheduling
+- GPS/location
+- Notifications
+- Other company-management features that already exist in the product
+
+Important:
+- Company Owner must be able to decide exactly what each manager/supervisor/HR account can access.
+- Permissions must be enforced on BOTH frontend and backend/API.
+- Do not rely only on hiding UI buttons.
+- A user without permission must receive a proper authorization response from the API.
+- Keep Company Owner as the highest company-level authority.
+- Do NOT allow delegated staff permissions to modify passwords or credentials of Managers/HR accounts.
+- Do not create a second permission system. Extend the existing capability/permission architecture.
+- Preserve tenant isolation: a staff user can never access another company's data even if a permission is granted.
+- Keep Platform Owner permissions separate from Company-level permissions.
+- Use the existing permission catalog, capability resolver, account-management UI, audit system, and role structure wherever possible.
+- Arabic and English labels/descriptions are required.
+
+Before making changes:
+1. Inspect the current permission catalog.
+2. Inspect the capability resolver.
+3. Inspect Company Owner account management.
+4. Inspect existing protected API endpoints.
+5. Identify endpoints that currently use broad owner-only checks and convert them to the appropriate granular capability checks.
+6. Identify every Company Owner module/action that should have a permission.
+
+Then implement the complete permission matrix.
+
+Also make sure the Company Owner UI clearly shows what each permission means, preferably grouped by module, with Arabic/English labels.
+
+Do not remove existing security protections.
+Do not weaken tenant isolation.
+Do not change unrelated HR calculations.
+
+Verification must include:
+- Frontend typecheck
+- API typecheck
+- API build
+- Frontend production build
+- git diff --check
+- Verify backend authorization for representative permissions
+- Verify a staff account without a permission is denied
+- Verify the same account is allowed after the Company Owner grants the permission
+- Verify cross-company access remains impossible
+
+Important existing issue:
+Database Administration still has the generic Arabic error:
+"تعذر تحميل البيانات"
+when using search/filter and when selecting:
+- Attendance Rules
+- Leave Requests
+- Payroll Periods
+- Devices
+The previous agent attempted to fix this, but the problem is still occurring.
+
+After completing the permissions work, investigate this Database Administration loading issue properly. Trace the exact frontend request, API endpoint, status code, response body, and server error for each affected entity and for search/filter. Do not assume the previous fix solved it.
+
+Do not claim completion unless the actual backend authorization and affected Database Administration requests have been verified.
+
+At the end, give me:
+1. What permissions were added.
+2. Which modules/actions each permission controls.
+3. Which API endpoints were protected.
+4. What Company Owner can now grant/revoke.
+5. How password/credential protection works.
+6. What was causing "تعذر تحميل البيانات" and whether it is actually fixed.
+7. Exact verification results.

@@ -1,0 +1,103 @@
+Modify the current VAR HR UI/structure only as follows. Do not redesign the attendance calculation engine or change unrelated logic.
+
+1. Remove the old "Schedules / الجداول" concept from the main navigation.
+Replace it with the new attendance-rules structure.
+
+2. Inside "Attendance Rules / قواعد الحضور", add a section called:
+"Shift Organization / تنظيم الشيفتات"
+
+This section becomes the main place for:
+- Creating shifts
+- Naming shifts
+- Arabic/English names
+- Start/end times
+- Working days
+- Overnight shifts
+- Breaks
+- Late grace
+- Early checkout grace
+- Overtime settings
+- Company default shift
+
+Use the existing Phase 2 shift system. Do NOT create another shift system.
+
+3. Inside "Attendance Rules / قواعد الحضور", add another section:
+"Employee Shift Assignment / ربط الموظفين بالشيفتات"
+
+This is where the Company Owner can:
+- See employees
+- Select a shift for each employee
+- Assign effective dates
+- Change assignments
+- View assignment history
+- Bulk assign shifts
+
+Reuse the existing Phase 2 assignment APIs and database models.
+
+4. Remove the confusing old standalone Schedules page/menu from the user-facing navigation.
+Do not delete the underlying database/API functionality if it is still required for compatibility.
+
+5. Overtime must NOT automatically be calculated for every employee just because they worked beyond the shift.
+
+Add a clear company-level setting under Attendance Rules:
+
+"Automatic Overtime Calculation"
+- Enabled
+- Disabled
+
+If disabled:
+Extra worked minutes must NOT automatically become overtime.
+
+If enabled:
+The existing overtime rules may calculate overtime according to the configured policy.
+
+6. Add an employee-level override.
+
+Inside each employee's details/profile page, add an option:
+
+"Automatic Overtime"
+- Enabled
+- Disabled
+- Use company default
+
+Default should be "Use company default".
+
+This allows the Company Owner to decide individually whether a specific employee's overtime is calculated automatically.
+
+Precedence:
+Employee setting
+→ Company setting
+
+7. Make the UI terminology clear in Arabic and English.
+
+Use:
+- قواعد الحضور — Attendance Rules
+- تنظيم الشيفتات — Shift Organization
+- ربط الموظفين بالشيفتات — Employee Shift Assignment
+- الإضافي — Overtime
+- احتساب الإضافي تلقائيًا — Automatic Overtime Calculation
+
+Do NOT use "الجداول" for shifts anymore.
+
+8. Preserve:
+- Existing Phase 1 rule versioning
+- Existing Phase 2 shifts and assignments
+- Phase 3 calculation engine
+- Phase 4 permission/absence policies
+- Phase 5 leave system
+- Phase 6 manual adjustments
+- Phase 7 payroll integration
+- Tenant isolation
+- Existing authorization
+- Existing audit logging
+
+Do not create duplicate APIs, duplicate tables, or a parallel shift system.
+
+After implementation:
+- Run typecheck
+- Run API/frontend builds
+- Run OpenAPI/code generation if the contract changes
+- Check the final diff
+
+Do not start new features beyond this request and do not start another phase.
+Report exactly what was changed and what was preserved.

@@ -1,0 +1,78 @@
+Modify ONLY the existing Attendance Rules / Annual Leave Balance logic to implement this exact behavior. Do not change Add Employee, authentication, payroll architecture, employee accounts, shifts, or unrelated HR logic.
+
+Required behavior:
+
+1. Annual leave balance settings
+
+- Manager sets the employee's annual leave entitlement, e.g. 21 days.
+- Manager selects the specific months in which the annual leave balance is allowed to be used/deducted.
+- Example: February, April, June, August, October, December.
+- Manager sets a monthly maximum deduction from the annual balance, e.g. 1 or 2 days per month.
+- The system must NEVER consume the entire annual balance in one month.
+- Maximum deduction per month must always respect the manager-defined monthly limit.
+
+2. Absence WITHOUT permission
+
+- An employee absent without permission must NOT consume the annual leave balance.
+- Apply the company's configured unauthorized-absence rule instead.
+- Example: if unauthorized absence = 2 days deduction, deduct 2 days according to that rule, NOT from annual leave balance.
+
+3. Absence WITH permission
+
+- If the employee has an approved permission/authorized absence, it can consume annual leave balance.
+- It should consume from the annual balance ONLY if the current month is one of the months selected by the manager.
+- Example:
+  Manager selected February as a balance month.
+  Employee has approved permission/absence in February → deduct from annual leave balance according to the configured rule.
+- Even if the general permission rule says 1 day, the monthly balance limit still applies.
+- Example: monthly limit = 1 → only 1 day can be deducted from annual balance that month.
+- If monthly limit = 2 → maximum 2 days can be deducted from annual balance that month.
+
+4. Important distinction
+   Keep these as two separate rules:
+
+- Unauthorized absence → company absence penalty/rule, NOT annual balance.
+- Approved permission/authorized absence → may deduct annual leave balance, subject to:
+  a) selected month
+  b) available balance
+  c) monthly maximum deduction.
+
+5. Employee visibility
+   Employee Self-Service must clearly show:
+
+- Total annual entitlement
+- Used from annual balance
+- Remaining balance
+- Amount deducted this month
+- The applicable balance months
+- Monthly maximum
+- Any unauthorized absence deductions separately from annual leave deductions.
+
+6. Payroll synchronization
+   The resulting attendance/absence/leave calculations must continue to flow correctly into payroll without double deduction.
+
+7. Tests
+   Add strong regression tests covering at minimum:
+
+- Selected month + approved permission → annual balance deduction.
+- Non-selected month + approved permission → no annual balance deduction.
+- Unauthorized absence → does NOT consume annual balance.
+- Unauthorized absence penalty follows its configured rule.
+- Monthly maximum = 1 → never deduct more than 1 annual-leave day in that month.
+- Monthly maximum = 2 → never deduct more than 2 in that month.
+- Multiple absences in the same month cannot bypass the monthly maximum.
+- Annual balance cannot go below zero.
+- Different months have independent monthly limits.
+- Payroll receives the correct final attendance/leave result.
+- Existing historical calculations remain unchanged.
+
+Before editing, inspect the current implementation and reuse the existing Attendance Rules / Leave Balance architecture. Do not create a parallel system.
+
+At the end report:
+
+- Exact files changed.
+- Exact behavior implemented.
+- Tests passed/failed.
+- Typecheck result.
+- Frontend/API build result.
+- Confirm no unrelated business logic was changed.

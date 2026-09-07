@@ -1,0 +1,89 @@
+Continue ONLY from the current runtime verification failure.
+
+Do NOT restart the authentication implementation.
+Do NOT redesign or refactor anything.
+Do NOT re-read the entire project.
+Do NOT repeat completed verification.
+Do NOT touch unrelated Part 7 functionality.
+
+Current runtime state:
+- Existing VAR HR Web artifact is registered and running.
+- Existing VAR HR API artifact is registered and running.
+- Dependencies are restored.
+- Development schema is applied.
+- API is healthy.
+- Web is healthy.
+- Authentication/account implementation is already code/build verified.
+- The live verification has reached the biometric mapping flow.
+
+REAL DEFECT FOUND:
+During the live biometric credential verification:
+- Device B mapping succeeds.
+- Device A mapping returns HTTP 500.
+- Because Device A failed, employee username A-20 was not created.
+- The later A-20-dependent assertions failed only as a consequence of this first failure.
+
+YOUR TASK:
+
+1. Inspect ONLY the API stack trace from the failed Device A biometric mapping request.
+2. Trace only the existing biometric device-letter assignment and employee mapping path responsible for that request.
+3. Identify the exact root cause of the HTTP 500.
+4. Fix ONLY that confirmed runtime defect.
+5. Preserve the existing:
+   - A/B device-letter rules.
+   - Stable device letters.
+   - Employee biometric username format.
+   - Employee limit enforcement.
+   - Tenant isolation.
+   - Existing authentication/session system.
+6. Do not redesign the biometric architecture.
+7. Do not modify unrelated routes or frontend code.
+8. Do not change the verification script except temporary test-script corrections if needed.
+
+After the minimal fix:
+
+Run:
+- API typecheck.
+- API build.
+- Restart the existing managed API workflow.
+- Re-run the biometric verification.
+
+Verify explicitly:
+- First device gets A.
+- Second device gets B.
+- Device letters remain stable.
+- Employee biometric number 20 on device A creates A-20.
+- Employee biometric number 20 on device B creates B-20.
+- Random password is exactly 6 digits.
+- Duplicate username is rejected safely.
+- Employee creation respects company employee limit.
+
+Then continue the remaining live authentication verification that was blocked by the A-20 failure:
+- Platform Owner login.
+- Company creation.
+- Company Owner creation/login.
+- Manager/HR/Supervisor creation.
+- Permission assignment.
+- Prevention of Platform Owner escalation.
+- Authorized credential visibility.
+- Unauthorized credential visibility rejection.
+- Employee login with generated credentials.
+- Employee can access only their own HR data.
+- Manager/HR permission scoping.
+- Cross-company rejection.
+- Logout invalidates the session.
+- Existing Part 7 functionality remains intact.
+
+IMPORTANT:
+If the stack trace shows the defect is caused by the application code, make the smallest possible fix and verify it.
+If it is NOT an application defect, do not change source code; report the exact runtime cause.
+
+Do not start Part 8.
+
+At the end, update the existing Part 7 handoff with:
+- exact root cause,
+- exact fix,
+- verification results,
+- any remaining blocker.
+
+Do not redo completed work.

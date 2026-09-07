@@ -1,0 +1,277 @@
+The previous Database Management implementation went too far by removing all edit/delete capabilities.
+
+I want to correct that requirement.
+
+Do NOT revert the entire Database Management reorganization. Keep the current business-oriented dashboard, company filtering, tenant isolation, company context, entity grouping, search, export, and credential protection.
+
+However, Database Management is also a Platform Owner Support & Audit Center, not a read-only viewer.
+
+1. Platform Owner Support Capabilities
+
+The Platform Owner must be able to inspect and, when necessary for technical support, safely modify or remove records.
+
+The goal is NOT to create a raw SQL/database editor.
+
+Do NOT expose arbitrary table editing.
+
+Instead, provide controlled actions appropriate to each business entity.
+
+For example:
+
+- View
+- View History
+- Edit
+- Archive / Deactivate
+- Delete only when the entity and business rules safely allow it
+
+The available actions should depend on the entity.
+
+2. Never Allow Dangerous Generic Database Operations
+
+Do NOT bring back:
+
+- Raw SQL editing
+- Clear table
+- Truncate
+- Bulk destructive deletion
+- Arbitrary foreign-key manipulation
+- Generic "delete row" without business validation
+
+Every action must go through the existing application/API business rules.
+
+3. Audit History Is Critical
+
+For every important record, I need to know:
+
+- Who created it?
+- Which account created it?
+- What role did they have?
+- When was it created?
+- Who last modified it?
+- When was it modified?
+- Who deleted/archived it?
+- When?
+- What exactly changed?
+
+Add a Record History / Audit History view.
+
+Example:
+
+Department: Human Resources
+
+Company: ABC Company
+
+History:
+
+- Created by: Ahmed — Company Owner
+- Created at: Aug 20, 2026
+- Updated by: Mohamed — HR Manager
+- Updated at: Aug 22, 2026
+- Manager changed: Ahmed → Mahmoud
+- Corrected by: Platform Owner
+- Archived by: Company Owner
+
+Where the existing audit system already contains this information, reuse it.
+
+Do NOT create a duplicate audit system if the existing audit logs can support it.
+
+4. Before/After Changes
+
+For supported updates, audit records should show:
+
+Before
+Manager: Ahmed
+
+After
+Manager: Mahmoud
+
+And:
+
+Changed by
+Platform Owner
+
+Date
+Aug 25, 2026
+
+Do this wherever the existing audit architecture can safely capture before/after values.
+
+Never expose passwords, password hashes, tokens, sessions, API keys, or authentication secrets in audit history.
+
+5. Safe Editing
+
+Platform Owner editing should use controlled forms and existing API/business validation.
+
+For example:
+
+Employee:
+
+- Name
+- Department
+- Branch
+- Status
+- Other safe operational fields
+
+Department:
+
+- Name
+- Manager
+- Branch/organization relationships
+- Status
+
+Branch:
+
+- Name
+- Status
+- Other supported fields
+
+Do not allow changing sensitive authentication fields from Database Management.
+
+Do not allow changing a Company/Tenant relationship in a way that can accidentally move records from Company A to Company B.
+
+6. Deletion vs Archive
+
+Do not treat every entity the same.
+
+Use the safest operation supported by the business model.
+
+Examples:
+
+- Employee → preferably Archive/Deactivate
+- Department → Delete only when safe according to existing rules
+- Branch → Archive/Deactivate when appropriate
+- Audit Logs → NEVER delete
+- Payroll records → strong protection; do not casually delete
+- Attendance calculations → do not casually delete
+- Backups → use the existing Backup Management lifecycle
+- Company → do not provide a generic destructive delete button
+
+If an entity cannot safely be deleted, the UI should explain why and provide the appropriate archive/deactivate action instead.
+
+7. Company Context Must Remain
+
+Keep the previous requirement:
+
+Every record must clearly show:
+
+Company Name + Company ID when useful
+
+For example:
+
+Department:
+
+«Human Resources
+ABC Company
+Manager: Ahmed
+Employees: 24»
+
+Employee:
+
+«Ahmed Ali
+ABC Company
+Department: HR
+Branch: Mansoura»
+
+This is especially important because the Platform Owner manages multiple companies.
+
+8. Tenant Isolation
+
+This remains mandatory.
+
+The Platform Owner can inspect multiple companies because of the Platform Owner role.
+
+But every API operation must still validate the target company's ownership/scope.
+
+Never trust a company ID sent by the frontend.
+
+Never allow an operation to accidentally affect another company's records.
+
+9. Database Management UI
+
+Keep the new organized dashboard.
+
+For each entity, provide something like:
+
+View
+→ Full safe details
+
+History
+→ Who created/changed/archived/deleted it
+
+Edit
+→ Only if the entity supports safe editing
+
+Archive/Delete
+→ Only when business rules permit it
+
+Do not return to the previous raw-table editor.
+
+10. Support Use Case
+
+The final purpose should be:
+
+Database Management = Platform Owner Support + Data Inspection + Audit
+
+If a company tells me:
+
+«"Who created this department?"»
+
+I should be able to answer.
+
+If they say:
+
+«"Someone changed the manager."»
+
+I should be able to see who changed it and what the previous value was.
+
+If they say:
+
+«"An employee disappeared."»
+
+I should be able to see whether the employee was archived/deleted, who performed the action, and when.
+
+If there is a technical data problem, I should have enough controlled administrative capability to correct it safely.
+
+11. Preserve the Existing Work
+
+Do NOT redo the current Database Management work.
+
+Keep:
+
+- Business-oriented entity groups
+- Company filter
+- Server-side filtering
+- Company context
+- Company navigation
+- Search
+- Filtered export
+- Credential protection
+- Tenant isolation
+- Existing Company Details integration
+
+Only add back the controlled support actions and audit/history capabilities that were removed or missing.
+
+12. Verification
+
+After implementation verify:
+
+- Platform Owner can inspect records across companies.
+- Company filtering remains server-side.
+- Platform Owner can safely edit supported entities.
+- Supported delete/archive actions work only where appropriate.
+- Audit history identifies creator/modifier/deleter.
+- Before/after changes are recorded where supported.
+- Audit logs themselves cannot be deleted.
+- No passwords, hashes, tokens, sessions, or secrets are exposed.
+- Cross-tenant access is impossible.
+- API typecheck passes.
+- Frontend typecheck passes.
+- API build passes.
+- Frontend production build passes.
+- OpenAPI/code generation passes if contracts change.
+- "git diff --check" passes.
+
+Do not start another phase.
+
+Do not modify unrelated HR business logic.
+
+Do not perform destructive operations on real data while implementing or verifying this feature.

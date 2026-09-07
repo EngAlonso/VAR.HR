@@ -1,0 +1,57 @@
+I am now in the VAR HR Company Owner → Devices → Add Biometric Device screen, and I want to connect a real ZKTeco K50 Pro.
+
+Before I enter or change any device settings, inspect the CURRENT implementation of the biometric device registration screen and its API contract and tell me exactly how this screen is intended to be used for a real K50 Pro ADMS device.
+
+The Add Device form currently asks for:
+
+- Device Name
+- Manufacturer
+- Model
+- Connector
+- Connection Type
+- Network Address
+- Connection
+- Device ID
+- Branch
+
+I need you to inspect the actual code, schema, API, and ADMS implementation and answer:
+
+1. What exactly does each of these fields mean in the current VAR HR implementation?
+2. What should I enter for each field for a ZKTeco K50 Pro using ADMS/Cloud Server?
+3. Is "Connector" supposed to contain a specific value? If yes, what exact value does the backend expect?
+4. What is "Connection" supposed to represent?
+5. Is "Network Address" supposed to be:
+   - the K50's local IP,
+   - the VAR HR server/domain,
+   - or something else?
+6. What should "Device ID" contain?
+   - Serial Number?
+   - Internal VAR HR device UUID?
+   - ZKTeco device ID?
+7. How does the registered device connect to the existing "/iclock" ADMS endpoint?
+8. Where is the one-time Comm Key generated and where do I get it?
+9. How does the server associate the K50 Serial Number with the correct company and branch?
+10. After registration, what exact values should I configure on the physical K50 Pro?
+11. Does the current UI have a "Test Connection", "Sync", "Register", or similar action, and what does it actually do?
+12. What should I expect to see in VAR HR after the K50 successfully connects?
+13. How do I safely test the first heartbeat without creating attendance?
+14. How do I safely test the first real fingerprint punch?
+
+IMPORTANT:
+
+- Do not modify the code.
+- Do not modify the database.
+- Do not change the K50 settings.
+- Do not create test attendance/payroll records.
+- Do not guess the meaning of any field.
+- Base every answer on the CURRENT implementation in the repository.
+- If the current UI/labels are misleading or incorrectly translated, point that out explicitly.
+- If the implementation is missing anything required for the K50, identify the exact missing piece.
+
+Also confirm that the currently verified public Replit URL reaches the ADMS route:
+
+https://77e6b6b4-c1d8-4f68-9a3c-5d1515b96b3e-00-27iwrbu5munde.reed.replit.dev/iclock
+
+We already verified that "/iclock/cdata" and "/iclock/ping" reach the Express API and reject an unregistered serial correctly.
+
+I want a practical step-by-step answer specifically for THIS VAR HR implementation and THIS K50 Pro—not generic ZKTeco instructions.

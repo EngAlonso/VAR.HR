@@ -1,0 +1,109 @@
+We identified an important limitation in the current VAR HR biometric integration that needs to be investigated before making any changes.
+
+Do NOT modify code, database, deployment, DNS, workflows, or device settings yet.
+
+The required business behavior is:
+
+1. One employee must be allowed to have biometric mappings on multiple devices.
+2. Example:
+   - Main K50 → PIN 27 → Ahmed
+   - Backup K50 → PIN 27 → Ahmed
+3. The same PIN number may be reused on different devices for different employees.
+   - Device A + PIN 27 → Ahmed
+   - Device B + PIN 27 → Yasmin
+   - Device C + PIN 27 → Masoud
+4. However, the same PIN must NOT belong to two different employees on the SAME device.
+   - Device A + PIN 27 → Ahmed
+   - Device A + PIN 27 → Yasmin
+   This must remain prohibited.
+5. When Ahmed scans on either the main or backup device, the system must identify him correctly using:
+   Device Serial/Device ID + Device PIN → Employee
+6. Tenant isolation must remain intact.
+
+The current audit indicates that `var_hr_employee_identities` has a uniqueness restriction on the employee and that the current onboarding/mapping flow may therefore prevent the same employee from being mapped to multiple devices.
+
+Before changing anything, perform a focused read-only audit of this issue only.
+
+Please inspect ALL current usages of:
+- `var_hr_employee_identities`
+- `var_hr_device_employee_mappings`
+- `var_hr_devices`
+- `var_hr_biometric_events`
+- employee authentication/account logic
+- ADMS attendance matching
+- attendance processing
+- payroll dependencies
+- reports
+- tenant/company isolation
+
+Determine exactly:
+
+1. Why the current implementation prevents or limits one employee from being mapped to multiple biometric devices.
+2. Whether `var_hr_employee_identities.employee_id` is used for anything other than biometric/device mapping.
+3. Whether removing or changing that uniqueness constraint would break employee login, user accounts, permissions, attendance, payroll, or any other functionality.
+4. Whether `var_hr_device_employee_mappings` is already capable of supporting multiple devices per employee.
+5. What database constraints currently exist on both tables.
+6. What API validation currently prevents the second device mapping.
+7. What is the MINIMUM SAFE software/database change required to support multiple devices per employee.
+8. Confirm that the matching logic will remain:
+   
+   Device Serial/Device ID
+   +
+   Device PIN
+   →
+   Employee
+
+9. Confirm that the same PIN can remain valid for different employees on different devices.
+10. Confirm that the same PIN cannot be assigned to two different employees on the same device.
+11. Confirm that an employee can be mapped to:
+    - Main device + PIN 27
+    - Backup device + PIN 27
+    without creating duplicate employees or conflicting identities.
+12. Check whether any existing production data would be affected by the proposed change.
+13. Identify any migration/backfill that would be required, but DO NOT perform it.
+14. Identify any frontend/UI changes required to allow an administrator to map the same employee to another device.
+15. Confirm that ADMS attendance events from both devices will resolve to the same employee correctly.
+16. Confirm that tenant isolation remains enforced for all mappings and ADMS events.
+
+IMPORTANT:
+
+Do NOT redesign the biometric architecture unnecessarily.
+
+Do NOT remove biometric identities blindly.
+
+Do NOT change the employee login/account model unless the audit proves it is necessary.
+
+Prefer the smallest, safest change that supports this real-world scenario:
+
+Company
+├── Main K50
+│   └── PIN 27 → Ahmed
+│
+└── Backup K50
+    └── PIN 27 → Ahmed
+
+And also:
+
+Company
+├── Main K50
+│   └── PIN 27 → Ahmed
+├── Galaa Branch K50
+│   └── PIN 27 → Yasmin
+├── Mahalla K50
+│   └── PIN 27 → Masoud
+└── Talkha K50
+    └── PIN 27 → Mohsen
+
+The final report must clearly separate:
+
+CURRENTLY IMPLEMENTED
+
+CURRENT LIMITATION
+
+PROPOSED MINIMUM SAFE CHANGE
+
+NOT IMPLEMENTED / FUTURE WORK
+
+Do not change anything yet.
+
+Read-only investigation and report only.

@@ -1,0 +1,143 @@
+Add a complete Department Management system to the existing VAR HR project.
+
+Do NOT create a parallel employee/organization system. Reuse the existing employee, company, branch, authorization, tenant-isolation, and shift architecture.
+
+1. Departments
+
+Add a company-scoped Departments management area where Company Owners can:
+
+- Create a department
+- Edit a department
+- Activate/deactivate a department
+- Set Arabic and English department names
+- Add an optional description
+- Assign a department manager
+- View the employees belonging to the department
+
+Every department must belong to exactly one company and must respect tenant isolation.
+
+2. Employee assignment
+
+Allow employees to be assigned to a department.
+
+An employee should have:
+- Department
+- Branch
+- Shift
+
+Allow the Company Owner to:
+- Assign an employee to a department
+- Move an employee between departments
+- Remove an employee from a department
+- View department membership/history where supported by the existing architecture
+
+Do not duplicate employee records.
+
+3. Department page
+
+Create a clear department management UI showing:
+
+Department name
+Manager
+Number of employees
+Employee list
+
+Provide:
+- Add department
+- Edit department
+- Assign employees
+- Remove/move employees
+- View department employees
+
+Use existing Arabic/English i18n and RTL/LTR behavior.
+
+4. Employee profile
+
+Add the department to the employee's existing profile/details.
+
+The employee profile should clearly show:
+
+Department
+Branch
+Shift
+
+Do not remove any existing employee information.
+
+5. Shift integration
+
+Reuse the existing Phase 2 shift system.
+
+Allow a department to optionally have a default shift if the current architecture supports this cleanly.
+
+Shift resolution should remain:
+
+Employee-specific shift
+→ Department default shift
+→ Company default shift
+→ Legacy fallback only where required for compatibility
+
+Do NOT create a new shift table or parallel shift assignment system.
+
+6. Permissions
+
+Department management must be protected by appropriate existing company-management permissions.
+
+Do not give employees permission to manage departments.
+
+Managers should only see/manage departments according to their existing granted capabilities.
+
+Preserve Platform Owner and Company Owner authorization boundaries.
+
+7. API/database
+
+Use the existing contract-first architecture.
+
+If database/API changes are required:
+- Update the Drizzle schema
+- Update OpenAPI
+- Regenerate Zod schemas
+- Regenerate React Query/API clients
+- Add tenant/company validation
+- Add audit logging for department creation, modification, and employee assignment changes
+
+Do not modify unrelated attendance, leave, payroll, or calculation logic.
+
+8. Important
+
+Do not just add a visual UI.
+
+Department assignment must be persisted in the database and returned by the employee APIs.
+
+Do not use local state as the source of truth.
+
+9. Navigation
+
+Add the department management entry in the most logical existing Company/Employee administration area.
+
+Use:
+
+Arabic: الأقسام
+English: Departments
+
+Do not bring back the old "الجداول" / Schedules terminology.
+
+10. Verification
+
+After implementation:
+
+- Run API typecheck
+- Run frontend typecheck
+- Run API build
+- Run frontend build
+- Run OpenAPI/code generation if required
+- Verify department creation
+- Verify employee assignment
+- Verify moving an employee between departments
+- Verify department appears in employee profile
+- Verify tenant isolation
+- Verify permissions
+- Verify existing shift assignment still works
+
+Do not start unrelated features or redesign the existing HR system.
+
+Report exactly what was implemented, what was preserved, and any limitations.

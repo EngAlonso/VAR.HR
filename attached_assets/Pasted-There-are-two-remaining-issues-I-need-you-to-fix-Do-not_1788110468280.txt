@@ -1,0 +1,42 @@
+There are two remaining issues I need you to fix. Do not change unrelated HR logic or the Add Employee form.
+
+1. Annual Leave Balance / Deduction Settings
+   I still cannot find a place in Attendance Rules where a Company Owner/authorized Manager can configure:
+
+- How many annual leave days each employee receives per year.
+- Which month the annual leave balance period starts/resets.
+- When an absence should be deducted from the annual leave balance.
+- The exact rule for how many absence days are deducted from the employee’s annual balance.
+
+This must be configurable from the existing Attendance Rules UI and saved server-side, then reflected consistently in:
+
+- Employee leave balance.
+- Attendance/absence calculations.
+- Payroll.
+- Employee self-service, so the employee can clearly see total annual days, used days, deducted absence days, and remaining days.
+
+Do not create a separate parallel leave system. Use the existing attendance/leave/balance architecture.
+
+2. Shift Assignment / Employee Synchronization
+   In Shift Organization / Shift Assignments, a newly created employee does not appear automatically unless I manually assign the employee to a shift.
+
+The requirement is:
+When an employee is created and a shift is assigned/configured for that employee, that assignment must automatically propagate throughout the entire HR system wherever the employee’s effective shift/schedule is needed.
+
+Please verify the existing employee → shift → schedule relationship and fix the synchronization so that:
+
+- The employee appears automatically in the appropriate shift assignment/organization screens.
+- The employee’s effective shift is available to attendance.
+- The employee’s schedule is reflected in attendance calculations.
+- Payroll uses the same effective schedule.
+- Employee self-service shows the correct shift.
+- There should be one source of truth for the employee’s effective shift; do not create duplicate/manual parallel assignments.
+
+Important:
+
+- Do not change the Add Employee form or its fields.
+- Do not change authentication, permissions, payroll logic unrelated to these requirements, devices, or other completed features.
+- Preserve existing data.
+- First inspect the current implementation to identify why these two behaviors are missing, then make the smallest correct fix.
+- Add strong regression tests for both issues.
+- Run full typecheck, API tests, frontend build, API build, and verify the final behavior.

@@ -1,0 +1,288 @@
+We need to correct an important account-model/UI confusion in the Company Owner account-management system.
+
+There are TWO different account-creation concepts in this product. Do NOT merge them.
+
+TYPE 1 — Manually created management/staff accounts
+
+These are accounts created manually by a Company Owner for people who will help manage the company.
+
+Examples:
+
+- HR
+- Payroll administrator
+- Attendance/bio administrator
+- Manager
+- Accountant
+- Any other staff member who receives selected permissions
+
+The Company Owner manually creates this account and decides exactly what it can access.
+
+Required fields
+
+The Create Account form for this type MUST contain separate fields for:
+
+1. Employee Name
+
+This is the person's real/display name.
+
+Examples:
+
+- أحمد محمد
+- Mohamed Ahmed
+- أحمد Ahmed
+- أي اسم بشري مناسب
+
+Rules:
+
+- Arabic allowed.
+- English allowed.
+- Mixed Arabic/English allowed.
+- Spaces allowed.
+- Do NOT apply the technical username regex to this field.
+- This is a display/human name, not the login identifier.
+
+Arabic label:
+اسم الموظف
+
+English:
+Employee Name
+
+2. Phone Number
+
+The phone number is the account's login username / identifier.
+
+The employee should log in using this phone number.
+
+Therefore:
+
+Username = Phone Number
+
+Do NOT ask the Company Owner to manually invent a username such as:
+"ahmed_admin"
+"hr01"
+etc.
+
+The username/login identifier should come from the phone number field.
+
+Keep the existing uniqueness requirement for phone/login identifiers.
+
+Use the appropriate phone-number validation already used by the project. Do not allow arbitrary text to be used as the login identifier.
+
+Arabic:
+رقم الهاتف
+
+3. Password
+
+The Company Owner chooses the initial password.
+
+Current required rule:
+
+- Minimum 6 characters.
+- No requirement for uppercase.
+- No requirement for lowercase.
+- No requirement for numbers.
+- No requirement for special characters.
+
+The employee can later change their password normally, but changing their password requires the current/old password.
+
+4. Job Title
+
+The Company Owner should be able to enter/select the employee's job title.
+
+Arabic:
+المسمى الوظيفي
+
+5. Permissions
+
+The Company Owner selects exactly which permissions this account receives.
+
+Keep the existing permission selector and the existing:
+
+- تحديد الكل
+- إلغاء تحديد الكل
+
+functionality.
+
+Do not change the underlying permission keys or authorization system.
+
+---
+
+Account Management behavior
+
+The Company Owner should have a section such as:
+
+حسابات الموظفين
+
+But in this context, this section is specifically for the manually created management/staff accounts described above.
+
+It should show the accounts created by the Owner for people such as HR, managers, payroll administrators, etc.
+
+For each account, the Owner should be able to see:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Assigned Permissions
+- Account status
+
+The Owner should be able to view the account details and manage its permissions.
+
+---
+
+Password behavior
+
+There are TWO different password operations.
+
+Employee changes their own password
+
+If the employee wants to change their password normally:
+
+They MUST provide the old/current password.
+
+This is the normal password-change flow.
+
+Company Owner resets the employee password
+
+The Company Owner can reset the password of a management/staff account they created without knowing the employee's current password.
+
+This is an administrative password reset.
+
+The Owner should NOT need the old password for this operation.
+
+---
+
+Critical security rule
+
+A Company Owner must ONLY be able to manage accounts belonging to their own company/tenant.
+
+Do NOT allow:
+
+- Owner A to see Owner B's accounts.
+- Owner A to reset Owner B's password.
+- Owner A to modify Owner B's account.
+- Owner A to change another company's staff permissions.
+
+Preserve the existing tenant isolation and authorization rules.
+
+Also:
+
+One Company Owner must NOT be able to change or reset another Company Owner's password.
+
+The Owner's own account is a different security level and must not be included in the normal company-staff management/reset flow.
+
+Do NOT weaken owner/platform authorization to implement this.
+
+---
+
+VERY IMPORTANT — TYPE 2 IS DIFFERENT
+
+There is another future account flow for:
+
+ordinary employees / workers
+
+Those accounts will be created through a different, more automated workflow.
+
+We are NOT designing or changing that flow now.
+
+Do NOT assume that every employee in the database should be handled through this manual Company Owner account-management UI.
+
+For this task, focus ONLY on:
+
+Company Owner → manually creates management/staff accounts such as HR, managers, payroll admins, etc.
+
+---
+
+Required implementation steps
+
+Before changing anything, trace the current implementation:
+
+1. Current Create Account form.
+2. Current account schema.
+3. Current "userAccounts" fields.
+4. Current username/login behavior.
+5. Current phone-number handling.
+6. Current employee/person profile fields, if they already exist.
+7. Current permission assignment.
+8. Current password reset endpoint.
+9. Current password-change endpoint.
+10. Current Owner authorization.
+11. Current tenant/company isolation.
+
+The previous implementation incorrectly treated the human employee name and username as the same field.
+
+Correct this separation.
+
+Do NOT simply rename the current username field.
+
+We need to determine whether an existing employee/person name field already exists in the data model and connect the UI to it appropriately.
+
+If the database already has a suitable display/name field, reuse it.
+
+If there is already a separate employee/person record associated with the account, use the existing relationship rather than creating duplicate identity data.
+
+Only change the schema if there is genuinely no existing field capable of storing the employee's display name.
+
+---
+
+Login requirement
+
+After this change:
+
+Example:
+
+Employee Name:
+أحمد محمد
+
+Phone Number:
+01012345678
+
+Password:
+123456
+
+The account should be created with:
+
+Display name = أحمد محمد
+Login username = 01012345678
+Password = 123456
+
+The employee logs in using:
+
+01012345678
+
+NOT:
+
+أحمد محمد
+
+---
+
+Localization
+
+All new labels must use the existing i18n system.
+
+Arabic:
+
+- Employee Name → اسم الموظف
+- Phone Number → رقم الهاتف
+- Job Title → المسمى الوظيفي
+- Password → كلمة المرور
+- Permissions → الصلاحيات
+- Employee Accounts → حسابات الموظفين
+- Reset Password → إعادة تعيين كلمة المرور
+
+English equivalents must remain available through the existing language switcher.
+
+---
+
+DO NOT modify the automatic employee/worker account flow
+
+That flow will be specified separately later.
+
+Do not redesign it, automate it, or change its creation rules as part of this task.
+
+The goal of this task is to correctly model and implement:
+
+Company Owner → manually created management/staff account
+
+while keeping the existing permission, authorization, tenant-isolation, and password-security systems intact.
+
+After implementation, run typecheck/build/format checks and report exactly what was changed.

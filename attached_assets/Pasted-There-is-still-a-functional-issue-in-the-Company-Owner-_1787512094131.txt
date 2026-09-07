@@ -1,0 +1,88 @@
+There is still a functional issue in the Company Owner → Account Management → Create Account flow.
+
+When the Company Owner creates a new company account, the permission/role options are NOT appearing, so the Owner cannot assign the required permissions to the new account during creation.
+
+Required behavior
+
+When creating a new company staff account, the form must show the existing available roles/permissions so the Company Owner can select what this account is allowed to access.
+
+The flow should be:
+
+Create Account → Enter account information → Select role/permissions → Create Account
+
+The selected permissions must be submitted with the account creation request and actually be assigned to the newly created account.
+
+Important
+
+Do NOT create a new permission system.
+
+Use the existing:
+
+- Roles/permissions definitions
+- Permission keys
+- Permission API
+- Existing account creation endpoint
+- Existing database permission model
+- Existing authorization logic
+
+First inspect why the role/permission selector is not currently rendered or why its data is not being loaded.
+
+Check:
+
+1. The Create Account form.
+2. The available roles/permissions source.
+3. The API request used to create the account.
+4. The permissions payload sent during account creation.
+5. The backend handling of the permissions field.
+6. Whether the Company Owner is authorized to assign these permissions.
+7. Whether the selected permissions are actually persisted for the newly created account.
+
+UI requirements
+
+The Company Owner must clearly see a section such as:
+
+الصلاحيات
+
+with the available permissions/roles underneath it.
+
+Each permission should have an appropriate checkbox/toggle/selector so the Owner can choose exactly what the new account can access.
+
+Arabic:
+
+- Permissions → الصلاحيات
+- Roles → الأدوار
+- Select permissions → اختيار الصلاحيات
+- Save/Create Account → حفظ / إنشاء الحساب
+
+English must continue to work through the existing language switcher.
+
+Very important
+
+Do NOT remove or simplify the existing permission-management functionality that was just restored.
+
+There are TWO separate flows that must both work:
+
+1. Creating a new account
+   → Owner can select permissions before creating it.
+
+2. Managing an existing account
+   → Owner can open the account and change its permissions afterward.
+
+Both flows must use the same existing permission definitions and backend logic.
+
+Verification
+
+After fixing:
+
+- Create a test staff account with a specific set of permissions.
+- Confirm the permission selector is visible.
+- Confirm the selected permissions are sent in the create request.
+- Confirm the account is created with exactly those permissions.
+- Open the newly created account through "Manage permissions".
+- Confirm the same selected permissions are displayed.
+- Change one permission and save.
+- Confirm the update still works.
+- Test Arabic and English.
+- Run typecheck/build/format checks.
+
+Do not make unrelated changes.

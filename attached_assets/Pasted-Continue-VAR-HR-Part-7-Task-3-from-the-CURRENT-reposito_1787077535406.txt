@@ -1,0 +1,55 @@
+Continue VAR HR Part 7 — Task 3 from the CURRENT repository state.
+
+Task 1 and Task 2 are COMPLETE.
+
+The previous agent already inspected Task 3 and identified the exact gap:
+- Employee schedules and company holidays already have CRUD/database support.
+- Attendance still uses only company-wide rules.
+- Payroll still calculates scheduled days globally.
+- The previous agent started implementing shared effective-schedule/holiday helpers.
+- The previous agent was then stopped by quota while wiring those helpers into the existing attendance/payroll paths.
+
+Continue from the CURRENT code. Do not restart Task 3 and do not redo completed work.
+
+Finish Task 3 only:
+
+1. Complete the effective employee-schedule resolution.
+2. Apply it to the existing attendance flows:
+   - check-in
+   - check-out
+   - attendance correction
+   - biometric/provider attendance ingestion
+3. Apply company-holiday awareness to attendance.
+4. Apply the effective schedule and holiday resolution to payroll.
+5. Correctly support overnight schedules such as 22:00 → 06:00.
+6. Preserve existing company/default rules when an employee has no specific schedule.
+7. Preserve existing Part 6 attendance/payroll behavior.
+8. Do not modify the biometric architecture from Task 2; only make its attendance ingestion use the same effective schedule/holiday resolution if required.
+9. Do not touch frontend/UI.
+10. Do not start Task 4, Task 5, or Task 6.
+
+Required verification:
+
+- normal employee-specific schedule
+- default/company schedule fallback
+- working vs non-working day
+- late arrival
+- grace period
+- early departure
+- overnight shift
+- overtime where already supported
+- company holiday without attendance
+- company holiday with attendance
+- normal absence
+- cross-company holiday isolation
+- payroll using the effective schedule
+- payroll not treating holidays as ordinary absence
+- existing authorization/tenant isolation
+
+Run typecheck, API build, and focused tests/runtime checks.
+
+Do not claim PASS unless actually verified.
+
+Update the existing Part 7 handoff with the actual Task 3 results and stop.
+
+Do not start Task 4.

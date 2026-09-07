@@ -1,0 +1,328 @@
+Continue the current VAR HR Part 7 implementation from the exact existing state.
+
+You have already inspected the project, handoff records, repository structure, schema, API contracts, and current implementation in the previous steps.
+
+Do not reread the handoff files as a prerequisite and do not restart the audit. Continue directly from the current implementation state.
+
+Objective
+
+Complete only the remaining Part 7 gaps identified in the latest transfer handoff.
+
+Do not rebuild Part 6.
+Do not redo already completed functionality.
+Do not start Part 8.
+Do not make unrelated refactors.
+
+---
+
+1. Employee-specific Schedules / Shifts
+
+Complete the existing schedule/shift implementation.
+
+Requirements:
+
+- Assign a schedule/shift to an employee.
+- Support employee-specific schedules.
+- Support:
+  - start time
+  - end time
+  - required working hours
+  - grace period
+  - overtime rules where applicable
+  - working days
+- Correctly resolve the employee's effective schedule when calculating attendance.
+- Correctly handle overnight shifts crossing midnight.
+- Do not replace the existing attendance rule system unnecessarily.
+- Keep company-level defaults where they already exist, but allow employee-specific configuration to override them when appropriate.
+
+The final attendance result must use the employee's effective schedule.
+
+---
+
+2. Company Holidays
+
+Complete the existing holiday implementation.
+
+Requirements:
+
+- First-class company holiday records.
+- Holiday name.
+- Holiday date.
+- Company association.
+- Optional recurring behavior if already supported by the existing architecture.
+- Attendance calculations must recognize holidays.
+- Employees must not be incorrectly marked absent on configured holidays.
+- Payroll must consume the resulting attendance status correctly.
+
+Do not create duplicate holiday concepts if the existing schema already contains one.
+
+---
+
+3. Biometric Provider Layer
+
+Complete the provider-based biometric architecture.
+
+The system must not be hardcoded to one biometric device/vendor.
+
+Implement a clean provider abstraction supporting:
+
+- Device registration.
+- Device configuration.
+- Provider identification.
+- Enable/disable state.
+- Employee synchronization boundary.
+- Attendance synchronization boundary.
+- Sync status.
+- Sync history/logging.
+
+Use the existing schema/contracts where possible.
+
+Do not redesign the entire API.
+
+---
+
+4. Deterministic Mock Biometric Provider
+
+Complete the mock/test provider so biometric functionality can be verified without physical hardware.
+
+The mock provider must be deterministic.
+
+It should allow testing of:
+
+VAR HR
+   ↓
+Mock biometric provider
+   ↓
+Employee/device synchronization
+   ↓
+Attendance event synchronization
+   ↓
+VAR HR attendance
+   ↓
+Attendance rules
+   ↓
+Payroll
+
+Do not claim real hardware integration has been tested.
+
+The mock provider is specifically for deterministic automated/runtime verification.
+
+---
+
+5. Biometric Sync History
+
+Implement or complete synchronization history.
+
+Record enough information to determine:
+
+- Device/provider.
+- Operation type.
+- Employee/device synchronization where applicable.
+- Attendance synchronization.
+- Start/end time where appropriate.
+- Success/failure.
+- Error information.
+- Result/count where appropriate.
+
+Authorized users should be able to inspect synchronization history.
+
+Do not expose device credentials or sensitive connection information.
+
+---
+
+6. Employee HR Records / Profile
+
+Complete the employee HR record/profile functionality.
+
+Authorized users should be able to manage/view the appropriate HR information for an employee.
+
+Before adding new fields, reuse existing employee data and schema.
+
+Support the HR information already established by the existing VAR HR model.
+
+At minimum ensure the employee record can expose/manage the relevant:
+
+- Employment information.
+- Department/team information where applicable.
+- Position/job information where applicable.
+- Work schedule/shift.
+- Leave-related information.
+- Attendance-related information.
+- Other existing HR attributes already represented in the schema.
+
+Employee access must remain restricted to their own information.
+
+Manager access must remain restricted to their authorized employee scope.
+
+Owner/authorized HR users may access company-wide employee HR information.
+
+---
+
+7. Fix Contract / Codegen Gaps
+
+The latest audit identified an OpenAPI/generated-client mismatch, including the misplaced "updateAttendanceRules" operation.
+
+Fix only the contract/codegen issues required for the Part 7 functionality.
+
+Keep:
+
+Contract → Codegen → API → UI
+
+consistent.
+
+Regenerate clients/hooks using the project's existing generation workflow.
+
+Do not manually create duplicate generated clients if the repository already has a generator.
+
+---
+
+8. Frontend
+
+Add only the necessary UI entry points for the newly completed functionality.
+
+At minimum provide usable interfaces for:
+
+- Employee schedules/shifts.
+- Company holidays.
+- Biometric devices.
+- Biometric synchronization/history.
+- Employee HR records.
+
+Follow the existing UI architecture and visual language.
+
+Do not redesign existing Part 6 report/payroll screens.
+
+Use the existing localization system for all user-facing strings.
+
+Preserve Arabic RTL behavior.
+
+---
+
+9. Attendance / Payroll Integration
+
+After implementing schedules and holidays, make sure existing attendance and payroll calculations actually consume them.
+
+Verify:
+
+- Employee schedule resolution.
+- Grace period.
+- Late calculation.
+- Early departure.
+- Required hours.
+- Overtime.
+- Holiday handling.
+- Absence handling.
+- Payroll impact.
+
+Do not replace the existing payroll engine.
+
+Make the smallest compatible changes necessary.
+
+---
+
+10. Authorization
+
+Maintain strict access control.
+
+Employee
+
+Only their own:
+
+- HR profile.
+- Schedule.
+- Attendance.
+- Leave information.
+- Payroll information.
+
+Manager
+
+Only employees within their authorized scope.
+
+Owner / authorized HR
+
+Company-wide access according to existing permissions.
+
+Developer
+
+Technical/integration access only.
+
+Do not accidentally grant Developer payroll visibility.
+
+Do not weaken tenant isolation.
+
+---
+
+11. Verification
+
+After implementation, actually run the relevant checks.
+
+At minimum:
+
+- Typecheck.
+- API build.
+- Frontend build.
+- Database/schema validation.
+- Schedule tests.
+- Overnight shift test.
+- Holiday test.
+- Attendance calculation test.
+- Payroll integration test.
+- Mock biometric provider test.
+- Biometric sync-history test.
+- Employee HR record authorization test.
+- Manager scope test.
+- Cross-company isolation test.
+- Existing Part 6 report regression test.
+- Existing payroll regression test.
+- Existing employee import regression test.
+- Browser/UI smoke test if the managed artifact is available.
+
+Do not mark anything as PASS unless it was actually executed.
+
+---
+
+12. Important Constraints
+
+Do NOT:
+
+- Rebuild Part 6.
+- Reimplement existing reports.
+- Rewrite the payroll system.
+- Replace existing authentication.
+- Replace existing authorization.
+- Delete existing data.
+- Perform destructive migrations.
+- Introduce unnecessary dependencies.
+- Fake real hardware verification.
+- Start Part 8.
+- Perform unrelated cleanup/refactoring.
+
+If something is already implemented, verify it and move on.
+
+If something is partially implemented, finish it rather than creating a second implementation.
+
+---
+
+13. Completion
+
+When all five remaining Part 7 domains are genuinely implemented and verified:
+
+1. Create a new dated Part 7 completion report under "hand-off/".
+2. Update "hand-off/MASTER-HANDOFF.md".
+3. Preserve all previous handoff history.
+4. Clearly classify each requirement as:
+   - COMPLETE
+   - PARTIAL
+   - BLOCKED
+5. List:
+   - files changed
+   - database changes
+   - API changes
+   - frontend changes
+   - tests executed
+   - browser verification
+   - remaining blockers
+
+Do not start Part 8.
+
+Start implementation now from the current repository state.

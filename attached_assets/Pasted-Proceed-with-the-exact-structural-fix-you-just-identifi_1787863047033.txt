@@ -1,0 +1,49 @@
+Proceed with the exact structural fix you just identified.
+
+Do NOT make another screenshot-only adjustment or add more viewport height calculations.
+
+Implement ONE vertical scroll owner:
+
+1. Shared Modal:
+
+- Remove "overflow-y-auto" from the outer dialog.
+- Set the dialog shell to "overflow-hidden".
+- Make the dialog a vertical flex container ("flex flex-col").
+- Keep the modal header/title as a fixed non-scrolling section.
+- Keep the modal footer/actions as a fixed non-scrolling section.
+- Only the modal body/content area should scroll.
+- The body must use "min-h-0 flex-1 overflow-y-auto".
+
+2. Employee form:
+
+- Remove "max-h-[calc(90dvh-72px)]".
+- Do not add another hard-coded height calculation.
+- Make the Employee form a proper flex column so its central content can shrink and scroll naturally.
+- Remove any second/nested vertical scroll container if one exists.
+- The Employee form body should be the ONLY vertical scroll area.
+
+3. Backdrop:
+
+- Keep the backdrop fixed.
+- Preserve safe top/bottom and horizontal spacing.
+- If the viewport is extremely short, allow the overall backdrop/container to accommodate the modal without clipping the top or bottom.
+- Do not position the dialog using negative offsets or arbitrary transform values.
+
+Critical acceptance test:
+Use the Add Employee modal at approximately 400px viewport height.
+
+The result MUST allow the user to:
+
+- See the modal title/header at the top.
+- Reach the first field.
+- Scroll smoothly through every field.
+- Reach the final field.
+- See and use Save/Cancel at the bottom.
+- Have exactly ONE vertical scrollbar for the modal body.
+- Never have the title/header disappear above the viewport.
+- Never have the footer disappear below the viewport.
+- Never have the content clipped at the top or bottom.
+
+Apply this at the shared Modal level so Branch, Department, Employee, and all other existing modals benefit from the same fix.
+
+Do not modify any form fields, API, database, business logic, or unrelated UI.

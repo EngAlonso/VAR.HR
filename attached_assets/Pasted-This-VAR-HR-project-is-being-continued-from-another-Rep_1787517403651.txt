@@ -1,0 +1,136 @@
+This VAR HR project is being continued from another Replit account.
+
+Continue from the CURRENT implementation state. Do NOT redo completed work.
+
+## Current task: Company Owner manual staff accounts
+
+We have two completely separate account flows:
+
+1. Manual management/staff accounts created by Company Owners
+   - HR
+   - Payroll admin
+   - Attendance admin
+   - Managers
+   - Other staff who receive selected permissions
+
+2. Automated employee/worker accounts
+   - This is a separate flow.
+   - DO NOT modify it.
+
+## Work already completed
+
+The manual staff-account backend changes were already implemented before this project was migrated:
+
+- Company Owner must manually enter the password when creating a staff account.
+- No random password is generated during manual staff creation.
+- Password is hashed securely.
+- Editing an existing staff account can optionally set a new password.
+- Empty new-password field means keep the existing password unchanged.
+- Editing the phone number synchronizes the login username with the phone number.
+- Existing tenant/scope authorization remains intact.
+- Automated employee accounts were not changed.
+- Platform Owner flows were not changed.
+
+## Previous run stopped here
+
+The previous agent was wiring the Company Owner frontend Account Management UI.
+
+The remaining work is ONLY to finish the frontend.
+
+### Required UI
+
+Company Owner should be able to open a manually-created staff account and view/edit:
+
+- Employee Name
+- Phone Number / Login Username
+- Job Title
+- New Password
+- Permissions
+- Account status
+
+Employee Name:
+- Arabic allowed
+- English allowed
+- Spaces allowed
+- Normal human-readable names
+
+Phone:
+- Must use existing phone validation.
+- Must remain unique.
+- Phone is the login username.
+
+Password:
+- Owner manually enters it.
+- Minimum 6 characters.
+- No complexity requirement.
+- Never display the existing password.
+- Never store plaintext password.
+- When editing, empty new-password means unchanged.
+
+Permissions:
+- Existing permission system.
+- Existing Select All / Deselect All.
+- Existing authorization must remain unchanged.
+
+### Remove old behavior
+
+The Company Owner manual staff flow must NOT generate a random password.
+
+Do not reintroduce the old random-password reset UI.
+
+Company Owner can set a new password manually without knowing the old password.
+
+An employee changing their own password remains a separate flow and requires the old password.
+
+### Account list
+
+For manually-created staff accounts, Company Owner should be able to:
+
+- View account
+- Edit account
+- Change password
+- Manage permissions
+
+Show:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Status
+- Permissions/actions
+
+### Security
+
+Preserve:
+
+- Tenant isolation
+- Company Owner authorization
+- Platform Owner behavior
+- Existing permission keys
+- Authentication
+- Password hashing
+- Automated employee-account flow
+
+A Company Owner must not be able to edit/reset:
+- Another company's accounts
+- Another Company Owner
+- Platform Owner accounts
+
+## IMPORTANT
+
+Before editing, inspect the CURRENT code and determine exactly what the previous agent already completed.
+
+Do NOT duplicate or redo backend changes.
+
+Continue from the existing implementation.
+
+After finishing:
+
+1. Run typecheck.
+2. Run API/frontend builds.
+3. Run formatting/diff checks.
+4. Restart affected workflows.
+5. Verify the Company Owner manual staff account flow.
+6. Report exact files changed and any remaining limitation.
+
+If authenticated Company Owner credentials are unavailable, still verify everything possible statically/runtime and clearly state that limitation.

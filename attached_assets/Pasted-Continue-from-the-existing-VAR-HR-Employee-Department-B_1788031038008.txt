@@ -1,0 +1,237 @@
+Continue from the existing VAR HR Employee / Department / Branch Management implementation.
+
+I do NOT want a full-project audit.
+
+Review ONLY the feature we were working on in the previous account:
+
+Employee / Department / Branch Management + Employee Numbering
+
+This is a READ-ONLY verification first.
+
+Do NOT modify anything yet.
+Do NOT install anything.
+Do NOT change the database.
+Do NOT restart workflows.
+Do NOT fix anything.
+
+I only want you to verify what is currently saved in the project and identify anything missing from this specific feature.
+
+1. Employee Numbering
+
+Verify that:
+
+- New employees receive simple sequential numeric numbers:
+  1, 2, 3, 4...
+- New employee numbering starts from 1 for each company.
+- New employees do NOT receive EMP-0001 / EMP-0002 style numbers.
+- The Add Employee form does NOT contain an employee-number field.
+- Existing employee numbers are preserved.
+- Existing legacy EMP-#### values are not automatically changed.
+- Authorized Company Owners/Managers can manually change an employee number.
+- Employee numbers must be positive numeric values.
+- Duplicate employee numbers inside the same company are rejected server-side.
+- The same number can exist in another company.
+- Employee list sorting is numeric.
+
+Example:
+
+If employees have:
+1
+2
+3
+10
+11
+12
+
+and an employee is manually assigned number 7, the order must become:
+
+1
+2
+3
+7
+10
+11
+12
+
+The number itself determines the employee's position in the list.
+
+2. Employee Management
+
+Verify that authorized Company Owners/Managers can:
+
+- Edit employee information where the existing system allows it.
+- Change employee number.
+- Activate employee.
+- Deactivate employee.
+- Delete employee where deletion is safe.
+
+Verify deletion is protected against historical/dependent records.
+
+Employee deletion must NOT accidentally delete historical:
+
+- Attendance
+- Leave
+- Payroll
+- HR records
+- Schedule records
+- Device/biometric history
+- Other dependent records
+
+If dependencies exist, verify that the system safely blocks deletion according to the existing implementation.
+
+3. Department Management
+
+Verify that authorized Company Owners/Managers can:
+
+- Edit departments if supported.
+- Activate/deactivate departments.
+- Delete departments only when safe.
+
+If employees or other records depend on a department, deletion must be safely blocked rather than destroying related HR data.
+
+4. Branch Management
+
+Verify that authorized Company Owners/Managers can:
+
+- Edit branches if supported.
+- Activate/deactivate branches.
+- Delete branches only when safe.
+
+If employees or devices depend on a branch, deletion must be safely blocked.
+
+5. Authorization
+
+Verify ONLY for these management operations:
+
+- Company Owner authorization.
+- Manager authorization according to existing permissions.
+- Tenant/company isolation.
+- One company cannot modify another company's employees, departments, or branches.
+- Employees cannot access these management operations.
+
+Authorization must be enforced server-side, not only by hiding UI buttons.
+
+6. UI
+
+Verify the existing management UI for:
+
+Employee
+
+- Employee List
+- Employee Profile
+- Employee edit
+- Employee number edit
+- Activate/deactivate
+- Delete
+
+Department
+
+- List
+- Activate/deactivate
+- Delete
+
+Branch
+
+- List
+- Activate/deactivate
+- Delete
+
+Verify that the UI controls actually call existing backend APIs and that mutations refresh the affected lists/profile data.
+
+7. Database / API
+
+Verify only the database/API pieces related to this feature:
+
+- Employee number uniqueness per company.
+- Employee number validation.
+- Employee number generation.
+- Employee/Department relationship.
+- Employee/Branch relationship.
+- Employee deletion dependency checks.
+- Department deletion dependency checks.
+- Branch deletion dependency checks.
+- Relevant foreign keys.
+- Relevant API routes.
+- OpenAPI contracts.
+- Generated clients/hooks if applicable.
+
+Do NOT inspect unrelated HR modules unless needed to verify a deletion dependency.
+
+8. Previous Implementation Requirements
+
+Verify that these exact requirements from our previous work are still present:
+
+1. New employee numbering is 1, 2, 3... instead of EMP-0001.
+2. Existing employee numbers are preserved.
+3. Employee number can be manually changed by authorized management.
+4. Changing the number changes its numeric position in the Employee List.
+5. Duplicate employee numbers are blocked.
+6. Employee activation/deactivation exists.
+7. Department activation/deactivation exists.
+8. Branch activation/deactivation exists.
+9. Employee deletion is dependency-safe.
+10. Department deletion is dependency-safe.
+11. Branch deletion is dependency-safe.
+12. Server-side authorization exists.
+13. Tenant isolation exists.
+14. Add Employee remains unchanged with exactly its existing 10 fields.
+15. No employee-number field was added to Add Employee.
+16. No unrelated VAR HR business logic was changed.
+
+For each item, report:
+
+✅ Implemented
+⚠️ Partially implemented
+❌ Missing
+🔴 Broken
+
+IMPORTANT
+
+Do NOT implement or fix anything during this audit.
+
+Do NOT rewrite the feature.
+
+Do NOT touch unrelated parts of VAR HR.
+
+Do NOT change Add Employee.
+
+Do NOT change Employee Accounts/Self-Service.
+
+Do NOT change Attendance, Payroll, Leave, Devices, or other modules except where necessary to verify deletion dependencies.
+
+At the end, give me ONLY this report:
+
+Employee / Department / Branch Management Audit
+
+Employee Numbering:
+✅ / ⚠️ / ❌ / 🔴
+
+Employee Management:
+✅ / ⚠️ / ❌ / 🔴
+
+Department Management:
+✅ / ⚠️ / ❌ / 🔴
+
+Branch Management:
+✅ / ⚠️ / ❌ / 🔴
+
+Authorization & Tenant Isolation:
+✅ / ⚠️ / ❌ / 🔴
+
+UI:
+✅ / ⚠️ / ❌ / 🔴
+
+Database/API:
+✅ / ⚠️ / ❌ / 🔴
+
+Missing or incomplete items
+
+List only actual verified gaps.
+
+What was already saved correctly
+
+List the parts that are confirmed to exist.
+
+Recommended next step
+
+Tell me exactly what should be fixed next, WITHOUT fixing it yet.

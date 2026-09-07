@@ -1,0 +1,100 @@
+Extend the existing Platform Owner Company Details page.
+
+Do not redesign or restructure unrelated parts of the application. Do not change authentication, tenant isolation, permissions, or existing company functionality.
+
+When the Platform Owner opens a company's details:
+
+1. At the top of the page, show ALL company information that was entered manually by the Platform Owner when creating/editing the company:
+- Company name
+- Address
+- Currency
+- Employee limit
+- Monthly subscription price
+- Annual subscription price
+- Registration date
+- Number of Company Owners
+- Every Company Owner's:
+  - Name
+  - Username
+  - Phone
+  - Backup phones
+  - Email
+  - Backup emails
+
+2. Below that, show live data belonging to that company:
+- Number of employees
+- Employee names
+- Number of HR/Admin/Manager accounts
+- Their names and usernames
+- Number of connected biometric/attendance devices
+- Device names/statuses
+- Subscription information
+- Attendance rules
+- Leave/rules configuration
+- Payroll/salary data
+- Departments
+- Schedules
+- Holidays
+- Attendance records
+- Requests
+- Permissions
+- Company settings
+- Any other company-owned operational data currently stored in the database
+
+Use real database data only. Do not use mock or placeholder values.
+
+3. Add a "Create Company Backup" action inside the company details page.
+
+The backup must be a complete standalone backup of ONLY that company and all data belonging to it, including:
+- Company information
+- Company Owner and staff accounts
+- Employees
+- Salaries/payroll data
+- Attendance data
+- Biometric device configuration/data
+- Departments
+- Rules
+- Schedules
+- Holidays
+- Leave/request data
+- Permissions
+- Notifications
+- Audit records
+- Any other tenant/company-scoped database data required to fully restore the company.
+
+The backup must be portable so it can be restored later even if the company is damaged or its data is deleted.
+
+Reuse the existing Backup & Restore infrastructure wherever possible instead of creating a second backup system.
+
+The company backup must:
+- Have its own company scope and company ID
+- Include schema/manifest information
+- Include integrity/checksum validation
+- Be downloadable as JSON
+- Be restorable independently without restoring other companies
+- Preserve tenant isolation
+- Create a safety backup before restore
+- Run inside an atomic transaction
+- Roll back completely if anything fails
+- Record backup and restore audit events
+
+For restoration, ensure all foreign-key relationships are handled correctly, including accounts, employees, departments, devices, attendance records, payroll, permissions, and audit records.
+
+IMPORTANT:
+Do not delete, modify, or reset any existing company data during implementation.
+Do not perform a real restore test against existing production/company data.
+Use development/test data for verification.
+
+Before making changes, inspect the existing company backup/restore implementation and database schema and reuse existing logic wherever possible.
+
+After implementation, verify:
+- Platform Owner can open a company and see the manually entered company data.
+- Live company statistics are accurate.
+- Company backup can be created successfully.
+- The generated backup contains all required company-scoped data.
+- The backup passes checksum/integrity validation.
+- Company backup restore works in an isolated development/test company.
+- Restoring one company does not affect any other company.
+- Authentication, tenant isolation, and existing company functionality remain unchanged.
+
+Do not perform screenshots or visual inspection.

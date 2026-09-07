@@ -349,6 +349,16 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
+  // The web workspace uses the same provider-neutral locale boundary as the
+  // API. Keep this browser-only so native callers can provide their own
+  // locale header when needed.
+  if (typeof window !== "undefined" && !headers.has("x-var-locale")) {
+    const locale = window.localStorage.getItem("var-hr-locale");
+    if (locale === "en" || locale === "ar" || locale === "fr" || locale === "de") {
+      headers.set("x-var-locale", locale);
+    }
+  }
+
   // Attach bearer token when an auth getter is configured and no
   // Authorization header has been explicitly provided.
   if (_authTokenGetter && !headers.has("authorization")) {
@@ -360,7 +370,12 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const response = await fetch(input, {
+    ...init,
+    method,
+    headers,
+    credentials: init.credentials ?? "include",
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

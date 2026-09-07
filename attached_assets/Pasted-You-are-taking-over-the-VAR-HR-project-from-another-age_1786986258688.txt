@@ -1,0 +1,323 @@
+You are taking over the VAR HR project from another agent.
+
+This is a continuation of Part 6 at the final validation stage.
+
+Do NOT restart Part 6.
+Do NOT redo the full audit.
+Do NOT reset or discard the current implementation.
+
+The previous agent has already implemented the major missing Part 6 functionality and stopped because of the daily quota during the next verification pass.
+
+Current State
+
+Part 5 is complete and verified.
+
+Part 6 implementation now includes:
+
+Reports Backend
+
+- Unified "GET /api/reports/data"
+- Employees report
+- Attendance report
+- Leave report
+- Permission report
+- Overtime report
+- Payroll report
+- Report filters
+- Server-side company/employee/manager authorization
+- Cross-company protection
+- Payroll access restrictions
+
+Reports Frontend
+
+The old attendance-only Reports screen has been replaced/extended with:
+
+- Six report types
+- Report filters
+- Generated API hooks
+- Report totals
+- Loading states
+- Error states
+- Empty states
+- Localization
+- CSV export
+- Excel-compatible export
+- Print output
+
+Employee Import
+
+- "POST /api/employees/import"
+- Validation
+- Duplicate detection
+- Row-level results
+- Transaction-wrapped import
+- File-based import UI was started/completed as part of the implementation
+
+Contracts
+
+- OpenAPI report/import contracts
+- Generated API client
+- Generated Zod outputs
+- "ReportPeriodId" collision resolved
+- "ReportRow" duplicate declarations fixed
+- Contract generation succeeded
+
+Recent Fixes
+
+The previous verification pass found two real issues:
+
+1. Report status was incorrectly constrained to employee statuses.
+   
+   - FIXED.
+
+2. The import route referenced type-only generated interfaces as runtime schemas.
+   
+   - FIXED.
+
+The agent then:
+
+- Regenerated contract outputs.
+- Rebuilt workspace dependencies.
+- Was about to run the next verification pass when the daily quota ended.
+
+YOUR FIRST TASK
+
+Do NOT reimplement anything.
+
+First inspect:
+
+- Current working tree
+- Current source
+- "hand-off/MASTER-HANDOFF.md"
+- Latest Part 5 handoff
+- Any Part 6 handoff/continuation notes
+- Current generated contract outputs
+
+Confirm that the two fixes above are actually present on disk.
+
+Then continue directly with the next verification pass.
+
+---
+
+Final Verification
+
+Run:
+
+Typechecks
+
+- API typecheck
+- Frontend typecheck
+- Relevant workspace/library typechecks if required
+
+Fix only genuine errors.
+
+If an error is caused by stale generated output, regenerate the output rather than changing unrelated code.
+
+Contract Generation
+
+Run the existing contract/code-generation process.
+
+Confirm it succeeds.
+
+Do not introduce duplicate contracts or duplicate generated types.
+
+Production Builds
+
+Run the relevant production builds:
+
+- API
+- Frontend
+- Any required mockup/preview build
+
+Use the project's managed environment variables such as "PORT"/"BASE_PATH" when required.
+
+Do not treat a raw build failure caused only by missing managed workflow variables as a code failure.
+
+---
+
+Runtime Validation
+
+After builds pass, validate the actual Part 6 functionality.
+
+Reports
+
+Test all six:
+
+1. Employees
+2. Attendance
+3. Leave
+4. Permission
+5. Overtime
+6. Payroll
+
+Verify:
+
+- Correct data
+- Correct columns
+- Filters
+- Totals
+- Empty states
+- Error states
+- Payroll period filtering
+- Employee filtering
+- Department filtering
+- Date filtering
+- Status filtering where applicable
+- Leave type filtering
+- Permission type filtering
+
+Authorization
+
+Verify:
+
+- Employee access
+- Manager access
+- Owner/platform-owner access
+- Employee scoping
+- Department scoping
+- Cross-company rejection
+- Payroll restrictions
+
+Do not weaken authorization to make tests pass.
+
+Employee Import
+
+Verify:
+
+- CSV/file parsing
+- Preview
+- Validation
+- Duplicate handling
+- Row-level errors
+- Successful import
+- Transaction rollback
+- No partial import after a failed transaction
+
+Export
+
+Verify:
+
+- CSV export
+- Excel-compatible export
+- Current filters are respected
+- Correct report columns
+- Arabic text remains readable
+
+Printing
+
+Verify:
+
+- Correct report title
+- Selected filters
+- Report data
+- Totals
+- Print-only layout
+- Navigation/actions hidden from print
+- Arabic RTL printing
+
+Localization
+
+Verify:
+
+- English
+- Arabic
+- French
+- German
+
+Pay particular attention to:
+
+- Report UI
+- Filters
+- Tables
+- Import UI
+- Export messages
+- Print layout
+- Arabic RTL
+
+---
+
+Important Regression Protection
+
+Do not break:
+
+- Parts 1–4
+- Part 5 payroll
+- Authentication
+- Employee management
+- Attendance
+- Leave
+- Permissions
+- Overtime
+- Existing authorization
+- Existing localization
+
+Do not perform unrelated refactors.
+
+Use minimal targeted fixes only.
+
+---
+
+If Something Fails
+
+For every failure, classify it as:
+
+- Code issue
+- Contract/generated-code issue
+- Environment/setup issue
+- Existing unrelated issue
+
+Fix genuine Part 6 issues.
+
+Do not "fix" unrelated existing behavior.
+
+Do not hide failures.
+
+Do not claim a test passed unless it actually ran and passed.
+
+---
+
+Final Handoff
+
+Only after implementation and validation are genuinely complete:
+
+Create/update the dated Part 6 handoff under:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Document:
+
+- What was inherited
+- What Part 6 implemented
+- Backend changes
+- Frontend changes
+- Import
+- Printing
+- CSV export
+- Excel-compatible export
+- Authorization
+- Localization
+- Code generation
+- Typechecks
+- Builds
+- Runtime validation
+- Any remaining limitations
+- Any recommended follow-up
+
+Do NOT start Part 7.
+
+Final Response
+
+At the end, give a concise completion report containing:
+
+1. What was already implemented when you took over.
+2. What you fixed.
+3. What validation passed.
+4. Exact remaining blockers, if any.
+5. Whether Part 6 is genuinely complete.
+6. The next Part number.
+
+Most important: continue from the current implementation and finish the validation. Do not restart Part 6.

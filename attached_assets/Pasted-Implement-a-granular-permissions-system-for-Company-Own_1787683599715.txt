@@ -1,0 +1,211 @@
+Implement a granular permissions system for Company Owner-controlled staff accounts.
+
+The goal is to allow the Company Owner to decide exactly what each Manager, Supervisor, or HR account is allowed to access and manage.
+
+Main requirement
+
+Every major capability currently available to the Company Owner should have its own permission that can be granted or revoked for:
+
+- Managers
+- Supervisors
+- HR users
+- Any other company staff role that already exists in the system
+
+Do NOT create a parallel permission system. Extend the existing authorization/permissions architecture.
+
+Permissions should cover all Company Owner capabilities
+
+Audit the actual Company Owner navigation, pages, APIs, and actions and create granular permissions for the capabilities that already exist.
+
+This should include, where applicable:
+
+- Dashboard
+- Employees
+- Employee details
+- Employee creation/editing
+- Departments
+- Branches
+- Attendance
+- Attendance Rules
+- Attendance Rule History
+- Shift Organization
+- Employee Shift Assignment
+- Overtime settings
+- Leave
+- Leave rules/settings
+- Payroll
+- Reports
+- Devices
+- Biometric/Fingerprint integration
+- GPS/location settings
+- Permissions management
+- Notifications
+- Backups
+- Company settings
+- Organization settings
+- Subscription-related company settings
+- Audit/history
+- Any other Company Owner feature currently available in the application
+
+Do not assume the list above is complete. Inspect the existing Company Owner capabilities and make sure every meaningful management capability can be permission-controlled.
+
+Important examples
+
+A Company Owner should be able to give a Manager:
+
+- Attendance Rules access
+- Shift Organization access
+- Employee Shift Assignment access
+
+without giving that Manager:
+
+- Payroll access
+- Backup access
+- Company settings access
+
+Another example:
+
+The Company Owner should be able to give an HR user:
+
+- Employees
+- Employee records
+- Departments
+- Leave
+- Attendance
+
+while denying:
+
+- Payroll
+- Backups
+- Subscription
+- Company settings
+
+Another example:
+
+The Company Owner should be able to give a Supervisor:
+
+- Attendance
+- Shift information
+- Employee attendance-related operations
+
+without automatically giving access to sensitive HR/payroll functions.
+
+Actions must also be permission-aware
+
+Do not only control whether a page appears in navigation.
+
+Permissions must be enforced at the API/backend level as well.
+
+For applicable resources, distinguish between:
+
+- View
+- Create
+- Edit
+- Delete/Archive
+- Manage/Configure
+- Approve
+- Export
+
+For example, a user may be allowed to view Attendance Rules but not edit them.
+
+The frontend should hide/disable unauthorized actions, but the backend must independently reject unauthorized API requests.
+
+Password security — IMPORTANT
+
+Company Owners may manage permissions for Manager, Supervisor, and HR accounts.
+
+However:
+
+Do NOT give Company Owners or delegated staff any permission to view, retrieve, or modify the passwords of Manager or HR accounts.
+
+Passwords must remain protected.
+
+Do not expose:
+
+- Password hashes
+- Password reset secrets
+- Authentication tokens
+- Sessions
+- Credentials
+
+If password reset functionality already exists, preserve its existing secure authentication flow and do not turn it into a general "change another user's password" permission.
+
+Tenant isolation
+
+All permissions must remain company-scoped.
+
+A Company Owner can only grant/manage permissions for users belonging to their own company.
+
+A Manager/HR/Supervisor must never be able to use these permissions to access another company's data.
+
+Permission Management UI
+
+Update the existing Permissions/Role Management UI rather than creating a separate administration system.
+
+The Company Owner should be able to:
+
+1. Select a staff user or supported role.
+2. See the available permissions grouped logically.
+3. Enable/disable individual permissions.
+4. Clearly understand what each permission allows.
+5. Save the changes.
+6. See the current permission state afterward.
+
+Use clear Arabic/English labels through the existing i18n system.
+
+Security requirements
+
+Authorization must be enforced server-side.
+
+Do not rely only on hiding navigation items.
+
+Every protected API endpoint must verify:
+
+- authenticated user
+- company/tenant ownership
+- required permission
+- appropriate role/scope
+
+Existing Platform Owner permissions must remain separate from Company Owner permissions.
+
+Do not accidentally give Company Owners Platform Owner capabilities.
+
+Preserve existing behavior
+
+Do not modify unrelated business logic.
+
+Do not change:
+
+- Attendance calculations
+- Payroll calculations
+- Leave calculations
+- Backup/restore behavior
+- Authentication architecture
+- Tenant architecture
+
+unless a minimal authorization hook is required.
+
+Use the existing permissions and authorization architecture wherever possible.
+
+Verification
+
+After implementation:
+
+- Verify Company Owner can grant/revoke permissions.
+- Verify Manager receives only granted capabilities.
+- Verify Supervisor receives only granted capabilities.
+- Verify HR receives only granted capabilities.
+- Verify unauthorized pages are blocked.
+- Verify unauthorized API requests return the correct authorization error.
+- Verify navigation reflects permissions.
+- Verify action buttons reflect permissions.
+- Verify password/credential fields remain completely protected.
+- Verify cross-company access is impossible.
+- Run API typecheck.
+- Run frontend typecheck.
+- Run API build.
+- Run frontend production build with the required managed variables.
+- Run git diff --check.
+- Restart existing workflows and verify the permission management UI.
+
+Do not report completion based only on the database/schema or backend implementation. Verify the actual UI and API authorization behavior.

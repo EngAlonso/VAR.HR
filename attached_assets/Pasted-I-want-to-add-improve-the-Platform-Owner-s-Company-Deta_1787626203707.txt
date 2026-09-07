@@ -1,0 +1,259 @@
+I want to add/improve the Platform Owner's Company Details view.
+
+The goal is to make the platform administration side useful for support and troubleshooting, while strictly preserving tenant isolation between companies.
+
+1. Platform Owner → Company Details
+
+When the Platform Owner opens a company's details from the platform administration area, they should be able to see a complete administrative overview of that company.
+
+This should include the accounts/users that the company owner created for internal staff, especially:
+
+- Company Owners
+- Managers
+- Supervisors
+- HR users
+- Other company-level administrative accounts
+
+For each account, the Platform Owner should be able to see useful administrative information such as:
+
+- Name
+- Email / login identifier
+- Role
+- Account status
+- Creation date
+- Last activity/login if already available in the system
+- Employee association, if applicable
+- Department, if applicable
+- Whether the account is active or disabled
+
+Do NOT expose passwords, password hashes, authentication secrets, session tokens, or other sensitive credentials.
+
+The purpose is support and administration only.
+
+---
+
+2. Company Details should show the company's actual structure
+
+The Platform Owner's Company Details page should also provide a clear overview of the company's data and configuration, such as:
+
+- Company information
+- Company owner
+- Employees
+- Departments
+- Managers/supervisors
+- HR accounts
+- Shift assignments
+- Attendance rules
+- Leave policies
+- Permissions/roles
+- Devices, if applicable
+- Subscription/account status
+- Relevant system configuration
+- Audit/activity information where already supported
+
+Do not create duplicate data systems.
+
+Reuse the existing APIs, database tables, permissions, and tenant architecture.
+
+---
+
+3. Database organization / tenant isolation
+
+The database must remain properly organized as a true multi-tenant HR system.
+
+Every company's data must remain associated with its own company/tenant.
+
+Company A must NEVER be able to access Company B's:
+
+- Employees
+- Accounts
+- Departments
+- Attendance
+- Leave
+- Payroll
+- Rules
+- Shifts
+- Devices
+- Reports
+- Backups
+- Audit data
+- Any other company-owned records
+
+The Platform Owner is the only administrative layer that may inspect company data across tenants, according to the existing platform-owner authorization model.
+
+Company users must remain strictly tenant-scoped.
+
+---
+
+4. Support / troubleshooting purpose
+
+The reason for this Company Details view is operational support.
+
+If a company reports a technical problem, the Platform Owner should be able to open that company's record and understand:
+
+- Which company is affected
+- Who owns it
+- Which accounts exist
+- Which roles those accounts have
+- Which employees/departments are configured
+- Which rules and shifts are active
+- Relevant configuration/status
+- Recent audit/activity information where available
+
+This should make it possible to diagnose configuration problems without directly manipulating the database.
+
+Do NOT give the Platform Owner unrestricted database-editing capabilities.
+
+This is an inspection/support dashboard, not a raw database editor.
+
+---
+
+5. Database structure
+
+Review the existing schema and make sure the tenant structure is consistent.
+
+Use the existing company/tenant ID as the ownership boundary.
+
+Where company-owned records already have a company_id/tenant_id relationship, preserve it.
+
+Where a company-owned entity is missing a proper tenant relationship, identify it before changing anything.
+
+Do not create duplicate tenant identifiers.
+
+The final structure should make it easy to answer:
+
+"Which company owns this record?"
+
+for every company-specific HR entity.
+
+---
+
+6. Platform Owner visibility vs company visibility
+
+Keep these two concepts completely separate.
+
+Platform Owner
+
+Can inspect company-level information across companies for support and administration.
+
+Company Owner / Manager / HR / Supervisor
+
+Can only see information belonging to their own company and according to their existing role permissions.
+
+Never allow a company user to manipulate a company ID or request another company's data to bypass tenant isolation.
+
+---
+
+7. Important security requirements
+
+Do NOT expose:
+
+- Passwords
+- Password hashes
+- Session cookies
+- Access tokens
+- Refresh tokens
+- API keys
+- Authentication secrets
+- Other credentials
+
+Even to the Platform Owner.
+
+If technical authentication information is needed for troubleshooting, show only safe metadata such as:
+
+- Account status
+- Last login
+- Authentication method/status
+- Creation date
+- Lock/disabled status
+
+---
+
+8. UI organization
+
+The Platform Owner Company Details page should be organized clearly instead of showing one huge unstructured data dump.
+
+Suggested sections:
+
+Company Overview
+
+Company identity, owner, subscription/status.
+
+Administrative Accounts
+
+Owners, managers, supervisors, HR and other administrative users.
+
+Organization
+
+Departments, managers, employees.
+
+Attendance & Scheduling
+
+Attendance rules, rule history, shifts and employee assignments.
+
+Leave & Payroll
+
+Leave policies, balances/status, payroll configuration/status.
+
+Devices & Integrations
+
+Existing device/integration information where applicable.
+
+Activity & Audit
+
+Existing audit/activity records relevant to the company.
+
+Only show sections for data that actually exists in the current system.
+
+---
+
+9. Do not change unrelated business logic
+
+This task is primarily about:
+
+- Platform Owner visibility
+- Company Details
+- Tenant organization
+- Support/troubleshooting visibility
+- Database organization
+- Tenant isolation
+
+Do NOT redesign:
+
+- Attendance calculations
+- Payroll formulas
+- Leave calculations
+- Shift calculations
+- Backup/restore
+- Authentication behavior
+- Employee workflows
+- Department behavior
+
+unless a small change is strictly required to safely expose existing information.
+
+Do not create duplicate tables or parallel systems.
+
+---
+
+10. Verification
+
+After implementation verify:
+
+- Platform Owner can open a company and see its administrative accounts.
+- Manager/HR/Supervisor accounts are clearly identified by role.
+- Passwords/secrets are never returned by the API.
+- Company users cannot access another company's data.
+- Company A data cannot leak into Company B responses.
+- Company Details uses the correct company/tenant ID.
+- Existing company data remains unchanged.
+- Existing permissions remain enforced.
+- API typecheck passes.
+- Frontend typecheck passes.
+- API build passes.
+- Frontend production build passes.
+- OpenAPI/client generation passes if contracts changed.
+- "git diff --check" passes.
+
+Most importantly:
+
+Do not treat the database as one shared pool of unrelated company records. The system must remain a properly tenant-isolated HR platform where each company's data is logically separated and every company-owned record can be traced back to its owning company.

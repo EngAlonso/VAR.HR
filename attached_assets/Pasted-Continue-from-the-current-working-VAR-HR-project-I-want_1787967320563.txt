@@ -1,0 +1,301 @@
+Continue from the current working VAR HR project.
+
+I want to improve management controls for Employees, Departments, and Branches, and fix the Employee Number system.
+
+IMPORTANT:
+
+- Inspect the existing database relationships and business logic first.
+- Do not create a parallel system.
+- Do not change the existing Add Employee form or its 10 fields.
+- Do not change employee authentication/self-service.
+- Do not change attendance, payroll, leave, devices, or unrelated modules.
+- Preserve Arabic, English, French, and German localization.
+- Preserve the existing VAR HR design system.
+- Do not bring back the old Add Employee modal.
+
+1. Employee Number System — IMPORTANT
+
+Replace the current employee-number generation behavior.
+
+I do NOT want large/random employee numbers such as:
+
+- 1100
+- 2500
+- 10001
+- or similar generated numbers.
+
+The default employee number should start from:
+
+1
+2
+3
+4
+5
+...
+
+When a new employee is created, the system should automatically assign the next appropriate available numeric employee number based on the company's existing employees.
+
+Example:
+
+If the company currently has:
+
+1
+2
+3
+4
+5
+
+The next employee should automatically receive:
+
+6
+
+If employee 3 is deleted/deactivated and the available-number policy allows reuse, the system may reuse 3; otherwise it should continue with the next number. Do not renumber existing employees automatically.
+
+The important rule is:
+
+DO NOT randomly renumber existing employees.
+
+DO NOT change existing valid employee numbers just because a new employee was added.
+
+Existing employee numbers must be preserved unless an authorized manager explicitly changes one.
+
+2. Manual Employee Number
+
+Company Owners and authorized Company Managers/Admins should be able to manually change an employee number.
+
+The employee number must be:
+
+- Numeric.
+- Positive.
+- Unique within the company.
+- Stored as the actual database value.
+- Editable only by authorized management users.
+- Used consistently everywhere in VAR HR.
+
+Different companies may use the same employee number.
+
+Example:
+
+Company A:
+1
+2
+3
+
+Company B:
+1
+2
+3
+
+This is completely valid.
+
+3. Employee Number Ordering
+
+Employee numbers must control the actual employee ordering.
+
+Sorting MUST be numeric, not alphabetical/string sorting.
+
+Example:
+
+1
+2
+3
+10
+11
+12
+100
+
+NOT:
+
+1
+10
+100
+11
+12
+2
+3
+
+If an employee's number changes:
+
+1 → 11
+
+the employee must automatically appear in the correct sorted position:
+
+10
+11
+12
+
+If:
+
+20 → 7
+
+the employee must appear:
+
+6
+7
+8
+
+The system must use the stored employee number as the source of truth, not a frontend-only display sort.
+
+4. Employee Number Conflicts
+
+Do NOT allow duplicate employee numbers within the same company.
+
+Use:
+
+- Backend validation.
+- Database-level unique constraint/index.
+
+This must also protect against concurrent requests.
+
+If an employee currently has number 11 and another employee is assigned 11, do not silently create duplicates.
+
+Return a clear localized conflict message explaining that the employee number is already in use.
+
+5. Existing Employee Numbers
+
+Before modifying the employee-number schema or constraints:
+
+- Inspect all existing employee numbers.
+- Preserve all valid existing numbers.
+- Do not automatically renumber existing employees.
+- Do not delete or modify employee records just to make the new numbering system work.
+
+If existing employees contain large numbers such as 1100, 2500, etc., DO NOT automatically convert or renumber them without first checking the existing data and reporting what exists.
+
+The new sequential numbering rule should apply to newly created employees.
+
+If the existing implementation currently generates numbers such as 1100, remove that generation logic so future employees start from the next appropriate small sequential number.
+
+6. Employee Management
+
+Company Owners and authorized Company Managers/Admins should be able to:
+
+- Edit employee data according to their existing permissions.
+- Change Employee Number.
+- Activate/deactivate employee.
+- Delete employee when deletion is safe and permitted.
+
+Do not allow unauthorized users to perform these actions.
+
+Before deleting an employee, inspect all existing relationships:
+
+- Attendance
+- Leave requests
+- Payroll
+- HR records
+- Device mappings
+- Shift/schedule assignments
+- Employee account/authentication
+- Any other dependent HR records
+
+Do NOT blindly delete historical HR data.
+
+If historical records exist, prefer safe deactivation/archive or prevent deletion with a clear localized explanation rather than destroying historical records.
+
+Employee authentication must also be handled safely when an employee is deactivated.
+
+7. Department Management
+
+Company Owners and authorized Managers/Admins should be able to:
+
+- Edit Department.
+- Activate/deactivate Department.
+- Delete Department only when safe.
+
+If employees or historical records depend on the Department, do not silently delete those relationships or records.
+
+Prevent destructive deletion when necessary and show a clear localized explanation.
+
+8. Branch Management
+
+Apply the same management controls to Branches:
+
+- Edit.
+- Activate/deactivate.
+- Delete only when safe.
+
+Do not silently delete employees, attendance, payroll, devices, or historical records.
+
+9. UI
+
+Add appropriate controls to the existing screens.
+
+Employee List/Profile:
+
+- Edit
+- Change Employee Number
+- Activate/Deactivate
+- Delete when safe
+
+Department management:
+
+- Edit
+- Activate/Deactivate
+- Delete when safe
+
+Branch management:
+
+- Edit
+- Activate/Deactivate
+- Delete when safe
+
+Use professional confirmation dialogs and clear localized messages.
+
+10. Critical Assignment Preservation
+
+Do not break the existing source-of-truth relationships.
+
+Employee Department, Branch, and Shift assignments must continue to be reflected everywhere:
+
+- Employee List
+- Employee Profile
+- Shift Organization
+- Attendance
+- Reports
+- Payroll
+- Other relevant HR screens
+
+Do not create duplicate assignment systems.
+
+11. Verification
+
+After implementation:
+
+1. Create a new employee and verify the first available sequential employee number is assigned.
+2. Create several employees and verify numbering behaves like:
+   1, 2, 3, 4, 5...
+3. Verify no new employee receives numbers such as 1100 or other random large IDs.
+4. Verify existing employee numbers are not automatically changed.
+5. Change employee number 1 → 11 and verify numeric ordering.
+6. Change employee number 20 → 7 and verify numeric ordering.
+7. Attempt duplicate employee number within the same company and verify it is rejected.
+8. Verify the same employee number can exist in another company.
+9. Verify employee deactivation.
+10. Verify Department deactivation.
+11. Verify Branch deactivation.
+12. Test safe deletion when dependent HR records exist.
+13. Test authorization for destructive actions.
+14. Verify employee account/self-service still works.
+15. Verify Department/Branch/Shift assignments remain consistent everywhere.
+
+Run:
+
+- Full workspace typecheck.
+- API tests.
+- Frontend production build.
+- Database constraint verification.
+- Relevant integration tests.
+
+At the end, report exactly:
+
+- How employee numbers are now generated.
+- What happened to the old large/random-number generation.
+- Whether existing employee numbers were preserved.
+- How manual number changes work.
+- How duplicate numbers are prevented.
+- How numeric ordering works.
+- How employee/department/branch deletion is protected.
+- Which tests passed.
+- Any remaining limitations.
+
+Do not make unrelated changes.

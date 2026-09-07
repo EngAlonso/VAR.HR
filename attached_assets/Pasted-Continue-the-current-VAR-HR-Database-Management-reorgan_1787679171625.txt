@@ -1,0 +1,186 @@
+Continue the current VAR HR Database Management reorganization from the exact existing state.
+
+The previous agent already completed the audit and started implementing the requested changes.
+
+What was already discovered
+
+The existing Database Management page was a raw-table selector with:
+
+- Frontend-only search
+- No company filter
+- Limited entity coverage
+- Human-unfriendly table presentation
+- Visible destructive controls
+
+The requested goal is to turn it into a structured, read-only Platform Owner support/inspection dashboard organized around business entities and Company Context.
+
+Work already started
+
+The previous agent already modified:
+
+- "platform-admin.ts"
+- "App.tsx"
+
+The backend work started adding:
+
+- Server-side company filtering
+- Company names/context
+- Better database entity responses
+
+The frontend work started reorganizing the Database Management UI.
+
+The task stopped because the previous account reached its quota.
+
+IMPORTANT
+
+Do NOT restart the audit.
+
+Do NOT revert the existing changes.
+
+Do NOT redesign the feature from scratch.
+
+First inspect the current diff and continue from the exact implementation state.
+
+Complete the remaining work
+
+Finish the Database Management organization so the Platform Owner can clearly inspect:
+
+- Companies
+- Users & Accounts
+- Employees
+- Departments
+- Branches
+- Shifts
+- Employee Shift Assignments
+- Attendance Rules & Rule Versions
+- Attendance & Calculations
+- Leave
+- Permissions
+- Payroll
+- Devices
+- Subscriptions
+- Notifications
+- Audit Logs
+- Backups
+
+Only expose entities/tables that actually exist in the current project.
+
+Do NOT create duplicate database tables or parallel systems.
+
+Company Context
+
+Every important record should clearly show:
+
+- Company name
+- Company ID when useful
+- Entity name
+- Status where applicable
+
+The Platform Owner must immediately understand which company owns each record.
+
+For example:
+
+Employee → Company → Branch → Department → Shift
+
+Department → Company → Manager → Employees
+
+Branch → Company → Departments → Employees
+
+Shift → Company → Assigned Employees
+
+Company Filter
+
+The company filter must be enforced server-side.
+
+It must NOT be frontend-only filtering.
+
+Platform Owner should have:
+
+- All Companies
+- Specific Company
+
+Selecting a company should make the API return only records belonging to that company.
+
+Never rely only on hiding records in React.
+
+Security
+
+Keep strict tenant isolation.
+
+Never expose:
+
+- Passwords
+- Password hashes
+- Tokens
+- Sessions
+- API keys
+- Authentication secrets
+- Refresh tokens
+- Any credentials
+
+Do NOT add new destructive database actions.
+
+The Database Management section should primarily be:
+
+Inspection + Support + Organization
+
+UI
+
+Replace the raw technical-table experience with a clean dashboard organized around business entities/categories.
+
+Use human-readable names instead of making the Platform Owner work with raw table names.
+
+Show useful counts and summaries where the existing data supports them.
+
+Provide search and company filtering.
+
+Allow navigating from a record to the existing Company Details page when appropriate.
+
+Do not create a second Company Details system.
+
+Important Scope
+
+Do NOT modify:
+
+- Payroll logic
+- Attendance calculation
+- Leave logic
+- Shift calculation
+- Backup/restore
+- Authentication
+- Other unrelated HR business logic
+
+unless an absolutely minimal change is required for this Database Management feature.
+
+Do NOT change the database schema just for presentation if existing relationships are sufficient.
+
+Continue from the current state
+
+First:
+
+1. Check "git diff".
+2. Review the modifications already made to "platform-admin.ts" and "App.tsx".
+3. Identify exactly what remains unfinished.
+4. Continue from there.
+
+Then verify:
+
+- API typecheck
+- Frontend typecheck
+- API build
+- Frontend production build with the required managed variables
+- OpenAPI/code generation if contracts changed
+- "git diff --check"
+
+Also inspect the final diff for:
+
+- Cross-tenant leakage
+- Accidental destructive actions
+- Exposed credentials/secrets
+- Unrelated business-logic changes
+
+Do not start another phase.
+
+Do not repeat previous work.
+
+Finish only this Database Management reorganization and report exactly what was completed and any remaining limitation.

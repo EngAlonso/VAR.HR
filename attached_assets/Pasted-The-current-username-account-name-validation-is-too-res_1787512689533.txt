@@ -1,0 +1,87 @@
+The current username/account-name validation is too restrictive.
+
+When the Company Owner creates an account such as a Supervisor/Manager, the form currently shows:
+
+"اسم المستخدم يجب أن يحتوي على حروف إنجليزية وأرقام والرموز . _ - فقط"
+
+This restriction is NOT appropriate for the account name that the Company Owner enters.
+
+Required behavior
+
+The Company Owner must be able to create an account using a name such as:
+
+- أحمد محمد
+- Ahmed Mohamed
+- أحمد Ahmed
+- أحمد محمد 2
+- Mohamed Ali
+- أحمد-محمد
+- Ahmed_Mohamed
+- Any normal human-readable name with or without spaces.
+
+The field should NOT require:
+
+- English letters only
+- A specific regex pattern
+- ". _ -"
+- Any specific combination of characters
+
+Arabic names and names containing spaces must be accepted.
+
+Important distinction
+
+First inspect how this field is actually used.
+
+If this field is the user's display/name field, remove the technical username regex restriction completely and validate it only as a normal human-readable name.
+
+If the application also requires a separate technical username/login identifier, do NOT remove its security/format validation. Instead, keep the technical identifier separate from the human-readable account name.
+
+Do NOT weaken authentication security just to allow Arabic names.
+
+Validation
+
+The account name should only have sensible basic validation, for example:
+
+- Required.
+- Not empty.
+- Trim leading/trailing whitespace.
+- Reasonable minimum/maximum length.
+- Allow Unicode/Arabic/English characters.
+- Allow spaces.
+- Do not impose the current "/^[a-zA-Z0-9._-]+$/" restriction on the human-readable account name.
+
+Do not reject Arabic characters.
+
+Localization
+
+Update the validation messages accordingly.
+
+Arabic should use a natural message such as:
+
+"يرجى إدخال اسم صحيح"
+
+or an appropriate message based on the actual validation rule.
+
+Do NOT show technical regex/Zod messages.
+
+English should have the equivalent localized message.
+
+Critical
+
+Before changing the schema, trace:
+
+1. The Create Account form field.
+2. The frontend validation schema.
+3. The API create-account payload.
+4. The backend account schema.
+5. How the value is stored.
+6. How the value is used during login/display.
+7. Whether there is already a separate username/login identifier.
+
+Do not blindly remove validation from a field that is actually required as a technical login identifier.
+
+The goal is:
+
+Company Owner should be able to create a staff account with a normal Arabic or English human name, including spaces, without being blocked by the technical username regex.
+
+Do not change permissions, roles, authentication, tenant isolation, or unrelated functionality.

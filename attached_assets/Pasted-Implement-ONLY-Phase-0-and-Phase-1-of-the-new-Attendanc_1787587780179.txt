@@ -1,0 +1,58 @@
+Implement ONLY Phase 0 and Phase 1 of the new Attendance Rules system. Do not implement Phase 2+ yet.
+
+PHASE 0 — SAFETY / BASELINE
+- Inspect the current attendance, schedules, leave, permissions, and payroll calculation flow.
+- Add regression tests/fixtures for the current behavior: on-time, late, grace period, early checkout, overtime, absence, holiday, approved leave, approved permission, and overnight shifts where supported.
+- Make sure Phase 0/1 does NOT change current attendance or payroll results.
+- Verify tenant isolation and existing Company Owner/Manager/Employee permissions.
+- Follow the existing Drizzle/PostgreSQL migration system.
+- Do NOT delete/reset existing data.
+
+PHASE 1 — VERSIONED ATTENDANCE RULES
+Replace the current single mutable attendance-rule concept with immutable, effective-dated rule versions.
+
+Each version should have:
+- companyId
+- version number
+- effectiveFrom
+- effectiveTo
+- status
+- createdBy / createdAt
+- snapshot of the existing attendance-rule configuration
+
+Requirements:
+1. Editing rules creates a NEW version. Never overwrite historical versions.
+2. Resolve the correct rule version based on company + attendance date.
+3. Prevent overlapping effective dates for the same company.
+4. Migrate existing attendance rules into an initial version without losing any settings.
+5. Keep the existing /attendance-rules API working as a compatibility layer so current frontend behavior doesn't break.
+6. Add version listing/details/creation APIs only where needed.
+7. Record rule-version changes in the existing audit log.
+8. Preserve tenant isolation and existing authorization.
+9. Payroll and attendance calculations must continue behaving exactly as they do today. Do not rewrite the calculation engine yet.
+10. Where safe, store the resolved rule-version ID in existing calculation/payroll snapshots so future recalculations can identify which rules were used.
+11. Add a simple UI to the existing Attendance Rules page showing:
+   - Current version
+   - Historical versions
+   - Effective dates
+   - Created by/date
+   - Create New Version
+   - Review before saving
+12. Arabic and English localization must be supported.
+
+IMPORTANT:
+Do NOT implement yet:
+- late/early 2x or 3x multipliers
+- permission deduction policies
+- absence multipliers
+- leave accrual/carry-forward
+- leave ledger
+- manual time adjustments
+- new calculation engine
+- payroll formula rewrite
+
+Those belong to later phases.
+
+Before editing, inspect the existing implementation and use its current architecture/conventions. After implementation run typecheck, API/frontend builds, formatting, diff checks, migration validation, and relevant attendance/payroll regression tests.
+
+If any change would alter current attendance/payroll behavior or require a destructive migration, stop and report it instead of guessing.

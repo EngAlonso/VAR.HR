@@ -1,0 +1,73 @@
+أنت مساعد تطوير متقدم. مهمتك **تنفيذ Phase 3 من نظام Web Push Notifications** للمشروع VAR.HR PWA بالكامل.
+
+## السياق
+
+- **المشروع:** VAR.HR PWA (نظام إدارة موارد بشرية)
+- **المرحلة:** Phase 3 - Frontend UI, Service Worker, و Integration مع أحداث HR
+- **التقنيات:** TypeScript، React/Vite، Service Workers، Web Notifications API، Web Push Protocol
+- **البيئة:** pnpm workspace، Replit
+- **المراحل السابقة:** 
+  - Phase 1: Database Schema (جداول جاهزة)
+  - Phase 2: Backend API & Web Push Service (endpoints وخدمات جاهزة)
+
+## المهام المطلوبة
+
+### 1. Service Worker Setup
+- أنشئ `apps/ui/public/service-worker.js` (يجب أن يكون JavaScript عادي، ليس TypeScript)
+- سجّل Service Worker من الـ main app
+- اطلب صلاحية الإشعارات من المتصفح (`Notification.requestPermission()`)
+- تعامل مع `push` events: استقبل الإشعار من الخادم
+- تعامل مع `notificationclick` events: نقل المستخدم للصفحة ذات الصلة
+- تعامل مع `notificationclose` events: تسجيل الإغلاق (اختياري)
+- **حدود الدعم:** Service Workers تعمل فقط على HTTPS أو localhost
+
+### 2. Notification Permissions & Registration
+- أنشئ `apps/ui/src/hooks/useNotifications.ts`
+- دالة `requestPermission()`: اطلب الصلاحية وتعامل مع الحالات (default, granted, denied)
+- دالة `subscribe()`: اشترك في Web Push (احصل على subscription من navigator.serviceWorker.ready)
+- دالة `unsubscribe()`: إلغاء الاشتراك
+- **حفظ الـ public key:** استخدم `VITE_VAPID_PUBLIC_KEY` من env
+- **تخزين محلي:** احفظ حالة الاشتراك في localStorage أو حالة React
+
+### 3. Notification Center Component
+- أنشئ `apps/ui/src/components/NotificationCenter.tsx`
+- عرض قائمة الإشعارات (أحدثها أولًا)
+- عداد unread أحمر في الأيقونة
+- كل إشعار يعرض: icon, title, message, timestamp
+- زر mark as read عند الضغط على الإشعار
+- زر mark all as read
+- pagination أو infinite scroll
+- فلترة حسب النوع (إذا لزم)
+
+### 4. Notification Badge في الـ UI
+- أضف أيقونة جرس (bell icon) في الـ header
+- اعرض عدد unread notifications كـ badge (مثلًا: رقم أحمر)
+- اضغط على الجرس لفتح/إغلاق Notification Center
+- تحديث العداد في real-time عند وصول إشعار جديد
+
+### 5. ربط أحداث HR بالإشعارات
+اختر **أحد المحفزات التالية** (أو أكثر) للبدء:
+
+#### أ) Leave Request Notifications
+- عندما يُنشئ موظف طلب إجازة → أرسل إشعار لـ HR Manager
+- عندما يوافق/يرفض المدير → أرسل إشعار للموظف
+- **الـ endpoint:** استخدم mutation hook جديد أو اربط داخل leave request form
+
+#### ب) Attendance Alerts
+- عندما يتأخر الموظف عن الحضور → أرسل إشعار للمشرف
+- عندما يسجل الموظف الحضور → تأكيد إشعار
+- **الـ endpoint:** استخدم attendance check-in/check-out form
+
+#### ج) Payroll Notifications
+- عندما يتم إنشاء رواتب → أرسل إشعار للموارد البشرية
+- عندما يوافق النظام على الراتب → إشعار نهائي
+- **الـ endpoint:** mutation hook في payroll management
+
+### 6. Integration مع React Query
+- استخدم `useQuery` الذي وُلّد من OpenAPI codegen
+- احدث قائمة الإشعارات تلقائيًا كل 30 ثانية (polling)
+- أو استخدم WebSocket/Server-Sent Events لـ real-time (اختياري للمستقبل)
+- معالجة الأخطاء والحالات (loading, error, empty)
+
+### 7. Environment Variables
+- أضف إلى `apps/ui/.env.example`:

@@ -1,0 +1,354 @@
+Continue VAR HR Part 6 from the EXACT current repository state and implement ONLY the confirmed remaining work from the latest read-only audit.
+
+IMPORTANT:
+Do NOT redo the Part 6 audit.
+Do NOT redo Parts 1–5.
+Do NOT reinstall dependencies unless genuinely required.
+Do NOT regenerate OpenAPI unless a real contract change requires it.
+Do NOT start Part 7.
+Do NOT redesign unrelated UI.
+Preserve the existing architecture and completed functionality.
+
+The latest audit estimates Part 6 at approximately 58% complete.
+
+ALREADY COMPLETE — DO NOT REBUILD
+
+The following are already implemented and must be preserved:
+
+- Six report types exist in the API:
+  - Attendance
+  - Leave
+  - Permission
+  - Overtime
+  - Payroll
+  - Employee/Company reporting as currently defined by the existing implementation
+- Server-side company scoping exists.
+- Manager report scoping exists.
+- Employee report scoping exists.
+- Cross-company protection exists.
+- Payroll authorization exists for the currently defined roles.
+- Employee import backend exists.
+- Employee import backend validates structure and duplicates.
+- Employee import returns row-level results.
+- Manager employee import is forbidden.
+- CSV export generation exists.
+- Print generation exists.
+- Part 6 localization dictionaries exist in:
+  - Arabic
+  - English
+  - French
+  - German
+- Generated "useImportEmployees" hook already exists.
+- Existing Reports UI and report API must be extended, not replaced with a parallel system.
+
+IMPLEMENT THESE REMAINING ITEMS
+
+1. FIX REPORT FILTER CONTRACT MISMATCHES
+
+The current generated report status contract supports:
+
+- "active"
+- "inactive"
+- "all"
+
+But the Reports UI currently sends report-specific values such as:
+
+- "present"
+- "late"
+- "absent"
+- "draft"
+- "approved"
+- "pending"
+
+This must be fixed properly.
+
+Do NOT simply hide the problem.
+
+Choose the cleanest contract-first solution:
+
+- If different report types genuinely require different statuses, update the OpenAPI contract with report-specific filter parameters/enums, regenerate the generated client/types, and update the UI.
+- If the existing generic status parameter is intentionally supposed to remain generic, make the UI use only valid values.
+
+The final implementation must have:
+
+OpenAPI contract
+→ generated types/hooks
+→ API validation
+→ frontend values
+
+all matching.
+
+2. FIX LEAVE AND PERMISSION FILTER VALUES
+
+The audit found that the Reports UI uses leave/permission filter values that do not match the actual backend values.
+
+Inspect the existing database enums/status values and API logic.
+
+Make the UI filters match the actual supported values.
+
+Do not invent new statuses.
+
+Ensure:
+
+- Leave filters work.
+- Permission filters work.
+- Empty filters work.
+- Invalid values are rejected cleanly.
+
+3. COMPLETE EMPLOYEE IMPORT UI
+
+The backend is already implemented.
+
+Use the existing generated "useImportEmployees" hook.
+
+Build the missing frontend flow:
+
+1. Select/upload employee file.
+2. Read CSV/TSV or currently supported format.
+3. Parse the file.
+4. Validate headers.
+5. Show preview before import.
+6. Show structural/row validation errors.
+7. Allow confirmation.
+8. Execute the existing import API.
+9. Show:
+   - Successful rows
+   - Failed rows
+   - Error reason for every failed row
+10. Prevent accidental duplicate submission.
+11. Provide the existing downloadable template.
+
+Do NOT create another import endpoint.
+
+Do NOT silently overwrite existing employees.
+
+Keep authorization server-side.
+
+4. EXCEL EXPORT
+
+The current implementation creates HTML content with an ".xls" filename and Excel MIME type.
+
+Determine whether the project's intended Part 6 requirement is a real Excel-compatible workbook.
+
+If the requirement means actual Excel format, implement genuine ".xlsx" generation using an appropriate existing/project-approved dependency.
+
+Do NOT call an HTML file ".xlsx".
+
+If the existing HTML ".xls" behavior is intentionally acceptable, document that decision clearly instead of unnecessarily adding a dependency.
+
+Whichever route is chosen, verify:
+
+- Current filters.
+- Current report.
+- Authorization.
+- Company isolation.
+- Arabic text.
+
+5. COMPLETE PRINT OUTPUT
+
+The existing print flow works structurally but printed totals are missing.
+
+Add appropriate totals to printed reports based on the existing report data.
+
+Preserve:
+
+- Report title
+- Company
+- Date range
+- Filter summary
+- Table
+- RTL Arabic layout
+- Print CSS
+- Clean print document without application navigation
+
+Do not invent metrics that the report does not provide.
+
+6. COMPLETE REPORT STATUS LOCALIZATION
+
+The localization dictionaries already contain most Part 6 strings.
+
+Complete status translation for all report types.
+
+Do not allow raw values such as:
+
+- "draft"
+- "approved"
+- "pending"
+- "short_absence"
+- "present"
+- "late"
+- "absent"
+
+to appear untranslated when a translation exists.
+
+Support:
+
+- Arabic
+- English
+- French
+- German
+
+Ensure Arabic uses the existing RTL system.
+
+7. DEVELOPER ROLE DECISION
+
+The audit found that there is currently no "developer" role in the existing role union/context/capability model.
+
+Do NOT invent permissions casually.
+
+Inspect the existing architecture and determine whether:
+
+- Developer is intentionally represented by an existing platform role, OR
+- A distinct Developer role is actually required by the project requirements.
+
+If the existing architecture intentionally has no Developer role, preserve it and document that the role is not currently part of the implemented authorization model.
+
+If a distinct Developer role is explicitly required by existing project requirements, implement it consistently across:
+
+- Schema
+- Authorization
+- API
+- Generated contracts
+- Frontend
+
+Do not grant payroll access merely because a user is technical.
+
+8. RUNTIME DATABASE AND FINAL VERIFICATION
+
+After implementation, the development database may need the existing schema applied because the imported environment previously lacked "var_hr_companies".
+
+If required, use the existing non-destructive schema push path.
+
+NEVER:
+
+- Drop tables
+- Reset database
+- Truncate data
+- Delete existing data
+
+Then run real verification.
+
+FINAL VALIDATION
+
+Verify:
+
+Reports
+
+- Attendance
+- Leave
+- Permission
+- Overtime
+- Payroll
+- Employee/Company reports
+
+Filters
+
+- Date range
+- Employee
+- Department
+- Status
+- Leave type
+- Permission type
+- Payroll period
+
+Import
+
+- Valid file
+- Invalid headers
+- Missing fields
+- Invalid rows
+- Duplicate employees
+- Row-level errors
+- Successful import
+- Authorization
+
+Export
+
+- CSV
+- Excel
+- Filters preserved
+- Authorization preserved
+- Arabic data
+
+Print
+
+- Report title
+- Company
+- Filters/date range
+- Tables
+- Totals
+- Arabic RTL
+
+Authorization
+
+- Employee
+- Manager
+- Owner
+- Existing platform/developer role if applicable
+- Cross-company rejection
+
+UI
+
+- Desktop
+- Mobile
+- Arabic
+- English
+- French
+- German
+
+Build
+
+Run the repository's canonical:
+
+- Typechecks
+- API build
+- Frontend build
+- Runtime/API health
+- Live Preview
+
+Do not mark something COMPLETE just because static code exists. Verify it where possible.
+
+HAND-OFF
+
+When all confirmed Part 6 work is actually complete:
+
+Create a NEW dated report inside:
+
+"hand-off/"
+
+Update:
+
+"hand-off/MASTER-HANDOFF.md"
+
+Document:
+
+- What was implemented.
+- What was already complete.
+- What was fixed.
+- Runtime verification.
+- Authorization verification.
+- Import/export verification.
+- Print verification.
+- Localization verification.
+- Any remaining limitation.
+
+Do not overwrite previous handoff reports.
+
+Do not start Part 7.
+
+PRIORITY ORDER
+
+Work in this exact order to avoid wasted effort:
+
+1. Report filter/API contract mismatches.
+2. Leave/permission filter values.
+3. Employee import frontend.
+4. Excel export decision/implementation.
+5. Print totals.
+6. Status localization.
+7. Developer-role decision.
+8. Database/runtime verification.
+9. Full final validation.
+10. Part 6 handoff documentation.
+
+Continue directly from the current code. Do not repeat completed work.

@@ -1,0 +1,82 @@
+URGENT: The previous localization change broke the Company Owner/Admin permissions management functionality.
+
+You were asked to TRANSLATE the permissions interface, NOT remove or simplify the actual permissions functionality.
+
+What is wrong
+
+The Company Owner can now see only the word/section "Permissions", but the actual permission controls that allow the Company Owner to assign permissions to company accounts are missing.
+
+The permissions management UI/functionality MUST be restored.
+
+Required behavior
+
+The Company Owner/Admin must still be able to:
+
+- Open account/user management.
+- Select a company account.
+- View the permissions assigned to that account.
+- View the available permissions.
+- Enable/disable individual permissions.
+- Save/update the selected permissions.
+- See the current permission state when editing an existing account.
+
+The existing permission system, API calls, database behavior, authorization logic, and permission assignments must remain intact.
+
+Localization requirement
+
+ONLY localize the existing permissions UI.
+
+For Arabic:
+
+- "Permissions" → "الصلاحيات"
+- Permission categories and permission descriptions → proper Arabic translations.
+- Buttons, labels, dialogs, and status text → Arabic.
+
+For English:
+
+- The exact existing English permission names and UI should remain available.
+
+The language switcher must control the displayed labels.
+
+VERY IMPORTANT
+
+DO NOT:
+
+- Remove permission controls.
+- Replace the permissions UI with a static "Permissions" label.
+- Remove permission checkboxes/toggles/selectors.
+- Remove API calls related to assigning/updating permissions.
+- Remove permission state.
+- Change authorization/business logic.
+- Change database schema.
+- Change tenant isolation.
+- Simplify the Company Owner account-management flow.
+
+How to fix
+
+First inspect the current git/code diff and identify exactly what changed during the latest localization work.
+
+Compare the current implementation with the previous permissions-management implementation.
+
+Restore any accidentally removed permissions-management UI and logic.
+
+Then apply localization ON TOP of the restored implementation using the existing i18n system.
+
+Do not recreate a new permission system if the original implementation still exists elsewhere in the repository/history. Reuse the existing implementation.
+
+Verification
+
+After fixing:
+
+1. Open Company Owner → Account Management.
+2. Open/edit a company account.
+3. Confirm the full Permissions section is visible.
+4. Confirm individual permissions can be selected/unselected.
+5. Confirm the selected permissions are preserved.
+6. Confirm saving/updating permissions still works.
+7. Switch Arabic ↔ English and confirm ONLY the labels/text change while the permission controls and behavior remain identical.
+8. Run typecheck and the existing verification/build checks.
+
+Report exactly what caused the permissions UI to disappear and which files you restored/changed.
+
+This is a FUNCTIONAL REGRESSION. Treat restoring the permissions management functionality as the highest priority before doing any further localization cleanup.

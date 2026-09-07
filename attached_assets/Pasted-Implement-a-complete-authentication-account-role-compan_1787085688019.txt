@@ -1,0 +1,801 @@
+Implement a complete authentication, account, role, company, subscription-limit, and employee-login system for VAR HR from scratch.
+
+IMPORTANT:
+There is currently NO login page and NO existing authentication/account system in the VAR HR application.
+
+Do NOT assume an existing authentication system.
+Do NOT try to modify or extend a nonexistent login system.
+
+This is a new foundational system that must be integrated into the existing VAR HR architecture.
+
+Tasks 1–7 of the existing HR functionality are already implemented. Preserve all existing HR functionality and do not rewrite attendance, payroll, schedules, holidays, biometric synchronization, reports, or HR records.
+
+==================================================
+1. FOUR ACCOUNT LEVELS
+==================================================
+
+Build exactly four account levels:
+
+1. Platform Owner
+2. Company Owner
+3. Company Staff / Admin users
+   - Manager
+   - Supervisor
+   - HR
+   - Custom permission-based staff accounts
+4. Employee
+
+The system must keep Platform Owner completely separate from Company Owners.
+
+==================================================
+2. PLATFORM OWNER
+==================================================
+
+The Platform Owner represents the VAR HR platform owner.
+
+This is the highest-level account.
+
+Platform Owner can:
+
+- Create companies.
+- Edit companies.
+- Activate/deactivate companies.
+- Create the Company Owner account for each company.
+- Set the company's subscription/employee limit.
+- View company information.
+- View company employee usage against the subscription limit.
+- Manage company subscription status/limits.
+- Manage Company Owner accounts.
+
+IMPORTANT:
+
+Only Platform Owner can create a Company Owner account.
+
+A Company Owner must NOT be able to create another Company Owner.
+
+Company data must always remain isolated from other companies.
+
+Platform Owner is the only role allowed to operate across companies.
+
+==================================================
+3. COMPANY OWNER
+==================================================
+
+Each company has its own Company Owner.
+
+The Company Owner account is created ONLY by the Platform Owner.
+
+Company Owner can manage only their own company.
+
+Company Owner can:
+
+- View company information.
+- Manage employees.
+- Create Manager/Supervisor/HR/staff accounts.
+- Assign permissions to those accounts.
+- Manage branches.
+- Manage biometric devices.
+- Manage schedules.
+- Manage holidays.
+- Manage attendance-related administration.
+- View permitted payroll/report information.
+- Manage HR records according to permissions.
+- View employee login credentials according to the employee-credential rules below.
+
+Company Owner must never be able to access another company's data.
+
+==================================================
+4. MANAGER / SUPERVISOR / HR / STAFF ACCOUNTS
+==================================================
+
+Do NOT create unnecessary rigid roles if the existing architecture supports permissions.
+
+The Company Owner should be able to create staff accounts and assign a display role such as:
+
+- Manager
+- Supervisor
+- HR
+
+The actual access should be controlled through explicit permissions.
+
+For example:
+
+Employee Management
+Attendance
+Leaves
+Permissions
+Schedules
+Holidays
+Payroll
+Reports
+HR Records
+Biometric Devices
+Sync History
+etc.
+
+The Company Owner decides which permissions each staff account receives.
+
+A staff account:
+
+- belongs to exactly one company.
+- cannot access another company.
+- cannot create a Company Owner.
+- cannot modify platform subscription limits unless explicitly allowed by the platform.
+- cannot automatically receive salary/payroll access simply because the account is called Manager or HR.
+- only sees the modules and actions granted by its permissions.
+
+Build the permission model so it can be extended later without rewriting authentication.
+
+==================================================
+5. EMPLOYEE ACCOUNTS
+==================================================
+
+Employees are different from administrative/staff accounts.
+
+Employee accounts are created automatically as part of the employee/biometric onboarding flow.
+
+The employee does NOT choose their username.
+
+The system generates the username from:
+
+BIOMETRIC DEVICE/BRANCH CODE + EMPLOYEE BIOMETRIC NUMBER
+
+Example:
+
+Company has a main branch/device.
+
+The first biometric device/branch registered in the system receives:
+
+A
+
+Employee biometric number:
+
+20
+
+Generated username:
+
+A-20
+
+Another biometric device/branch registered later receives:
+
+B
+
+Employee biometric number:
+
+20
+
+Generated username:
+
+B-20
+
+Therefore:
+
+A-20
+B-20
+
+are different employees even though their biometric numbers are both 20.
+
+==================================================
+6. BIOMETRIC CODE GENERATION
+==================================================
+
+The code is assigned automatically in the order that biometric locations/devices are first registered in VAR HR.
+
+First registered biometric source:
+
+A
+
+Second:
+
+B
+
+Third:
+
+C
+
+and so on.
+
+Do NOT manually ask the user to enter A/B/C.
+
+The system must generate it.
+
+IMPORTANT:
+
+Use the existing biometric architecture from Part 7.
+
+Do not rewrite the biometric provider system.
+
+The biometric code must be persisted and remain stable.
+
+If a device/source is disabled later, its code must NOT be reused for another source.
+
+Never change an existing employee's username because the device code sequence changes.
+
+If the system currently models the biometric identity at device level, use that existing architecture consistently.
+
+If the current model clearly represents a branch/location as the biometric identity, use the branch-level identity instead.
+
+Do not create duplicate competing concepts unnecessarily.
+
+==================================================
+7. EMPLOYEE USERNAME
+==================================================
+
+Employee username format:
+
+<CODE>-<BIOMETRIC_NUMBER>
+
+Examples:
+
+A-20
+A-21
+A-100
+B-20
+C-7
+
+The username must be unique within the authentication system.
+
+Prevent collisions.
+
+If the same biometric number exists on the same biometric source, do not silently create a second account.
+
+The employee account must remain linked to:
+
+- company
+- employee
+- biometric source/device
+- biometric employee number
+
+==================================================
+8. EMPLOYEE PASSWORD
+==================================================
+
+When the employee account is created:
+
+Generate a random 6-digit numeric password.
+
+Example:
+
+583214
+
+Requirements:
+
+- exactly 6 digits.
+- cryptographically/randomly generated using the project's secure server-side facilities.
+- never generated by the frontend.
+- never use predictable sequences.
+- never use the employee biometric number as the password.
+- never use the same password for every employee.
+
+Store the password securely.
+
+Do NOT store plaintext passwords in the database.
+
+Use a secure password hashing mechanism.
+
+==================================================
+9. EMPLOYEE CREDENTIAL DISPLAY
+==================================================
+
+Company Owner or staff users with an explicit employee-credential permission may retrieve/display employee login credentials according to the permission model.
+
+The system should allow an authorized user to obtain the employee's:
+
+Username
+Temporary/generated password
+
+so they can send the credentials to the employee.
+
+IMPORTANT SECURITY REQUIREMENT:
+
+Do NOT store the plaintext password permanently just so it can be displayed later.
+
+Implement this safely.
+
+Preferred behavior:
+
+- Generate the initial password.
+- Display it once to the authorized administrator after account creation.
+- Allow a controlled "Reset Employee Password" action for authorized users.
+- When reset is performed, generate a new 6-digit password.
+- Display the newly generated password to the authorized user once.
+- Store only the password hash.
+
+If the current UX requires an administrator to retrieve credentials later, design a secure reset/reveal workflow rather than storing plaintext passwords.
+
+Record password reset events in an audit-friendly way without storing the plaintext password.
+
+==================================================
+10. EMPLOYEE LOGIN EXPERIENCE
+==================================================
+
+Create the login page from scratch.
+
+The login page must support:
+
+Username
+Password
+Login
+
+The same login system should identify the account type and load the appropriate experience.
+
+After login:
+
+Platform Owner
+→ Platform administration
+
+Company Owner
+→ Company administration
+
+Manager/Supervisor/HR
+→ permitted company modules
+
+Employee
+→ employee self-service
+
+Employee self-service must provide access to the HR information already implemented by the project, including where applicable:
+
+- attendance
+- check-in/check-out
+- attendance history
+- late arrivals
+- absences
+- leaves
+- permissions
+- schedules
+- payroll/salary
+- deductions
+- additions
+- HR profile
+- other employee-specific information already supported
+
+Do NOT expose another employee's information.
+
+==================================================
+11. AUTHENTICATION SECURITY
+==================================================
+
+Implement secure authentication.
+
+Requirements:
+
+- Password hashing.
+- Secure session/token handling using the project's existing backend architecture.
+- Authentication middleware.
+- Protected API routes.
+- Protected frontend routes.
+- Logout.
+- Unauthorized users redirected/blocked appropriately.
+- Session expiration according to the chosen secure session strategy.
+- Do not store sensitive credentials in unsafe frontend storage.
+- Do not expose password hashes through API responses.
+- Do not expose authentication secrets in frontend code.
+
+Do not invent an insecure custom authentication protocol.
+
+Use established secure patterns compatible with the existing Node/Express application.
+
+==================================================
+12. AUTHORIZATION
+==================================================
+
+Authentication answers:
+
+"Who is this?"
+
+Authorization answers:
+
+"What can this user do?"
+
+Keep these separate.
+
+Every protected API endpoint must verify:
+
+- authenticated user
+- account type
+- company membership where applicable
+- permission where applicable
+- resource ownership/scope
+
+Never rely only on frontend button visibility.
+
+The backend is the final authority.
+
+==================================================
+13. COMPANY EMPLOYEE LIMIT
+==================================================
+
+The Platform Owner assigns each company a maximum employee count based on its subscription.
+
+Example:
+
+Company A:
+Employee limit = 100
+
+Company currently has:
+97 employees
+
+The system allows:
+3 more employees.
+
+When the limit is reached:
+
+Do NOT allow creation/import/onboarding of additional employees.
+
+Show a clear error explaining that the employee limit has been reached.
+
+Employee administrative/staff accounts should NOT accidentally consume the employee quota unless the business model explicitly defines them as employees.
+
+Keep the subscription employee count concept separate from administrative account count.
+
+Also account for employees created through:
+
+- manual creation
+- biometric synchronization
+- employee import
+
+All employee-creation paths must respect the same subscription limit.
+
+Do not bypass the limit through biometric sync or import.
+
+==================================================
+14. COMPANY CREATION
+==================================================
+
+Platform Owner should have a company-management interface.
+
+Create company flow should include at minimum:
+
+- Company name
+- Company information already supported by the existing model
+- Subscription/employee limit
+- Active/inactive status
+- Company Owner account creation
+
+The Company Owner credentials must be generated/created securely.
+
+Only Platform Owner can perform this operation.
+
+==================================================
+15. COMPANY OWNER CREATION
+==================================================
+
+When Platform Owner creates a company owner:
+
+- create the company
+- create the Company Owner account
+- link the account to that company
+- assign the correct owner role
+- generate secure credentials or allow secure password setup
+- prevent the Company Owner from becoming a Platform Owner
+- prevent the Company Owner from creating other Company Owners
+
+Do not create duplicate owner accounts for the same company unless the business model explicitly supports that.
+
+==================================================
+16. STAFF ACCOUNT MANAGEMENT
+==================================================
+
+Company Owner UI must support:
+
+Create staff account
+Edit staff account
+Activate/deactivate staff account
+Assign display role
+Assign permissions
+Reset password
+View account status
+
+Staff account creation should include:
+
+- name
+- username/login identifier
+- role/display title
+- permissions
+- active status
+
+Username must be unique according to the authentication scope.
+
+Do not expose passwords after creation except through secure one-time/reset flows.
+
+==================================================
+17. EMPLOYEE ACCOUNT MANAGEMENT
+==================================================
+
+Employee account creation should be integrated with the existing employee/biometric workflow.
+
+When an employee receives a biometric identity:
+
+- determine biometric source code
+- determine biometric employee number
+- generate username
+- generate 6-digit password
+- create the authentication account
+- link account to employee
+- enforce company employee limit
+
+If the employee already has an account, do NOT create another one.
+
+If the employee changes devices or mappings, preserve the existing account identity unless the business rules explicitly require otherwise.
+
+Username stability is important.
+
+==================================================
+18. LOGIN / ROUTING
+==================================================
+
+Build:
+
+/login
+
+and appropriate protected application routes.
+
+After successful authentication, route users according to their account type.
+
+Do not allow an Employee to manually navigate to Platform Owner or Company Owner pages.
+
+Do not rely only on frontend route hiding.
+
+The API must reject unauthorized access too.
+
+==================================================
+19. UI / DESIGN
+==================================================
+
+Build the login and account-management screens using the existing VAR HR design system.
+
+Reuse:
+
+- existing components
+- typography
+- forms
+- buttons
+- dialogs
+- tables
+- cards
+- notifications
+- loading states
+- error states
+
+Do NOT redesign the existing Part 7 screens.
+
+The login page should feel like part of VAR HR.
+
+Support Arabic and English.
+
+Arabic must preserve RTL.
+
+==================================================
+20. DATABASE / ARCHITECTURE
+==================================================
+
+Inspect the existing schema before creating new tables.
+
+Reuse existing:
+
+- companies
+- employees
+- biometric devices/providers
+- branches
+- roles
+- permissions
+
+where appropriate.
+
+Add only the authentication/account tables and relationships that are genuinely missing.
+
+Potential concepts include:
+
+UserAccount
+Role
+Permission
+UserPermission
+EmployeeCredential/Identity
+Sessions/Refresh tokens
+Audit events
+
+Do NOT blindly create all of these if equivalent structures already exist.
+
+Keep the architecture normalized and extensible.
+
+Enforce important relationships at the database level where practical.
+
+==================================================
+21. AUDITABILITY
+==================================================
+
+Important security/account events should be auditable where the existing architecture supports audit logs.
+
+At minimum consider:
+
+- company created
+- Company Owner created
+- staff account created
+- employee account created
+- password reset
+- account activated/deactivated
+- permissions changed
+
+Never record plaintext passwords.
+
+==================================================
+22. MIGRATIONS
+==================================================
+
+Use the project's existing Drizzle/database migration/schema workflow.
+
+Do not perform destructive database changes.
+
+Do not delete existing Part 7 data.
+
+If the development database needs the existing schema pushed for verification, use the documented non-destructive procedure.
+
+==================================================
+23. EXISTING HR FUNCTIONALITY
+==================================================
+
+After authentication is implemented, verify that existing functionality continues to work:
+
+- attendance
+- schedules
+- holidays
+- payroll
+- reports
+- biometric synchronization
+- HR records
+- employee profile
+- sync history
+
+Only modify existing routes where necessary to attach the new authenticated-user context.
+
+Do not rewrite completed Part 7 functionality.
+
+==================================================
+24. VERIFICATION
+==================================================
+
+Create a focused verification matrix.
+
+Platform Owner:
+
+- login
+- create company
+- set employee limit
+- create Company Owner
+- cannot accidentally be scoped to one company
+
+Company Owner:
+
+- login
+- access own company
+- create staff account
+- assign permissions
+- cannot access another company
+- cannot create Company Owner
+- can manage employees within subscription limit
+
+Manager/Supervisor/HR:
+
+- login
+- only permitted modules visible
+- unauthorized API operations rejected
+- company isolation works
+- permission changes take effect
+
+Employee:
+
+- login using generated username/password
+- access own dashboard/profile
+- access own attendance
+- access own leaves/permissions
+- access own payroll/salary where supported
+- cannot access another employee
+- cannot access administration pages
+
+Employee credentials:
+
+- username format correct
+- A-20 / B-20 style collision prevention
+- code sequence persists
+- password exactly 6 numeric digits
+- password is random
+- password hash is stored
+- plaintext password is not stored
+- password reset works
+- reset generates a new password
+
+Subscription:
+
+- employee creation allowed below limit
+- employee creation blocked at limit
+- manual creation respects limit
+- import respects limit
+- biometric onboarding respects limit
+
+Security:
+
+- invalid login rejected
+- inactive account rejected
+- unauthorized API rejected
+- unauthorized frontend route blocked
+- cross-company access rejected
+- password hashes never returned
+- credentials never leaked through normal employee APIs
+
+Run:
+
+- workspace typecheck
+- API typecheck
+- frontend typecheck
+- API build
+- frontend production build
+- database/schema verification
+- focused authentication API tests
+- focused authorization tests
+- employee credential tests
+- subscription-limit tests
+- live browser verification for login and role routing
+
+Do not claim PASS unless actually tested.
+
+==================================================
+25. STRICT SCOPE
+==================================================
+
+This task is ONLY:
+
+Authentication
++
+Accounts
++
+Roles
++
+Permissions
++
+Companies
++
+Company Owners
++
+Staff accounts
++
+Employee accounts
++
+Employee credential generation
++
+Subscription employee limits
++
+Login/logout
++
+Protected routing
++
+Authorization foundation
+
+Do NOT start a new HR feature set.
+
+Do NOT redesign payroll.
+
+Do NOT redesign attendance.
+
+Do NOT redesign biometric synchronization.
+
+Do NOT start Part 8.
+
+Do NOT perform speculative refactoring.
+
+==================================================
+COMPLETION
+==================================================
+
+When the authentication/account system is fully implemented and verified:
+
+1. Update the existing VAR HR handoff with the implementation details.
+2. Record all changed database/API/frontend areas.
+3. Record the role/permission model.
+4. Record employee username generation rules.
+5. Record password generation/security behavior.
+6. Record subscription-limit behavior.
+7. Record the full verification matrix.
+8. Record any remaining limitations.
+9. Clearly separate PASS / FAIL / BLOCKED / NOT RUN.
+
+Do not claim completion u

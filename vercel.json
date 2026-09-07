@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build",
+  "outputDirectory": "artifacts/var-hr/dist/public",
+  "rewrites": [
+    {
+      "source": "/iclock/:path*",
+      "destination": "/api/iclock/:path*"
+    },
+    {
+      "source": "/((?!api|iclock).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

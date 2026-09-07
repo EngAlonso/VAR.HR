@@ -1,0 +1,174 @@
+I want to improve the Company Owner → manually created staff accounts flow.
+
+Do NOT touch the separate automated employee-account flow.
+
+For manually created management/staff accounts (for example HR, Payroll, Attendance admin, Manager, etc.), the Company Owner should be able to open an account and view its complete editable details.
+
+### Account Details / View & Edit
+
+When the Company Owner opens a manually created account, show:
+
+- Employee Name
+- Phone Number / Login Username
+- Job Title
+- Password
+- Permissions
+- Account status
+
+The Company Owner must be able to edit:
+
+1. Employee Name
+   - Arabic or English
+   - Spaces allowed
+   - Normal human-readable names
+
+2. Phone Number
+   - This is the login username.
+   - Keep the existing phone validation.
+   - Keep uniqueness validation.
+   - Updating the phone must update the login username consistently.
+
+3. Job Title
+
+4. Password
+   - The Company Owner should manually enter the new password.
+   - DO NOT generate a random password automatically.
+   - Minimum 6 characters.
+   - No uppercase/lowercase/number/special-character complexity requirement.
+   - Store it securely as a hash.
+   - Never store plaintext passwords in the database.
+
+5. Permissions
+   - Keep the existing permission management system.
+   - Keep Select All / Deselect All.
+   - Allow the Owner to modify the account's permissions.
+
+### Important password behavior
+
+There are two different password scenarios:
+
+A) Company Owner creates a manual staff account:
+The Owner MUST enter the password manually.
+
+Do NOT auto-generate a password.
+
+B) Company Owner edits/resets an existing manual staff account:
+The Owner can enter a new password manually without knowing the old password.
+
+The employee changing their own password remains different:
+They must provide their current/old password.
+
+### Account list
+
+In the Company Owner's manually-created staff accounts section, allow the Owner to:
+
+- View account details
+- Edit account
+- Change password
+- Manage permissions
+
+The list should clearly show at least:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Status
+- Permissions/actions
+
+### Security / authorization
+
+Preserve all existing security rules:
+
+- Company Owner can only manage manual staff accounts belonging to their own company.
+- A Company Owner cannot edit another company's accounts.
+- A Company Owner cannot edit/reset another Company Owner's password.
+- Do not expose password hashes.
+- Do not store plaintext passwords.
+- Preserve tenant isolation.
+- Preserve existing authorization and permission logic.
+- Preserve Platform Owner behavior.
+- Do not modify automated employee account creation.
+
+### UX
+
+Use the existing Account Management UI and design language.
+
+Prefer an "عرض / تعديل الحساب" action that opens the existing account editor/modal/page rather than creating a completely separate account-management system.
+
+When editing an existing account, prefill:
+
+- Employee Name
+- Phone Number
+- Job Title
+- Current permissions
+
+For security reasons, do NOT prefill or display the existing password as plaintext.
+
+Instead, provide a password field for:
+
+"كلمة المرور الجديدة"
+
+The Owner can enter a new password when they want to change it.
+
+If the password field is left empty during editing, keep the existing password unchanged.
+
+### Localization
+
+Everything must follow the existing Arabic/English language switcher.
+
+Arabic examples:
+
+- عرض الحساب
+- تعديل الحساب
+- اسم الموظف
+- رقم الهاتف
+- المسمى الوظيفي
+- كلمة المرور
+- كلمة المرور الجديدة
+- الصلاحيات
+- حفظ التعديلات
+- تغيير كلمة المرور
+
+Do not leave user-facing English strings hardcoded.
+
+### Before changing anything
+
+First inspect the existing:
+
+- Manual staff account create endpoint
+- Staff account update endpoint
+- Password reset endpoint
+- Account list UI
+- Permission management UI
+- Existing account schema
+- Existing authorization/tenant checks
+
+Reuse existing APIs/contracts where possible.
+
+If an update endpoint is missing, add the smallest necessary endpoint following the existing API architecture.
+
+Do not redesign the authentication system.
+
+### Verification
+
+After implementation:
+
+- Create a manual HR account with a manually entered password.
+- Verify no random password is generated.
+- Open the account from Company Owner → Account Management.
+- Verify all account details are displayed correctly.
+- Edit employee name.
+- Edit phone number.
+- Edit job title.
+- Change password manually.
+- Change permissions.
+- Verify the employee can log in using the updated phone number and password.
+- Verify the old password no longer works after password change.
+- Verify Company Owner can reset/change the password without knowing the old password.
+- Verify another company's accounts cannot be accessed.
+- Verify Company Owner accounts cannot be modified through this flow.
+- Verify automated employee accounts remain untouched.
+
+Run typecheck, build, and runtime verification after the changes.
+
+Report the exact files changed and any remaining limitation.

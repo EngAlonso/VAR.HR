@@ -1,0 +1,68 @@
+Implement proper Branch Management for the Company Owner.
+
+The current VAR HR Company Owner UI has no place to create or manage company branches, and the Add Biometric Device screen cannot select a branch.
+
+I want you to add a complete Branch Management section for Company Owners using the existing database/schema architecture.
+
+Requirements:
+
+1. Add a Branches section in the Company Owner navigation.
+2. Company Owner can:
+   - Create a branch
+   - Edit a branch
+   - Activate/deactivate a branch
+   - View branch details
+3. Every branch MUST belong to exactly one company.
+4. Enforce strict tenant isolation:
+   - A Company Owner can only see/manage branches belonging to their own company.
+   - A branch from another company must never be accessible through the API or UI.
+5. Branch fields should include the appropriate existing schema fields, such as:
+   - Branch name
+   - Branch code if supported
+   - Address/location if supported
+   - Status
+   - Company
+   - Created/updated information where appropriate
+6. Do not duplicate the branch model if the database already has a branches table/entity. Reuse the existing schema.
+7. Add Arabic and English translations for the entire Branch Management UI.
+8. Add proper validation and user-friendly error messages.
+9. Do not allow Company Owners to move a branch from one company to another.
+10. Do not expose or modify sensitive authentication data.
+
+Most importantly, integrate Branch Management with the existing biometric device system:
+
+11. Add a Branch selector to Company Owner → Devices → Add Biometric Device.
+12. The selector must show only branches belonging to the current company.
+13. Branch must be required when registering a biometric device, unless the existing business rules explicitly require it to remain optional.
+14. Store the selected branch on the biometric device record using the existing branch relationship/branchId field.
+15. Display the assigned branch in the Devices list/details.
+16. Allow changing the device's branch later only through a controlled Company Owner edit action.
+17. Prevent assigning a device to a branch belonging to another company.
+
+Also integrate branches with the rest of the HR structure where the existing schema supports it:
+
+Company
+└── Branch
+├── Departments
+├── Employees
+└── Biometric Devices
+
+Before changing anything:
+
+- Inspect the existing branches table/schema and existing API routes.
+- Reuse existing fields and relationships.
+- Do not create duplicate tables.
+- Do not manually modify production data.
+- Preserve tenant isolation and existing permissions.
+- Preserve the existing K50 Pro ADMS integration.
+
+After implementation:
+
+- Run frontend/API typechecks.
+- Run production builds.
+- Verify tenant isolation.
+- Verify branch creation/edit/deactivation.
+- Verify a biometric device can be assigned to a branch.
+- Verify the K50 ADMS integration still uses the device Serial Number for identification and does not break because of the new branch relationship.
+
+Do NOT configure the physical K50 yet. I will do the hardware configuration after Branch Management is working.

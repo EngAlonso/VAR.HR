@@ -1,0 +1,343 @@
+Continue VAR HR Part 7 — Task 6: Final Verification and Hardening.
+
+Tasks 1, 2, 3, 4, and 5 are COMPLETE and verified.
+
+Do NOT redo completed work.
+Do NOT perform another implementation pass unless verification exposes a genuine defect.
+Do NOT start Part 8.
+
+The goal of Task 6 is to perform the FINAL end-to-end verification and hardening of the complete Part 7 implementation.
+
+## 1. Final scope
+
+Verify the complete Part 7 system across:
+
+- Attendance
+- Employee schedules
+- Company holidays
+- Leave/permission behavior where already implemented
+- Biometric providers/devices
+- Employee biometric synchronization
+- Attendance synchronization
+- Sync history
+- Employee HR records
+- HR profile
+- Payroll integration
+- Reports
+- Role-based access
+- Tenant isolation
+- Localization
+- Arabic RTL
+- Frontend navigation
+- API/frontend integration
+
+Do not redesign or add new HR features.
+
+## 2. Attendance verification
+
+Verify that the existing attendance system correctly respects:
+
+- employee-specific schedules
+- company/default schedule fallback
+- working days
+- non-working days
+- company holidays
+- late arrival
+- grace period
+- early departure
+- overnight shifts
+- check-in
+- check-out
+- attendance correction
+- biometric-generated attendance
+
+Verify that Task 3 behavior remains intact.
+
+## 3. Payroll verification
+
+Verify that payroll correctly consumes:
+
+- attendance
+- absence
+- late arrival
+- early departure
+- holidays
+- employee-specific schedules
+- overtime where already supported
+- existing deductions/additions
+
+Verify that different employees with different schedules are calculated correctly.
+
+Verify that company holidays are not incorrectly treated as ordinary absence.
+
+Do not redesign payroll.
+
+## 4. Biometric verification
+
+Verify the complete Task 2 flow:
+
+Provider/device listing
+→ connection test
+→ employee synchronization
+→ attendance synchronization
+→ raw event persistence
+→ attendance creation/update
+→ sync history
+→ repeat synchronization/idempotency
+→ controlled provider failure
+→ unavailable provider behavior.
+
+Verify tenant isolation and role authorization.
+
+Do not claim physical hardware support.
+Do not add new hardware integrations.
+
+## 5. HR Records verification
+
+Verify Task 4:
+
+Employee:
+- own HR record
+- cannot access another employee
+- cannot modify unauthorized information
+
+Manager:
+- authorized employee scope
+- out-of-scope rejection
+
+Owner/authorized HR:
+- company HR access
+- allowed editing
+
+Developer:
+- does not automatically receive confidential HR/payroll access
+
+Verify salary confidentiality.
+
+## 6. Frontend verification
+
+Verify all Part 7 screens:
+
+- Employees
+- My HR Profile
+- Schedules
+- Holidays
+- Biometric Devices/Providers
+- Sync History
+
+Verify:
+
+- navigation
+- loading states
+- empty states
+- error states
+- retry behavior
+- successful mutations
+- unauthorized states
+- role-aware navigation
+- direct-route authorization behavior
+
+Do not change existing Part 6 screens unless a Part 7 regression is proven.
+
+## 7. Localization
+
+Perform actual live-browser verification for:
+
+- English
+- Arabic
+
+Verify:
+
+- translated labels
+- Arabic RTL
+- sidebar/navigation direction
+- forms
+- tables/cards
+- dialogs
+- validation messages
+- Part 7 screens
+
+Do not introduce hardcoded user-facing strings.
+
+## 8. Authorization matrix
+
+Test at minimum:
+
+### Employee
+- own profile
+- own attendance
+- own schedule where applicable
+- unauthorized admin pages blocked
+- no other employee HR access
+
+### Manager
+- authorized team access
+- unauthorized employee rejected
+- appropriate read/write capabilities
+- no company-wide administrative access
+
+### Owner / authorized HR
+- company-wide permitted access
+- employee HR management
+- schedules
+- holidays
+- biometric administration
+
+### Developer
+- technical/integration capabilities only
+- no automatic salary/payroll confidentiality bypass
+
+## 9. Tenant isolation
+
+Explicitly test cross-company access for:
+
+- employees
+- HR records
+- schedules
+- holidays
+- biometric devices/providers
+- sync history
+- attendance
+- payroll/reporting endpoints where relevant
+
+No cross-company data may be returned.
+
+Do not leak whether another company's resource exists.
+
+## 10. API safety
+
+Verify malformed identifiers and invalid requests do not produce unexpected 500 errors.
+
+Test:
+
+- invalid UUID
+- unknown ID
+- unauthorized ID
+- cross-company ID
+- invalid payload
+- duplicate record
+- conflicting schedule
+- duplicate holiday
+- invalid provider/device
+- invalid sync request
+
+Use the existing validation/error conventions.
+
+## 11. Regression verification
+
+Verify that Part 6 remains intact:
+
+- reports
+- payroll reports
+- employee imports
+- authorization
+- filters
+- cross-company isolation
+- existing attendance behavior
+
+Do not change Part 6 implementation unless a genuine Part 7 regression is discovered.
+
+## 12. Automated checks
+
+Run the project's normal verification commands:
+
+- dependency consistency
+- code generation if required
+- full workspace typecheck
+- API typecheck
+- frontend typecheck
+- API production build
+- frontend production build
+- relevant tests if present
+- database/schema consistency checks
+
+Use the existing lockfile and project scripts.
+
+Do not create unnecessary new dependencies.
+
+## 13. Live verification
+
+Use the registered API and web workflows.
+
+Verify:
+
+- API health
+- frontend availability
+- Part 7 routes
+- browser console/runtime errors
+- navigation
+- Arabic/RTL
+- role behavior
+- API/frontend integration
+
+The previously documented React hook-order warning on the existing Overview route is known and unrelated to Part 7.
+
+Do not modify it unless it is proven to affect Part 7.
+
+## 14. Fix policy
+
+If verification finds a genuine Part 7 defect:
+
+- fix only the smallest necessary scope
+- preserve existing architecture
+- do not rewrite completed tasks
+- rerun the affected verification
+- rerun the relevant regression checks
+
+If an issue is unrelated to Part 7, do NOT fix it just because it appears during verification.
+
+Record it as an existing/out-of-scope issue.
+
+## 15. Final handoff
+
+Update the existing Part 7 handoff with:
+
+- final implementation state
+- files/components changed during hardening
+- verification matrix
+- API results
+- frontend results
+- authorization results
+- tenant-isolation results
+- localization/RTL results
+- biometric results
+- attendance results
+- payroll results
+- known unrelated issues
+- remaining limitations
+
+Clearly classify every verification item as:
+
+PASS
+FAIL
+BLOCKED
+NOT RUN
+
+Do not claim PASS without actually executing the check.
+
+## 16. Completion criteria
+
+Task 6 is COMPLETE only when:
+
+- Tasks 1–5 remain functional.
+- No known blocking Part 7 defects remain.
+- API checks pass.
+- Frontend checks pass.
+- Production builds pass.
+- Authorization and tenant isolation pass.
+- Attendance/schedule/holiday integration passes.
+- Biometric flow passes.
+- HR records pass.
+- Payroll integration passes.
+- English and Arabic/RTL pass.
+- Live browser verification passes where available.
+
+If a non-blocking unrelated issue remains, document it clearly instead of modifying unrelated code.
+
+Do NOT start Part 8.
+
+Do NOT invent additional features.
+
+Do NOT perform speculative refactoring.
+
+Complete the final verification/hardening now, update the existing Part 7 handoff, and STOP.

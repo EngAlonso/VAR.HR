@@ -1,0 +1,48 @@
+Implement the Part 7 Task 3 work now.
+
+Do not ask me to choose an option.
+
+Continue from the CURRENT repository state and from the exact Task 3 implementation point left by the previous agent.
+
+Task 1 and Task 2 are already COMPLETE.
+
+For Task 3, finish only:
+
+- Effective employee schedule resolution.
+- Employee-specific schedule overriding the company/default schedule.
+- Fallback to existing company/default rules when no employee schedule exists.
+- Apply the effective schedule to check-in, check-out, attendance correction, biometric attendance ingestion, and existing attendance calculations.
+- Apply company holidays to attendance calculations.
+- A company holiday must not be treated as an ordinary absence.
+- Correctly handle non-working days.
+- Correctly handle overnight schedules such as 22:00 → 06:00.
+- Make payroll use the effective employee schedule and holiday-aware attendance results.
+- Preserve all existing Part 6 attendance/payroll behavior.
+- Preserve Task 2 biometric behavior; only integrate its attendance events with the new effective schedule/holiday resolution where required.
+
+The previous agent had already identified that the CRUD/database models for schedules and holidays exist, while attendance still uses company-wide rules and payroll still calculates scheduled days globally. Shared effective-schedule/holiday helpers were also started before the previous agent stopped.
+
+DO NOT redo completed work.
+DO NOT perform a full project audit.
+DO NOT start Task 4.
+DO NOT modify the frontend.
+DO NOT redesign the biometric system.
+DO NOT modify unrelated code.
+
+After implementation, run:
+- typecheck
+- API build
+- focused attendance tests/checks
+- focused payroll checks
+- overnight schedule check
+- holiday check
+- employee-specific schedule check
+- default schedule fallback check
+
+Verify authorization and tenant isolation are still intact.
+
+Only report PASS for checks that were actually executed.
+
+Update the existing Part 7 handoff with the actual Task 3 implementation and verification results.
+
+Finish Task 3 and STOP. Do not start Task 4.

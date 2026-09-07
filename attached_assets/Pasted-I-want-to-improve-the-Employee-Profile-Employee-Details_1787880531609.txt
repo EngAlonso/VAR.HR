@@ -1,0 +1,67 @@
+I want to improve the Employee Profile / Employee Details experience.
+
+The current way employee data is displayed is not professional enough, the employee numbering/identifier is not good, and some important employee data is missing.
+
+Before changing anything, inspect the current Employee Details/Profile page, employee list, database schema, API response, and all existing employee-related fields.
+
+Then redesign the Employee Details page to be professional, clean, modern, and consistent with the VAR HR design system.
+
+Requirements:
+
+1. Improve the employee identifier/numbering
+
+- Do not use a random-looking or ugly identifier as the main employee number.
+- Inspect the existing employee numbering/biometric code logic first.
+- Propose/use a clear professional Employee ID/Employee Number that is unique within the company.
+- Do not break the existing biometric/fingerprint code or device mapping logic.
+
+2. Employee details must display all important employee information, including:
+
+- Employee Name
+- Employee ID / Employee Number
+- National ID
+- Phone Number
+- Monthly Salary
+- Working Hours
+- Biometric/Fingerprint Code
+- Employment Start Date
+- Department
+- Branch
+- Shift
+- Employee status if it already exists in the system
+- Any other employee data that is already stored and legitimately belongs on the employee profile
+
+3. Do NOT invent duplicate data fields.
+   If an important field does not currently exist in the database, identify it clearly before adding it.
+
+4. Organize the profile into professional sections/cards, for example:
+
+- Personal Information
+- Employment Information
+- Work Assignment
+- Attendance / Biometric Information
+
+5. Make the page fully responsive:
+
+- Desktop
+- Tablet
+- Mobile
+- No clipping or hidden information.
+
+6. Preserve:
+
+- Existing API behavior
+- Attendance
+- Payroll
+- Department/Branch/Shift relationships
+- Biometric/device mappings
+- Permissions
+- Tenant isolation
+- Arabic, English, French, and German localization
+
+7. Do not change unrelated pages or forms.
+
+Important:
+Do not implement a new numbering system blindly. First inspect how employee IDs, database IDs, biometric codes, and existing employee numbers currently work, then choose the safest approach that will not break existing references.
+
+After implementation, verify that an existing employee can be opened and that all displayed values match the actual database/API values.
