@@ -7,4 +7,4 @@ The runnable Express server must remain the `artifacts/api-server` API artifact.
 
 **Why:** During migration, the API process could answer directly while the shared preview returned `index.html` for API paths, hiding the initial Founder setup state.
 
-**How to apply:** When restoring or moving the backend, preserve the API artifact path and workflow registration, keep the Vercel wrappers thin, and verify `/api/healthz` and the Founder status endpoint through the shared preview URL.
+**How to apply:** When restoring or moving the backend, preserve the API artifact path and workflow registration, keep the Vercel wrappers thin, and verify `/api/healthz` and the Founder status endpoint through the shared preview URL. For Vercel, build the API bundle before the frontend and avoid using the frontend artifact directory as the deployment output directory, because that can omit root `/api` functions.

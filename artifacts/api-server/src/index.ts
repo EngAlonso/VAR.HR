@@ -7,21 +7,18 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
 async function start(): Promise<void> {
+  const rawPort = process.env["PORT"];
+  if (!rawPort) {
+    throw new Error(
+      "PORT environment variable is required but was not provided.",
+    );
+  }
+  const port = Number(rawPort);
+  if (Number.isNaN(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: "${rawPort}"`);
+  }
+
   logger.info("Ensuring VAR HR database schema is initialized");
   const { stdout, stderr } = await execFileAsync(
     "pnpm",
@@ -45,4 +42,8 @@ async function start(): Promise<void> {
   });
 }
 
-void start();
+export default app;
+
+if (process.env.VERCEL !== "1") {
+  void start();
+}
