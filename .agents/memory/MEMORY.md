@@ -1,1 +1,2 @@
 - [Database driver compatibility](database-driver-compatibility.md) — choose Neon HTTP only for Neon hosts; use node-postgres for Replit PostgreSQL.
+- [API artifact routing](api-artifact-routing.md) — keep the runnable Express API under artifacts/api-server; root api/ is only for Vercel function entrypoints.

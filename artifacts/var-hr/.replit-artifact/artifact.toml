@@ -4,11 +4,11 @@ title = "VAR HR"
 description = "A multilingual, multi-tenant HR operations platform for managing companies, employees, attendance, leave, permissions, reports, payroll foundations, biometric devices, and subscriptions with RTL and LTR support."
 version = "1.0.0"
 id = "artifacts/var-hr"
-router = "path"
 
 [[services]]
 name = "web"
 paths = [ "/" ]
+router = "path"
 localPort = 22077
 
 [services.development]

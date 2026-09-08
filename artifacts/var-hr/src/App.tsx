@@ -5974,7 +5974,13 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "content-type": "application/json", ...(init?.headers || {}) },
   });
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error || "Request failed.");
+  if (!response.ok) {
+    const error = new Error(data?.error || "Request failed.") as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
+  }
   return data as T;
 }
 
@@ -6743,6 +6749,8 @@ function AuthGate() {
   const [account, setAccount] = useState<AuthAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupAvailable, setSetupAvailable] = useState(false);
+  const [authError, setAuthError] = useState(false);
+  const [authCheckKey, setAuthCheckKey] = useState(0);
   const [location, setLocation] = useLocation();
   const signOut = async () => {
     await authRequest("/api/auth/logout", { method: "POST" }).catch(
@@ -6753,26 +6761,35 @@ function AuthGate() {
     setLocation("/login");
   };
   useEffect(() => {
-    void Promise.all([
+    let cancelled = false;
+    setLoading(true);
+    setAuthError(false);
+    void Promise.allSettled([
       authRequest<{ user: AuthAccount }>("/api/auth/me"),
       authRequest<{ setupAvailable: boolean }>(
         "/api/auth/provision/platform-owner/status",
       ),
-    ])
-      .then(([session, setup]) => {
-        setAccount(session.user);
-        setSetupAvailable(setup.setupAvailable);
-      })
-      .catch(async () => {
+    ]).then(([sessionResult, setupResult]) => {
+      if (cancelled) return;
+      if (sessionResult.status === "fulfilled") {
+        setAccount(sessionResult.value.user);
+      } else {
+        const status = (sessionResult.reason as { status?: number })?.status;
         setAccount(null);
-        await authRequest<{ setupAvailable: boolean }>(
-          "/api/auth/provision/platform-owner/status",
-        )
-          .then((setup) => setSetupAvailable(setup.setupAvailable))
-          .catch(() => setSetupAvailable(false));
-      })
-      .finally(() => setLoading(false));
-  }, []);
+        if (status !== 401) setAuthError(true);
+      }
+      if (setupResult.status === "fulfilled") {
+        setSetupAvailable(setupResult.value.setupAvailable);
+      } else {
+        setSetupAvailable(false);
+        setAuthError(true);
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authCheckKey]);
   useEffect(() => {
     if (loading || account || !setupAvailable) return;
     if (location === "/" || location === "/login") {
@@ -6788,6 +6805,13 @@ function AuthGate() {
     }
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
+  if (authError)
+    return (
+      <WorkspaceState
+        kind="error"
+        retry={() => setAuthCheckKey((current) => current + 1)}
+      />
+    );
   if (!account)
     if (setupAvailable && location === "/setup")
       return (
