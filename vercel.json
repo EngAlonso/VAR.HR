@@ -5,6 +5,22 @@
   "buildCommand": "pnpm run typecheck && pnpm --filter @workspace/api-server run build && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build && rm -rf public && cp -R artifacts/var-hr/dist/public public",
   "rewrites": [
     {
+      "source": "/api",
+      "destination": "/api/index.mjs?__prefix=api&__path="
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.mjs?__prefix=api&__path=:path*"
+    },
+    {
+      "source": "/iclock",
+      "destination": "/api/index.mjs?__prefix=iclock&__path="
+    },
+    {
+      "source": "/iclock/:path*",
+      "destination": "/api/index.mjs?__prefix=iclock&__path=:path*"
+    },
+    {
       "source": "/((?!api|iclock).*)",
       "destination": "/index.html"
     }
