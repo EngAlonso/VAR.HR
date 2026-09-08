@@ -2,8 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build",
-  "outputDirectory": "artifacts/var-hr/dist/public",
+  "buildCommand": "pnpm run typecheck && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/var-hr run build && rm -rf public && cp -R artifacts/var-hr/dist/public public",
   "rewrites": [
     {
       "source": "/((?!api|iclock).*)",
