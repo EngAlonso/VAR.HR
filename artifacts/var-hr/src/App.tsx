@@ -6461,7 +6461,7 @@ function Login({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setPending(true);
@@ -6640,14 +6640,24 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
         tooShort: "Password must be at least 6 characters.",
         failed: "Could not create the account. Please try again.",
       };
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    if (password.length < 6) {
+    // Read the submitted DOM values as the source of truth. Password managers
+    // and browser autofill can update an input without triggering React's
+    // change handler, which otherwise leaves the two controlled states stale.
+    const formData = new FormData(event.currentTarget);
+    const submittedPassword = String(
+      formData.get("founderPassword") ?? password,
+    );
+    const submittedConfirmPassword = String(
+      formData.get("founderPasswordConfirmation") ?? confirmPassword,
+    );
+    if (submittedPassword.length < 6) {
       setError(copy.tooShort);
       return;
     }
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmPassword) {
       setError(copy.mismatch);
       return;
     }
@@ -6655,7 +6665,11 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
     try {
       await authRequest("/api/auth/provision/platform-owner", {
         method: "POST",
-        body: JSON.stringify({ fullName, username, password }),
+        body: JSON.stringify({
+          fullName,
+          username,
+          password: submittedPassword,
+        }),
       });
       onComplete();
     } catch (cause) {
@@ -6699,6 +6713,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
               autoComplete="username"
             />
             <Field
+              name="founderPassword"
               label={copy.password}
               value={password}
               onChange={setPassword}
@@ -6711,6 +6726,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
               hidePasswordLabel={authLabel(locale, "hidePassword")}
             />
             <Field
+              name="founderPasswordConfirmation"
               label={copy.confirmPassword}
               value={confirmPassword}
               onChange={setConfirmPassword}
