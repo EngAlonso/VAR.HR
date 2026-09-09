@@ -9,6 +9,7 @@ import {
   departmentsTable,
   employeesTable,
   authAuditEventsTable,
+  platformSettingsTable,
   userAccountsTable,
 } from "@workspace/db";
 import {
@@ -184,7 +185,6 @@ const entities: Record<string, EntityConfig> = {
       "status",
       "integration_state",
       "connection_state",
-      "created_at",
     ],
     companyColumn: "company_id",
     editable: [
@@ -447,6 +447,11 @@ const entities: Record<string, EntityConfig> = {
 };
 
 const idSchema = z.string().uuid();
+const logoVariantSchema = z.enum(["square", "short", "horizontal", "arabic"]);
+const siteSettingsSchema = z.object({
+  siteName: z.string().trim().min(1).max(120),
+  logoVariant: logoVariantSchema,
+});
 const selfAccountSchema = z.object({
   fullName: z.string().trim().min(1).max(160).optional(),
   username: z
@@ -664,6 +669,57 @@ async function audit(
 }
 
 const router: IRouter = Router();
+
+async function loadPlatformSettings() {
+  const [settings] = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(eq(platformSettingsTable.id, "default"))
+    .limit(1);
+  return {
+    siteName: settings?.siteName || "VAR HR",
+    logoVariant: logoVariantSchema.safeParse(settings?.logoVariant).success
+      ? settings.logoVariant
+      : "horizontal",
+  };
+}
+
+router.get("/platform/site-settings", async (_req, res): Promise<void> => {
+  res.json(await loadPlatformSettings());
+});
+
+router.patch("/platform/site-settings", async (req, res): Promise<void> => {
+  const context = await requirePlatformOwner(req);
+  const parsed = siteSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid site branding settings." });
+    return;
+  }
+  await db
+    .insert(platformSettingsTable)
+    .values({
+      id: "default",
+      siteName: parsed.data.siteName,
+      logoVariant: parsed.data.logoVariant,
+    })
+    .onConflictDoUpdate({
+      target: platformSettingsTable.id,
+      set: {
+        siteName: parsed.data.siteName,
+        logoVariant: parsed.data.logoVariant,
+        updatedAt: new Date(),
+      },
+    });
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId: null,
+    action: "platform_site_settings_updated",
+    entityType: "platform_settings",
+    entityId: "default",
+    metadata: { fields: ["siteName", "logoVariant"] },
+  });
+  res.json(await loadPlatformSettings());
+});
 
 router.get("/platform/database/entities", async (req, res): Promise<void> => {
   await requirePlatformOwner(req);
@@ -1209,6 +1265,19 @@ router.delete(
           unknown
         > | null;
         if (!before) return null;
+        if (req.params.entity === "devices") {
+          const dependentTables = [
+            "var_hr_employee_identities",
+            "var_hr_device_employee_mappings",
+            "var_hr_biometric_events",
+            "var_hr_biometric_sync_history",
+          ];
+          for (const dependentTable of dependentTables) {
+            await tx.execute(
+              sql`DELETE FROM ${sql.raw(sqlIdentifier(dependentTable))} WHERE device_id = ${req.params.id}`,
+            );
+          }
+        }
         const result = await tx.execute(
           sql`DELETE FROM ${table} WHERE ${idColumn} = ${req.params.id} RETURNING ${idColumn}`,
         );

@@ -26,3 +26,4 @@ export * from "./hr-records";
 export * from "./auth";
 export * from "./backups";
 export * from "./notifications";
+export * from "./platform";

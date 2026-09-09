@@ -400,6 +400,25 @@ function useAuth() {
   if (!value) throw new Error("Auth context is unavailable.");
   return value;
 }
+type SiteLogoVariant = "square" | "short" | "horizontal" | "arabic";
+type SiteSettings = {
+  siteName: string;
+  logoVariant: SiteLogoVariant;
+};
+type SiteBrandingContextValue = SiteSettings & {
+  setSiteSettings: (settings: SiteSettings) => void;
+};
+const defaultSiteSettings: SiteSettings = {
+  siteName: "VAR HR",
+  logoVariant: "horizontal",
+};
+const SiteBrandingContext = createContext<SiteBrandingContextValue>({
+  ...defaultSiteSettings,
+  setSiteSettings: () => undefined,
+});
+function useSiteBranding() {
+  return useContext(SiteBrandingContext);
+}
 type NavItem = {
   href: string;
   key: keyof typeof copy.en;
@@ -671,6 +690,12 @@ const platformNav: NavItem[] = [
     icon: Settings,
     roles: ["platform_owner"],
   },
+  {
+    href: "/platform/site-branding",
+    key: "siteBranding",
+    icon: SlidersHorizontal,
+    roles: ["platform_owner"],
+  },
 ];
 
 const copy = {
@@ -710,6 +735,18 @@ const copy = {
     companyNavSubscription: "Subscription",
     databaseAdministration: "Database Administration",
     accountSettings: "Account Settings",
+    siteBranding: "Site name & logo",
+    siteBrandingDetail:
+      "Choose the site name and the logo variant used across the app and browser tab.",
+    siteName: "Site name",
+    siteLogo: "Site logo",
+    siteLogoSquare: "Square logo",
+    siteLogoShort: "Short logo",
+    siteLogoHorizontal: "Horizontal logo",
+    siteLogoArabic: "Arabic logo",
+    saveSiteBranding: "Save site branding",
+    siteBrandingUpdated: "Site branding updated.",
+    couldNotUpdateSiteBranding: "Could not update site branding.",
     platformOwnerOnly: "Platform Owner only",
     databaseAdminDetail:
       "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
@@ -2648,6 +2685,18 @@ const pageCopy = {
     accountManagement: "إدارة الحسابات",
     databaseAdministration: "إدارة قاعدة البيانات",
     accountSettings: "إعدادات الحساب",
+    siteBranding: "اسم ولوجو الموقع",
+    siteBrandingDetail:
+      "تحكم في اسم الموقع ونوع اللوجو المستخدم داخل النظام وفي تبويب المتصفح.",
+    siteName: "اسم الموقع",
+    siteLogo: "لوجو الموقع",
+    siteLogoSquare: "اللوجو المربع",
+    siteLogoShort: "اللوجو المختصر",
+    siteLogoHorizontal: "اللوجو الأفقي",
+    siteLogoArabic: "اللوجو العربي",
+    saveSiteBranding: "حفظ اسم ولوجو الموقع",
+    siteBrandingUpdated: "تم تحديث اسم ولوجو الموقع.",
+    couldNotUpdateSiteBranding: "تعذر تحديث اسم ولوجو الموقع.",
     platformOwnerOnly: "للمالك فقط",
     databaseAdminDetail:
       "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
@@ -5951,20 +6000,29 @@ function BrandLogo({
   className?: string;
   alt?: string;
 }) {
+  const branding = useSiteBranding();
   const source =
     sourceOverride ||
-    (variant === "square"
-      ? squareLogo
-      : variant === "short"
-        ? shortLogo
-        : horizontalLogo);
+    siteLogoSource(branding.logoVariant, variant);
   return (
     <img
       src={source}
-      alt={alt || "VAR HR"}
+      alt={alt || branding.siteName}
       className={`block h-auto max-w-full object-contain ${className}`}
     />
   );
+}
+
+function siteLogoSource(
+  selectedVariant: SiteLogoVariant,
+  fallbackVariant: "square" | "short" | "horizontal",
+) {
+  if (selectedVariant === "square") return squareLogo;
+  if (selectedVariant === "short") return shortLogo;
+  if (selectedVariant === "arabic") return arabicLoginLogo;
+  if (fallbackVariant === "square") return squareLogo;
+  if (fallbackVariant === "short") return shortLogo;
+  return horizontalLogo;
 }
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -6456,7 +6514,7 @@ function Login({
   setupAvailable: boolean;
 }) {
   const { locale, setLocale } = useI18n();
-  const loginLogo = locale === "ar" ? arabicLoginLogo : horizontalLogo;
+  const branding = useSiteBranding();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -6488,7 +6546,6 @@ function Login({
           <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
             <BrandLogo
               variant="horizontal"
-              source={loginLogo}
               className="w-full"
               alt={authLabel(locale, "brandName")}
             />
@@ -6510,7 +6567,6 @@ function Login({
             <div className="lg:hidden">
               <BrandLogo
                 variant="horizontal"
-                source={loginLogo}
                 className="w-[168px]"
                 alt={authLabel(locale, "brandName")}
               />
@@ -6530,7 +6586,7 @@ function Login({
               {authLabel(locale, "secureAccess")}
             </p>
             <h2 className="mt-2 font-display text-3xl font-semibold text-foreground">
-              {authLabel(locale, "title")}
+              {authLabel(locale, "title").replace("VAR HR", branding.siteName)}
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {authLabel(locale, "detail")}
@@ -6603,6 +6659,7 @@ function Login({
 
 function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
   const { locale } = useI18n();
+  const branding = useSiteBranding();
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -6614,7 +6671,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
     ? {
         eyebrow: "إعداد أولي آمن",
         title: "إنشاء حساب المؤسس",
-        detail: "أنشئ أول حساب مالك للمنصة لبدء استخدام VAR HR.",
+         detail: `أنشئ أول حساب مالك للمنصة لبدء استخدام ${branding.siteName}.`,
         fullName: "الاسم الكامل",
         username: "اسم المستخدم",
         password: "كلمة المرور",
@@ -6629,7 +6686,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
         eyebrow: "Secure first-time setup",
         title: "Create the initial Founder",
         detail:
-          "Create the first Platform Owner account to start using VAR HR.",
+           `Create the first Platform Owner account to start using ${branding.siteName}.`,
         fullName: "Founder full name",
         username: "Username",
         password: "Password",
@@ -6909,6 +6966,7 @@ function Shell({ children }: { children: ReactNode }) {
   const pointerStart = useRef<{ id: number; x: number } | null>(null);
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
+  const branding = useSiteBranding();
   const isArabic = locale === "ar";
   const isMobile = useIsMobile();
   const workspaceQuery = useGetWorkspace();
@@ -6997,7 +7055,12 @@ function Shell({ children }: { children: ReactNode }) {
       : secondaryNav.filter(canSee);
   const mobileNavPool = isPlatformOwner ? visibleNav : nav.filter(canSee);
   const mobilePrimaryKeys = isPlatformOwner
-    ? (["platformOwner", "databaseAdministration", "accountSettings"] as const)
+    ? ([
+        "platformOwner",
+        "databaseAdministration",
+        "siteBranding",
+        "accountSettings",
+      ] as const)
     : (["overview", "attendance", "requests", "hrProfile"] as const);
   const mobilePrimaryNav = mobilePrimaryKeys
     .map((key) => mobileNavPool.find((item) => item.key === key))
@@ -7041,6 +7104,9 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="w-full max-w-[176px] overflow-hidden rounded-lg bg-white p-1.5">
               <BrandLogo variant="horizontal" className="w-full" />
             </div>
+            <p className="mt-2 truncate px-1 text-xs font-semibold text-sidebar-foreground/70">
+              {branding.siteName}
+            </p>
             <div className="mt-3 lg:hidden">
               {isPlatformOwner ? (
                 <p className="truncate text-sm font-semibold text-sidebar-foreground">
@@ -7204,8 +7270,8 @@ function Shell({ children }: { children: ReactNode }) {
               <span className="min-w-0 truncate">
                 {isPlatformOwner
                   ? locale === "ar"
-                    ? "إدارة المنصة"
-                    : "Platform administration"
+                    ? `${branding.siteName} · إدارة المنصة`
+                    : `${branding.siteName} · Platform administration`
                   : (workspace.company?.name ?? "")}
               </span>
               <ChevronDown
@@ -17838,6 +17904,103 @@ function PlatformAccountSettings() {
   );
 }
 
+function PlatformSiteBranding() {
+  const { t } = useI18n();
+  const auth = useAuth();
+  const branding = useSiteBranding();
+  const [siteName, setSiteName] = useState(branding.siteName);
+  const [logoVariant, setLogoVariant] = useState<SiteLogoVariant>(
+    branding.logoVariant,
+  );
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setSiteName(branding.siteName);
+    setLogoVariant(branding.logoVariant);
+  }, [branding.siteName, branding.logoVariant]);
+
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+
+  const save = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPending(true);
+    try {
+      const result = await authRequest<SiteSettings>("/api/platform/site-settings", {
+        method: "PATCH",
+        body: JSON.stringify({ siteName, logoVariant }),
+      });
+      branding.setSiteSettings(result);
+      toast.success(t("siteBrandingUpdated"));
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, t("couldNotUpdateSiteBranding")));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("platformOwnerOnly")}
+        title={t("siteBranding")}
+        detail={t("siteBrandingDetail")}
+      />
+      <form onSubmit={save} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="p-5">
+          <div className="space-y-4">
+            <Field
+              label={t("siteName")}
+              required
+              value={siteName}
+              onChange={setSiteName}
+            />
+            <label className="block text-sm font-semibold">
+              {t("siteLogo")}
+              <select
+                className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                value={logoVariant}
+                onChange={(event) =>
+                  setLogoVariant(event.target.value as SiteLogoVariant)
+                }
+              >
+                <option value="square">{t("siteLogoSquare")}</option>
+                <option value="short">{t("siteLogoShort")}</option>
+                <option value="horizontal">{t("siteLogoHorizontal")}</option>
+                <option value="arabic">{t("siteLogoArabic")}</option>
+              </select>
+            </label>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={pending || !siteName.trim()}>
+                {pending ? "…" : t("saveSiteBranding")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+            {t("siteLogo")}
+          </p>
+          <div className="mt-4 flex min-h-40 items-center justify-center rounded-xl bg-secondary p-6">
+            <div className="w-full max-w-[220px] overflow-hidden rounded-lg bg-white p-2 shadow-sm">
+              <BrandLogo
+                variant="horizontal"
+                source={siteLogoSource(logoVariant, "horizontal")}
+                className="w-full"
+                alt={siteName}
+              />
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {t("siteBrandingDetail")}
+          </p>
+        </Card>
+      </form>
+    </div>
+  );
+}
+
 function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
@@ -23604,6 +23767,7 @@ function Router() {
           path="/platform/account-settings"
           component={PlatformAccountSettings}
         />
+        <Route path="/platform/site-branding" component={PlatformSiteBranding} />
         <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
@@ -23633,17 +23797,62 @@ function Router() {
   );
 }
 function App() {
+  const [siteSettings, setSiteSettings] =
+    useState<SiteSettings>(defaultSiteSettings);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/platform/site-settings", { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Site settings unavailable.");
+        return (await response.json()) as Partial<SiteSettings>;
+      })
+      .then((settings) => {
+        if (cancelled) return;
+        const logoVariant = settings.logoVariant;
+        setSiteSettings({
+          siteName:
+            typeof settings.siteName === "string" && settings.siteName.trim()
+              ? settings.siteName.trim()
+              : defaultSiteSettings.siteName,
+          logoVariant:
+            logoVariant === "square" ||
+            logoVariant === "short" ||
+            logoVariant === "horizontal" ||
+            logoVariant === "arabic"
+              ? logoVariant
+              : defaultSiteSettings.logoVariant,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    document.title = siteSettings.siteName;
+    let favicon = document.querySelector<HTMLLinkElement>(
+      'link[rel~="icon"]',
+    );
+    if (!favicon) {
+      favicon = document.createElement("link");
+      favicon.rel = "icon";
+      document.head.appendChild(favicon);
+    }
+    favicon.href = siteLogoSource(siteSettings.logoVariant, "square");
+  }, [siteSettings]);
   return (
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <ErrorBoundary FallbackComponent={LocalizedErrorFallback}>
-            <AuthGate />
-          </ErrorBoundary>
-        </WouterRouter>
-      </I18nProvider>
-      <Toaster position="bottom-right" richColors />
-    </QueryClientProvider>
+    <SiteBrandingContext.Provider value={{ ...siteSettings, setSiteSettings }}>
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <ErrorBoundary FallbackComponent={LocalizedErrorFallback}>
+              <AuthGate />
+            </ErrorBoundary>
+          </WouterRouter>
+        </I18nProvider>
+        <Toaster position="bottom-right" richColors />
+      </QueryClientProvider>
+    </SiteBrandingContext.Provider>
   );
 }
 export default App;
