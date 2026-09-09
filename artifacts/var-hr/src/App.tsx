@@ -744,6 +744,8 @@ const copy = {
     siteLogoShort: "Short logo",
     siteLogoHorizontal: "Horizontal logo",
     siteLogoArabic: "Arabic logo",
+    changeLogo: "Change logo",
+    selected: "Selected",
     saveSiteBranding: "Save site branding",
     siteBrandingUpdated: "Site branding updated.",
     couldNotUpdateSiteBranding: "Could not update site branding.",
@@ -2694,6 +2696,8 @@ const pageCopy = {
     siteLogoShort: "اللوجو المختصر",
     siteLogoHorizontal: "اللوجو الأفقي",
     siteLogoArabic: "اللوجو العربي",
+    changeLogo: "تغيير اللوجو",
+    selected: "محدد",
     saveSiteBranding: "حفظ اسم ولوجو الموقع",
     siteBrandingUpdated: "تم تحديث اسم ولوجو الموقع.",
     couldNotUpdateSiteBranding: "تعذر تحديث اسم ولوجو الموقع.",
@@ -17913,6 +17917,32 @@ function PlatformSiteBranding() {
     branding.logoVariant,
   );
   const [pending, setPending] = useState(false);
+  const logoOptions: Array<{
+    value: SiteLogoVariant;
+    label: string;
+    source: string;
+  }> = [
+    {
+      value: "square",
+      label: t("siteLogoSquare"),
+      source: squareLogo,
+    },
+    {
+      value: "short",
+      label: t("siteLogoShort"),
+      source: shortLogo,
+    },
+    {
+      value: "horizontal",
+      label: t("siteLogoHorizontal"),
+      source: horizontalLogo,
+    },
+    {
+      value: "arabic",
+      label: t("siteLogoArabic"),
+      source: arabicLoginLogo,
+    },
+  ];
 
   useEffect(() => {
     setSiteName(branding.siteName);
@@ -17956,21 +17986,46 @@ function PlatformSiteBranding() {
               value={siteName}
               onChange={setSiteName}
             />
-            <label className="block text-sm font-semibold">
-              {t("siteLogo")}
-              <select
-                className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
-                value={logoVariant}
-                onChange={(event) =>
-                  setLogoVariant(event.target.value as SiteLogoVariant)
-                }
-              >
-                <option value="square">{t("siteLogoSquare")}</option>
-                <option value="short">{t("siteLogoShort")}</option>
-                <option value="horizontal">{t("siteLogoHorizontal")}</option>
-                <option value="arabic">{t("siteLogoArabic")}</option>
-              </select>
-            </label>
+            <div>
+              <p className="text-sm font-semibold">{t("siteLogo")}</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                {logoOptions.map((option) => {
+                  const isSelected = logoVariant === option.value;
+                  return (
+                    <div
+                      key={option.value}
+                      className={cn(
+                        "rounded-xl border p-3 transition-colors",
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background",
+                      )}
+                    >
+                      <div className="flex h-24 items-center justify-center rounded-lg bg-white p-2">
+                        <img
+                          src={option.source}
+                          alt={option.label}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold">
+                          {option.label}
+                        </span>
+                        <Button
+                          type="button"
+                          variant={isSelected ? "primary" : "outline"}
+                          className="h-8 px-2 text-xs"
+                          onClick={() => setLogoVariant(option.value)}
+                        >
+                          {isSelected ? t("selected") : t("changeLogo")}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={pending || !siteName.trim()}>
                 {pending ? "…" : t("saveSiteBranding")}
