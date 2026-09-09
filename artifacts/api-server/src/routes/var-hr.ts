@@ -10309,7 +10309,7 @@ router.post("/devices", async (req, res): Promise<void> => {
   const registrationKey =
     ["zkteco-adms", "zkteco-usb"].includes(parsed.data.adapterKey) &&
     parsed.data.manufacturer.trim().toLowerCase() === "zkteco"
-      ? String(randomInt(0, 1_000_000)).padStart(6, "0")
+      ? String(randomInt(100_000, 1_000_000))
       : null;
   const registrationKeyHash = registrationKey
     ? createHash("sha256").update(registrationKey).digest("hex")
