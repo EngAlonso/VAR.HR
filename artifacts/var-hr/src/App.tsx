@@ -18698,7 +18698,8 @@ function Devices() {
           });
           qc.invalidateQueries({ queryKey: getListDevicesQueryKey() });
         },
-        onError: () => toast.error(t("mappingFailed")),
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("mappingFailed"))),
       },
     );
   }
