@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router, type IRouter, type Request, type Response } from "express";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import {
   and,
   asc,
@@ -10309,7 +10309,7 @@ router.post("/devices", async (req, res): Promise<void> => {
   const registrationKey =
     ["zkteco-adms", "zkteco-usb"].includes(parsed.data.adapterKey) &&
     parsed.data.manufacturer.trim().toLowerCase() === "zkteco"
-      ? randomBytes(32).toString("base64url")
+      ? String(randomInt(10_000_000, 100_000_000))
       : null;
   const registrationKeyHash = registrationKey
     ? createHash("sha256").update(registrationKey).digest("hex")
