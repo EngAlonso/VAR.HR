@@ -3922,6 +3922,49 @@ const part4Copy = {
     syncQueued: "Sync queued",
     syncUnavailableResult: "Sync unavailable",
     syncMessage: "Message",
+    importedPunches: "Imported punches",
+    importedPunchesDetail:
+      "Raw events received from this device, kept separate from calculated attendance.",
+    deviceUser: "Device user",
+    noImportedPunches: "No imported punches",
+    noImportedPunchesDetail:
+      "A real ADMS upload will appear here after the device sends attendance data.",
+    registrationKeyUsbTitle: "ZKTeco USB connector key",
+    registrationKeyAdmsTitle: "ZKTeco ADMS registration key",
+    registrationKeyUsbNotice:
+      "Save this key now. It is shown only once and is used by the VAR HR Windows USB Connector.",
+    registrationKeyAdmsNotice:
+      "Save this key now. It is shown only once and is used as the device Comm Key.",
+    copy: "Copy",
+    done: "Done",
+    registrationKeyUsbInstructions:
+      "Enter this key in the connector configuration together with the device ID. The connector must run on the Windows computer connected to the LX15.",
+    registrationKeyAdmsInstructions:
+      "Configure the K50 Pro to use your published HTTPS host with ADMS path",
+    deviceIdentifierSerialHint: "Keep the device ID equal to its Serial Number.",
+    directionIn: "In",
+    directionOut: "Out",
+    eventTypeAttendance: "Attendance",
+    processingStatusMapped: "Mapped",
+    processingStatusReceived: "Received",
+    processingStatusRejected: "Rejected",
+    processingStatusPendingAdapter: "Pending adapter",
+    processingStatusFailed: "Failed",
+    providerMockName: "Deterministic mock provider",
+    providerMockDescription:
+      "Generates repeatable attendance events for automated verification without hardware.",
+    providerGenericName: "Generic adapter",
+    providerGenericDescription:
+      "Reserved for a manufacturer adapter supplied by the deployment.",
+    providerAdmsName: "ZKTeco ADMS",
+    providerAdmsDescription: "Inbound-only ZKTeco ADMS protocol receiver.",
+    providerUsbName: "ZKTeco USB Connector",
+    providerUsbDescription:
+      "Attendance is synchronized by the VAR HR Windows USB Connector.",
+    adapterMock: "Deterministic mock provider",
+    adapterGeneric: "Generic adapter",
+    adapterAdms: "ZKTeco ADMS",
+    adapterUsb: "ZKTeco USB Connector",
   },
   ar: {
     deviceMetadata: "بيانات الجهاز",
@@ -4003,6 +4046,50 @@ const part4Copy = {
     syncQueued: "وُضعت المزامنة في قائمة الانتظار",
     syncUnavailableResult: "المزامنة غير متاحة",
     syncMessage: "الرسالة",
+    importedPunches: "سجلات البصمة المستلمة",
+    importedPunchesDetail:
+      "الأحداث الخام المستلمة من هذا الجهاز، وتُحفظ منفصلة عن الحضور المحسوب.",
+    deviceUser: "مستخدم الجهاز",
+    noImportedPunches: "لا توجد سجلات بصمة مستلمة",
+    noImportedPunchesDetail:
+      "سيظهر رفع ADMS الحقيقي هنا بعد أن يرسل الجهاز بيانات الحضور.",
+    registrationKeyUsbTitle: "مفتاح موصل ZKTeco USB",
+    registrationKeyAdmsTitle: "مفتاح تسجيل ZKTeco ADMS",
+    registrationKeyUsbNotice:
+      "احفظ هذا المفتاح الآن. سيظهر مرة واحدة فقط ويُستخدم بواسطة موصل VAR HR على Windows.",
+    registrationKeyAdmsNotice:
+      "احفظ هذا المفتاح الآن. سيظهر مرة واحدة فقط ويُستخدم كمفتاح اتصال الجهاز.",
+    copy: "نسخ",
+    done: "تم",
+    registrationKeyUsbInstructions:
+      "أدخل هذا المفتاح في إعدادات الموصل مع معرّف الجهاز. يجب تشغيل الموصل على كمبيوتر Windows المتصل بجهاز LX15.",
+    registrationKeyAdmsInstructions:
+      "اضبط جهاز K50 Pro لاستخدام عنوان HTTPS المنشور ومسار ADMS",
+    deviceIdentifierSerialHint:
+      "اجعل معرّف الجهاز مطابقاً للرقم التسلسلي.",
+    directionIn: "دخول",
+    directionOut: "خروج",
+    eventTypeAttendance: "حضور",
+    processingStatusMapped: "مرتبط",
+    processingStatusReceived: "مستلم",
+    processingStatusRejected: "مرفوض",
+    processingStatusPendingAdapter: "في انتظار الموصل",
+    processingStatusFailed: "فشل",
+    providerMockName: "موفر تجريبي ثابت",
+    providerMockDescription:
+      "ينشئ أحداث حضور متكررة للتحقق الآلي دون أجهزة فعلية.",
+    providerGenericName: "موصل عام",
+    providerGenericDescription:
+      "محجوز لموصل شركة مصنعة يتم توفيره مع إعداد النظام.",
+    providerAdmsName: "ZKTeco ADMS",
+    providerAdmsDescription: "موصل استقبال بروتوكول ZKTeco ADMS الوارد فقط.",
+    providerUsbName: "موصل ZKTeco USB",
+    providerUsbDescription:
+      "تتم مزامنة الحضور بواسطة موصل VAR HR على Windows.",
+    adapterMock: "موفر تجريبي ثابت",
+    adapterGeneric: "موصل عام",
+    adapterAdms: "ZKTeco ADMS",
+    adapterUsb: "موصل ZKTeco USB",
   },
   fr: {
     deviceMetadata: "Métadonnées de l’appareil",
@@ -4088,6 +4175,51 @@ const part4Copy = {
     syncQueued: "Synchronisation en file",
     syncUnavailableResult: "Synchronisation indisponible",
     syncMessage: "Message",
+    importedPunches: "Pointages importés",
+    importedPunchesDetail:
+      "Événements bruts reçus de cet appareil, séparés de la présence calculée.",
+    deviceUser: "Utilisateur de l’appareil",
+    noImportedPunches: "Aucun pointage importé",
+    noImportedPunchesDetail:
+      "Un envoi ADMS réel apparaîtra ici après l’envoi des données par l’appareil.",
+    registrationKeyUsbTitle: "Clé du connecteur USB ZKTeco",
+    registrationKeyAdmsTitle: "Clé d’enregistrement ZKTeco ADMS",
+    registrationKeyUsbNotice:
+      "Enregistrez cette clé maintenant. Elle ne s’affiche qu’une fois et est utilisée par le connecteur Windows VAR HR.",
+    registrationKeyAdmsNotice:
+      "Enregistrez cette clé maintenant. Elle ne s’affiche qu’une fois et sert de clé Comm de l’appareil.",
+    copy: "Copier",
+    done: "Terminé",
+    registrationKeyUsbInstructions:
+      "Saisissez cette clé dans la configuration du connecteur avec l’identifiant de l’appareil. Le connecteur doit fonctionner sur l’ordinateur Windows relié au LX15.",
+    registrationKeyAdmsInstructions:
+      "Configurez le K50 Pro pour utiliser votre hôte HTTPS publié avec le chemin ADMS",
+    deviceIdentifierSerialHint:
+      "Conservez l’identifiant de l’appareil égal à son numéro de série.",
+    directionIn: "Entrée",
+    directionOut: "Sortie",
+    eventTypeAttendance: "Présence",
+    processingStatusMapped: "Associé",
+    processingStatusReceived: "Reçu",
+    processingStatusRejected: "Rejeté",
+    processingStatusPendingAdapter: "Adaptateur en attente",
+    processingStatusFailed: "Échec",
+    providerMockName: "Fournisseur simulé déterministe",
+    providerMockDescription:
+      "Génère des événements de présence répétables pour les vérifications sans matériel.",
+    providerGenericName: "Adaptateur générique",
+    providerGenericDescription:
+      "Réservé à un adaptateur constructeur fourni avec le déploiement.",
+    providerAdmsName: "ZKTeco ADMS",
+    providerAdmsDescription:
+      "Récepteur entrant du protocole ZKTeco ADMS uniquement.",
+    providerUsbName: "Connecteur USB ZKTeco",
+    providerUsbDescription:
+      "La présence est synchronisée par le connecteur Windows VAR HR.",
+    adapterMock: "Fournisseur simulé déterministe",
+    adapterGeneric: "Adaptateur générique",
+    adapterAdms: "ZKTeco ADMS",
+    adapterUsb: "Connecteur USB ZKTeco",
   },
   de: {
     deviceMetadata: "Gerätemetadaten",
@@ -4175,6 +4307,51 @@ const part4Copy = {
     syncQueued: "Synchronisierung eingereiht",
     syncUnavailableResult: "Synchronisierung nicht verfügbar",
     syncMessage: "Nachricht",
+    importedPunches: "Importierte Buchungen",
+    importedPunchesDetail:
+      "Von diesem Gerät empfangene Rohereignisse, getrennt von der berechneten Anwesenheit.",
+    deviceUser: "Gerätebenutzer",
+    noImportedPunches: "Keine importierten Buchungen",
+    noImportedPunchesDetail:
+      "Ein echter ADMS-Upload erscheint hier, sobald das Gerät Anwesenheitsdaten sendet.",
+    registrationKeyUsbTitle: "ZKTeco-USB-Connectorschlüssel",
+    registrationKeyAdmsTitle: "ZKTeco-ADMS-Registrierungsschlüssel",
+    registrationKeyUsbNotice:
+      "Speichern Sie diesen Schlüssel jetzt. Er wird nur einmal angezeigt und vom VAR HR Windows USB Connector verwendet.",
+    registrationKeyAdmsNotice:
+      "Speichern Sie diesen Schlüssel jetzt. Er wird nur einmal angezeigt und als Comm-Schlüssel des Geräts verwendet.",
+    copy: "Kopieren",
+    done: "Fertig",
+    registrationKeyUsbInstructions:
+      "Geben Sie diesen Schlüssel zusammen mit der Geräte-ID in die Connector-Konfiguration ein. Der Connector muss auf dem mit dem LX15 verbundenen Windows-Computer laufen.",
+    registrationKeyAdmsInstructions:
+      "Konfigurieren Sie den K50 Pro für Ihren veröffentlichten HTTPS-Host mit ADMS-Pfad",
+    deviceIdentifierSerialHint:
+      "Die Geräte-ID muss der Seriennummer entsprechen.",
+    directionIn: "Eingang",
+    directionOut: "Ausgang",
+    eventTypeAttendance: "Anwesenheit",
+    processingStatusMapped: "Zugeordnet",
+    processingStatusReceived: "Empfangen",
+    processingStatusRejected: "Abgelehnt",
+    processingStatusPendingAdapter: "Adapter ausstehend",
+    processingStatusFailed: "Fehlgeschlagen",
+    providerMockName: "Deterministischer Simulationsanbieter",
+    providerMockDescription:
+      "Erzeugt wiederholbare Anwesenheitsereignisse zur Prüfung ohne Hardware.",
+    providerGenericName: "Generischer Adapter",
+    providerGenericDescription:
+      "Für einen mit der Bereitstellung gelieferten Herstelleradapter reserviert.",
+    providerAdmsName: "ZKTeco ADMS",
+    providerAdmsDescription:
+      "Nur eingehender Empfänger für das ZKTeco-ADMS-Protokoll.",
+    providerUsbName: "ZKTeco-USB-Connector",
+    providerUsbDescription:
+      "Die Anwesenheit wird durch den VAR HR Windows USB Connector synchronisiert.",
+    adapterMock: "Deterministischer Simulationsanbieter",
+    adapterGeneric: "Generischer Adapter",
+    adapterAdms: "ZKTeco ADMS",
+    adapterUsb: "ZKTeco-USB-Connector",
   },
 } as const;
 
@@ -18646,6 +18823,80 @@ function Devices() {
       queryKey: getListBiometricDeviceEventsQueryKey(selectedDeviceId),
     },
   });
+  const eventDirectionLabel = (direction: string) =>
+    direction === "in"
+      ? t("directionIn")
+      : direction === "out"
+        ? t("directionOut")
+        : direction;
+  const eventTypeLabel = (eventType: string) =>
+    eventType === "attendance" ? t("eventTypeAttendance") : eventType;
+  const processingStatusLabel = (status: string) => {
+    const statusKeys: Record<string, AppCopyKey> = {
+      mapped: "processingStatusMapped",
+      received: "processingStatusReceived",
+      rejected: "processingStatusRejected",
+      pending_adapter: "processingStatusPendingAdapter",
+      failed: "processingStatusFailed",
+    };
+    const key = statusKeys[status];
+    return key ? t(key) : status;
+  };
+  const providerCopyKeys: Record<
+    string,
+    { name: AppCopyKey; description: AppCopyKey }
+  > = {
+    mock: {
+      name: "providerMockName",
+      description: "providerMockDescription",
+    },
+    generic: {
+      name: "providerGenericName",
+      description: "providerGenericDescription",
+    },
+    "zkteco-adms": {
+      name: "providerAdmsName",
+      description: "providerAdmsDescription",
+    },
+    "zkteco-usb": {
+      name: "providerUsbName",
+      description: "providerUsbDescription",
+    },
+  };
+  const connectionTypeLabel = (connectionType: string | undefined) => {
+    const keys: Record<string, AppCopyKey> = {
+      lan: "deviceConnectionLan",
+      http: "deviceConnectionHttp",
+      cloud: "deviceConnectionCloud",
+      usb: "deviceConnectionUsb",
+      unknown: "deviceConnectionUnknown",
+    };
+    return connectionType && keys[connectionType]
+      ? t(keys[connectionType])
+      : connectionType || t("deviceConnectionUnknown");
+  };
+  const connectionStateLabel = (connectionState: string | undefined) => {
+    const keys: Record<string, AppCopyKey> = {
+      connected: "statusConnected",
+      unreachable: "connectionStateUnreachable",
+      auth_failure: "connectionStateAuthFailure",
+      unsupported: "connectionStateUnsupported",
+      config_error: "connectionStateConfigError",
+      unknown: "connectionStateUnknown",
+    };
+    return connectionState && keys[connectionState]
+      ? t(keys[connectionState])
+      : connectionState || t("connectionStateUnknown");
+  };
+  const adapterLabel = (adapterKey: string | undefined) => {
+    const keys: Record<string, AppCopyKey> = {
+      mock: "adapterMock",
+      generic: "adapterGeneric",
+      "zkteco-adms": "adapterAdms",
+      "zkteco-usb": "adapterUsb",
+    };
+    return adapterKey && keys[adapterKey] ? t(keys[adapterKey]) : adapterKey || t("notRecorded");
+  };
   function submit(e: FormEvent) {
     e.preventDefault();
     const data = {
@@ -18789,9 +19040,15 @@ function Devices() {
                   key={provider.key}
                 >
                   <div>
-                    <div className="font-semibold">{provider.name}</div>
+                    <div className="font-semibold">
+                      {providerCopyKeys[provider.key]
+                        ? t(providerCopyKeys[provider.key].name)
+                        : provider.name}
+                    </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {provider.description}
+                      {providerCopyKeys[provider.key]
+                        ? t(providerCopyKeys[provider.key].description)
+                        : provider.description}
                     </p>
                     {provider.key === "mock" && (
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -18907,7 +19164,7 @@ function Devices() {
                     />
                     <Info
                       label={t("connection")}
-                      value={`${d.connectionType || t("deviceConnectionUnknown")} · ${d.connectionState || t("connectionStateUnknown")}`}
+                      value={`${connectionTypeLabel(d.connectionType)} · ${connectionStateLabel(d.connectionState)}`}
                     />
                     <Info
                       label={t("identifier")}
@@ -18923,7 +19180,7 @@ function Devices() {
                     />
                     <Info
                       label={t("adapter")}
-                      value={d.adapterKey || t("notRecorded")}
+                      value={adapterLabel(d.adapterKey)}
                     />
                     <Info
                       label={t("lastHealthCheck")}
@@ -19087,10 +19344,10 @@ function Devices() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="font-display text-lg font-semibold">
-                    Imported punches
+                  {t("importedPunches")}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Raw events received from this device, kept separate from calculated attendance.
+                    {t("importedPunchesDetail")}
                   </p>
                 </div>
                 <Button
@@ -19118,10 +19375,13 @@ function Devices() {
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <div>
                           <div className="font-semibold">
-                            {mapping?.employee?.name || `Device user ${event.deviceEmployeeId}`}
+                            {mapping?.employee?.name ||
+                              `${t("deviceUser")} ${event.deviceEmployeeId}`}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {event.deviceEmployeeId} · {event.direction} · {event.eventType}
+                            {event.deviceEmployeeId} ·{" "}
+                            {eventDirectionLabel(event.direction)} ·{" "}
+                            {eventTypeLabel(event.eventType)}
                           </div>
                         </div>
                         <div className="text-end text-xs text-muted-foreground">
@@ -19130,7 +19390,7 @@ function Devices() {
                       </div>
                       <div className="mt-2">
                         <Badge tone={event.processingStatus === "mapped" ? "good" : "warn"}>
-                          {event.processingStatus}
+                          {processingStatusLabel(event.processingStatus)}
                         </Badge>
                       </div>
                     </div>
@@ -19139,8 +19399,8 @@ function Devices() {
               </div>
             ) : (
               <Empty
-                title="No imported punches"
-                detail="A real ADMS upload will appear here after the device sends attendance data."
+                title={t("noImportedPunches")}
+                detail={t("noImportedPunchesDetail")}
               />
             )}
           </Card>
@@ -19349,16 +19609,16 @@ function Devices() {
         <Modal
           title={
             registrationMode === "usb"
-              ? "ZKTeco USB connector key"
-              : "ZKTeco ADMS registration key"
+              ? t("registrationKeyUsbTitle")
+              : t("registrationKeyAdmsTitle")
           }
           onClose={() => setRegistrationKey(null)}
         >
           <div className="space-y-4">
             <div className="rounded-lg border border-accent/30 bg-accent/10 p-4 text-sm">
               {registrationMode === "usb"
-                ? "Save this key now. It is shown only once and is used by the VAR HR Windows USB Connector."
-                : "Save this key now. It is shown only once and is used as the device Comm Key."}
+                ? t("registrationKeyUsbNotice")
+                : t("registrationKeyAdmsNotice")}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
               <code className="min-w-0 flex-1 break-all text-sm">{registrationKey}</code>
@@ -19366,22 +19626,24 @@ function Devices() {
                 variant="outline"
                 onClick={() => void navigator.clipboard?.writeText(registrationKey)}
               >
-                Copy
+                {t("copy")}
               </Button>
             </div>
             <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
               {registrationMode === "usb" ? (
-                "Enter this key in the connector configuration together with the device ID. The connector must run on the Windows computer connected to the LX15."
+                t("registrationKeyUsbInstructions")
               ) : (
                 <>
-                  Configure the K50 Pro to use your published HTTPS host with ADMS path
+                  {t("registrationKeyAdmsInstructions")}
                   <code className="mx-1 font-semibold text-foreground">/iclock</code>.
-                  Keep the device ID equal to its Serial Number.
+                  {t("deviceIdentifierSerialHint")}
                 </>
               )}
             </div>
             <div className="flex justify-end">
-              <Button onClick={() => setRegistrationKey(null)}>Done</Button>
+              <Button onClick={() => setRegistrationKey(null)}>
+                {t("done")}
+              </Button>
             </div>
           </div>
         </Modal>

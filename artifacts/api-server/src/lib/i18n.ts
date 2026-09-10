@@ -89,6 +89,8 @@ const messages = {
     deviceConnectionTestUnavailable: "Device connection testing is currently unavailable.",
     deviceMappingNotFound: "Device employee mapping not found.",
     deviceMappingDuplicate: "That device employee identifier is already mapped.",
+    employeeIdentityAccountMismatch:
+      "The employee biometric identity and account are inconsistent.",
     biometricEventAccepted: "Biometric event accepted for adapter processing.",
     biometricEventDuplicate: "Duplicate biometric event acknowledged.",
     attendanceLocationAdmin: "Attendance location management requires a company owner or platform owner.",
@@ -206,6 +208,8 @@ const messages = {
     deviceConnectionTestUnavailable: "اختبار اتصال الجهاز غير متاح حالياً.",
     deviceMappingNotFound: "لم يتم العثور على ربط الموظف بالجهاز.",
     deviceMappingDuplicate: "معرّف الموظف هذا مرتبط بالجهاز بالفعل.",
+    employeeIdentityAccountMismatch:
+      "هوية الموظف الحيوية وحسابه غير متوافقين.",
     biometricEventAccepted: "تم قبول حدث البصمة لمعالجة الموصل.",
     biometricEventDuplicate: "تم تأكيد حدث بصمة مكرر.",
     attendanceLocationAdmin: "تتطلب إدارة مواقع الحضور دور مالك الشركة أو مالك المنصة.",
@@ -323,6 +327,8 @@ const messages = {
     deviceConnectionTestUnavailable: "Le test de connexion de l’appareil est actuellement indisponible.",
     deviceMappingNotFound: "Correspondance employé-appareil introuvable.",
     deviceMappingDuplicate: "Cet identifiant employé est déjà associé à cet appareil.",
+    employeeIdentityAccountMismatch:
+      "L’identité biométrique et le compte de l’employé sont incohérents.",
     biometricEventAccepted: "Événement biométrique accepté pour traitement par adaptateur.",
     biometricEventDuplicate: "Événement biométrique en double confirmé.",
     attendanceLocationAdmin: "La gestion des lieux de présence requiert un propriétaire d’entreprise ou de plateforme.",
@@ -440,6 +446,8 @@ const messages = {
     deviceConnectionTestUnavailable: "Der Verbindungstest des Geräts ist derzeit nicht verfügbar.",
     deviceMappingNotFound: "Geräte-Mitarbeiterzuordnung nicht gefunden.",
     deviceMappingDuplicate: "Diese gerätespezifische Mitarbeiter-ID ist bereits zugeordnet.",
+    employeeIdentityAccountMismatch:
+      "Die biometrische Identität und das Konto des Mitarbeitenden sind nicht konsistent.",
     biometricEventAccepted: "Biometrisches Ereignis zur Adapterverarbeitung akzeptiert.",
     biometricEventDuplicate: "Doppeltes biometrisches Ereignis bestätigt.",
     attendanceLocationAdmin: "Die Verwaltung von Anwesenheitsorten erfordert einen Unternehmens- oder Plattforminhaber.",

@@ -11055,7 +11055,7 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
         existingIdentity.companyId !== context.companyId));
   if (identityAccountMismatch) {
     res.status(409).json({
-      error: "The employee biometric identity and account are inconsistent.",
+      error: message(req, "employeeIdentityAccountMismatch"),
       code: "EMPLOYEE_IDENTITY_ACCOUNT_MISMATCH",
     });
     return;
