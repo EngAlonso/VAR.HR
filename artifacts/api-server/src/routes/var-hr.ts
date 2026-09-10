@@ -2084,7 +2084,14 @@ export async function applyProviderAttendanceEvent(
     return;
   }
 
-  if (existing?.checkOut) return;
+  // Keep the latest chronological check-out. This also handles offline
+  // synchronization where an older device event can arrive after a newer one.
+  if (
+    existing?.checkOut &&
+    event.occurredAt.getTime() <= existing.checkOut.getTime()
+  ) {
+    return;
+  }
   const checkIn = existing?.checkIn;
   if (!existing) {
     await db.insert(attendanceTable).values({
