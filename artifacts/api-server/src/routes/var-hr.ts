@@ -11045,14 +11045,17 @@ router.post("/devices/:deviceId/mappings", async (req, res): Promise<void> => {
     .from(userAccountsTable)
     .where(eq(userAccountsTable.employeeId, employee.employee.id))
     .limit(1);
+  // An employee account is created when the employee is created, while the
+  // device identity is created later when the employee is mapped to a reader.
+  // Therefore, an account without an identity is a valid first-time mapping
+  // state. Only reject genuinely inconsistent company/account relationships.
   const identityAccountMismatch =
     (existingIdentity && !existingAccount) ||
-    (!existingIdentity && existingAccount) ||
+    (existingAccount && existingAccount.companyId !== context.companyId) ||
     (existingIdentity &&
-      existingAccount &&
-      (existingAccount.companyId !== context.companyId ||
-        existingIdentity.accountId !== existingAccount.id ||
-        existingIdentity.companyId !== context.companyId));
+      (existingIdentity.companyId !== context.companyId ||
+        (existingAccount &&
+          existingIdentity.accountId !== existingAccount.id)));
   if (identityAccountMismatch) {
     res.status(409).json({
       error: message(req, "employeeIdentityAccountMismatch"),
