@@ -211,6 +211,7 @@ import {
   auditLogsTable,
   authAuditEventsTable,
   authSessionsTable,
+  biometricDeviceCommandsTable,
   biometricEventsTable,
   biometricSyncHistoryTable,
   branchesTable,
@@ -10506,6 +10507,70 @@ router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
     return;
   }
   const startedAt = new Date();
+  if (device.adapterKey === "zkteco-adms") {
+    const [activeCommand] = await db
+      .select()
+      .from(biometricDeviceCommandsTable)
+      .where(
+        and(
+          eq(biometricDeviceCommandsTable.deviceId, device.id),
+          inArray(biometricDeviceCommandsTable.status, ["queued", "sent"]),
+        ),
+      )
+      .orderBy(desc(biometricDeviceCommandsTable.createdAt))
+      .limit(1);
+    if (activeCommand) {
+      res.status(202).json(
+        SyncDeviceResponse.parse({
+          deviceId: device.id,
+          status: "queued",
+          message:
+            "A full attendance-history request is already waiting for this ADMS device.",
+        }),
+      );
+      return;
+    }
+
+    const history = await recordDeviceSyncHistory({
+      companyId: context.companyId,
+      deviceId: device.id,
+      providerKey: "zkteco-adms",
+      operation: "full_sync",
+      status: "queued",
+      message:
+        "Waiting for the ADMS device to poll the server for the full attendance-history request.",
+      startedAt,
+    });
+    await db.insert(biometricDeviceCommandsTable).values({
+      companyId: context.companyId,
+      deviceId: device.id,
+      syncHistoryId: history.id,
+      command: "LOG",
+      status: "queued",
+    });
+    await db
+      .update(devicesTable)
+      .set({
+        integrationState: "syncing",
+        lastHealthCheck: new Date(),
+      })
+      .where(
+        and(
+          eq(devicesTable.id, device.id),
+          eq(devicesTable.companyId, context.companyId),
+        ),
+      );
+    res.status(202).json(
+      SyncDeviceResponse.parse({
+        deviceId: device.id,
+        status: "queued",
+        message:
+          "Full attendance-history request queued. The device will upload its available records on its next ADMS poll.",
+      }),
+    );
+    return;
+  }
+
   const provider = getBiometricProvider(device.adapterKey);
   if (!provider || !provider.available) {
     await recordDeviceSyncHistory({

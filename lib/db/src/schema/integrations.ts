@@ -1,4 +1,4 @@
-import { boolean, date, integer, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, jsonb, numeric, pgTable, serial, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { companiesTable, employeesTable, branchesTable } from "./organization";
 
 export const devicesTable = pgTable("var_hr_devices", {
@@ -83,6 +83,24 @@ export const biometricSyncHistoryTable = pgTable("var_hr_biometric_sync_history"
   deviceIndex: index("var_hr_biometric_sync_history_device_idx").on(table.deviceId),
 }));
 
+export const biometricDeviceCommandsTable = pgTable("var_hr_biometric_device_commands", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  commandNumber: serial("command_number").notNull().unique(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  deviceId: uuid("device_id").notNull().references(() => devicesTable.id),
+  syncHistoryId: uuid("sync_history_id").references(() => biometricSyncHistoryTable.id),
+  command: text("command").notNull(),
+  status: text("status").notNull().default("queued"),
+  result: text("result"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+}, (table) => ({
+  companyIndex: index("var_hr_biometric_device_commands_company_idx").on(table.companyId),
+  deviceIndex: index("var_hr_biometric_device_commands_device_idx").on(table.deviceId),
+  statusIndex: index("var_hr_biometric_device_commands_status_idx").on(table.deviceId, table.status),
+}));
+
 export const attendanceLocationsTable = pgTable("var_hr_attendance_locations", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
@@ -101,4 +119,5 @@ export type Device = typeof devicesTable.$inferSelect;
 export type DeviceEmployeeMapping = typeof deviceEmployeeMappingsTable.$inferSelect;
 export type BiometricEvent = typeof biometricEventsTable.$inferSelect;
 export type BiometricSyncHistory = typeof biometricSyncHistoryTable.$inferSelect;
+export type BiometricDeviceCommand = typeof biometricDeviceCommandsTable.$inferSelect;
 export type AttendanceLocation = typeof attendanceLocationsTable.$inferSelect;

@@ -4940,6 +4940,7 @@ const task5Copy = {
     attendanceSync: "Attendance sync",
     fullSync: "Full sync",
     sync: "Sync",
+    requestAttendanceHistory: "Load full attendance history",
     syncEmployees: "Sync employees",
     syncAttendance: "Sync attendance",
     syncing: "Syncing…",
@@ -5061,6 +5062,7 @@ const task5Copy = {
     attendanceSync: "مزامنة الحضور",
     fullSync: "مزامنة كاملة",
     sync: "مزامنة",
+    requestAttendanceHistory: "تحميل سجل الحركة بالكامل",
     syncEmployees: "مزامنة الموظفين",
     syncAttendance: "مزامنة الحضور",
     syncing: "جارٍ المزامنة…",
@@ -19160,7 +19162,9 @@ function Devices() {
                         }
                       >
                         <RefreshCw size={15} />
-                        {t("sync")}
+                        {d.adapterKey === "zkteco-adms"
+                          ? t("requestAttendanceHistory")
+                          : t("sync")}
                       </Button>
                     </div>
                   </div>

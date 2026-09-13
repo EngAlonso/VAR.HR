@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { Router, type Request, type Response } from "express";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db, auditLogsTable, biometricEventsTable, biometricSyncHistoryTable, companiesTable, deviceEmployeeMappingsTable, devicesTable } from "@workspace/db";
+import { biometricDeviceCommandsTable } from "@workspace/db";
 import { parseDeviceTimestamp } from "../lib/device-time";
 import { applyProviderAttendanceEvent } from "./var-hr";
 
@@ -55,9 +56,144 @@ async function heartbeat(req: Request, res: Response) {
   res.type("text").send("OK");
 }
 
+async function getrequest(req: Request, res: Response) {
+  const device = await deviceFor(req);
+  if (device === undefined) { res.status(401).type("text").send("ERROR"); return; }
+  if (!device) { res.status(404).type("text").send("ERROR"); return; }
+
+  const now = new Date();
+  await db.update(devicesTable).set({
+    lastHealthCheck: now,
+    connectionState: "connected",
+    status: "connected",
+    integrationState: "configured",
+  }).where(eq(devicesTable.id, device.id));
+
+  const [queuedCommand] = await db
+    .select()
+    .from(biometricDeviceCommandsTable)
+    .where(and(
+      eq(biometricDeviceCommandsTable.deviceId, device.id),
+      eq(biometricDeviceCommandsTable.status, "queued"),
+    ))
+    .orderBy(asc(biometricDeviceCommandsTable.createdAt))
+    .limit(1);
+
+  if (queuedCommand) {
+    const [sentCommand] = await db
+      .update(biometricDeviceCommandsTable)
+      .set({ status: "sent", sentAt: now })
+      .where(and(
+        eq(biometricDeviceCommandsTable.id, queuedCommand.id),
+        eq(biometricDeviceCommandsTable.status, "queued"),
+      ))
+      .returning();
+
+    if (sentCommand) {
+      if (sentCommand.syncHistoryId) {
+        await db.update(biometricSyncHistoryTable)
+          .set({
+            status: "running",
+            message: `ADMS command ${sentCommand.command} sent to the device; waiting for its response and attendance upload.`,
+          })
+          .where(eq(biometricSyncHistoryTable.id, sentCommand.syncHistoryId));
+      }
+      await db.insert(biometricSyncHistoryTable).values({
+        companyId: device.companyId,
+        deviceId: device.id,
+        providerKey: "zkteco-adms",
+        operation: "heartbeat",
+        status: "completed",
+        message: "ADMS heartbeat received while delivering a queued command.",
+        startedAt: now,
+        completedAt: new Date(),
+      });
+      await audit(device.companyId, "command_sent", device.id, {
+        command: sentCommand.command,
+        commandNumber: sentCommand.commandNumber,
+      });
+      res.type("text").send(`C:${sentCommand.commandNumber}:${sentCommand.command}\n`);
+      return;
+    }
+  }
+
+  await db.insert(biometricSyncHistoryTable).values({
+    companyId: device.companyId,
+    deviceId: device.id,
+    providerKey: "zkteco-adms",
+    operation: "heartbeat",
+    status: "completed",
+    message: "ADMS heartbeat received.",
+    startedAt: now,
+    completedAt: new Date(),
+  });
+  res.type("text").send("OK");
+}
+
+async function devicecmd(req: Request, res: Response) {
+  const device = await deviceFor(req);
+  if (device === undefined) { res.status(401).type("text").send("ERROR"); return; }
+  if (!device) { res.status(404).type("text").send("ERROR"); return; }
+
+  const raw = typeof req.body === "string"
+    ? req.body
+    : new URLSearchParams(req.body as Record<string, string>).toString();
+  const lines = raw.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
+  let updated = 0;
+
+  for (const line of lines) {
+    const result = new URLSearchParams(line);
+    const commandNumber = Number(result.get("ID") || result.get("id"));
+    if (!Number.isInteger(commandNumber)) continue;
+    const returnCode = result.get("Return") || result.get("return") || "";
+    const succeeded = returnCode === "0";
+    const completedAt = new Date();
+    const [command] = await db
+      .select()
+      .from(biometricDeviceCommandsTable)
+      .where(and(
+        eq(biometricDeviceCommandsTable.deviceId, device.id),
+        eq(biometricDeviceCommandsTable.commandNumber, commandNumber),
+      ))
+      .limit(1);
+    if (!command) continue;
+
+    await db.update(biometricDeviceCommandsTable)
+      .set({
+        status: succeeded ? "completed" : "failed",
+        result: line,
+        completedAt,
+      })
+      .where(eq(biometricDeviceCommandsTable.id, command.id));
+
+    if (command.syncHistoryId) {
+      await db.update(biometricSyncHistoryTable)
+        .set({
+          status: succeeded ? "completed" : "failed",
+          message: succeeded
+            ? `The device accepted the ${command.command} command and uploaded its available attendance records.`
+            : `The device rejected the ${command.command} command with return code ${returnCode || "unknown"}.`,
+          completedAt,
+          errorCount: succeeded ? 0 : 1,
+        })
+        .where(eq(biometricSyncHistoryTable.id, command.syncHistoryId));
+    }
+    updated++;
+  }
+
+  await db.update(devicesTable).set({
+    lastHealthCheck: new Date(),
+    connectionState: "connected",
+    status: updated ? "connected" : "attention",
+    integrationState: updated ? "configured" : "syncing",
+  }).where(eq(devicesTable.id, device.id));
+  await audit(device.companyId, "command_result", device.id, { updated, raw });
+  res.type("text").send("OK");
+}
+
 router.get("/ping", heartbeat);
-router.get("/getrequest", heartbeat);
-router.post("/devicecmd", heartbeat);
+router.get("/getrequest", getrequest);
+router.post("/devicecmd", devicecmd);
 router.get("/registry", heartbeat);
 router.post("/registry", heartbeat);
 router.post("/push", heartbeat);
@@ -91,7 +227,44 @@ router.post("/cdata", async (req, res) => {
     const idempotencyKey = createHash("sha256").update([device.deviceIdentifier, pin, timestamp, status, verify, workcode].join("|")).digest("hex");
     const [mapping] = await db.select().from(deviceEmployeeMappingsTable).where(and(eq(deviceEmployeeMappingsTable.companyId, device.companyId), eq(deviceEmployeeMappingsTable.deviceId, device.id), eq(deviceEmployeeMappingsTable.deviceEmployeeId, pin), eq(deviceEmployeeMappingsTable.active, true))).limit(1);
     const [event] = await db.insert(biometricEventsTable).values({ companyId: device.companyId, deviceId: device.id, deviceEmployeeId: pin, employeeId: mapping?.employeeId ?? null, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload: { protocol: "zkteco-adms", PIN: pin, timestamp, status, verify, workcode }, processingStatus: mapping ? "received" : "rejected" }).onConflictDoNothing({ target: [biometricEventsTable.companyId, biometricEventsTable.idempotencyKey] }).returning();
-    if (!event) { duplicates++; continue; }
+    if (!event) {
+      const [existingEvent] = await db.select().from(biometricEventsTable).where(and(
+        eq(biometricEventsTable.companyId, device.companyId),
+        eq(biometricEventsTable.idempotencyKey, idempotencyKey),
+      )).limit(1);
+      const timestampChanged =
+        existingEvent &&
+        (existingEvent.occurredAt.getTime() !== occurredAt.getTime() ||
+          existingEvent.direction !== direction);
+      if (!timestampChanged) { duplicates++; continue; }
+
+      await db.update(biometricEventsTable).set({
+        occurredAt,
+        direction,
+        rawPayload: { protocol: "zkteco-adms", PIN: pin, timestamp, status, verify, workcode },
+        processingStatus: mapping ? "received" : "rejected",
+        processedAt: null,
+      }).where(and(
+        eq(biometricEventsTable.companyId, device.companyId),
+        eq(biometricEventsTable.idempotencyKey, idempotencyKey),
+      ));
+      if (!mapping) { rejected++; continue; }
+      try {
+        await applyProviderAttendanceEvent(context, { deviceEmployeeId: pin, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload: {} }, mapping.employeeId);
+        await db.update(biometricEventsTable).set({ processingStatus: "mapped", processedAt: new Date() }).where(and(
+          eq(biometricEventsTable.companyId, device.companyId),
+          eq(biometricEventsTable.idempotencyKey, idempotencyKey),
+        ));
+        accepted++;
+      } catch {
+        rejected++;
+        await db.update(biometricEventsTable).set({ processingStatus: "failed", processedAt: new Date() }).where(and(
+          eq(biometricEventsTable.companyId, device.companyId),
+          eq(biometricEventsTable.idempotencyKey, idempotencyKey),
+        ));
+      }
+      continue;
+    }
     if (!mapping) { rejected++; continue; }
     try {
       await applyProviderAttendanceEvent(context, { deviceEmployeeId: pin, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload: {} }, mapping.employeeId);
@@ -101,6 +274,24 @@ router.post("/cdata", async (req, res) => {
   }
   await db.update(devicesTable).set({ lastHealthCheck: now, lastSync: now, connectionState: "connected", status: rejected ? "attention" : "connected", integrationState: "configured" }).where(eq(devicesTable.id, device.id));
   await db.insert(biometricSyncHistoryTable).values({ companyId: device.companyId, deviceId: device.id, providerKey: "zkteco-adms", operation: "attendance_sync", status: rejected ? "failed" : "completed", message: `ADMS upload: ${accepted} accepted, ${duplicates} duplicate, ${rejected} rejected.`, eventsReceived: rows.length, eventsProcessed: accepted, errorCount: rejected, startedAt: now, completedAt: new Date() });
+  const [recentLogCommand] = await db
+    .select()
+    .from(biometricDeviceCommandsTable)
+    .where(and(
+      eq(biometricDeviceCommandsTable.deviceId, device.id),
+      eq(biometricDeviceCommandsTable.command, "LOG"),
+      eq(biometricDeviceCommandsTable.status, "sent"),
+    ))
+    .orderBy(asc(biometricDeviceCommandsTable.sentAt))
+    .limit(1);
+  if (recentLogCommand?.syncHistoryId) {
+    await db.update(biometricSyncHistoryTable).set({
+      eventsReceived: rows.length,
+      eventsProcessed: accepted,
+      errorCount: rejected,
+      message: `ADMS full-history request uploaded ${accepted} accepted, ${duplicates} duplicate, ${rejected} rejected.`,
+    }).where(eq(biometricSyncHistoryTable.id, recentLogCommand.syncHistoryId));
+  }
   if (accepted) await audit(device.companyId, "accepted_upload", device.id, { accepted });
   if (rejected) await audit(device.companyId, "rejected_upload", device.id, { rejected });
   if (duplicates) await audit(device.companyId, "duplicate_upload", device.id, { duplicates });
