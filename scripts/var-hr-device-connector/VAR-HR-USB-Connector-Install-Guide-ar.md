@@ -239,7 +239,9 @@ User Manual
   "deviceId": "DEVICE_UUID",
   "registrationKey": "ONE_TIME_DEVICE_REGISTRATION_KEY",
   "machineNumber": 1,
-  "pollIntervalSeconds": 30
+   "pollIntervalSeconds": 30,
+   "timeZoneId": "Egypt Standard Time",
+   "batchSize": 200
 }
 ```
 
@@ -278,9 +280,27 @@ https://hr.example.com/
   "deviceId": "11111111-2222-3333-4444-555555555555",
   "registrationKey": "ضع-المفتاح-الذي-ظهر-في-VAR-HR-هنا",
   "machineNumber": 1,
-  "pollIntervalSeconds": 30
+   "pollIntervalSeconds": 30,
+   "timeZoneId": "Egypt Standard Time",
+   "batchSize": 200
 }
 ```
+
+### timeZoneId
+
+هذا هو توقيت الساعة داخل جهاز البصمة. لمصر استخدم:
+
+```text
+Egypt Standard Time
+```
+
+إذا كان الجهاز في دولة أخرى، استخدم اسم المنطقة الزمنية الموجود على Windows
+في ذلك الكمبيوتر.
+
+### batchSize
+
+عدد السجلات التي يرسلها الموصل في كل دفعة. القيمة `200` مناسبة للمزامنة
+العادية ولإعادة إرسال سجل قديم طويل. لا ترفعها فوق `500`.
 
 احفظ الملف من Notepad باستخدام:
 

@@ -3,5 +3,7 @@
   "deviceId": "DEVICE_UUID",
   "registrationKey": "ONE_TIME_DEVICE_REGISTRATION_KEY",
   "machineNumber": 1,
-  "pollIntervalSeconds": 30
+  "pollIntervalSeconds": 30,
+  "timeZoneId": "Egypt Standard Time",
+  "batchSize": 200
 }

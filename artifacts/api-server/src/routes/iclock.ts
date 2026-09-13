@@ -3,6 +3,7 @@ import { Router, type Request, type Response } from "express";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db, auditLogsTable, biometricEventsTable, biometricSyncHistoryTable, companiesTable, deviceEmployeeMappingsTable, devicesTable } from "@workspace/db";
+import { parseDeviceTimestamp } from "../lib/device-time";
 import { applyProviderAttendanceEvent } from "./var-hr";
 
 const router = Router();
@@ -77,7 +78,13 @@ router.post("/cdata", async (req, res) => {
     const fields = line.split("\t");
     if (fields.length < 5) { rejected++; continue; }
     const [pin, timestamp, status, verify, workcode] = fields.map((part) => part.trim());
-    const occurredAt = new Date(timestamp.replace(" ", "T") + (/[zZ]|[+-]\d\d:\d\d$/.test(timestamp) ? "" : "Z"));
+    let occurredAt: Date;
+    try {
+      occurredAt = parseDeviceTimestamp(timestamp, company.timezone);
+    } catch {
+      rejected++;
+      continue;
+    }
     const statusNumber = Number(status);
     const direction = [0, 4, 5].includes(statusNumber) ? "in" : [1, 2, 3].includes(statusNumber) ? "out" : null;
     if (!pin || !timestamp || !Number.isFinite(statusNumber) || !direction || Number.isNaN(occurredAt.getTime())) { rejected++; continue; }

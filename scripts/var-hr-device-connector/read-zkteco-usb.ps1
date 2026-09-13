@@ -1,11 +1,18 @@
 param(
-  [int]$MachineNumber = 1
+  [int]$MachineNumber = 1,
+  [string]$TimeZoneId = "Egypt Standard Time"
 )
 
 $ErrorActionPreference = "Stop"
 $zk = $null
 
 try {
+  try {
+    $deviceTimeZone = [TimeZoneInfo]::FindSystemTimeZoneById($TimeZoneId)
+  } catch {
+    throw "The configured device timezone '$TimeZoneId' was not found on Windows."
+  }
+
   try {
     $zk = New-Object -ComObject "zkemkeeper.ZKEM.1"
   } catch {
@@ -53,14 +60,20 @@ try {
       }
 
       $direction = if (@(0, 4, 5) -contains $inOutMode) { "in" } else { "out" }
-      $occurredAt = Get-Date -Year $year -Month $month -Day $day -Hour $hour -Minute $minute -Second $second
+       $localDateTime = [DateTime]::SpecifyKind(
+         (Get-Date -Year $year -Month $month -Day $day -Hour $hour -Minute $minute -Second $second).DateTime,
+         [DateTimeKind]::Unspecified
+       )
+       $occurredAt = [TimeZoneInfo]::ConvertTimeToUtc($localDateTime, $deviceTimeZone)
+       $occurredAtText = $occurredAt.ToString("o", [Globalization.CultureInfo]::InvariantCulture)
       $events += [ordered]@{
         deviceEmployeeId = $enrollNumber.Trim()
-        occurredAt = $occurredAt.ToUniversalTime().ToString("o")
+         occurredAt = $occurredAtText
         direction = $direction
-        idempotencyKey = "zkteco-usb:$enrollNumber:$($occurredAt.ToUniversalTime().ToString("o")):$verifyMode:$inOutMode:$workCode"
+         idempotencyKey = "zkteco-usb:$enrollNumber:$occurredAtText:$verifyMode:$inOutMode:$workCode"
         rawPayload = [ordered]@{
           protocol = "zkteco-usb"
+           deviceTimeZone = $TimeZoneId
           verifyMode = $verifyMode
           inOutMode = $inOutMode
           workCode = $workCode

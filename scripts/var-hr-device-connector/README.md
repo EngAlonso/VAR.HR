@@ -19,6 +19,8 @@ For the complete Arabic setup instructions, open
    - the published VAR HR URL
    - the device UUID
    - the one-time registration key
+    - `timeZoneId` for the device clock (use `Egypt Standard Time` for Egypt)
+    - optionally `batchSize` for historical backfill (default 200)
 5. Open PowerShell as Administrator in this directory and run:
 
 ```powershell
@@ -27,6 +29,8 @@ For the complete Arabic setup instructions, open
 
 The connector is installed as a Windows startup task and retries automatically
 when the device or the internet connection is temporarily unavailable.
+It reads the full attendance log exposed by the ZKTeco SDK, uploads it in
+batches, and relies on the server's idempotency key to avoid duplicates.
 
 ## Employee mapping
 
