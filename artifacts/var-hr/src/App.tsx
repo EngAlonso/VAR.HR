@@ -19156,7 +19156,10 @@ function Devices() {
                                   queryKey: getListDevicesQueryKey(),
                                 });
                               },
-                              onError: () => toast.error(t("syncUnavailable")),
+                              onError: (error) =>
+                                toast.error(
+                                  apiErrorMessage(error, t("syncUnavailable")),
+                                ),
                             },
                           )
                         }
