@@ -5307,6 +5307,7 @@ function time(value?: string | null) {
   return new Intl.DateTimeFormat(activeIntlLocale(), {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: document.documentElement.dataset.timezone || "Africa/Cairo",
   }).format(new Date(value));
 }
 function periodLabel(value?: string) {
@@ -7161,6 +7162,12 @@ function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (workspaceStatus === 401) void auth.signOut();
   }, [auth.signOut, workspaceStatus]);
+  useEffect(() => {
+    const timeZone = workspaceQuery.data?.company?.timezone;
+    if (timeZone) {
+      document.documentElement.dataset.timezone = timeZone;
+    }
+  }, [workspaceQuery.data?.company?.timezone]);
   useEffect(() => {
     setOpen(false);
   }, [location]);

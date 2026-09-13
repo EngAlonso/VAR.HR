@@ -1972,58 +1972,43 @@ export async function applyProviderAttendanceEvent(
   );
   const rules = await attendanceRulesFor(context.companyId, eventDate);
   const holidays = await holidaysForCompany(context.companyId);
-  let attendanceDate = eventDate;
-  let existing: typeof attendanceTable.$inferSelect | undefined;
-  if (event.direction === "in") {
-    [existing] = await db
-      .select()
-      .from(attendanceTable)
-      .where(
-        and(
-          eq(attendanceTable.companyId, context.companyId),
-          eq(attendanceTable.employeeId, employeeId),
+  const priorDate = dateOffset(eventDate, -1);
+  const candidates = await db
+    .select()
+    .from(attendanceTable)
+    .where(
+      and(
+        eq(attendanceTable.companyId, context.companyId),
+        eq(attendanceTable.employeeId, employeeId),
+        or(
           eq(attendanceTable.date, eventDate),
+          eq(attendanceTable.date, priorDate),
         ),
-      )
-      .limit(1);
-  } else {
-    const priorDate = dateOffset(eventDate, -1);
-    const candidates = await db
-      .select()
-      .from(attendanceTable)
-      .where(
-        and(
-          eq(attendanceTable.companyId, context.companyId),
-          eq(attendanceTable.employeeId, employeeId),
-          or(
-            eq(attendanceTable.date, eventDate),
-            eq(attendanceTable.date, priorDate),
-          ),
-        ),
-      )
-      .orderBy(desc(attendanceTable.date));
-    for (const candidate of candidates) {
-      if (candidate.checkOut) continue;
-      if (candidate.date === eventDate) {
-        existing = candidate;
-        break;
-      }
-      const candidateSchedule = await effectiveScheduleFor(
-        context.companyId,
-        employeeId,
-        candidate.date,
-        rules,
-      );
-      if (
-        candidate.date === priorDate &&
-        isOvernightSchedule(candidateSchedule)
-      ) {
-        existing = candidate;
-        break;
-      }
+      ),
+    )
+    .orderBy(desc(attendanceTable.date));
+  let existing: typeof attendanceTable.$inferSelect | undefined;
+  for (const candidate of candidates) {
+    if (candidate.date === eventDate) {
+      existing = candidate;
+      break;
     }
-    attendanceDate = existing?.date ?? eventDate;
+    const candidateSchedule = await effectiveScheduleFor(
+      context.companyId,
+      employeeId,
+      candidate.date,
+      rules,
+    );
+    if (
+      candidate.date === priorDate &&
+      !candidate.checkOut &&
+      isOvernightSchedule(candidateSchedule)
+    ) {
+      existing = candidate;
+      break;
+    }
   }
+  const attendanceDate = existing?.date ?? eventDate;
   const schedule = await effectiveScheduleFor(
     context.companyId,
     employeeId,
@@ -2032,7 +2017,7 @@ export async function applyProviderAttendanceEvent(
   );
   const holiday = isHolidayDate(attendanceDate, rules, holidays);
 
-  if (event.direction === "in") {
+  if (!existing) {
     const metrics = attendanceMetrics({
       checkIn: event.occurredAt,
       checkOut: null,
@@ -2042,7 +2027,10 @@ export async function applyProviderAttendanceEvent(
       timeZone: context.company.timezone,
       holiday,
     });
-    const values = {
+    await db.insert(attendanceTable).values({
+      companyId: context.companyId,
+      employeeId,
+      date: attendanceDate,
       status: holiday
         ? "holiday"
         : metrics.rawLateMinutes > schedule.graceMinutes
@@ -2059,68 +2047,39 @@ export async function applyProviderAttendanceEvent(
       locationStatus: "not_required",
       location: null,
       explanation: holiday
-        ? "Biometric provider check-in synchronized on a company holiday."
-        : "Biometric provider check-in synchronized.",
-      updatedAt: new Date(),
-    };
-    if (!existing) {
-      await db.insert(attendanceTable).values({
-        companyId: context.companyId,
-        employeeId,
-        date: attendanceDate,
-        ...values,
-      });
-    } else if (!existing.checkIn) {
-      await db
-        .update(attendanceTable)
-        .set(values)
-        .where(
-          and(
-            eq(attendanceTable.id, existing.id),
-            eq(attendanceTable.companyId, context.companyId),
-          ),
-        );
-    }
-    return;
-  }
-
-  // Keep the latest chronological check-out. This also handles offline
-  // synchronization where an older device event can arrive after a newer one.
-  if (
-    existing?.checkOut &&
-    event.occurredAt.getTime() <= existing.checkOut.getTime()
-  ) {
-    return;
-  }
-  const checkIn = existing?.checkIn;
-  if (!existing) {
-    await db.insert(attendanceTable).values({
-      companyId: context.companyId,
-      employeeId,
-      date: attendanceDate,
-      status: holiday ? "holiday" : "incomplete",
-      scheduledStart: schedule.startTime,
-      scheduledEnd: schedule.endTime,
-      requiredHours: schedule.requiredHours,
-      checkOut: event.occurredAt,
-      workedHours: 0,
-      overtimeHours: 0,
-      missingMinutes:
-        holiday || !isWorkingScheduleDay(schedule, attendanceDate)
-          ? 0
-          : Math.round(schedule.requiredHours * 60),
-      source: "biometric",
-      locationStatus: "not_required",
-      location: null,
-      explanation: holiday
-        ? "Biometric provider check-out synchronized on a company holiday."
-        : "Biometric provider check-out synchronized before a check-in.",
+        ? "Biometric provider first movement synchronized on a company holiday."
+        : "Biometric provider first movement synchronized as check-in.",
     });
     return;
   }
+
+  // Device check-in/check-out buttons are not reliable for this policy.
+  // The earliest movement is the check-in and every later movement is a
+  // check-out candidate; keep the latest chronological movement as checkout.
+  let checkIn = existing.checkIn;
+  let checkOut = existing.checkOut;
+  if (!checkIn) {
+    checkIn = event.occurredAt;
+  } else if (event.occurredAt.getTime() < checkIn.getTime()) {
+    checkOut = checkOut
+      ? new Date(Math.max(checkOut.getTime(), checkIn.getTime()))
+      : checkIn;
+    checkIn = event.occurredAt;
+  } else if (
+    event.occurredAt.getTime() > checkIn.getTime() &&
+    (!checkOut || event.occurredAt.getTime() > checkOut.getTime())
+  ) {
+    checkOut = event.occurredAt;
+  } else {
+    return;
+  }
+
+  if (checkOut && checkOut.getTime() <= checkIn.getTime()) {
+    checkOut = null;
+  }
   const metrics = attendanceMetrics({
     checkIn: checkIn ?? null,
-    checkOut: event.occurredAt,
+    checkOut,
     attendanceDate,
     schedule,
     rules,
@@ -2130,7 +2089,8 @@ export async function applyProviderAttendanceEvent(
   await db
     .update(attendanceTable)
     .set({
-      checkOut: event.occurredAt,
+      checkIn,
+      checkOut,
       workedHours: metrics.workedHours,
       overtimeHours: metrics.overtimeHours,
       earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
@@ -2139,11 +2099,13 @@ export async function applyProviderAttendanceEvent(
         ? "holiday"
         : metrics.earlyCheckoutMinutes > 0 || metrics.missingMinutes > 0
           ? "incomplete"
-          : existing.status,
+          : metrics.rawLateMinutes > schedule.graceMinutes
+            ? "late"
+            : "present",
       source: "biometric",
       explanation: holiday
-        ? "Biometric provider check-out synchronized on a company holiday."
-        : "Biometric provider check-out synchronized.",
+        ? "Biometric chronological movement synchronized on a company holiday."
+        : "Biometric chronological movements synchronized as first check-in and latest check-out.",
       updatedAt: new Date(),
     })
     .where(
