@@ -226,7 +226,21 @@ router.post("/cdata", async (req, res) => {
     if (!pin || !timestamp || !Number.isFinite(statusNumber) || !direction || Number.isNaN(occurredAt.getTime())) { rejected++; continue; }
     const idempotencyKey = createHash("sha256").update([device.deviceIdentifier, pin, timestamp, status, verify, workcode].join("|")).digest("hex");
     const [mapping] = await db.select().from(deviceEmployeeMappingsTable).where(and(eq(deviceEmployeeMappingsTable.companyId, device.companyId), eq(deviceEmployeeMappingsTable.deviceId, device.id), eq(deviceEmployeeMappingsTable.deviceEmployeeId, pin), eq(deviceEmployeeMappingsTable.active, true))).limit(1);
-    const [event] = await db.insert(biometricEventsTable).values({ companyId: device.companyId, deviceId: device.id, deviceEmployeeId: pin, employeeId: mapping?.employeeId ?? null, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload: { protocol: "zkteco-adms", PIN: pin, timestamp, status, verify, workcode }, processingStatus: mapping ? "received" : "rejected" }).onConflictDoNothing({ target: [biometricEventsTable.companyId, biometricEventsTable.idempotencyKey] }).returning();
+    const rawPayload = {
+      protocol: "zkteco-adms",
+      PIN: pin,
+      timestamp,
+      status,
+      verify,
+      workcode,
+      ...(mapping
+        ? {}
+        : {
+            rejectionReason:
+              "No active employee mapping exists for this device user.",
+          }),
+    };
+    const [event] = await db.insert(biometricEventsTable).values({ companyId: device.companyId, deviceId: device.id, deviceEmployeeId: pin, employeeId: mapping?.employeeId ?? null, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload, processingStatus: mapping ? "received" : "rejected" }).onConflictDoNothing({ target: [biometricEventsTable.companyId, biometricEventsTable.idempotencyKey] }).returning();
     if (!event) {
       const [existingEvent] = await db.select().from(biometricEventsTable).where(and(
         eq(biometricEventsTable.companyId, device.companyId),
@@ -236,12 +250,44 @@ router.post("/cdata", async (req, res) => {
         existingEvent &&
         (existingEvent.occurredAt.getTime() !== occurredAt.getTime() ||
           existingEvent.direction !== direction);
-      if (!timestampChanged) { duplicates++; continue; }
+      if (!timestampChanged) {
+        if (existingEvent && mapping && existingEvent.processingStatus !== "mapped") {
+          try {
+            await applyProviderAttendanceEvent(
+              context,
+              {
+                deviceEmployeeId: pin,
+                occurredAt,
+                eventType: "attendance",
+                direction,
+                idempotencyKey,
+                rawPayload,
+              },
+              mapping.employeeId,
+            );
+            await db.update(biometricEventsTable).set({
+              employeeId: mapping.employeeId,
+              rawPayload,
+              processingStatus: "mapped",
+              processedAt: new Date(),
+            }).where(eq(biometricEventsTable.id, existingEvent.id));
+            accepted++;
+          } catch {
+            rejected++;
+            await db.update(biometricEventsTable).set({
+              processingStatus: "failed",
+              processedAt: new Date(),
+            }).where(eq(biometricEventsTable.id, existingEvent.id));
+          }
+          continue;
+        }
+        if (!event) { duplicates++; continue; }
+      }
 
       await db.update(biometricEventsTable).set({
         occurredAt,
         direction,
-        rawPayload: { protocol: "zkteco-adms", PIN: pin, timestamp, status, verify, workcode },
+        rawPayload,
         processingStatus: mapping ? "received" : "rejected",
         processedAt: null,
       }).where(and(
@@ -251,7 +297,7 @@ router.post("/cdata", async (req, res) => {
       if (!mapping) { rejected++; continue; }
       try {
         await applyProviderAttendanceEvent(context, { deviceEmployeeId: pin, occurredAt, eventType: "attendance", direction, idempotencyKey, rawPayload: {} }, mapping.employeeId);
-        await db.update(biometricEventsTable).set({ processingStatus: "mapped", processedAt: new Date() }).where(and(
+        await db.update(biometricEventsTable).set({ employeeId: mapping.employeeId, rawPayload, processingStatus: "mapped", processedAt: new Date() }).where(and(
           eq(biometricEventsTable.companyId, device.companyId),
           eq(biometricEventsTable.idempotencyKey, idempotencyKey),
         ));

@@ -5302,6 +5302,7 @@ function date(value?: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: document.documentElement.dataset.timezone || "Africa/Cairo",
   }).format(new Date(value));
 }
 function time(value?: string | null) {
@@ -12842,10 +12843,7 @@ function Rules() {
   const update = useUpdateAttendanceRules();
   const canViewRuleHistory = account.accountType === "company_owner";
   const changes = useListAttendanceRuleChanges({
-    query: {
-      enabled: canViewRuleHistory,
-      queryKey: getListAttendanceRuleChangesQueryKey(),
-    },
+    query: { enabled: canViewRuleHistory } as any,
   });
   const balances = useListLeaveBalances();
   const [form, setForm] = useState<any>(null);
@@ -19155,6 +19153,12 @@ function Devices() {
                                 qc.invalidateQueries({
                                   queryKey: getListDevicesQueryKey(),
                                 });
+                                qc.invalidateQueries({
+                                  queryKey: getListDeviceSyncHistoryQueryKey(d.id),
+                                });
+                                qc.invalidateQueries({
+                                  queryKey: getListBiometricDeviceEventsQueryKey(d.id),
+                                });
                               },
                               onError: (error) =>
                                 toast.error(
@@ -19403,9 +19407,23 @@ function Devices() {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <Badge tone={event.processingStatus === "mapped" ? "good" : "warn"}>
+                        <Badge
+                          tone={
+                            event.processingStatus === "mapped"
+                              ? "good"
+                              : event.processingStatus === "rejected" ||
+                                  event.processingStatus === "failed"
+                                ? "bad"
+                                : "warn"
+                          }
+                        >
                           {processingStatusLabel(event.processingStatus)}
                         </Badge>
+                        {typeof event.rawPayload?.rejectionReason === "string" && (
+                          <p className="mt-2 text-xs text-destructive">
+                            {event.rawPayload.rejectionReason}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );

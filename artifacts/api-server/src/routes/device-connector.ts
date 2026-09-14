@@ -101,8 +101,16 @@ router.post(
           eventType: "attendance",
           direction: event.direction,
           idempotencyKey: event.idempotencyKey,
-          rawPayload: event.rawPayload ?? { protocol: "zkteco-usb" },
-          processingStatus: mapping ? "received" : "pending_adapter",
+          rawPayload: {
+            ...(event.rawPayload ?? { protocol: "zkteco-usb" }),
+            ...(mapping
+              ? {}
+              : {
+                  rejectionReason:
+                    "No active employee mapping exists for this device user.",
+                }),
+          },
+          processingStatus: mapping ? "received" : "rejected",
         })
         .onConflictDoNothing({
           target: [
@@ -112,7 +120,50 @@ router.post(
         })
         .returning();
       if (!stored) {
-        duplicates += 1;
+        const [existing] = await db
+          .select()
+          .from(biometricEventsTable)
+          .where(
+            and(
+              eq(biometricEventsTable.companyId, row.device.companyId),
+              eq(biometricEventsTable.idempotencyKey, event.idempotencyKey),
+            ),
+          )
+          .limit(1);
+        if (!existing || !mapping || existing.processingStatus === "mapped") {
+          duplicates += 1;
+          continue;
+        }
+        try {
+          await applyProviderAttendanceEvent(
+            { companyId: row.device.companyId, company: row.company },
+            {
+              deviceEmployeeId: event.deviceEmployeeId,
+              occurredAt,
+              eventType: "attendance",
+              direction: event.direction,
+              idempotencyKey: event.idempotencyKey,
+              rawPayload: event.rawPayload ?? {},
+            },
+            mapping.employeeId,
+          );
+          await db
+            .update(biometricEventsTable)
+            .set({
+              employeeId: mapping.employeeId,
+              processingStatus: "mapped",
+              processedAt: new Date(),
+              rawPayload: event.rawPayload ?? { protocol: "zkteco-usb" },
+            })
+            .where(eq(biometricEventsTable.id, existing.id));
+          accepted += 1;
+        } catch {
+          rejected += 1;
+          await db
+            .update(biometricEventsTable)
+            .set({ processingStatus: "failed", processedAt: new Date() })
+            .where(eq(biometricEventsTable.id, existing.id));
+        }
         continue;
       }
       if (!mapping) {
