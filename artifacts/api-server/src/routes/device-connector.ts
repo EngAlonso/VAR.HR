@@ -1,11 +1,12 @@
 // @ts-nocheck
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Router, type Request } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   auditLogsTable,
   biometricEventsTable,
+  biometricDeviceCommandsTable,
   biometricSyncHistoryTable,
   companiesTable,
   db,
@@ -43,6 +44,73 @@ function keyMatches(stored: string | null, supplied: string | undefined) {
   );
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
+
+router.get(
+  "/connector/v1/devices/:deviceId/commands",
+  async (req, res): Promise<void> => {
+    const parsedDeviceId = z.string().uuid().safeParse(req.params.deviceId);
+    if (!parsedDeviceId.success) {
+      res.status(400).json({ error: "Invalid connector device." });
+      return;
+    }
+
+    const [device] = await db
+      .select()
+      .from(devicesTable)
+      .where(eq(devicesTable.id, parsedDeviceId.data))
+      .limit(1);
+    if (!device || device.adapterKey !== "zkteco-usb") {
+      res.status(404).json({ error: "USB connector device not found." });
+      return;
+    }
+    if (!keyMatches(device.registrationKeyHash, suppliedRegistrationKey(req))) {
+      res.status(401).json({ error: "A valid device registration key is required." });
+      return;
+    }
+
+    const [queuedCommand] = await db
+      .select()
+      .from(biometricDeviceCommandsTable)
+      .where(
+        and(
+          eq(biometricDeviceCommandsTable.deviceId, device.id),
+          eq(biometricDeviceCommandsTable.status, "queued"),
+        ),
+      )
+      .orderBy(asc(biometricDeviceCommandsTable.createdAt))
+      .limit(1);
+
+    if (!queuedCommand) {
+      res.json({ command: null });
+      return;
+    }
+
+    const sentAt = new Date();
+    const [sentCommand] = await db
+      .update(biometricDeviceCommandsTable)
+      .set({ status: "sent", sentAt })
+      .where(
+        and(
+          eq(biometricDeviceCommandsTable.id, queuedCommand.id),
+          eq(biometricDeviceCommandsTable.status, "queued"),
+        ),
+      )
+      .returning();
+    await db
+      .update(devicesTable)
+      .set({
+        lastHealthCheck: sentAt,
+        connectionState: "connected",
+        integrationState: "syncing",
+      })
+      .where(eq(devicesTable.id, device.id));
+
+    res.json({
+      command: sentCommand?.command ?? queuedCommand.command,
+      commandNumber: sentCommand?.commandNumber ?? queuedCommand.commandNumber,
+    });
+  },
+);
 
 router.post(
   "/connector/v1/devices/:deviceId/events",
@@ -208,7 +276,7 @@ router.post(
         integrationState: "configured",
       })
       .where(eq(devicesTable.id, row.device.id));
-    await db.insert(biometricSyncHistoryTable).values({
+    const [syncHistory] = await db.insert(biometricSyncHistoryTable).values({
       companyId: row.device.companyId,
       deviceId: row.device.id,
       providerKey: "zkteco-usb",
@@ -220,7 +288,42 @@ router.post(
       errorCount: rejected,
       startedAt,
       completedAt,
-    });
+    }).returning();
+    const [requestedCommand] = await db
+      .select()
+      .from(biometricDeviceCommandsTable)
+      .where(
+        and(
+          eq(biometricDeviceCommandsTable.deviceId, row.device.id),
+          eq(biometricDeviceCommandsTable.command, "LOG"),
+          eq(biometricDeviceCommandsTable.status, "sent"),
+        ),
+      )
+      .orderBy(desc(biometricDeviceCommandsTable.sentAt))
+      .limit(1);
+    if (requestedCommand) {
+      await db
+        .update(biometricDeviceCommandsTable)
+        .set({
+          status: "completed",
+          result: `Bridge uploaded ${parsedBody.data.events.length} attendance records.`,
+          completedAt,
+        })
+        .where(eq(biometricDeviceCommandsTable.id, requestedCommand.id));
+      if (syncHistory) {
+        await db
+          .update(biometricSyncHistoryTable)
+          .set({
+            status: rejected ? "failed" : "completed",
+            message: `USB bridge full-history request uploaded ${accepted} accepted, ${duplicates} duplicate, ${rejected} rejected.`,
+            eventsReceived: parsedBody.data.events.length,
+            eventsProcessed: accepted,
+            errorCount: rejected,
+            completedAt,
+          })
+          .where(eq(biometricSyncHistoryTable.id, requestedCommand.syncHistoryId ?? syncHistory.id));
+      }
+    }
     await db.insert(auditLogsTable).values({
       companyId: row.device.companyId,
       actorType: "system",

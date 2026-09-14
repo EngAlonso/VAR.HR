@@ -19169,7 +19169,7 @@ function Devices() {
                         }
                       >
                         <RefreshCw size={15} />
-                        {d.adapterKey === "zkteco-adms"
+                        {["zkteco-adms", "zkteco-usb"].includes(d.adapterKey)
                           ? t("requestAttendanceHistory")
                           : t("sync")}
                       </Button>

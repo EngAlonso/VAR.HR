@@ -10507,7 +10507,9 @@ router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
     return;
   }
   const startedAt = new Date();
-  if (device.adapterKey === "zkteco-adms") {
+  if (device.adapterKey === "zkteco-adms" || device.adapterKey === "zkteco-usb") {
+    const isUsbBridge = device.adapterKey === "zkteco-usb";
+    const connectorLabel = isUsbBridge ? "USB Bridge" : "ADMS";
     const [activeCommand] = await db
       .select()
       .from(biometricDeviceCommandsTable)
@@ -10525,7 +10527,7 @@ router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
           deviceId: device.id,
           status: "queued",
           message:
-            "A full attendance-history request is already waiting for this ADMS device.",
+            `A full attendance-history request is already waiting for this ${connectorLabel} device.`,
         }),
       );
       return;
@@ -10534,11 +10536,11 @@ router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
     const history = await recordDeviceSyncHistory({
       companyId: context.companyId,
       deviceId: device.id,
-      providerKey: "zkteco-adms",
+      providerKey: device.adapterKey,
       operation: "full_sync",
       status: "queued",
       message:
-        "Waiting for the ADMS device to poll the server for the full attendance-history request.",
+        `Waiting for the ${connectorLabel} connector to poll the server for the full attendance-history request.`,
       startedAt,
     });
     await db.insert(biometricDeviceCommandsTable).values({
@@ -10565,7 +10567,7 @@ router.post("/devices/:deviceId/sync", async (req, res): Promise<void> => {
         deviceId: device.id,
         status: "queued",
         message:
-          "Full attendance-history request queued. The device will upload its available records on its next ADMS poll.",
+          `Full attendance-history request queued. The ${connectorLabel} connector will read the device and upload its available records on its next poll.`,
       }),
     );
     return;

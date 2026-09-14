@@ -11,6 +11,7 @@ $timeZoneId = if ([string]::IsNullOrWhiteSpace($config.timeZoneId)) { "Egypt Sta
 $configuredBatchSize = if ($null -eq $config.batchSize) { 200 } else { [int]$config.batchSize }
 $interval = [Math]::Max($configuredInterval, 10)
 $batchSize = [Math]::Min([Math]::Max($configuredBatchSize, 1), 500)
+$commandsEndpoint = "$($config.apiBaseUrl.TrimEnd('/'))/api/connector/v1/devices/$($config.deviceId)/commands"
 $endpoint = "$($config.apiBaseUrl.TrimEnd('/'))/api/connector/v1/devices/$($config.deviceId)/events"
 
 if ([string]::IsNullOrWhiteSpace($config.apiBaseUrl) -or
@@ -21,6 +22,11 @@ if ([string]::IsNullOrWhiteSpace($config.apiBaseUrl) -or
 
 while ($true) {
   try {
+    $command = Invoke-RestMethod `
+      -Uri $commandsEndpoint `
+      -Method Get `
+      -Headers @{ "x-var-hr-registration-key" = [string]$config.registrationKey }
+    $requestedFullHistory = $command.command -eq "LOG"
     $raw = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $readScript -MachineNumber $machineNumber -TimeZoneId $timeZoneId
     $rawJson = $raw -join ""
     if (-not [string]::IsNullOrWhiteSpace($rawJson)) {
@@ -35,7 +41,8 @@ while ($true) {
           -Headers @{ "x-var-hr-registration-key" = [string]$config.registrationKey } `
           -ContentType "application/json" `
           -Body $body
-        Write-Output "$(Get-Date -Format o) uploaded $($result.received) events; accepted=$($result.accepted), duplicates=$($result.duplicates), rejected=$($result.rejected)"
+        $requestLabel = if ($requestedFullHistory) { " full-history request" } else { "" }
+        Write-Output "$(Get-Date -Format o)$requestLabel uploaded $($result.received) events; accepted=$($result.accepted), duplicates=$($result.duplicates), rejected=$($result.rejected)"
       }
     }
   } catch {
