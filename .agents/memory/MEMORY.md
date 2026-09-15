@@ -1,2 +1,3 @@
 - [Database driver compatibility](database-driver-compatibility.md) — choose Neon HTTP only for Neon hosts; use node-postgres for Replit PostgreSQL.
 - [API artifact routing](api-artifact-routing.md) — keep the runnable Express API under artifacts/api-server; root api/ is only for Vercel function entrypoints.
+- [Vercel and Replit data separation](vercel-replit-data-separation.md) — the ADMS Bridge must target the same deployed app and database that the HR UI reads.
