@@ -44,6 +44,71 @@ async function audit(companyId: string, action: string, deviceId: string, after:
   });
 }
 
+async function repairRejectedEvents(
+  device: typeof devicesTable.$inferSelect,
+  context: { companyId: string; company: typeof companiesTable.$inferSelect },
+) {
+  const repairableEvents = await db
+    .select({
+      event: biometricEventsTable,
+      employeeId: deviceEmployeeMappingsTable.employeeId,
+    })
+    .from(biometricEventsTable)
+    .innerJoin(
+      deviceEmployeeMappingsTable,
+      and(
+        eq(deviceEmployeeMappingsTable.companyId, device.companyId),
+        eq(deviceEmployeeMappingsTable.deviceId, device.id),
+        eq(deviceEmployeeMappingsTable.deviceEmployeeId, biometricEventsTable.deviceEmployeeId),
+        eq(deviceEmployeeMappingsTable.active, true),
+      ),
+    )
+    .where(
+      and(
+        eq(biometricEventsTable.companyId, device.companyId),
+        eq(biometricEventsTable.deviceId, device.id),
+        eq(biometricEventsTable.processingStatus, "rejected"),
+      ),
+    )
+    .limit(5000);
+
+  let repaired = 0;
+  for (const { event, employeeId } of repairableEvents) {
+    try {
+      await applyProviderAttendanceEvent(
+        context,
+        {
+          deviceEmployeeId: event.deviceEmployeeId,
+          occurredAt: event.occurredAt,
+          eventType: event.eventType,
+          direction: event.direction,
+          idempotencyKey: event.idempotencyKey,
+          rawPayload: event.rawPayload ?? {},
+        },
+        employeeId,
+      );
+      await db
+        .update(biometricEventsTable)
+        .set({
+          employeeId,
+          processingStatus: "mapped",
+          processedAt: new Date(),
+        })
+        .where(eq(biometricEventsTable.id, event.id));
+      repaired++;
+    } catch {
+      await db
+        .update(biometricEventsTable)
+        .set({
+          processingStatus: "failed",
+          processedAt: new Date(),
+        })
+        .where(eq(biometricEventsTable.id, event.id));
+    }
+  }
+  return repaired;
+}
+
 async function heartbeat(req: Request, res: Response) {
   const device = await deviceFor(req);
   if (device === undefined) { res.status(401).type("text").send("ERROR"); return; }
@@ -319,6 +384,9 @@ router.post("/cdata", async (req, res) => {
     } catch { rejected++; await db.update(biometricEventsTable).set({ processingStatus: "failed", processedAt: new Date() }).where(eq(biometricEventsTable.id, event.id)); }
   }
   await db.update(devicesTable).set({ lastHealthCheck: now, lastSync: now, connectionState: "connected", status: rejected ? "attention" : "connected", integrationState: "configured" }).where(eq(devicesTable.id, device.id));
+  const repaired = await repairRejectedEvents(device, context);
+  accepted += repaired;
+  rejected = Math.max(0, rejected - repaired);
   await db.insert(biometricSyncHistoryTable).values({ companyId: device.companyId, deviceId: device.id, providerKey: "zkteco-adms", operation: "attendance_sync", status: rejected ? "failed" : "completed", message: `ADMS upload: ${accepted} accepted, ${duplicates} duplicate, ${rejected} rejected.`, eventsReceived: rows.length, eventsProcessed: accepted, errorCount: rejected, startedAt: now, completedAt: new Date() });
   const [recentLogCommand] = await db
     .select()
