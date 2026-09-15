@@ -29,6 +29,64 @@ function keyMatches(stored: string | null, supplied: string | undefined): boolea
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+type ParsedAdmsRow = {
+  pin: string;
+  timestamp: string;
+  status: string;
+  verify: string;
+  workcode: string;
+};
+
+function parseAdmsRow(line: string): ParsedAdmsRow | null {
+  let decoded = line.trim();
+  try {
+    decoded = decodeURIComponent(decoded.replace(/\+/g, " "));
+  } catch {
+    // Keep the original line so the caller can record a useful rejection.
+  }
+
+  const fields = decoded.split("\t").map((part) => part.trim());
+  const keyValues = new Map<string, string>();
+  for (const field of fields) {
+    const separator = field.indexOf("=");
+    if (separator <= 0) continue;
+    keyValues.set(field.slice(0, separator).trim().toLowerCase(), field.slice(separator + 1).trim());
+  }
+
+  const valueFor = (...names: string[]) => {
+    for (const name of names) {
+      const value = keyValues.get(name.toLowerCase());
+      if (value !== undefined) return value;
+    }
+    return "";
+  };
+
+  const keyValuePin = valueFor("pin", "userid", "user_id", "user");
+  const keyValueTimestamp = valueFor("datetime", "date_time", "timestamp", "time");
+  const keyValueStatus = valueFor("status", "state");
+  if (keyValuePin && keyValueTimestamp && keyValueStatus) {
+    return {
+      pin: keyValuePin,
+      timestamp: keyValueTimestamp,
+      status: keyValueStatus,
+      verify: valueFor("verify", "verification"),
+      workcode: valueFor("workcode", "work_code"),
+    };
+  }
+
+  if (fields.length >= 5 && fields[0] && fields[1] && fields[2]) {
+    return {
+      pin: fields[0],
+      timestamp: fields[1],
+      status: fields[2],
+      verify: fields[3] ?? "",
+      workcode: fields[4] ?? "",
+    };
+  }
+
+  return null;
+}
+
 async function deviceFor(req: Request) {
   const sn = value(req, "SN") || value(req, "sn");
   if (!sn) return null;
@@ -271,24 +329,34 @@ router.post("/cdata", async (req, res) => {
   const raw = typeof req.body === "string" ? req.body : new URLSearchParams(req.body as Record<string, string>).toString();
   const rows = raw.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
   let accepted = 0; let rejected = 0; let duplicates = 0;
+  const rejectionReasons: Record<string, number> = {};
+  const rejectionSamples: string[] = [];
+  const rejectRow = (reason: string, line: string) => {
+    rejected++;
+    rejectionReasons[reason] = (rejectionReasons[reason] ?? 0) + 1;
+    if (rejectionSamples.length < 5) rejectionSamples.push(line.slice(0, 300));
+  };
   const now = new Date();
   const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, device.companyId)).limit(1);
   if (!company) { res.status(404).type("text").send("ERROR"); return; }
   const context = { companyId: device.companyId, company };
   for (const line of rows) {
-    const fields = line.split("\t");
-    if (fields.length < 5) { rejected++; continue; }
-    const [pin, timestamp, status, verify, workcode] = fields.map((part) => part.trim());
+    const parsed = parseAdmsRow(line);
+    if (!parsed) { rejectRow("unsupported_row_format", line); continue; }
+    const { pin, timestamp, status, verify, workcode } = parsed;
     let occurredAt: Date;
     try {
       occurredAt = parseDeviceTimestamp(timestamp, company.timezone);
     } catch {
-      rejected++;
+      rejectRow("invalid_timestamp", line);
       continue;
     }
     const statusNumber = Number(status);
     const direction = [0, 4, 5].includes(statusNumber) ? "in" : [1, 2, 3].includes(statusNumber) ? "out" : null;
-    if (!pin || !timestamp || !Number.isFinite(statusNumber) || !direction || Number.isNaN(occurredAt.getTime())) { rejected++; continue; }
+    if (!pin || !timestamp || !Number.isFinite(statusNumber) || !direction || Number.isNaN(occurredAt.getTime())) {
+      rejectRow("invalid_attendance_fields", line);
+      continue;
+    }
     const idempotencyKey = createHash("sha256").update([device.deviceIdentifier, pin, timestamp, status, verify, workcode].join("|")).digest("hex");
     const [mapping] = await db.select().from(deviceEmployeeMappingsTable).where(and(eq(deviceEmployeeMappingsTable.companyId, device.companyId), eq(deviceEmployeeMappingsTable.deviceId, device.id), eq(deviceEmployeeMappingsTable.deviceEmployeeId, pin), eq(deviceEmployeeMappingsTable.active, true))).limit(1);
     const rawPayload = {
@@ -407,9 +475,16 @@ router.post("/cdata", async (req, res) => {
     }).where(eq(biometricSyncHistoryTable.id, recentLogCommand.syncHistoryId));
   }
   if (accepted) await audit(device.companyId, "accepted_upload", device.id, { accepted });
-  if (rejected) await audit(device.companyId, "rejected_upload", device.id, { rejected });
+  if (rejected) await audit(device.companyId, "rejected_upload", device.id, {
+    rejected,
+    reasons: rejectionReasons,
+    samples: rejectionSamples,
+  });
   if (duplicates) await audit(device.companyId, "duplicate_upload", device.id, { duplicates });
-  res.type("text").send(rejected ? "ERROR" : "OK");
+  // ADMS retries the entire batch when the endpoint responds with ERROR. Valid
+  // rows are already persisted above, and rejected rows are retained for repair,
+  // so acknowledge the transport after recording the internal failure.
+  res.type("text").send("OK");
 });
 
 export default router;
