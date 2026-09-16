@@ -2094,6 +2094,7 @@ export async function applyProviderAttendanceEvent(
       checkOut,
       workedHours: metrics.workedHours,
       overtimeHours: metrics.overtimeHours,
+      lateMinutes: metrics.lateMinutes,
       earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
       missingMinutes: metrics.missingMinutes,
       status: holiday

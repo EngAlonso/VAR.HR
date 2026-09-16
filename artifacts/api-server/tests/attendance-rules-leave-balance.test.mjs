@@ -42,6 +42,17 @@ test("attendance rules expose calendar multipliers", () => {
   assert.match(spec, /weeklyMultipliers:/);
 });
 
+test("biometric out-of-order movements refresh stored late minutes", () => {
+  const biometricUpdate = route.slice(
+    route.indexOf("// Device check-in/check-out buttons are not reliable"),
+    route.indexOf("function payrollPeriodResponse"),
+  );
+  assert.match(
+    biometricUpdate,
+    /workedHours: metrics\.workedHours,[\s\S]*overtimeHours: metrics\.overtimeHours,[\s\S]*lateMinutes: metrics\.lateMinutes/,
+  );
+});
+
 test("absence-to-annual-leave deduction is explicit and idempotent", () => {
   assert.match(route, /absenceDeductsAnnualLeave/);
   assert.match(route, /absenceLeaveDeductionDays/);
