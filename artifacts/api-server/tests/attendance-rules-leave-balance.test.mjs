@@ -264,6 +264,13 @@ test("attendance movement shows overtime multipliers only for actual overtime", 
   assert.doesNotMatch(app, /<th className="px-4 py-3">\{t\("doublePay"\)\}<\/th>/);
 });
 
+test("employee attendance movement starts with the first day of the month", () => {
+  assert.match(
+    app,
+    /const rows = \[\.\.\.\(report\.data\?\.rows \?\? \[\]\)\]\.sort\(\(a, b\) =>[\s\S]*\(a\.date \?\? ""\)\.localeCompare\(b\.date \?\? ""\)/,
+  );
+});
+
 test("employee imports create an effective default shift assignment", () => {
   assert.match(route, /router\.post\("\/employees\/import"/);
   assert.match(route, /department\?\.defaultScheduleId/);

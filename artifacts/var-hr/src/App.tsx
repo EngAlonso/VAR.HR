@@ -8607,7 +8607,9 @@ function EmployeeAttendanceMovement({
     },
   });
 
-  const rows = report.data?.rows ?? [];
+  const rows = [...(report.data?.rows ?? [])].sort((a, b) =>
+    (a.date ?? "").localeCompare(b.date ?? ""),
+  );
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
