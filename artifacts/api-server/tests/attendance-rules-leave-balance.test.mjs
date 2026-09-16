@@ -271,6 +271,17 @@ test("employee attendance movement starts with the first day of the month", () =
   );
 });
 
+test("printed attendance movement localizes status and totals late minutes", () => {
+  assert.match(
+    app,
+    /statusLabel\(row\.attendanceStatus \|\| "—", t\)/,
+  );
+  assert.match(
+    app,
+    /t\("lateMinutes"\)[\s\S]*rows\.reduce\(\(sum, row\) => sum \+ Number\(row\.lateMinutes \|\| 0\)/,
+  );
+});
+
 test("employee imports create an effective default shift assignment", () => {
   assert.match(route, /router\.post\("\/employees\/import"/);
   assert.match(route, /department\?\.defaultScheduleId/);
