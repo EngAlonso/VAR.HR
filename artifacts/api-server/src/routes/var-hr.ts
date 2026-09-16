@@ -1475,15 +1475,18 @@ function attendanceMetrics(input: {
     : 0;
   const rawLateMinutes =
     input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed);
-  const lateMinutes = Math.max(0, rawLateMinutes - input.schedule.graceMinutes);
+  // Grace is an exemption threshold, not time credited back to the employee.
+  // Once the threshold is exceeded, report the full raw delay.
+  const lateMinutes =
+    rawLateMinutes > input.schedule.graceMinutes ? rawLateMinutes : 0;
   const rawEarlyDepartureMinutes =
     input.holiday || !workingDay || !input.checkOut
       ? 0
       : Math.max(0, scheduledMinutes - checkOutElapsed);
-  const earlyCheckoutMinutes = Math.max(
-    0,
-    rawEarlyDepartureMinutes - input.schedule.earlyCheckoutGraceMinutes,
-  );
+  const earlyCheckoutMinutes =
+    rawEarlyDepartureMinutes > input.schedule.earlyCheckoutGraceMinutes
+      ? rawEarlyDepartureMinutes
+      : 0;
   const missingMinutes =
     input.holiday || !workingDay || !input.checkOut
       ? 0
@@ -1822,8 +1825,8 @@ async function attendanceCalculationFor(
     `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
     `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
     `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
-    `Late: raw ${metrics.rawLateMinutes} − grace ${metrics.lateGraceMinutes} = effective ${metrics.lateMinutes} minutes.`,
-    `Early departure: raw ${metrics.rawEarlyDepartureMinutes} − grace ${metrics.earlyDepartureGraceMinutes} = effective ${metrics.earlyCheckoutMinutes} minutes.`,
+    `Late: raw ${metrics.rawLateMinutes} minutes; grace ${metrics.lateGraceMinutes} minutes is an exemption threshold, so effective delay is ${metrics.lateMinutes} minutes.`,
+    `Early departure: raw ${metrics.rawEarlyDepartureMinutes} minutes; grace ${metrics.earlyDepartureGraceMinutes} minutes is an exemption threshold, so effective early departure is ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
     `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
     `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,

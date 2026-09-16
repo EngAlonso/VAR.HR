@@ -53,6 +53,21 @@ test("biometric out-of-order movements refresh stored late minutes", () => {
   );
 });
 
+test("grace minutes exempt the full delay instead of reducing it", () => {
+  assert.match(
+    route,
+    /const lateMinutes =\s*rawLateMinutes > input\.schedule\.graceMinutes \? rawLateMinutes : 0;/,
+  );
+  assert.match(
+    route,
+    /const earlyCheckoutMinutes =\s*rawEarlyDepartureMinutes > input\.schedule\.earlyCheckoutGraceMinutes\s*\? rawEarlyDepartureMinutes\s*:\s*0;/,
+  );
+  assert.match(
+    route,
+    /const workedMinutes =[\s\S]*input\.checkOut\.getTime\(\) - input\.checkIn\.getTime\(\)/,
+  );
+});
+
 test("attendance calculations keep the schedule stored on the attendance record", () => {
   assert.match(route, /function scheduleForAttendanceCalculation/);
   assert.match(
