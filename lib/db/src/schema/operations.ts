@@ -130,7 +130,7 @@ export const attendanceRulesTable = pgTable("var_hr_attendance_rules", {
   overtimeAfterMinutes: integer("overtime_after_minutes").notNull().default(30),
   overtimeEligible: boolean("overtime_eligible").notNull().default(true),
   overtimeMethod: text("overtime_method").notNull().default("multiplier"),
-  overtimeMultiplier: numeric("overtime_multiplier", { precision: 6, scale: 3, mode: "number" }).notNull().default(1.25),
+  overtimeMultiplier: numeric("overtime_multiplier", { precision: 6, scale: 3, mode: "number" }).notNull().default(1),
   hourlyRateDivisor: integer("hourly_rate_divisor").notNull().default(160),
   lateDeductionMethod: text("late_deduction_method").notNull().default("hourly_rate"),
   lateDeductionFactor: numeric("late_deduction_factor", { precision: 6, scale: 3, mode: "number" }).notNull().default(0.5),

@@ -128,7 +128,7 @@ CREATE TABLE "var_hr_attendance_rules" (
 	"overtime_after_minutes" integer DEFAULT 30 NOT NULL,
 	"overtime_eligible" boolean DEFAULT true NOT NULL,
 	"overtime_method" text DEFAULT 'multiplier' NOT NULL,
-	"overtime_multiplier" numeric(6, 3) DEFAULT 1.25 NOT NULL,
+"overtime_multiplier" numeric(6, 3) DEFAULT 1 NOT NULL,
 	"hourly_rate_divisor" integer DEFAULT 160 NOT NULL,
 	"late_deduction_method" text DEFAULT 'hourly_rate' NOT NULL,
 	"late_deduction_factor" numeric(6, 3) DEFAULT 0.5 NOT NULL,

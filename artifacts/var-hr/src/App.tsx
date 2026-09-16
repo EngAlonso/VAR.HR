@@ -13095,7 +13095,7 @@ function Rules() {
                       }}
                       className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                     >
-                      {[1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
+                      {[1, 1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
                         (multiplier) => (
                           <option key={multiplier} value={multiplier}>
                             {multiplier}×
@@ -13133,7 +13133,7 @@ function Rules() {
                     ...form,
                     timeMultipliers: [
                       ...(form.timeMultipliers || []),
-                      { from: "23:00", to: "06:00", multiplier: 1.33, enabled: true },
+                      { from: "23:00", to: "06:00", multiplier: 1, enabled: true },
                     ],
                   })
                 }
@@ -13213,7 +13213,7 @@ function Rules() {
                     ...form,
                     weeklyMultipliers: [
                       ...(form.weeklyMultipliers || []),
-                      { weekday: "Fri", multiplier: 1.5, enabled: true },
+                      { weekday: "Fri", multiplier: 1, enabled: true },
                     ],
                   })
                 }
@@ -13308,7 +13308,7 @@ function Rules() {
                         name: "",
                         from: "",
                         to: "",
-                        multiplier: 2,
+                        multiplier: 1,
                         enabled: true,
                       },
                     ],

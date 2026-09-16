@@ -1085,7 +1085,7 @@
           "type": "numeric(6, 3)",
           "primaryKey": false,
           "notNull": true,
-          "default": 1.25
+          "default": 1
         },
         "hourly_rate_divisor": {
           "name": "hourly_rate_divisor",

@@ -878,7 +878,7 @@ const defaultAttendanceRules = {
   overtimeAfterMinutes: 30,
   overtimeEligible: true,
   overtimeMethod: "multiplier" as const,
-  overtimeMultiplier: 1.25,
+  overtimeMultiplier: 1,
   hourlyRateDivisor: 160,
   lateDeductionMethod: "hourly_rate" as const,
   lateDeductionFactor: 0.5,
