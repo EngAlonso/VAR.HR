@@ -254,6 +254,16 @@ test("employee movement records expose monthly calculated attendance details", (
   assert.match(spec, /biometricCode: \{ type: \["string", "null"\]/);
 });
 
+test("attendance movement shows overtime multipliers only for actual overtime", () => {
+  assert.match(app, /t\("overtimeMultiplier"\)/);
+  assert.match(
+    app,
+    /Number\(row\.overtimeHours \|\| 0\) > 0[\s\S]*row\.overtimeMultiplier/,
+  );
+  assert.match(app, /: "—"/);
+  assert.doesNotMatch(app, /<th className="px-4 py-3">\{t\("doublePay"\)\}<\/th>/);
+});
+
 test("employee imports create an effective default shift assignment", () => {
   assert.match(route, /router\.post\("\/employees\/import"/);
   assert.match(route, /department\?\.defaultScheduleId/);

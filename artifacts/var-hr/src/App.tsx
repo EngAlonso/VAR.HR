@@ -8643,7 +8643,7 @@ function EmployeeAttendanceMovement({
       t("checkIn"),
       t("checkOut"),
       t("deductedMinutes"),
-      t("doublePay"),
+      t("overtimeMultiplier"),
       t("workedHours"),
       t("attendanceStatus"),
     ]
@@ -8661,7 +8661,7 @@ function EmployeeAttendanceMovement({
             <td>${escapeHtml(time(row.checkIn))}</td>
             <td>${escapeHtml(time(row.checkOut))}</td>
             <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
-            <td>${escapeHtml(row.doublePay ? t("yes") : t("no"))}</td>
+            <td>${escapeHtml(Number(row.overtimeHours || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
             <td>${escapeHtml(hours(row.workedHours))}</td>
             <td>${escapeHtml(row.attendanceStatus || "—")}</td>
           </tr>`,
@@ -8806,7 +8806,7 @@ function EmployeeAttendanceMovement({
                       <th className="px-4 py-3">{t("checkIn")}</th>
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("deductedMinutes")}</th>
-                      <th className="px-4 py-3">{t("doublePay")}</th>
+                      <th className="px-4 py-3">{t("overtimeMultiplier")}</th>
                       <th className="px-4 py-3">{t("workedHours")}</th>
                       <th className="px-4 py-3">{t("attendanceStatus")}</th>
                     </tr>
@@ -8840,11 +8840,16 @@ function EmployeeAttendanceMovement({
                           {minutes(row.deductedMinutes)}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge tone={row.doublePay ? "good" : "neutral"}>
-                            {row.doublePay ? t("yes") : t("no")}
-                            {row.overtimeMultiplier
-                              ? ` · ${row.overtimeMultiplier}×`
-                              : ""}
+                          <Badge
+                            tone={
+                              Number(row.overtimeHours || 0) > 0
+                                ? "good"
+                                : "neutral"
+                            }
+                          >
+                            {Number(row.overtimeHours || 0) > 0
+                              ? `${row.overtimeMultiplier ?? "—"}×`
+                              : "—"}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 font-mono">
