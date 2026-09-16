@@ -1049,7 +1049,8 @@ type EffectiveSchedule = {
     | "employee_assignment"
     | "department_default"
     | "company_default"
-    | "legacy_rules";
+    | "legacy_rules"
+    | "attendance_record";
 };
 
 type ScheduleAssignmentRow = {
@@ -1252,6 +1253,28 @@ async function effectiveScheduleFor(
         source: "company_default",
       }
     : defaultScheduleFromRules(rules);
+}
+
+function scheduleForAttendanceCalculation(
+  attendance: typeof attendanceTable.$inferSelect,
+  resolvedSchedule: EffectiveSchedule,
+): EffectiveSchedule {
+  if (!attendance.scheduledStart || !attendance.scheduledEnd) {
+    return resolvedSchedule;
+  }
+  const persistedTimes = {
+    ...resolvedSchedule,
+    startTime: attendance.scheduledStart,
+    endTime: attendance.scheduledEnd,
+    requiredHours: attendance.requiredHours,
+    overnight: isOvernightSchedule({
+      ...resolvedSchedule,
+      startTime: attendance.scheduledStart,
+      endTime: attendance.scheduledEnd,
+    }),
+    source: "attendance_record" as const,
+  };
+  return persistedTimes;
 }
 
 function holidayMatchesDate(
@@ -1507,12 +1530,13 @@ async function attendanceCalculationFor(
   persist: boolean,
 ) {
   const rules = await attendanceRulesFor(context.companyId, attendance.date);
-  const schedule = await effectiveScheduleFor(
+  const resolvedSchedule = await effectiveScheduleFor(
     context.companyId,
     attendance.employeeId,
     attendance.date,
     rules,
   );
+  const schedule = scheduleForAttendanceCalculation(attendance, resolvedSchedule);
   const [employee] = await db
     .select({ automaticOvertime: employeesTable.automaticOvertime })
     .from(employeesTable)
@@ -2028,29 +2052,33 @@ export async function applyProviderAttendanceEvent(
       timeZone: context.company.timezone,
       holiday,
     });
-    await db.insert(attendanceTable).values({
-      companyId: context.companyId,
-      employeeId,
-      date: attendanceDate,
-      status: holiday
-        ? "holiday"
-        : metrics.rawLateMinutes > schedule.graceMinutes
-          ? "late"
-          : "present",
-      scheduledStart: schedule.startTime,
-      scheduledEnd: schedule.endTime,
-      requiredHours: schedule.requiredHours,
-      checkIn: event.occurredAt,
-      workedHours: 0,
-      overtimeHours: 0,
-      lateMinutes: metrics.lateMinutes,
-      source: "biometric",
-      locationStatus: "not_required",
-      location: null,
-      explanation: holiday
-        ? "Biometric provider first movement synchronized on a company holiday."
-        : "Biometric provider first movement synchronized as check-in.",
-    });
+    const [created] = await db
+      .insert(attendanceTable)
+      .values({
+        companyId: context.companyId,
+        employeeId,
+        date: attendanceDate,
+        status: holiday
+          ? "holiday"
+          : metrics.rawLateMinutes > schedule.graceMinutes
+            ? "late"
+            : "present",
+        scheduledStart: schedule.startTime,
+        scheduledEnd: schedule.endTime,
+        requiredHours: schedule.requiredHours,
+        checkIn: event.occurredAt,
+        workedHours: 0,
+        overtimeHours: 0,
+        lateMinutes: metrics.lateMinutes,
+        source: "biometric",
+        locationStatus: "not_required",
+        location: null,
+        explanation: holiday
+          ? "Biometric provider first movement synchronized on a company holiday."
+          : "Biometric provider first movement synchronized as check-in.",
+      })
+      .returning();
+    await attendanceCalculationFor(context, created, true);
     return;
   }
 
@@ -2087,7 +2115,7 @@ export async function applyProviderAttendanceEvent(
     timeZone: context.company.timezone,
     holiday,
   });
-  await db
+  const [updated] = await db
     .update(attendanceTable)
     .set({
       checkIn,
@@ -2115,7 +2143,9 @@ export async function applyProviderAttendanceEvent(
         eq(attendanceTable.id, existing.id),
         eq(attendanceTable.companyId, context.companyId),
       ),
-    );
+    )
+    .returning();
+  await attendanceCalculationFor(context, updated, true);
 }
 
 function payrollPeriodResponse(

@@ -53,6 +53,27 @@ test("biometric out-of-order movements refresh stored late minutes", () => {
   );
 });
 
+test("attendance calculations keep the schedule stored on the attendance record", () => {
+  assert.match(route, /function scheduleForAttendanceCalculation/);
+  assert.match(
+    route,
+    /startTime: attendance\.scheduledStart,[\s\S]*endTime: attendance\.scheduledEnd/,
+  );
+  assert.match(route, /source: "attendance_record"/);
+  assert.match(
+    route,
+    /const schedule = scheduleForAttendanceCalculation\(attendance, resolvedSchedule\)/,
+  );
+  assert.match(
+    route,
+    /\.insert\(attendanceTable\)[\s\S]*?\.returning\(\)[\s\S]*?attendanceCalculationFor\(context, created, true\)/,
+  );
+  assert.match(
+    route,
+    /\.update\(attendanceTable\)[\s\S]*?\.returning\(\)[\s\S]*?attendanceCalculationFor\(context, updated, true\)/,
+  );
+});
+
 test("absence-to-annual-leave deduction is explicit and idempotent", () => {
   assert.match(route, /absenceDeductsAnnualLeave/);
   assert.match(route, /absenceLeaveDeductionDays/);
