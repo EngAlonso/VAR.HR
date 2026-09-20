@@ -1358,7 +1358,14 @@ function overtimeMultiplierForDate(
   date: string,
   rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
   holidays: (typeof holidaysTable.$inferSelect)[],
+  overtimeEligible = true,
 ) {
+  if (!overtimeEligible) {
+    return {
+      multiplier: 1,
+      source: "standard",
+    };
+  }
   const holiday = holidayMultiplierForDate(date, rules, holidays);
   const weekly = weeklyMultiplierForDate(date, rules);
   const standard = {
@@ -1563,6 +1570,7 @@ async function attendanceCalculationFor(
     attendance.date,
     rules,
     holidays,
+    overtimeEligible,
   );
   const [approvedLeave] = await db
     .select({ id: leaveRequestsTable.id })
