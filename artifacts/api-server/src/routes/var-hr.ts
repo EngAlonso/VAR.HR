@@ -4646,6 +4646,10 @@ async function recordCurrentAttendance(
 ): Promise<void> {
   const context = await getTenantContext(req);
   const locale = requestedLocale(req);
+  if (!canUseCapability(context, "attendance.punch")) {
+    denyCapability(res, req, "attendance.punch");
+    return;
+  }
   if (!context.employeeId) {
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;

@@ -196,6 +196,11 @@ export const STANDARD_PERMISSIONS = [
   ],
   ["attendance.view", "Attendance", "View attendance records."],
   [
+    "attendance.punch",
+    "Record attendance",
+    "Record personal check-in and check-out events.",
+  ],
+  [
     "attendance.correct",
     "Correct attendance",
     "Correct attendance records and rules.",

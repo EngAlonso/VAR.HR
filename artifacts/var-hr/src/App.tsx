@@ -1800,6 +1800,8 @@ const pageCopy = {
     scheduledStart: "Scheduled start",
     checkInNow: "Check in now",
     checkOutNow: "Check out now",
+    attendancePunchPermissionRequired:
+      "Attendance buttons are enabled only for accounts granted the attendance recording permission.",
     webEventPolicy: "Web event · location policy is evaluated by the API",
     today: "Today",
     history: "History",
@@ -2256,6 +2258,8 @@ const pageCopy = {
     scheduledStart: "بداية الدوام المجدولة",
     checkInNow: "تسجيل الحضور الآن",
     checkOutNow: "تسجيل الانصراف الآن",
+    attendancePunchPermissionRequired:
+      "زرّا الحضور والانصراف متاحان فقط للحسابات التي يمنحها صاحب الشركة صلاحية تسجيل الحضور.",
     webEventPolicy: "حدث ويب · يقيّم API سياسة الموقع",
     today: "اليوم",
     todayRegister: "سجل اليوم",
@@ -6018,6 +6022,7 @@ function permissionLabel(
     "employees.manage": "إدارة الموظفين",
     "employees.credentials": "بيانات اعتماد الموظفين",
     "attendance.view": "عرض الحضور",
+    "attendance.punch": "تسجيل الحضور والانصراف",
     "attendance.correct": "تصحيح الحضور",
     "leave.approve": "اعتماد الإجازات",
     "leave.create": "إنشاء طلبات الإجازات",
@@ -6071,6 +6076,7 @@ function permissionDescription(
     "employees.manage": "إضافة الموظفين وتعديلهم وإدارتهم.",
     "employees.credentials": "إدارة بيانات اعتماد الموظفين.",
     "attendance.view": "عرض سجلات الحضور والانصراف.",
+    "attendance.punch": "تسجيل الحضور والانصراف للموظف.",
     "attendance.correct": "تصحيح سجلات الحضور.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
@@ -11169,6 +11175,8 @@ function Attendance() {
     workspace.data?.capabilities?.includes("attendance.correct") ?? false;
   const canAdjust =
     workspace.data?.capabilities?.includes("attendance.adjust") ?? false;
+  const canPunch =
+    workspace.data?.capabilities?.includes("attendance.punch") ?? false;
   const record = today.data?.records?.find(
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
@@ -11450,7 +11458,7 @@ function Attendance() {
                 {locationLabel(gpsState)}
               </Badge>
             </div>
-            {isScoped ? (
+            {isScoped && canPunch ? (
               <>
                 <Button
                   disabled={
@@ -11476,7 +11484,9 @@ function Attendance() {
               </>
             ) : (
               <p className="mt-7 text-center text-xs text-sidebar-foreground/55">
-                {t("attendanceFilters")}
+                {isScoped
+                  ? t("attendancePunchPermissionRequired")
+                  : t("attendanceFilters")}
               </p>
             )}
           </Card>

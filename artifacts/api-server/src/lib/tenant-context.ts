@@ -261,6 +261,7 @@ export function workspaceCapabilities(
     "leave.create",
     "permissions.create",
     "reports.view",
+    ...explicitPermissions,
   ];
 }
 
