@@ -9,6 +9,7 @@
 export interface Branch {
   id: string;
   name: string;
+  nameEn: string;
   city: string;
   employeeCount: number;
   deviceCount: number;

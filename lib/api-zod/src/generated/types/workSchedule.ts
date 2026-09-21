@@ -10,6 +10,7 @@ export interface WorkSchedule {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   startTime: string;

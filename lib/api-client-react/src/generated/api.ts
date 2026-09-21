@@ -699,7 +699,7 @@ export const getProvisionInitialPlatformOwnerUrl = () => {
 }
 
 /**
- * Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+ * One-time initial-deployment endpoint. It is available only while no Platform Owner exists, and in production only when VAR_HR_ENABLE_INITIAL_PROVISIONING=true.
  * @summary Provision the initial Platform Owner account
  */
 export const provisionInitialPlatformOwner = async (initialPlatformOwnerInput: InitialPlatformOwnerInput, options?: Parameters<typeof customFetch>[1]): Promise<InitialPlatformOwnerResponse> => {
@@ -9185,3 +9185,4 @@ export const useUpdatePlatformCompany = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdatePlatformCompanyMutationOptions(options));
     }
+

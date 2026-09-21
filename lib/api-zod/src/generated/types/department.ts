@@ -11,6 +11,7 @@ export interface Department {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   /** @nullable */
   description?: string | null;
   active: boolean;

@@ -9,6 +9,7 @@
 export type PlatformCompanyCredentialsCompany = {
   id: string;
   name: string;
+  nameEn?: string;
   slug: string;
   timezone?: string;
   currency?: string;

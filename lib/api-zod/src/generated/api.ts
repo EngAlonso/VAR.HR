@@ -81,7 +81,7 @@ export const LoginResponse = zod.object({
 
 
 /**
- * Development or explicitly enabled initial-deployment endpoint. It is available only while no Platform Owner exists.
+ * One-time initial-deployment endpoint. It is available only while no Platform Owner exists, and in production only when VAR_HR_ENABLE_INITIAL_PROVISIONING=true.
  * @summary Provision the initial Platform Owner account
  */
 
@@ -296,6 +296,7 @@ export const UpdatePlatformCompanyOwnersBody = zod.object({
   "owners": zod.array(zod.object({
   "id": zod.uuid().nullish(),
   "fullName": zod.string().optional(),
+  "fullNameEn": zod.string().optional(),
   "username": zod.string().min(updatePlatformCompanyOwnersBodyOwnersItemUsernameMin),
   "password": zod.string().min(updatePlatformCompanyOwnersBodyOwnersItemPasswordMin).nullish(),
   "primaryPhone": zod.string().optional(),
@@ -481,6 +482,7 @@ export const ListDepartmentsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "description": zod.string().nullish(),
   "active": zod.boolean(),
   "manager": zod.union([zod.object({
@@ -508,13 +510,15 @@ export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
 
 
 export const CreateDepartmentBody = zod.object({
-  "name": zod.string().min(1)
+  "name": zod.string().min(1),
+  "nameEn": zod.string().optional()
 })
 
 export const CreateDepartmentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "description": zod.string().nullish(),
   "active": zod.boolean(),
   "manager": zod.union([zod.object({
@@ -549,6 +553,7 @@ export const GetDepartmentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "description": zod.string().nullish(),
   "active": zod.boolean(),
   "manager": zod.union([zod.object({
@@ -584,6 +589,7 @@ export const UpdateDepartmentQueryParams = zod.object({
 
 export const UpdateDepartmentBody = zod.object({
   "name": zod.string().min(1).optional(),
+  "nameEn": zod.string().optional(),
   "active": zod.boolean().optional()
 })
 
@@ -591,6 +597,7 @@ export const UpdateDepartmentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "description": zod.string().nullish(),
   "active": zod.boolean(),
   "manager": zod.union([zod.object({
@@ -626,6 +633,7 @@ export const DeleteDepartmentResponse = zod.void()
 export const ListBranchesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -649,6 +657,7 @@ export const createBranchBodyRadiusMetersMin = 0;
 
 export const CreateBranchBody = zod.object({
   "name": zod.string().min(1),
+  "nameEn": zod.string().optional(),
   "city": zod.string().min(1),
   "gpsEnabled": zod.boolean().default(createBranchBodyGpsEnabledDefault),
   "latitude": zod.number().nullish(),
@@ -659,6 +668,7 @@ export const CreateBranchBody = zod.object({
 export const CreateBranchResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -683,6 +693,7 @@ export const GetBranchQueryParams = zod.object({
 export const GetBranchResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -712,6 +723,7 @@ export const updateBranchBodyRadiusMetersMin = 0;
 
 export const UpdateBranchBody = zod.object({
   "name": zod.string().min(1).optional(),
+  "nameEn": zod.string().optional(),
   "city": zod.string().min(1).optional(),
   "gpsEnabled": zod.boolean().optional(),
   "latitude": zod.number().nullish(),
@@ -723,6 +735,7 @@ export const UpdateBranchBody = zod.object({
 export const UpdateBranchResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -762,6 +775,8 @@ export const ListEmployeesResponseItem = zod.object({
   "employeeNumber": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
+  "firstNameEn": zod.string(),
+  "lastNameEn": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
@@ -771,12 +786,14 @@ export const ListEmployeesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "active": zod.boolean(),
   "employeeCount": zod.int()
 }),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -819,6 +836,8 @@ export const createEmployeeBodySalaryMin = 0;
 export const CreateEmployeeBody = zod.object({
   "firstName": zod.string().min(1),
   "lastName": zod.string().min(1),
+  "firstNameEn": zod.string().optional(),
+  "lastNameEn": zod.string().optional(),
   "email": zod.email().optional().describe('Optional internal email; generated when omitted.'),
   "phone": zod.string(),
   "nationalId": zod.string().min(1).optional(),
@@ -843,6 +862,8 @@ export const CreateEmployeeResponse = zod.object({
   "employeeNumber": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
+  "firstNameEn": zod.string(),
+  "lastNameEn": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
@@ -852,12 +873,14 @@ export const CreateEmployeeResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "active": zod.boolean(),
   "employeeCount": zod.int()
 }),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -899,6 +922,8 @@ export const GetEmployeeResponse = zod.object({
   "employeeNumber": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
+  "firstNameEn": zod.string(),
+  "lastNameEn": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
@@ -908,12 +933,14 @@ export const GetEmployeeResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "active": zod.boolean(),
   "employeeCount": zod.int()
 }),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -961,6 +988,8 @@ export const UpdateEmployeeBody = zod.object({
   "employeeNumber": zod.string().regex(updateEmployeeBodyEmployeeNumberRegExp).optional(),
   "firstName": zod.string().min(1).optional(),
   "lastName": zod.string().min(1).optional(),
+  "firstNameEn": zod.string().optional(),
+  "lastNameEn": zod.string().optional(),
   "phone": zod.string().optional(),
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
@@ -982,6 +1011,8 @@ export const UpdateEmployeeResponse = zod.object({
   "employeeNumber": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
+  "firstNameEn": zod.string(),
+  "lastNameEn": zod.string(),
   "email": zod.email(),
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
@@ -991,12 +1022,14 @@ export const UpdateEmployeeResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "active": zod.boolean(),
   "employeeCount": zod.int()
 }),zod.null()]),
   "branch": zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string(),
   "city": zod.string(),
   "employeeCount": zod.int(),
   "deviceCount": zod.int(),
@@ -2397,6 +2430,7 @@ export const ListWorkSchedulesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(listWorkSchedulesResponseStartTimeRegExp),
   "endTime": zod.string().regex(listWorkSchedulesResponseEndTimeRegExp),
@@ -2443,6 +2477,7 @@ export const createWorkScheduleBodyActiveDefault = true;
 export const CreateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
   "startTime": zod.string().regex(createWorkScheduleBodyStartTimeRegExp),
   "endTime": zod.string().regex(createWorkScheduleBodyEndTimeRegExp),
@@ -2480,6 +2515,7 @@ export const CreateWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(createWorkScheduleResponseStartTimeRegExp),
   "endTime": zod.string().regex(createWorkScheduleResponseEndTimeRegExp),
@@ -2529,6 +2565,7 @@ export const updateWorkScheduleBodyActiveDefault = true;
 export const UpdateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
   "startTime": zod.string().regex(updateWorkScheduleBodyStartTimeRegExp),
   "endTime": zod.string().regex(updateWorkScheduleBodyEndTimeRegExp),
@@ -2566,6 +2603,7 @@ export const UpdateWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(updateWorkScheduleResponseStartTimeRegExp),
   "endTime": zod.string().regex(updateWorkScheduleResponseEndTimeRegExp),
@@ -2614,6 +2652,7 @@ export const SetDefaultWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(setDefaultWorkScheduleResponseStartTimeRegExp),
   "endTime": zod.string().regex(setDefaultWorkScheduleResponseEndTimeRegExp),
@@ -2710,6 +2749,7 @@ export const GetEmployeeScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(getEmployeeScheduleResponseScheduleOneStartTimeRegExp),
   "endTime": zod.string().regex(getEmployeeScheduleResponseScheduleOneEndTimeRegExp),
@@ -2773,6 +2813,7 @@ export const AssignEmployeeScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "nameAr": zod.string(),
+  "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
   "startTime": zod.string().regex(assignEmployeeScheduleResponseScheduleOneStartTimeRegExp),
   "endTime": zod.string().regex(assignEmployeeScheduleResponseScheduleOneEndTimeRegExp),
@@ -4237,6 +4278,7 @@ export const createPlatformCompanyBodyActiveDefault = true;
 
 export const CreatePlatformCompanyBody = zod.object({
   "name": zod.string().min(createPlatformCompanyBodyNameMin),
+  "nameEn": zod.string().optional(),
   "address": zod.string().optional(),
   "slug": zod.string().optional(),
   "timezone": zod.string().default(createPlatformCompanyBodyTimezoneDefault),
@@ -4245,6 +4287,7 @@ export const CreatePlatformCompanyBody = zod.object({
   "ownerCount": zod.int().min(createPlatformCompanyBodyOwnerCountMin).max(createPlatformCompanyBodyOwnerCountMax).default(createPlatformCompanyBodyOwnerCountDefault),
   "owners": zod.array(zod.object({
   "fullName": zod.string().optional(),
+  "fullNameEn": zod.string().optional(),
   "username": zod.string().min(createPlatformCompanyBodyOwnersItemUsernameMin),
   "password": zod.string().min(createPlatformCompanyBodyOwnersItemPasswordMin),
   "primaryPhone": zod.string().optional(),
@@ -4266,6 +4309,7 @@ export const CreatePlatformCompanyResponse = zod.object({
   "company": zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "nameEn": zod.string().optional(),
   "slug": zod.string(),
   "timezone": zod.string().optional(),
   "currency": zod.string().optional(),
@@ -4373,6 +4417,7 @@ export const updatePlatformCompanyBodyAnnualPriceMin = 0;
 
 export const UpdatePlatformCompanyBody = zod.object({
   "name": zod.string().min(updatePlatformCompanyBodyNameMin).optional(),
+  "nameEn": zod.string().optional(),
   "timezone": zod.string().optional(),
   "currency": zod.string().min(updatePlatformCompanyBodyCurrencyMin).max(updatePlatformCompanyBodyCurrencyMax).optional(),
   "active": zod.boolean().optional(),
@@ -4383,3 +4428,5 @@ export const UpdatePlatformCompanyBody = zod.object({
 })
 
 export const UpdatePlatformCompanyResponse = zod.unknown()
+
+

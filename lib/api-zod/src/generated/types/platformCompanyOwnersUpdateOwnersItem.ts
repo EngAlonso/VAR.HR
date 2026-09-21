@@ -10,6 +10,7 @@ export type PlatformCompanyOwnersUpdateOwnersItem = {
   /** @nullable */
   id?: string | null;
   fullName?: string;
+  fullNameEn?: string;
   /** @minLength 3 */
   username: string;
   /**

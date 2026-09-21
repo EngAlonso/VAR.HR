@@ -10,6 +10,7 @@ export interface WorkScheduleInput {
   /** @minLength 1 */
   name: string;
   nameAr: string;
+  nameEn: string;
   /** @minItems 1 */
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */

@@ -60,6 +60,7 @@ const requiredPhone = z
   .refine((value) => /\d/.test(value), "Invalid phone number.");
 const staffInputSchema = z.object({
   fullName: z.string().trim().min(1).max(160),
+  fullNameEn: z.string().trim().max(160).default(""),
   primaryPhone: requiredPhone,
   displayRole: z.string().trim().min(1).max(80),
   password: z.string().min(6).max(256),
@@ -100,6 +101,7 @@ const accountUpdateSchema = z.object({
   username: z.string().trim().min(3).max(80).optional(),
   displayRole: z.string().trim().min(1).max(80).optional(),
   fullName: z.string().trim().max(160).optional(),
+  fullNameEn: z.string().trim().max(160).optional(),
   primaryPhone: optionalPhone.optional(),
   backupPhones: z.array(optionalPhone).optional(),
   email: optionalEmail.optional(),
@@ -124,6 +126,7 @@ const employeePasswordChangeSchema = z
 const companyInputSchema = z
   .object({
     name: z.string().trim().min(2).max(160),
+    nameEn: z.string().trim().max(160).default(""),
     address: z.string().trim().max(500).default(""),
     slug: z
       .string()
@@ -140,6 +143,7 @@ const companyInputSchema = z
       .array(
         z.object({
           fullName: z.string().trim().max(160).default(""),
+          fullNameEn: z.string().trim().max(160).default(""),
           username: z
             .string()
             .trim()
@@ -171,6 +175,7 @@ const companyInputSchema = z
   });
 const companyUpdateSchema = z.object({
   name: z.string().trim().min(2).max(160).optional(),
+  nameEn: z.string().trim().max(160).optional(),
   address: z.string().trim().max(500).optional(),
   timezone: z.string().trim().min(1).max(80).optional(),
   currency: z.string().trim().length(3).optional(),
@@ -188,6 +193,7 @@ const companyOwnersUpdateSchema = z
         z.object({
           id: z.string().uuid().optional(),
           fullName: z.string().trim().max(160).default(""),
+          fullNameEn: z.string().trim().max(160).default(""),
           username: z
             .string()
             .trim()
@@ -240,6 +246,7 @@ function accountResponse(account: {
   active: boolean;
   permissions?: string[];
   fullName?: string;
+  fullNameEn?: string;
   primaryPhone?: string;
   backupPhones?: string[];
   email?: string;
@@ -255,6 +262,7 @@ function accountResponse(account: {
     active: account.active,
     permissions: account.permissions ?? [],
     fullName: account.fullName ?? "",
+    fullNameEn: account.fullNameEn ?? account.fullName ?? "",
     primaryPhone: account.primaryPhone ?? "",
     backupPhones: account.backupPhones ?? [],
     email: account.email ?? "",
@@ -873,6 +881,7 @@ router.post("/auth/accounts/staff", async (req, res): Promise<void> => {
     .values({
       username,
       fullName: parsed.data.fullName,
+      fullNameEn: parsed.data.fullNameEn || parsed.data.fullName,
       primaryPhone: parsed.data.primaryPhone,
       passwordHash: hashPassword(parsed.data.password),
       accountType: "staff",
@@ -1065,6 +1074,9 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
         : {}),
       ...(parsed.data.fullName !== undefined
         ? { fullName: parsed.data.fullName }
+        : {}),
+      ...(parsed.data.fullNameEn !== undefined
+        ? { fullNameEn: parsed.data.fullNameEn }
         : {}),
       ...(parsed.data.primaryPhone !== undefined
         ? { primaryPhone: parsed.data.primaryPhone }
@@ -1320,6 +1332,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
       .insert(companiesTable)
       .values({
         name: parsed.data.name,
+        nameEn: parsed.data.nameEn || parsed.data.name,
         slug,
         address: parsed.data.address,
         timezone: parsed.data.timezone,
@@ -1357,6 +1370,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
             parsed.data.owners.map((owner) => ({
               username: owner.username,
               fullName: owner.fullName,
+              fullNameEn: owner.fullNameEn || owner.fullName,
               primaryPhone: owner.primaryPhone,
               backupPhones: owner.backupPhones,
               email: owner.email,
@@ -1395,6 +1409,7 @@ router.post("/platform/companies", async (req, res): Promise<void> => {
     company: {
       id: result.company.id,
       name: result.company.name,
+      nameEn: result.company.nameEn || result.company.name,
       slug: result.company.slug,
       address: result.company.address,
       timezone: result.company.timezone,
@@ -1448,6 +1463,7 @@ router.patch(
       : parsed.data.active;
     const companyChanges = {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.nameEn !== undefined ? { nameEn: parsed.data.nameEn } : {}),
       ...(parsed.data.address !== undefined
         ? { address: parsed.data.address }
         : {}),
@@ -1492,7 +1508,8 @@ router.patch(
       companyId: company.id,
       action: priceChanged
         ? "subscription_pricing_changed"
-        : parsed.data.name !== undefined ||
+       : parsed.data.name !== undefined ||
+           parsed.data.nameEn !== undefined ||
             parsed.data.address !== undefined ||
             parsed.data.timezone !== undefined ||
             parsed.data.currency !== undefined
@@ -1539,6 +1556,7 @@ router.patch(
       company: {
         id: updated.id,
         name: updated.name,
+        nameEn: updated.nameEn || updated.name,
         address: updated.address,
         slug: updated.slug,
         timezone: updated.timezone,
@@ -1700,6 +1718,7 @@ router.patch(
             .set({
               username: owner.username,
               fullName: owner.fullName,
+              fullNameEn: owner.fullNameEn || owner.fullName,
               primaryPhone: owner.primaryPhone,
               backupPhones: owner.backupPhones,
               email: owner.email,
@@ -1721,6 +1740,7 @@ router.patch(
             .values({
               username: owner.username,
               fullName: owner.fullName,
+              fullNameEn: owner.fullNameEn || owner.fullName,
               primaryPhone: owner.primaryPhone,
               backupPhones: owner.backupPhones,
               email: owner.email,

@@ -10,6 +10,7 @@ import type { PlatformCompanyUpdateStatus } from './platformCompanyUpdateStatus'
 export interface PlatformCompanyUpdate {
   /** @minLength 2 */
   name?: string;
+  nameEn?: string;
   timezone?: string;
   /**
      * @minLength 3

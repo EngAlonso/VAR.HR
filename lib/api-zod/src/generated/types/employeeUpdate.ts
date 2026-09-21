@@ -15,6 +15,8 @@ export interface EmployeeUpdate {
   firstName?: string;
   /** @minLength 1 */
   lastName?: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
   phone?: string;
   /** @minLength 1 */
   nationalId?: string;

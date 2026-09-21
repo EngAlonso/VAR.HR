@@ -18,6 +18,7 @@ export const userAccountsTable = pgTable("var_hr_user_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),
   username: text("username").notNull().unique(),
   fullName: text("full_name").notNull().default(""),
+  fullNameEn: text("full_name_en").notNull().default(""),
   primaryPhone: text("primary_phone").notNull().default(""),
   backupPhones: text("backup_phones").array().notNull().default([]),
   email: text("email").notNull().default(""),

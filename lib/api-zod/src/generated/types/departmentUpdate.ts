@@ -9,5 +9,6 @@
 export interface DepartmentUpdate {
   /** @minLength 1 */
   name?: string;
+  nameEn?: string;
   active?: boolean;
 }

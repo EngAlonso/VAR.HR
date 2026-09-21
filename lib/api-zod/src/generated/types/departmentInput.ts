@@ -9,4 +9,5 @@
 export interface DepartmentInput {
   /** @minLength 1 */
   name: string;
+  nameEn?: string;
 }

@@ -9,6 +9,7 @@
 export interface BranchInput {
   /** @minLength 1 */
   name: string;
+  nameEn?: string;
   /** @minLength 1 */
   city: string;
   gpsEnabled?: boolean;

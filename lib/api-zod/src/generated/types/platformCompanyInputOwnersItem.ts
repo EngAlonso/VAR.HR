@@ -8,6 +8,7 @@
 
 export type PlatformCompanyInputOwnersItem = {
   fullName?: string;
+  fullNameEn?: string;
   /** @minLength 3 */
   username: string;
   /** @minLength 6 */

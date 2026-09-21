@@ -267,6 +267,7 @@ type AuthAccount = {
   active: boolean;
   permissions: string[];
   fullName: string;
+  fullNameEn: string;
   primaryPhone: string;
   backupPhones: string[];
   email: string;
@@ -275,6 +276,7 @@ type AuthAccount = {
 type PlatformCompanyDetail = {
   id: string;
   name: string;
+  nameEn?: string;
   slug: string;
   timezone: string;
   address?: string;
@@ -302,6 +304,7 @@ type PlatformCompanyDetail = {
 type PlatformCompanyDetails = {
   company: {
     name: string;
+    nameEn?: string;
     slug: string;
     address: string;
     timezone: string;
@@ -331,6 +334,7 @@ type PlatformCompanyDetails = {
       id: string;
       name: string;
       nameAr: string;
+      nameEn: string;
       active: boolean;
       managerId: string | null;
       employeeCount: number;
@@ -386,6 +390,7 @@ type PlatformSummary = {
 };
 type NewCompanyOwner = {
   fullName: string;
+  fullNameEn: string;
   username: string;
   password: string;
   primaryPhone: string;
@@ -5663,17 +5668,48 @@ function localizedValue(
   return value && keys[value] ? t(keys[value]) : value || "—";
 }
 
+function localizedName(
+  locale: Locale,
+  arabic: string | undefined | null,
+  english: string | undefined | null,
+) {
+  return (locale === "ar" ? arabic : english || arabic) || "—";
+}
+
+function employeeDisplayName(
+  locale: Locale,
+  employee: {
+    firstName: string;
+    lastName: string;
+    firstNameEn?: string;
+    lastNameEn?: string;
+  },
+) {
+  return locale === "ar"
+    ? `${employee.firstName} ${employee.lastName}`
+    : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`;
+}
+
+function accountDisplayName(locale: Locale, account: { fullName: string; fullNameEn?: string }) {
+  return localizedName(locale, account.fullName, account.fullNameEn);
+}
+
 function departmentLabel(
   value: string | undefined,
   _t: (key: AppCopyKey) => string,
+  locale?: Locale,
+  english?: string,
 ) {
-  return value || "—";
+  return locale ? localizedName(locale, value, english) : value || "—";
 }
 
 function branchLabel(
   value: string | undefined,
   t: (key: AppCopyKey) => string,
+  locale?: Locale,
+  english?: string,
 ) {
+  if (locale) return localizedName(locale, value, english);
   return localizedValue(
     value,
     {
@@ -7301,7 +7337,7 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="mt-3 lg:hidden">
               {isPlatformOwner ? (
                 <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                  {auth.account.fullName}
+                  {accountDisplayName(locale, auth.account)}
                 </p>
               ) : (
                 <>
@@ -7309,7 +7345,7 @@ function Shell({ children }: { children: ReactNode }) {
                     {workspace.company?.name ?? ""}
                   </p>
                   <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
-                    {auth.account.fullName}
+                    {accountDisplayName(locale, auth.account)}
                   </p>
                 </>
               )}
@@ -7395,7 +7431,7 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                {auth.account.fullName}
+                {accountDisplayName(locale, auth.account)}
               </p>
               <p className="mt-0.5 truncate text-[11px] text-sidebar-foreground/55">
                 {roleLabel(workspace.role, t)}
@@ -7814,7 +7850,7 @@ function Overview() {
                     <BriefcaseBusiness size={15} />
                   </div>
                   <span className="text-sm font-semibold">
-                    {departmentLabel(item.name, t)}
+                    {departmentLabel(item.name, t, locale, item.nameEn)}
                   </span>
                 </div>
                 <span className="font-mono text-xs text-muted-foreground">
@@ -8034,7 +8070,7 @@ function EmployeeHrPanel({
   employeeId: string;
   canEdit: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const hr = useGetEmployeeHrRecord(employeeId, {
     query: {
@@ -8179,7 +8215,7 @@ function EmployeeHrPanel({
               <option value="">{t("notAvailable")}</option>
               {managerOptions.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {item.firstName} {item.lastName}
+                  {employeeDisplayName(locale, item)}
                 </option>
               ))}
             </select>
@@ -8235,7 +8271,7 @@ function EmployeeHrPanel({
             label={t("manager")}
             value={
               selectedManager
-                ? `${selectedManager.firstName} ${selectedManager.lastName}`
+                ? employeeDisplayName(locale, selectedManager)
                 : t("notAvailable")
             }
           />
@@ -8265,7 +8301,7 @@ function EmployeeHrProfile({
 }: {
   employeeIdOverride?: string | null;
 } = {}) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [, setLocation] = useLocation();
   const workspace = useGetWorkspace();
   const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
@@ -8358,7 +8394,7 @@ function EmployeeHrProfile({
               </div>
               <div className="min-w-0">
                 <h2 className="truncate font-display text-xl font-semibold">
-                  {employee.data.firstName} {employee.data.lastName}
+                  {employeeDisplayName(locale, employee.data)}
                 </h2>
               </div>
             </div>
@@ -8407,13 +8443,13 @@ function EmployeeHrProfile({
               />
               <Info
                 label={t("department")}
-                value={departmentLabel(employee.data.department?.name, t)}
+                value={departmentLabel(employee.data.department?.name, t, locale, employee.data.department?.nameEn)}
               />
               <Info
                 label={t("branch")}
                 value={
                   employee.data.branch
-                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
+                    ? `${branchLabel(employee.data.branch.name, t, locale, employee.data.branch.nameEn)} · ${employee.data.branch.city}`
                     : t("notAvailable")
                 }
               />
@@ -8903,7 +8939,7 @@ function AccountProfileSummary({
       />
       <Card className="p-6">
         <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <Info label={t("fullName")} value={auth.account.fullName} />
+          <Info label={t("fullName")} value={accountDisplayName(locale, auth.account)} />
           <Info
             label={t("phoneLoginUsername")}
             value={auth.account.primaryPhone || auth.account.username}
@@ -8959,19 +8995,21 @@ function Branches() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    nameEn: "",
     city: "",
     gpsEnabled: false,
     active: true,
   });
   function openCreate() {
     setSelected(null);
-    setForm({ name: "", city: "", gpsEnabled: false, active: true });
+    setForm({ name: "", nameEn: "", city: "", gpsEnabled: false, active: true });
     setEditing(true);
   }
   function openEdit(branch: any) {
     setSelected(branch);
     setForm({
       name: branch.name ?? "",
+      nameEn: branch.nameEn ?? "",
       city: branch.city ?? "",
       gpsEnabled: branch.gpsEnabled === true,
       active: branch.active !== false,
@@ -8982,6 +9020,7 @@ function Branches() {
     event.preventDefault();
     const data = {
       name: form.name.trim(),
+      nameEn: form.nameEn.trim(),
       city: form.city.trim(),
       gpsEnabled: form.gpsEnabled,
       ...(selected ? { active: form.active } : {}),
@@ -9046,7 +9085,7 @@ function Branches() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="font-display text-lg font-semibold">
-                      {branch.name}
+                      {localizedName(locale, branch.name, branch.nameEn)}
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">{branch.city}</div>
                   </div>
@@ -9064,7 +9103,7 @@ function Branches() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("branchDetails")}</p>
-                  <h2 className="mt-1 font-display text-2xl font-semibold">{selected.name}</h2>
+                   <h2 className="mt-1 font-display text-2xl font-semibold">{localizedName(locale, selected.name, selected.nameEn)}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{selected.city}</p>
                 </div>
                 {canManage && <Button variant="outline" onClick={() => openEdit(selected)}>{t("edit")}</Button>}
@@ -9090,6 +9129,7 @@ function Branches() {
         <Modal title={selected ? t("edit") : t("addBranch")} onClose={() => setEditing(false)}>
           <form onSubmit={save} className="space-y-4">
             <Field label={t("branchName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+            <Field label={locale === "ar" ? "English branch name" : "اسم الفرع بالإنجليزية"} value={form.nameEn} onChange={(value) => setForm({ ...form, nameEn: value })} />
             <Field label={t("branchCity")} required value={form.city} onChange={(value) => setForm({ ...form, city: value })} />
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={form.gpsEnabled} onChange={(event) => setForm({ ...form, gpsEnabled: event.target.checked })} />
@@ -9123,7 +9163,7 @@ function Branches() {
 }
 
 function Departments() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage =
@@ -9137,6 +9177,7 @@ function Departments() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    nameEn: "",
     active: true,
   });
   const detail = useGetDepartment(selected || "", undefined, {
@@ -9148,6 +9189,7 @@ function Departments() {
   function resetForm() {
     setForm({
       name: "",
+      nameEn: "",
       active: true,
     });
   }
@@ -9160,6 +9202,7 @@ function Departments() {
     setSelected(item.id);
     setForm({
       name: item.name ?? "",
+      nameEn: item.nameEn ?? "",
       active: item.active !== false,
     });
     setShowCreate(true);
@@ -9168,6 +9211,7 @@ function Departments() {
     event.preventDefault();
     const data = {
       name: form.name,
+      nameEn: form.nameEn,
       ...(selected ? { active: form.active } : {}),
     };
     const options = {
@@ -9255,7 +9299,7 @@ function Departments() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="font-display text-lg font-semibold">
-                      {item.name}
+                      {localizedName(locale, item.name, item.nameEn)}
                     </div>
                   </div>
                   <Status value={item.active ? "active" : "inactive"} />
@@ -9287,7 +9331,7 @@ function Departments() {
                       {t("department")}
                     </div>
                     <h2 className="mt-1 font-display text-2xl font-semibold">
-                      {activeDetail.name}
+                      {localizedName(locale, activeDetail.name, activeDetail.nameEn)}
                     </h2>
                     {activeDetail.description && (
                       <p className="mt-2 text-sm text-muted-foreground">
@@ -9334,7 +9378,7 @@ function Departments() {
                             <option value="">{t("selectOption")}</option>
                             {departments.data.map((department: any) => (
                               <option key={department.id} value={department.id}>
-                                {department.name}
+                                 {localizedName(locale, department.name, department.nameEn)}
                               </option>
                             ))}
                           </select>
@@ -9395,6 +9439,11 @@ function Departments() {
                 autoComplete="organization"
                 value={form.name}
                 onChange={(value) => setForm({ ...form, name: value })}
+              />
+              <Field
+                label={locale === "ar" ? "English department name" : "اسم القسم بالإنجليزية"}
+                value={form.nameEn}
+                onChange={(value) => setForm({ ...form, nameEn: value })}
               />
               {selected && (
                 <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
@@ -9461,6 +9510,7 @@ function AddEmployeePage() {
     workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const [form, setForm] = useState({
     employeeName: "",
+    employeeNameEn: "",
     nationalId: "",
     phone: "",
     biometricCode: "",
@@ -9482,7 +9532,9 @@ function AddEmployeePage() {
   function submit(e: FormEvent) {
     e.preventDefault();
     const employeeName = form.employeeName.trim();
+    const employeeNameEn = form.employeeNameEn.trim();
     const nameParts = employeeName.split(/\s+/).filter(Boolean);
+    const englishNameParts = (employeeNameEn || employeeName).split(/\s+/).filter(Boolean);
     if (
       nameParts.length === 0 ||
       !form.nationalId.trim() ||
@@ -9503,11 +9555,15 @@ function AddEmployeePage() {
     }
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(" ") || firstName;
+    const firstNameEn = englishNameParts[0];
+    const lastNameEn = englishNameParts.slice(1).join(" ") || firstNameEn;
     create.mutate(
       {
         data: {
           firstName,
           lastName,
+          firstNameEn,
+          lastNameEn,
           phone: form.phone.trim(),
           nationalId: form.nationalId.trim(),
           biometricCode: form.biometricCode.trim(),
@@ -9607,6 +9663,16 @@ function AddEmployeePage() {
                 onChange={(value) =>
                   setForm({ ...form, employeeName: value })
                 }
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Field
+                label={locale === "ar" ? "English employee name" : "اسم الموظف بالإنجليزية"}
+                name="employeeNameEn"
+                autoComplete="name"
+                placeholder="First Last"
+                value={form.employeeNameEn}
+                onChange={(value) => setForm({ ...form, employeeNameEn: value })}
               />
             </div>
             <Field
@@ -9723,7 +9789,7 @@ function AddEmployeePage() {
                     value={schedule.id}
                     data-testid={`option-employee-shift-${schedule.id}`}
                   >
-                    {schedule.name} · {schedule.startTime}–{schedule.endTime}
+                    {localizedName(locale, schedule.name, schedule.nameEn)} · {schedule.startTime}–{schedule.endTime}
                   </option>
                 ))}
               </select>
@@ -9793,7 +9859,7 @@ function AddEmployeePage() {
                     value={x.id}
                     data-testid={`option-employee-department-${x.id}`}
                   >
-                    {departmentLabel(x.name, t)}
+                    {departmentLabel(x.name, t, locale, x.nameEn)}
                   </option>
                 ))}
               </select>
@@ -9817,7 +9883,7 @@ function AddEmployeePage() {
                     value={x.id}
                     data-testid={`option-employee-branch-${x.id}`}
                   >
-                    {branchLabel(x.name, t)}
+                    {branchLabel(x.name, t, locale, x.nameEn)}
                   </option>
                 ))}
               </select>
@@ -9930,6 +9996,8 @@ function EmployeeProfilePage() {
     employeeNumber: "",
     firstName: "",
     lastName: "",
+    firstNameEn: "",
+    lastNameEn: "",
     phone: "",
     nationalId: "",
     biometricCode: "",
@@ -9953,6 +10021,8 @@ function EmployeeProfilePage() {
       employeeNumber: employee.data.employeeNumber,
       firstName: employee.data.firstName,
       lastName: employee.data.lastName,
+      firstNameEn: employee.data.firstNameEn ?? "",
+      lastNameEn: employee.data.lastNameEn ?? "",
       phone: employee.data.phone ?? "",
       nationalId: employee.data.nationalId ?? "",
       biometricCode: employee.data.biometricCode ?? "",
@@ -9983,6 +10053,8 @@ function EmployeeProfilePage() {
           employeeNumber,
           firstName: editForm.firstName.trim(),
           lastName: editForm.lastName.trim(),
+          firstNameEn: editForm.firstNameEn.trim(),
+          lastNameEn: editForm.lastNameEn.trim(),
           phone: editForm.phone.trim(),
           nationalId: editForm.nationalId.trim(),
           biometricCode: editForm.biometricCode.trim(),
@@ -10009,7 +10081,7 @@ function EmployeeProfilePage() {
     if (
       !employee.data ||
       !window.confirm(
-        `${t("remove")}: ${employee.data.firstName} ${employee.data.lastName}?`,
+        `${t("remove")}: ${employeeDisplayName(locale, employee.data)}?`,
       )
     ) {
       return;
@@ -10075,7 +10147,7 @@ function EmployeeProfilePage() {
         eyebrow={t("employeeProfile")}
         title={
           employee.data
-            ? `${employee.data.firstName} ${employee.data.lastName}`
+            ? employeeDisplayName(locale, employee.data)
             : t("employeeProfile")
         }
         detail={t("employeeDetail")}
@@ -10129,7 +10201,7 @@ function EmployeeProfilePage() {
                     className="truncate font-display text-2xl font-semibold sm:text-3xl"
                     data-testid={`text-employee-name-${employee.data.id}`}
                   >
-                    {employee.data.firstName} {employee.data.lastName}
+                    {employeeDisplayName(locale, employee.data)}
                   </h2>
                   <p
                     className="mt-1 truncate text-sm text-muted-foreground"
@@ -10180,7 +10252,7 @@ function EmployeeProfilePage() {
               />
               <Info
                 label={t("branch")}
-                value={branchLabel(employee.data.branch?.name, t)}
+                value={branchLabel(employee.data.branch?.name, t, locale, employee.data.branch?.nameEn)}
               />
               <Info
                 label={t("employmentStartDate")}
@@ -10248,14 +10320,14 @@ function EmployeeProfilePage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <Info
                 label={t("department")}
-                value={departmentLabel(employee.data.department?.name, t)}
+                value={departmentLabel(employee.data.department?.name, t, locale, employee.data.department?.nameEn)}
                 testId={`text-profile-department-${employee.data.id}`}
               />
               <Info
                 label={t("branch")}
                 value={
                   employee.data.branch
-                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
+                    ? `${branchLabel(employee.data.branch.name, t, locale, employee.data.branch.nameEn)} · ${employee.data.branch.city}`
                     : t("notAvailable")
                 }
                 testId={`text-profile-branch-${employee.data.id}`}
@@ -10540,7 +10612,7 @@ function EmployeeProfilePage() {
             employeeId={employee.data.id}
             phone={employee.data.phone}
             companyName={workspaceQuery.data?.company?.name ?? ""}
-            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
+            employeeName={employeeDisplayName(locale, employee.data)}
             canManage={canManageCredentials}
           />
 
@@ -10614,6 +10686,16 @@ function EmployeeProfilePage() {
                 value={editForm.lastName}
                 required
                 onChange={(value) => setEditForm({ ...editForm, lastName: value })}
+              />
+              <Field
+                label={locale === "ar" ? "English first name" : "الاسم الأول بالإنجليزية"}
+                value={editForm.firstNameEn}
+                onChange={(value) => setEditForm({ ...editForm, firstNameEn: value })}
+              />
+              <Field
+                label={locale === "ar" ? "English last name" : "اسم العائلة بالإنجليزية"}
+                value={editForm.lastNameEn}
+                onChange={(value) => setEditForm({ ...editForm, lastNameEn: value })}
               />
               <Field
                 label={t("phoneNumber")}
@@ -10895,7 +10977,7 @@ function Employees() {
                         </div>
                         <div className="min-w-0">
                           <div className="whitespace-nowrap font-semibold">
-                            {item.firstName} {item.lastName}
+                            {employeeDisplayName(locale, item)}
                           </div>
                           <div className="max-w-[190px] truncate text-xs text-muted-foreground">
                             {item.phone || t("notAvailable")}
@@ -10910,9 +10992,9 @@ function Employees() {
                       {item.phone || t("notAvailable")}
                     </td>
                     <td className="px-4 py-4">
-                      {departmentLabel(item.department?.name, t)}
+                      {departmentLabel(item.department?.name, t, locale, item.department?.nameEn)}
                     </td>
-                    <td className="px-4 py-4">{branchLabel(item.branch?.name, t)}</td>
+                    <td className="px-4 py-4">{branchLabel(item.branch?.name, t, locale, item.branch?.nameEn)}</td>
                     <td className="px-4 py-4">
                       {effectiveScheduleName(
                         scheduleAssignments.data,
@@ -10965,7 +11047,7 @@ function Employees() {
                         </div>
                         <div className="min-w-0">
                           <div className="truncate font-semibold">
-                            {item.firstName} {item.lastName}
+                            {employeeDisplayName(locale, item)}
                           </div>
                           <div className="truncate text-xs text-muted-foreground">
                             {item.phone || t("notAvailable")}
@@ -10988,9 +11070,9 @@ function Employees() {
                       <Info label={t("phoneNumber")} value={item.phone || t("notAvailable")} />
                       <Info
                         label={t("department")}
-                        value={departmentLabel(item.department?.name, t)}
+                        value={departmentLabel(item.department?.name, t, locale, item.department?.nameEn)}
                       />
-                      <Info label={t("branch")} value={branchLabel(item.branch?.name, t)} />
+                      <Info label={t("branch")} value={branchLabel(item.branch?.name, t, locale, item.branch?.nameEn)} />
                       <Info label={t("shift")} value={shift} />
                       <Info label={t("monthlySalary")} value={money(item.salary, currency)} />
                       <Info
@@ -11038,7 +11120,7 @@ function Employees() {
 }
 
 function Attendance() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const [tab, setTab] = useState<"today" | "history">("today");
@@ -11485,7 +11567,7 @@ function Attendance() {
                     <option value="">{t("allEmployees")}</option>
                     {employees.data?.map((item: any) => (
                       <option key={item.id} value={item.id}>
-                        {item.firstName} {item.lastName}
+                        {employeeDisplayName(locale, item)}
                       </option>
                     ))}
                   </select>
@@ -14054,7 +14136,7 @@ function downloadXlsx(
 }
 
 function Reports() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const workspace = useGetWorkspace();
   const departments = useListDepartments();
   const employees = useListEmployees({ status: "active" });
@@ -14313,7 +14395,7 @@ function Reports() {
               <option value="">{t("allEmployees")}</option>
               {employees.data?.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {item.firstName} {item.lastName}
+                  {employeeDisplayName(locale, item)}
                 </option>
               ))}
             </select>
@@ -14616,7 +14698,7 @@ function EmployeePayrollStatement({
 }
 
 function Payroll() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const auth = useAuth();
   const isEmployee = auth.account.accountType === "employee";
   const qc = useQueryClient();
@@ -15629,7 +15711,7 @@ function Payroll() {
                 <option value="">{t("selectEmployeeForAdjustment")}</option>
                 {employees.data?.map((employee: any) => (
                   <option value={employee.id} key={employee.id}>
-                    {employee.firstName} {employee.lastName}
+                    {employeeDisplayName(locale, employee)}
                   </option>
                 ))}
               </select>
@@ -15721,7 +15803,7 @@ const scheduleDayOptions: Array<[string, AppCopyKey]> = [
 ];
 
 function Schedules({ embedded = false }: { embedded?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const role = workspace.data?.role as WorkspaceRole | undefined;
@@ -15769,6 +15851,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
   const [draft, setDraft] = useState<any>({
     name: "",
     nameAr: "",
+    nameEn: "",
     workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
     startTime: "09:00",
     endTime: "17:00",
@@ -15789,6 +15872,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         ? {
             ...schedule,
             nameAr: schedule.nameAr || "",
+            nameEn: schedule.nameEn || "",
             requiredHours: String(schedule.requiredHours),
             breakDurationMinutes: String(schedule.breakDurationMinutes),
             earlyCheckoutGraceMinutes: String(
@@ -15800,6 +15884,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         : {
             name: "",
             nameAr: "",
+            nameEn: "",
             workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
             startTime: "09:00",
             endTime: "17:00",
@@ -15830,6 +15915,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       ...draft,
       name: draft.name.trim(),
       nameAr: draft.nameAr.trim(),
+      nameEn: draft.nameEn.trim(),
       requiredHours: Number(draft.requiredHours),
       breakDurationMinutes: Number(draft.breakDurationMinutes),
       breakPaid: Boolean(draft.breakPaid),
@@ -15990,7 +16076,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
                         <div className="flex items-center gap-2 font-semibold">
-                          {schedule.name}
+                          {localizedName(locale, schedule.name, schedule.nameEn)}
                           {schedule.isDefault && (
                             <Badge tone="accent">{t("defaultSchedule")}</Badge>
                           )}
@@ -16074,7 +16160,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   <option value="">{t("selectEmployee")}</option>
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.firstName} {employee.lastName}
+                      {employeeDisplayName(locale, employee)}
                     </option>
                   ))}
                 </select>
@@ -16124,7 +16210,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                         ?.filter((schedule: any) => schedule.active)
                         .map((schedule: any) => (
                           <option key={schedule.id} value={schedule.id}>
-                            {schedule.name}
+                            {localizedName(locale, schedule.name, schedule.nameEn)}
                           </option>
                         ))}
                     </select>
@@ -16186,7 +16272,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 >
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.firstName} {employee.lastName}
+                      {employeeDisplayName(locale, employee)}
                     </option>
                   ))}
                 </select>
@@ -16206,7 +16292,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                     ?.filter((schedule: any) => schedule.active)
                     .map((schedule: any) => (
                       <option key={schedule.id} value={schedule.id}>
-                        {schedule.name}
+                        {localizedName(locale, schedule.name, schedule.nameEn)}
                       </option>
                     ))}
                 </select>
@@ -17253,7 +17339,13 @@ type AdminEntity = {
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
 type AdminDataResponse = AdminData & { entity?: string };
-type DatabaseCompany = { id: string; name: string; slug: string; active: boolean };
+type DatabaseCompany = {
+  id: string;
+  name: string;
+  nameEn?: string;
+  slug: string;
+  active: boolean;
+};
 type AdminHistoryEntry = {
   id: string;
   action: string;
@@ -17751,7 +17843,7 @@ function DatabaseAdministration() {
                  <option value="">{t("allCompanies")}</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {company.name}
+                    {localizedName(locale, company.name, company.nameEn)}
                   </option>
                 ))}
               </select>
@@ -18263,6 +18355,7 @@ function Accounts() {
   }>({});
   const [form, setForm] = useState({
     fullName: "",
+    fullNameEn: "",
     primaryPhone: "",
     displayRole: "HR",
     password: "",
@@ -18273,6 +18366,7 @@ function Accounts() {
   );
   const [editForm, setEditForm] = useState({
     fullName: "",
+    fullNameEn: "",
     primaryPhone: "",
     displayRole: "",
     password: "",
@@ -18325,6 +18419,7 @@ function Accounts() {
       setAccounts((current) => [...current, result.account]);
       setForm({
         fullName: "",
+        fullNameEn: "",
         primaryPhone: "",
         displayRole: "HR",
         password: "",
@@ -18347,6 +18442,7 @@ function Accounts() {
     setEditingAccount(account);
     setEditForm({
       fullName: account.fullName,
+      fullNameEn: account.fullNameEn || "",
       primaryPhone: account.primaryPhone || account.username,
       displayRole: account.displayRole,
       password: "",
@@ -18378,6 +18474,7 @@ function Accounts() {
           method: "PATCH",
           body: JSON.stringify({
             fullName: editForm.fullName,
+            fullNameEn: editForm.fullNameEn,
             primaryPhone: editForm.primaryPhone,
             displayRole: editForm.displayRole,
             active: editForm.active,
@@ -18466,6 +18563,11 @@ function Accounts() {
               }}
               error={fieldErrors.primaryPhone}
               required
+            />
+            <Field
+              label={locale === "ar" ? "Full name in English" : "الاسم الكامل بالإنجليزية"}
+              value={form.fullNameEn}
+              onChange={(value) => setForm({ ...form, fullNameEn: value })}
             />
             <Field
               label={authLabel(locale, "role")}
@@ -18583,7 +18685,7 @@ function Accounts() {
                 >
                   <div>
                     <div className="flex items-center gap-2 font-semibold">
-                      {account.fullName || account.username}
+                      {accountDisplayName(locale, account) || account.username}
                       <Badge tone={account.active ? "good" : "neutral"}>
                         {account.active
                           ? authLabel(locale, "active")
@@ -18656,6 +18758,11 @@ function Accounts() {
                 }
                 error={fieldErrors.primaryPhone}
                 required
+              />
+              <Field
+                label={locale === "ar" ? "Full name in English" : "الاسم الكامل بالإنجليزية"}
+                value={editForm.fullNameEn}
+                onChange={(value) => setEditForm({ ...editForm, fullNameEn: value })}
               />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -18774,7 +18881,7 @@ function tSafe(locale: Locale, key: "refresh") {
 }
 
 function Devices() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const workspace = useGetWorkspace();
   const canAdminister =
     workspace.data?.role === "company_owner" ||
@@ -19282,7 +19389,7 @@ function Devices() {
                   <option value="">{t("selectEmployee")}</option>
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.firstName} {employee.lastName}
+                    {employeeDisplayName(locale, employee)}
                     </option>
                   ))}
                 </select>
@@ -19576,7 +19683,7 @@ function Devices() {
                 <option value="">{t("selectBranch")}</option>
                 {branches.data?.map((b: any) => (
                   <option key={b.id} value={b.id}>
-                    {branchLabel(b.name, t)}
+                    {branchLabel(b.name, t, locale, b.nameEn)}
                   </option>
                 ))}
               </select>
@@ -19632,7 +19739,7 @@ function Devices() {
                 <option value="">{t("selectBranch")}</option>
                 {branches.data?.map((branch: any) => (
                   <option key={branch.id} value={branch.id}>
-                    {branchLabel(branch.name, t)}
+                    {branchLabel(branch.name, t, locale, branch.nameEn)}
                   </option>
                 ))}
               </select>
@@ -19851,6 +19958,7 @@ function Platform() {
   const [employeeLimit, setEmployeeLimit] = useState("");
   const [companyForm, setCompanyForm] = useState({
     name: "",
+    nameEn: "",
     address: "",
     timezone: "",
     currency: "",
@@ -19909,6 +20017,7 @@ function Platform() {
   };
   const updateCompany = async (next: {
     name?: string;
+    nameEn?: string;
     address?: string;
     timezone?: string;
     currency?: string;
@@ -20318,7 +20427,7 @@ function Platform() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate font-semibold">{company.name}</div>
+                    <div className="truncate font-semibold">{localizedName(locale, company.name, company.nameEn)}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {company.slug}
                     </div>
@@ -20549,7 +20658,7 @@ function Platform() {
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <Info
                       label={text("Company name", "اسم الشركة")}
-                      value={companyDetails.company.name}
+                      value={localizedName(locale, companyDetails.company.name, companyDetails.company.nameEn)}
                     />
                     <Info
                       label={text("Address", "العنوان")}
@@ -20610,7 +20719,7 @@ function Platform() {
                           key={account.id}
                         >
                           <div className="font-semibold">
-                            {account.fullName || account.username}
+                            {accountDisplayName(locale, account) || account.username}
                           </div>
                           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                             <Info
@@ -20687,8 +20796,9 @@ function Platform() {
                         {companyDetails.employees.length ? (
                           companyDetails.employees.map((employee) => (
                             <div key={String(employee.id)}>
-                              {String(employee.first_name ?? "")}{" "}
-                              {String(employee.last_name ?? "")}
+                              {locale === "ar"
+                                ? `${String(employee.first_name ?? "")} ${String(employee.last_name ?? "")}`
+                                : `${String(employee.first_name_en ?? employee.first_name ?? "")} ${String(employee.last_name_en ?? employee.last_name ?? "")}`}
                             </div>
                           ))
                         ) : (
@@ -20707,7 +20817,7 @@ function Platform() {
                         {companyDetails.staff.length ? (
                           companyDetails.staff.map((account) => (
                             <div key={account.id}>
-                              {account.fullName || account.username}{" "}
+                               {accountDisplayName(locale, account) || account.username}{" "}
                               <span className="text-muted-foreground">
                                 · {account.username}
                               </span>
@@ -20802,6 +20912,16 @@ function Platform() {
                   />
                 </label>
                 <label className="text-sm font-semibold">
+                  {text("Company name in English", "اسم الشركة بالإنجليزية")}
+                  <input
+                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                    value={companyForm.nameEn}
+                    onChange={(event) =>
+                      setCompanyForm({ ...companyForm, nameEn: event.target.value })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-semibold">
                   {text("Timezone", "المنطقة الزمنية")}
                   <input
                     className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
@@ -20859,6 +20979,7 @@ function Platform() {
                   onClick={() =>
                     void updateCompany({
                       name: companyForm.name,
+                      nameEn: companyForm.nameEn,
                       address: companyForm.address,
                       timezone: companyForm.timezone,
                       currency: companyForm.currency,
@@ -21673,7 +21794,7 @@ function PlatformCompaniesPage({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate font-semibold">{company.name}</div>
+                    <div className="truncate font-semibold">{localizedName(locale, company.name, company.nameEn)}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {company.slug}
                     </div>
@@ -22115,6 +22236,7 @@ function PlatformCompanyDetailsPage() {
   const [newOwners, setNewOwners] = useState<NewCompanyOwner[]>([]);
   const [companyForm, setCompanyForm] = useState({
     name: "",
+    nameEn: "",
     address: "",
     timezone: "",
     currency: "",
@@ -22141,6 +22263,7 @@ function PlatformCompanyDetailsPage() {
       setBackups(nextBackups);
       setCompanyForm({
         name: nextDetails.company.name,
+        nameEn: nextDetails.company.nameEn || "",
         address: nextDetails.company.address,
         timezone: nextDetails.company.timezone,
         currency: nextDetails.company.currency,
@@ -22187,6 +22310,7 @@ function PlatformCompanyDetailsPage() {
           method: "PATCH",
           body: JSON.stringify({
             name: companyForm.name,
+            nameEn: companyForm.nameEn,
             address: companyForm.address,
             timezone: companyForm.timezone,
             currency: companyForm.currency,
@@ -22261,6 +22385,7 @@ function PlatformCompanyDetailsPage() {
   };
   const emptyOwner = (): NewCompanyOwner => ({
     fullName: "",
+    fullNameEn: "",
     username: "",
     password: "",
     primaryPhone: "",
@@ -22497,7 +22622,7 @@ function PlatformCompanyDetailsPage() {
       </div>
       <SectionTitle
         eyebrow={text("Platform administration", "إدارة المنصة")}
-        title={details.company.name}
+        title={localizedName(locale, details.company.name, details.company.nameEn)}
         detail={text(
           "Company details and support controls",
           "تفاصيل الشركة وأدوات الدعم",
@@ -22527,7 +22652,7 @@ function PlatformCompanyDetailsPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Info
             label={text("Company name", "اسم الشركة")}
-            value={details.company.name}
+            value={localizedName(locale, details.company.name, details.company.nameEn)}
           />
           <Info
             label={text("Address", "العنوان")}
@@ -22629,7 +22754,7 @@ function PlatformCompanyDetailsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold">
-                        {account.fullName || account.username}
+                        {accountDisplayName(locale, account) || account.username}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {account.username} ·{" "}
@@ -22836,7 +22961,7 @@ function PlatformCompanyDetailsPage() {
                   <div className="space-y-3">
                     <Field
                       label={text("Owner full name", "الاسم الكامل للمالك")}
-                      value={owner.fullName}
+                      value={accountDisplayName(locale, owner)}
                       onChange={(value) =>
                         setNewOwners((current) =>
                           current.map((item, itemIndex) =>
@@ -23018,7 +23143,7 @@ function PlatformCompanyDetailsPage() {
               {details.staff.length ? (
                 details.staff.map((account) => (
                   <div key={account.id}>
-                    {account.fullName || account.username}{" "}
+                    {accountDisplayName(locale, account) || account.username}{" "}
                     <span className="text-muted-foreground">
                       · {account.displayRole}
                     </span>
@@ -23090,7 +23215,7 @@ function PlatformCompanyDetailsPage() {
                   {accounts.length ? (
                     accounts.map((account) => (
                       <div key={account.id}>
-                        {account.fullName || account.username}
+                        {accountDisplayName(locale, account) || account.username}
                         <span className="text-muted-foreground">
                           {" "}· {account.displayRole} ·{" "}
                           {account.active
@@ -23201,6 +23326,13 @@ function PlatformCompanyDetailsPage() {
             value={companyForm.name}
             onChange={(value) =>
               setCompanyForm({ ...companyForm, name: value })
+            }
+          />
+          <Field
+            label={text("Company name in English", "اسم الشركة بالإنجليزية")}
+            value={companyForm.nameEn}
+            onChange={(value) =>
+              setCompanyForm({ ...companyForm, nameEn: value })
             }
           />
           <Field
@@ -23337,6 +23469,7 @@ function AddCompanyPage() {
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const emptyOwner = (): NewCompanyOwner => ({
     fullName: "",
+    fullNameEn: "",
     username: "",
     password: "",
     primaryPhone: "",
@@ -23346,6 +23479,7 @@ function AddCompanyPage() {
   });
   const [company, setCompany] = useState({
     name: "",
+    nameEn: "",
     address: "",
     currency: "",
     employeeLimit: "",
@@ -23381,6 +23515,7 @@ function AddCompanyPage() {
         method: "POST",
         body: JSON.stringify({
           name: company.name,
+          nameEn: company.nameEn,
           address: company.address,
           ...(company.currency
             ? { currency: company.currency.toUpperCase() }
@@ -23506,7 +23641,7 @@ function AddCompanyPage() {
               <Field
                 label={text("Company name", "اسم الشركة")}
                 required
-                value={company.name}
+                value={localizedName(locale, company.name, company.nameEn)}
                 onChange={(value) => setCompany({ ...company, name: value })}
               />
               <Field
@@ -23626,7 +23761,8 @@ function AddCompanyPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {(
                       [
-                        ["fullName", text("Full name", "الاسم الكامل")],
+                         ["fullName", text("Full name", "الاسم الكامل")],
+                         ["fullNameEn", text("Full name in English", "الاسم الكامل بالإنجليزية")],
                         ["username", text("Username", "اسم المستخدم")],
                         [
                           "password",
@@ -23889,7 +24025,7 @@ function EmployeeProfileSection({
 }
 
 function EmployeeMovementPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const auth = useAuth();
   const [, setLocation] = useLocation();
   const { employeeId = "" } = useParams<{ employeeId: string }>();
@@ -23966,7 +24102,7 @@ function EmployeeMovementPage() {
                 {t("employeeProfile")}
               </p>
               <h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">
-                {employee.data.firstName} {employee.data.lastName}
+                {employeeDisplayName(locale, employee.data)}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("employeeNumber")}: {employee.data.employeeNumber}
@@ -23981,7 +24117,7 @@ function EmployeeMovementPage() {
       </Card>
       <EmployeeAttendanceMovement
         employeeId={employee.data.id}
-        employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
+        employeeName={employeeDisplayName(locale, employee.data)}
         biometricCode={employee.data.biometricCode}
         canPrint={canPrint}
         fullPage

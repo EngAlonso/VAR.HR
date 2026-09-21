@@ -10,6 +10,7 @@ import type { PlatformCompanyInputOwnersItem } from './platformCompanyInputOwner
 export interface PlatformCompanyInput {
   /** @minLength 2 */
   name: string;
+  nameEn?: string;
   address?: string;
   slug?: string;
   timezone?: string;

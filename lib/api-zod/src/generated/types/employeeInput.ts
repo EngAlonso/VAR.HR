@@ -12,6 +12,8 @@ export interface EmployeeInput {
   firstName: string;
   /** @minLength 1 */
   lastName: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
   /** Optional internal email; generated when omitted. */
   email?: string;
   phone: string;

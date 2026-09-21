@@ -10,6 +10,7 @@ export interface DepartmentSummary {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   active: boolean;
   employeeCount: number;
 }

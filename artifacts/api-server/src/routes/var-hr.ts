@@ -654,6 +654,7 @@ function mapWorkSchedule(
     id: schedule.id,
     name: schedule.name,
     nameAr: schedule.nameAr,
+    nameEn: schedule.nameEn,
     workingDays: schedule.workingDays,
     startTime: schedule.startTime,
     endTime: schedule.endTime,
@@ -2422,6 +2423,8 @@ function employeeResponse(
     employeeNumber: row.employee.employeeNumber,
     firstName: row.employee.firstName,
     lastName: row.employee.lastName,
+    firstNameEn: row.employee.firstNameEn || row.employee.firstName,
+    lastNameEn: row.employee.lastNameEn || row.employee.lastName,
     email: row.employee.email,
     phone: row.employee.phone,
     nationalId: row.employee.nationalId,
@@ -2432,6 +2435,7 @@ function employeeResponse(
           id: row.department.id,
           name: row.department.name,
           nameAr: row.department.nameAr,
+          nameEn: row.department.nameEn || row.department.name,
           active: row.department.active,
           employeeCount: 0,
         }
@@ -2439,6 +2443,7 @@ function employeeResponse(
     branch: {
       id: row.branch.id,
       name: row.branch.name,
+      nameEn: row.branch.nameEn || row.branch.name,
       city: row.branch.city,
       employeeCount: 0,
       deviceCount: row.deviceCount,
@@ -2680,6 +2685,7 @@ async function departmentResponse(
     id: department.id,
     name: department.name,
     nameAr: department.nameAr,
+    nameEn: department.nameEn || department.name,
     description: department.description,
     active: department.active,
     manager: manager
@@ -3123,9 +3129,8 @@ router.post("/departments", async (req, res): Promise<void> => {
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
-      // Keep the legacy column in sync while department names remain a
-      // single, locale-independent value in the product.
       nameAr: parsed.data.name,
+      nameEn: parsed.data.nameEn || parsed.data.name,
     })
     .returning();
   await recordAudit(
@@ -3194,6 +3199,7 @@ router.patch("/departments/:departmentId", async (req, res): Promise<void> => {
     .set({
       ...parsed.data,
       ...(parsed.data.name !== undefined ? { nameAr: parsed.data.name } : {}),
+      ...(parsed.data.nameEn !== undefined ? { nameEn: parsed.data.nameEn } : {}),
     })
     .where(
       and(
@@ -3315,6 +3321,7 @@ router.get("/branches", async (req, res): Promise<void> => {
       branches.map((branch) => ({
         id: branch.id,
         name: branch.name,
+        nameEn: branch.nameEn || branch.name,
         city: branch.city,
         employeeCount: employees.filter(
           (employee) => employee.branchId === branch.id,
@@ -3345,6 +3352,7 @@ router.post("/branches", async (req, res): Promise<void> => {
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
+      nameEn: parsed.data.nameEn || parsed.data.name,
       city: parsed.data.city,
       gpsEnabled: parsed.data.gpsEnabled,
       latitude: parsed.data.latitude,
@@ -3403,6 +3411,7 @@ async function branchResponse(context: TenantContext, branchId: string) {
   return {
     id: branch.id,
     name: branch.name,
+    nameEn: branch.nameEn || branch.name,
     city: branch.city,
     employeeCount: employeeRows.length,
     deviceCount: deviceRowsForBranch.length,
@@ -3733,6 +3742,8 @@ router.post("/employees", async (req, res): Promise<void> => {
           employeeNumber,
           firstName: parsed.data.firstName,
           lastName: parsed.data.lastName,
+          firstNameEn: parsed.data.firstNameEn || parsed.data.firstName,
+          lastNameEn: parsed.data.lastNameEn || parsed.data.lastName,
           email:
             parsed.data.email ||
             `employee-${employeeNumber.toLowerCase()}@varhr.local`,
@@ -3756,6 +3767,7 @@ router.post("/employees", async (req, res): Promise<void> => {
         .values({
           username: employeeUsername,
           fullName: `${employee.firstName} ${employee.lastName}`,
+          fullNameEn: `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`,
           primaryPhone: employeeUsername,
           passwordHash: hashPassword(temporaryPassword!),
           accountType: "employee",
@@ -4042,6 +4054,8 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
           .set({
             username: updateData.phone,
             primaryPhone: updateData.phone,
+            fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
+            fullNameEn: `${updatedEmployee.firstNameEn || updatedEmployee.firstName} ${updatedEmployee.lastNameEn || updatedEmployee.lastName}`,
             updatedAt: new Date(),
           })
           .where(
@@ -6962,6 +6976,7 @@ router.post("/schedules", async (req, res): Promise<void> => {
       companyId: context.companyId,
       name: parsed.data.name,
       nameAr: parsed.data.nameAr,
+      nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
@@ -7023,6 +7038,7 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     .set({
       name: parsed.data.name,
       nameAr: parsed.data.nameAr,
+      nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,

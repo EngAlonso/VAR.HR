@@ -16,6 +16,7 @@ export const workSchedulesTable = pgTable("var_hr_work_schedules", {
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
   name: text("name").notNull(),
   nameAr: text("name_ar").notNull().default(""),
+  nameEn: text("name_en").notNull().default(""),
   workingDays: text("working_days").array().notNull().default(["Sun", "Mon", "Tue", "Wed", "Thu"]),
   startTime: text("start_time").notNull().default("09:00"),
   endTime: text("end_time").notNull().default("17:00"),

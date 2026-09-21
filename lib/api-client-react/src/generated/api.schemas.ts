@@ -135,6 +135,7 @@ export interface AuthAccountCredentials {
 
 export type PlatformCompanyInputOwnersItem = {
   fullName?: string;
+  fullNameEn?: string;
   /** @minLength 3 */
   username: string;
   /** @minLength 6 */
@@ -148,6 +149,7 @@ export type PlatformCompanyInputOwnersItem = {
 export interface PlatformCompanyInput {
   /** @minLength 2 */
   name: string;
+  nameEn?: string;
   address?: string;
   slug?: string;
   timezone?: string;
@@ -186,6 +188,7 @@ export const PlatformCompanyUpdateStatus = {
 export interface PlatformCompanyUpdate {
   /** @minLength 2 */
   name?: string;
+  nameEn?: string;
   timezone?: string;
   /**
      * @minLength 3
@@ -206,6 +209,7 @@ export type PlatformCompanyOwnersUpdateOwnersItem = {
   /** @nullable */
   id?: string | null;
   fullName?: string;
+  fullNameEn?: string;
   /** @minLength 3 */
   username: string;
   /**
@@ -232,6 +236,7 @@ export interface PlatformCompanyOwnersUpdate {
 export type PlatformCompanyCredentialsCompany = {
   id: string;
   name: string;
+  nameEn?: string;
   slug: string;
   timezone?: string;
   currency?: string;
@@ -375,6 +380,7 @@ export interface Department {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   /** @nullable */
   description?: string | null;
   active: boolean;
@@ -389,6 +395,7 @@ export interface DepartmentSummary {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   active: boolean;
   employeeCount: number;
 }
@@ -396,17 +403,20 @@ export interface DepartmentSummary {
 export interface DepartmentInput {
   /** @minLength 1 */
   name: string;
+  nameEn?: string;
 }
 
 export interface DepartmentUpdate {
   /** @minLength 1 */
   name?: string;
+  nameEn?: string;
   active?: boolean;
 }
 
 export interface Branch {
   id: string;
   name: string;
+  nameEn: string;
   city: string;
   employeeCount: number;
   deviceCount: number;
@@ -419,6 +429,7 @@ export interface Branch {
 export interface BranchInput {
   /** @minLength 1 */
   name: string;
+  nameEn?: string;
   /** @minLength 1 */
   city: string;
   gpsEnabled?: boolean;
@@ -436,6 +447,7 @@ export interface BranchInput {
 export interface BranchUpdate {
   /** @minLength 1 */
   name?: string;
+  nameEn?: string;
   /** @minLength 1 */
   city?: string;
   gpsEnabled?: boolean;
@@ -492,6 +504,8 @@ export interface Employee {
   employeeNumber: string;
   firstName: string;
   lastName: string;
+  firstNameEn: string;
+  lastNameEn: string;
   email: string;
   /** @nullable */
   phone?: string | null;
@@ -529,6 +543,8 @@ export interface EmployeeInput {
   firstName: string;
   /** @minLength 1 */
   lastName: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
   /** Optional internal email; generated when omitted. */
   email?: string;
   phone: string;
@@ -577,6 +593,8 @@ export interface EmployeeUpdate {
   firstName?: string;
   /** @minLength 1 */
   lastName?: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
   phone?: string;
   /** @minLength 1 */
   nationalId?: string;
@@ -1935,6 +1953,7 @@ export interface WorkSchedule {
   id: string;
   name: string;
   nameAr: string;
+  nameEn: string;
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   startTime: string;
@@ -1978,6 +1997,7 @@ export interface WorkScheduleInput {
   /** @minLength 1 */
   name: string;
   nameAr: string;
+  nameEn: string;
   /** @minItems 1 */
   workingDays: string[];
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
@@ -2862,3 +2882,4 @@ page?: number;
  */
 pageSize?: number;
 };
+
