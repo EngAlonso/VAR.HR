@@ -688,6 +688,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/manual-event:
+    post:
+      operationId: createManualAttendanceEvent
+      tags: [attendance]
+      summary: Add a reviewed manual attendance movement for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualAttendanceEventInput"
+      responses:
+        "201":
+          description: Manual attendance movement recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
   /attendance/{attendanceId}/calculation:
     get:
       operationId: previewAttendanceCalculation
@@ -2727,6 +2745,17 @@ components:
           type: string
           enum: [present, late, absent, on_leave, incomplete, holiday]
         reason: { type: string, minLength: 1 }
+    ManualAttendanceEventInput:
+      type: object
+      required: [employeeId, attendanceDate, direction, occurredAt, reason]
+      properties:
+        employeeId: { type: string }
+        attendanceDate: { type: string, format: date }
+        direction:
+          type: string
+          enum: [in, out]
+        occurredAt: { type: string, format: date-time }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
     AttendanceToday:
       type: object
       required: [date, records, summary]

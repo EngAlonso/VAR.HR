@@ -105,6 +105,7 @@ import {
   useListAttendanceHistory,
   useCheckIn,
   useCheckOut,
+  useCreateManualAttendanceEvent,
   useCorrectAttendance,
   usePreviewAttendanceCalculation,
   useListAttendanceTimeAdjustments,
@@ -1801,7 +1802,22 @@ const pageCopy = {
     checkInNow: "Check in now",
     checkOutNow: "Check out now",
     attendancePunchPermissionRequired:
-      "Attendance buttons are enabled only for accounts granted the attendance recording permission.",
+      "Manual attendance entry is available only to accounts granted this permission.",
+    addManualPunch: "Add manual punch",
+    manualPunchTitle: "Add a manual attendance punch",
+    manualPunchDetail:
+      "Use this after reviewing the missed punch, such as camera footage.",
+    punchEmployee: "Employee",
+    punchDirection: "Movement",
+    punchIn: "Check-in",
+    punchOut: "Check-out",
+    punchDate: "Attendance date",
+    punchTime: "Actual date and time",
+    punchReason: "Reason",
+    punchReasonPlaceholder: "Example: Camera review confirmed arrival at this time.",
+    saveManualPunch: "Save manual punch",
+    manualPunchSaved: "Manual attendance punch saved",
+    manualPunchFailed: "Could not save the manual attendance punch",
     webEventPolicy: "Web event · location policy is evaluated by the API",
     today: "Today",
     history: "History",
@@ -2259,7 +2275,22 @@ const pageCopy = {
     checkInNow: "تسجيل الحضور الآن",
     checkOutNow: "تسجيل الانصراف الآن",
     attendancePunchPermissionRequired:
-      "زرّا الحضور والانصراف متاحان فقط للحسابات التي يمنحها صاحب الشركة صلاحية تسجيل الحضور.",
+      "إضافة البصمة اليدوية متاحة فقط للحسابات التي يمنحها صاحب الشركة هذه الصلاحية.",
+    addManualPunch: "إضافة بصمة يدوية",
+    manualPunchTitle: "إضافة بصمة حضور أو انصراف",
+    manualPunchDetail:
+      "استخدمها بعد مراجعة البصمة المفقودة، مثل مراجعة تسجيلات الكاميرات.",
+    punchEmployee: "الموظف",
+    punchDirection: "نوع الحركة",
+    punchIn: "حضور",
+    punchOut: "انصراف",
+    punchDate: "تاريخ الحضور",
+    punchTime: "التاريخ والوقت الفعلي",
+    punchReason: "السبب",
+    punchReasonPlaceholder: "مثال: أكدت مراجعة الكاميرات وصول الموظف في هذا الوقت.",
+    saveManualPunch: "حفظ البصمة اليدوية",
+    manualPunchSaved: "تم حفظ بصمة الحضور اليدوية",
+    manualPunchFailed: "تعذر حفظ بصمة الحضور اليدوية",
     webEventPolicy: "حدث ويب · يقيّم API سياسة الموقع",
     today: "اليوم",
     todayRegister: "سجل اليوم",
@@ -2953,6 +2984,21 @@ const pageCopy = {
     saveCorrection: "Enregistrer la correction",
     attendanceCorrectionUpdated: "Correction de présence enregistrée",
     attendanceCorrectionFailed: "Impossible d’enregistrer la correction",
+    addManualPunch: "Ajouter un pointage manuel",
+    manualPunchTitle: "Ajouter un pointage manuel",
+    manualPunchDetail:
+      "Utilisez cette action après avoir vérifié le pointage manquant.",
+    punchEmployee: "Employé",
+    punchDirection: "Mouvement",
+    punchIn: "Arrivée",
+    punchOut: "Départ",
+    punchDate: "Date de présence",
+    punchTime: "Date et heure réelles",
+    punchReason: "Motif",
+    punchReasonPlaceholder: "Expliquez la vérification effectuée.",
+    saveManualPunch: "Enregistrer le pointage",
+    manualPunchSaved: "Pointage manuel enregistré",
+    manualPunchFailed: "Impossible d’enregistrer le pointage manuel",
     checkInRecorded: "Pointage d’arrivée enregistré",
     checkOutRecorded: "Pointage de sortie enregistré",
     attendanceNotAccepted: "L’événement de présence a été refusé",
@@ -3341,6 +3387,22 @@ const pageCopy = {
     attendanceCorrectionUpdated: "Anwesenheitskorrektur gespeichert",
     attendanceCorrectionFailed:
       "Anwesenheitskorrektur konnte nicht gespeichert werden",
+    addManualPunch: "Manuellen Stempel hinzufügen",
+    manualPunchTitle: "Manuellen Anwesenheitsstempel hinzufügen",
+    manualPunchDetail:
+      "Verwenden Sie diese Aktion nach Prüfung des fehlenden Stempels.",
+    punchEmployee: "Mitarbeitende",
+    punchDirection: "Bewegung",
+    punchIn: "Kommen",
+    punchOut: "Gehen",
+    punchDate: "Anwesenheitsdatum",
+    punchTime: "Tatsächliches Datum und Uhrzeit",
+    punchReason: "Begründung",
+    punchReasonPlaceholder: "Beschreiben Sie die durchgeführte Prüfung.",
+    saveManualPunch: "Manuellen Stempel speichern",
+    manualPunchSaved: "Manueller Anwesenheitsstempel gespeichert",
+    manualPunchFailed:
+      "Manueller Anwesenheitsstempel konnte nicht gespeichert werden",
     checkInRecorded: "Einchecken erfasst",
     checkOutRecorded: "Auschecken erfasst",
     attendanceNotAccepted: "Anwesenheitsereignis wurde nicht angenommen",
@@ -6022,7 +6084,7 @@ function permissionLabel(
     "employees.manage": "إدارة الموظفين",
     "employees.credentials": "بيانات اعتماد الموظفين",
     "attendance.view": "عرض الحضور",
-    "attendance.punch": "تسجيل الحضور والانصراف",
+    "attendance.punch": "إضافة بصمة حضور يدوية",
     "attendance.correct": "تصحيح الحضور",
     "leave.approve": "اعتماد الإجازات",
     "leave.create": "إنشاء طلبات الإجازات",
@@ -6076,7 +6138,7 @@ function permissionDescription(
     "employees.manage": "إضافة الموظفين وتعديلهم وإدارتهم.",
     "employees.credentials": "إدارة بيانات اعتماد الموظفين.",
     "attendance.view": "عرض سجلات الحضور والانصراف.",
-    "attendance.punch": "تسجيل الحضور والانصراف للموظف.",
+    "attendance.punch": "إضافة حركة حضور أو انصراف يدوية بعد المراجعة.",
     "attendance.correct": "تصحيح سجلات الحضور.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
@@ -11132,6 +11194,7 @@ function Attendance() {
   const [tab, setTab] = useState<"today" | "history">("today");
   const [filters, setFilters] = useState({ from: "", to: "", employeeId: "" });
   const [correction, setCorrection] = useState<any | null>(null);
+  const [manualPunch, setManualPunch] = useState<any | null>(null);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState("");
   const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState({
@@ -11149,6 +11212,7 @@ function Attendance() {
   });
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
+  const createManualPunch = useCreateManualAttendanceEvent();
   const correct = useCorrectAttendance();
   const calculation = usePreviewAttendanceCalculation(selectedAttendanceId, {
     query: {
@@ -11175,8 +11239,9 @@ function Attendance() {
     workspace.data?.capabilities?.includes("attendance.correct") ?? false;
   const canAdjust =
     workspace.data?.capabilities?.includes("attendance.adjust") ?? false;
-  const canPunch =
-    workspace.data?.capabilities?.includes("attendance.punch") ?? false;
+  const canManualPunch =
+    workspace.data?.role !== "employee" &&
+    (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
   const record = today.data?.records?.find(
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
@@ -11263,6 +11328,56 @@ function Attendance() {
       status: item.status,
       reason: "",
     });
+  }
+  function openManualPunch(item?: any) {
+    const dateValue = item?.date || filters.from || today.data?.date || "";
+    const employeeId = item?.employee?.id || filters.employeeId || "";
+    const defaultTime = item?.checkIn || item?.checkOut
+      ? toDateTimeInput(item.checkIn || item.checkOut)
+      : dateValue
+        ? `${dateValue}T09:00`
+        : "";
+    setManualPunch({
+      employeeId,
+      attendanceDate: dateValue,
+      direction: item?.checkIn && !item?.checkOut ? "out" : "in",
+      occurredAt: defaultTime,
+      reason: "",
+    });
+  }
+  function submitManualPunch(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !manualPunch?.employeeId ||
+      !manualPunch.attendanceDate ||
+      !manualPunch.occurredAt ||
+      !manualPunch.reason.trim()
+    ) {
+      return;
+    }
+    createManualPunch.mutate(
+      {
+        data: {
+          employeeId: manualPunch.employeeId,
+          attendanceDate: manualPunch.attendanceDate,
+          direction: manualPunch.direction,
+          occurredAt: new Date(manualPunch.occurredAt).toISOString(),
+          reason: manualPunch.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("manualPunchSaved"));
+          setManualPunch(null);
+          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListAttendanceHistoryQueryKey(),
+          });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("manualPunchFailed"))),
+      },
+    );
   }
   function submitCorrection(event: FormEvent) {
     event.preventDefault();
@@ -11389,6 +11504,12 @@ function Attendance() {
         detail={t("attendanceRulesDetail")}
         action={
           <div className="flex gap-2">
+            {canManualPunch && (
+              <Button variant="outline" onClick={() => openManualPunch()}>
+                <Plus size={15} />
+                {t("addManualPunch")}
+              </Button>
+            )}
             <Button
               variant={tab === "today" ? "primary" : "outline"}
               onClick={() => setTab("today")}
@@ -11458,7 +11579,7 @@ function Attendance() {
                 {locationLabel(gpsState)}
               </Badge>
             </div>
-            {isScoped && canPunch ? (
+            {isScoped ? (
               <>
                 <Button
                   disabled={
@@ -11484,9 +11605,7 @@ function Attendance() {
               </>
             ) : (
               <p className="mt-7 text-center text-xs text-sidebar-foreground/55">
-                {isScoped
-                  ? t("attendancePunchPermissionRequired")
-                  : t("attendanceFilters")}
+                {t("attendanceFilters")}
               </p>
             )}
           </Card>
@@ -11611,7 +11730,7 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      {(canCorrect || canAdjust) && (
+                      {(canCorrect || canAdjust || canManualPunch) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
                     </tr>
@@ -11629,7 +11748,7 @@ function Attendance() {
                         <td className="px-5 py-4">
                           <Status value={x.status} />
                         </td>
-                        {(canCorrect || canAdjust) && (
+                        {(canCorrect || canAdjust || canManualPunch) && (
                           <td className="px-5 py-4 text-right">
                             <div className="flex justify-end gap-2">
                               <Button
@@ -11658,6 +11777,15 @@ function Attendance() {
                                   onClick={() => openCorrection(x)}
                                 >
                                   {t("correctAttendance")}
+                                </Button>
+                              )}
+                              {canManualPunch && (
+                                <Button
+                                  variant="outline"
+                                  className="text-xs"
+                                  onClick={() => openManualPunch(x)}
+                                >
+                                  {t("addManualPunch")}
                                 </Button>
                               )}
                             </div>
@@ -11744,6 +11872,101 @@ function Attendance() {
               </Button>
               <Button type="submit" disabled={correct.isPending}>
                 {correct.isPending ? t("saving") : t("saveCorrection")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {manualPunch && (
+        <Modal
+          title={t("manualPunchTitle")}
+          onClose={() => setManualPunch(null)}
+        >
+          <form onSubmit={submitManualPunch} className="space-y-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              {t("manualPunchDetail")}
+            </p>
+            <label className="block text-sm font-semibold">
+              {t("punchEmployee")}
+              <select
+                required
+                value={manualPunch.employeeId}
+                onChange={(event) =>
+                  setManualPunch({
+                    ...manualPunch,
+                    employeeId: event.target.value,
+                  })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="">{t("punchEmployee")}</option>
+                {employees.data?.map((item: any) => (
+                  <option key={item.id} value={item.id}>
+                    {employeeDisplayName(locale, item)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label={t("punchDate")}
+                type="date"
+                value={manualPunch.attendanceDate}
+                onChange={(value) =>
+                  setManualPunch({ ...manualPunch, attendanceDate: value })
+                }
+              />
+              <label className="block text-sm font-semibold">
+                {t("punchDirection")}
+                <select
+                  value={manualPunch.direction}
+                  onChange={(event) =>
+                    setManualPunch({
+                      ...manualPunch,
+                      direction: event.target.value,
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="in">{t("punchIn")}</option>
+                  <option value="out">{t("punchOut")}</option>
+                </select>
+              </label>
+            </div>
+            <Field
+              label={t("punchTime")}
+              type="datetime-local"
+              value={manualPunch.occurredAt}
+              onChange={(value) =>
+                setManualPunch({ ...manualPunch, occurredAt: value })
+              }
+            />
+            <label className="block text-sm font-semibold">
+              {t("punchReason")}
+              <textarea
+                required
+                minLength={1}
+                maxLength={1000}
+                value={manualPunch.reason}
+                onChange={(event) =>
+                  setManualPunch({ ...manualPunch, reason: event.target.value })
+                }
+                placeholder={t("punchReasonPlaceholder")}
+                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setManualPunch(null)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button type="submit" disabled={createManualPunch.isPending}>
+                {createManualPunch.isPending
+                  ? t("saving")
+                  : t("saveManualPunch")}
               </Button>
             </div>
           </form>

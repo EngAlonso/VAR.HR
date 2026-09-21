@@ -658,6 +658,26 @@ export interface AttendanceCorrectionInput {
   reason: string;
 }
 
+export type ManualAttendanceEventInputDirection = typeof ManualAttendanceEventInputDirection[keyof typeof ManualAttendanceEventInputDirection];
+
+
+export const ManualAttendanceEventInputDirection = {
+  in: 'in',
+  out: 'out',
+} as const;
+
+export interface ManualAttendanceEventInput {
+  employeeId: string;
+  attendanceDate: string;
+  direction: ManualAttendanceEventInputDirection;
+  occurredAt: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  reason: string;
+}
+
 export type AttendanceRecordStatus = typeof AttendanceRecordStatus[keyof typeof AttendanceRecordStatus];
 
 

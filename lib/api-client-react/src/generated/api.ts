@@ -99,6 +99,7 @@ import type {
   ListNotificationsParams,
   ListPayrollAdjustmentsParams,
   LoginInput,
+  ManualAttendanceEventInput,
   Notification,
   NotificationInput,
   NotificationPage,
@@ -3263,6 +3264,77 @@ export function useListAttendanceHistory<TData = Awaited<ReturnType<typeof listA
 
 
 
+
+export const getCreateManualAttendanceEventUrl = () => {
+
+
+
+
+  return `/api/attendance/manual-event`
+}
+
+/**
+ * @summary Add a reviewed manual attendance movement for an employee
+ */
+export const createManualAttendanceEvent = async (manualAttendanceEventInput: ManualAttendanceEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRecord> => {
+
+  return customFetch<AttendanceRecord>(getCreateManualAttendanceEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(manualAttendanceEventInput)
+  }
+);}
+
+
+
+
+
+export const getCreateManualAttendanceEventMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createManualAttendanceEvent>>, TError,{data: BodyType<ManualAttendanceEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createManualAttendanceEvent>>, TError,{data: BodyType<ManualAttendanceEventInput>}, TContext> => {
+
+const mutationKey = ['createManualAttendanceEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createManualAttendanceEvent>>, {data: BodyType<ManualAttendanceEventInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createManualAttendanceEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateManualAttendanceEventMutationResult = NonNullable<Awaited<ReturnType<typeof createManualAttendanceEvent>>>
+    export type CreateManualAttendanceEventMutationBody = BodyType<ManualAttendanceEventInput>
+    export type CreateManualAttendanceEventMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a reviewed manual attendance movement for an employee
+ */
+export const useCreateManualAttendanceEvent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createManualAttendanceEvent>>, TError,{data: BodyType<ManualAttendanceEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createManualAttendanceEvent>>,
+        TError,
+        {data: BodyType<ManualAttendanceEventInput>},
+        TContext
+      > => {
+      return useMutation(getCreateManualAttendanceEventMutationOptions(options));
+    }
 
 export const getPreviewAttendanceCalculationUrl = (attendanceId: string,) => {
 

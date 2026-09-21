@@ -197,8 +197,8 @@ export const STANDARD_PERMISSIONS = [
   ["attendance.view", "Attendance", "View attendance records."],
   [
     "attendance.punch",
-    "Record attendance",
-    "Record personal check-in and check-out events.",
+    "Add manual attendance movements",
+    "Add a reviewed manual check-in or check-out for an employee.",
   ],
   [
     "attendance.correct",

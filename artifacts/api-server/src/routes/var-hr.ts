@@ -84,6 +84,8 @@ import {
   RecalculateAttendanceResponse,
   CreateAttendanceTimeAdjustmentBody,
   CreateAttendanceTimeAdjustmentResponse,
+  CreateManualAttendanceEventBody,
+  CreateManualAttendanceEventResponse,
   DecideAttendanceTimeAdjustmentBody,
   DecideAttendanceTimeAdjustmentParams,
   DecideAttendanceTimeAdjustmentResponse,
@@ -4646,10 +4648,6 @@ async function recordCurrentAttendance(
 ): Promise<void> {
   const context = await getTenantContext(req);
   const locale = requestedLocale(req);
-  if (!canUseCapability(context, "attendance.punch")) {
-    denyCapability(res, req, "attendance.punch");
-    return;
-  }
   if (!context.employeeId) {
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;
@@ -4934,6 +4932,205 @@ router.post("/attendance/check-in", async (req, res): Promise<void> => {
 router.post("/attendance/check-out", async (req, res): Promise<void> => {
   await recordCurrentAttendance(req, res, "out");
 });
+
+router.post(
+  "/attendance/manual-event",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (
+      context.role === "employee" ||
+      !canUseCapability(context, "attendance.punch")
+    ) {
+      denyCapability(res, req, "attendance.punch");
+      return;
+    }
+    const parsed = CreateManualAttendanceEventBody.safeParse(req.body ?? {});
+    if (!parsed.success || !isUuid(parsed.data.employeeId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const occurredAt = new Date(parsed.data.occurredAt);
+    if (Number.isNaN(occurredAt.getTime())) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const occurredDate = localCalendarDate(
+      occurredAt,
+      context.company.timezone,
+    );
+    if (
+      occurredDate !== parsed.data.attendanceDate &&
+      !(
+        parsed.data.direction === "out" &&
+        occurredDate === dateOffset(parsed.data.attendanceDate, 1)
+      )
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [employee] = await db
+      .select()
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, parsed.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    const [existing] = await db
+      .select()
+      .from(attendanceTable)
+      .where(
+        and(
+          eq(attendanceTable.companyId, context.companyId),
+          eq(attendanceTable.employeeId, employee.id),
+          eq(attendanceTable.date, parsed.data.attendanceDate),
+        ),
+      )
+      .limit(1);
+    if (parsed.data.direction === "in" && existing?.checkIn) {
+      res.status(409).json({ error: message(req, "checkInAlready") });
+      return;
+    }
+    if (parsed.data.direction === "out" && !existing) {
+      res.status(400).json({ error: message(req, "checkInRequired") });
+      return;
+    }
+    if (parsed.data.direction === "out" && !existing?.checkIn) {
+      res.status(400).json({ error: message(req, "checkInRequired") });
+      return;
+    }
+    if (parsed.data.direction === "out" && existing?.checkOut) {
+      res.status(409).json({ error: message(req, "checkOutAlready") });
+      return;
+    }
+
+    const rules = await attendanceRulesFor(
+      context.companyId,
+      parsed.data.attendanceDate,
+    );
+    const schedule = await effectiveScheduleFor(
+      context.companyId,
+      employee.id,
+      parsed.data.attendanceDate,
+      rules,
+    );
+    const holiday = isHolidayDate(
+      parsed.data.attendanceDate,
+      rules,
+      await holidaysForCompany(context.companyId),
+    );
+    const checkIn =
+      parsed.data.direction === "in" ? occurredAt : existing?.checkIn ?? null;
+    const checkOut =
+      parsed.data.direction === "out"
+        ? occurredAt
+        : existing?.checkOut ?? null;
+    const metrics = attendanceMetrics({
+      checkIn,
+      checkOut,
+      attendanceDate: parsed.data.attendanceDate,
+      schedule,
+      rules,
+      timeZone: context.company.timezone,
+      holiday,
+    });
+    const status = holiday
+      ? "holiday"
+      : metrics.earlyCheckoutMinutes > 0 || metrics.missingMinutes > 0
+        ? "incomplete"
+        : metrics.rawLateMinutes > schedule.graceMinutes
+          ? "late"
+          : "present";
+    const explanation = parsed.data.reason.trim();
+    let updated: typeof attendanceTable.$inferSelect | undefined;
+    if (existing) {
+      [updated] = await db
+        .update(attendanceTable)
+        .set({
+          scheduledStart: schedule.startTime,
+          scheduledEnd: schedule.endTime,
+          requiredHours: schedule.requiredHours,
+          status,
+          checkIn,
+          checkOut,
+          workedHours: metrics.workedHours,
+          overtimeHours: metrics.overtimeHours,
+          lateMinutes: metrics.lateMinutes,
+          earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
+          missingMinutes: metrics.missingMinutes,
+          source: "manual",
+          explanation,
+          updatedAt: new Date(),
+        })
+        .where(eq(attendanceTable.id, existing.id))
+        .returning();
+    } else {
+      [updated] = await db
+        .insert(attendanceTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: employee.id,
+          date: parsed.data.attendanceDate,
+          scheduledStart: schedule.startTime,
+          scheduledEnd: schedule.endTime,
+          requiredHours: schedule.requiredHours,
+          status,
+          checkIn,
+          checkOut: null,
+          workedHours: metrics.workedHours,
+          overtimeHours: metrics.overtimeHours,
+          lateMinutes: metrics.lateMinutes,
+          earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
+          missingMinutes: metrics.missingMinutes,
+          source: "manual",
+          locationStatus: "not_required",
+          location: null,
+          explanation,
+        })
+        .returning();
+    }
+    if (!updated) {
+      res.status(500).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    await attendanceCalculationFor(context, updated, true);
+    await recordAudit(
+      context.companyId,
+      "manual_punch_added",
+      "attendance",
+      updated.id,
+      {
+        attendance: updated,
+        direction: parsed.data.direction,
+        occurredAt: occurredAt.toISOString(),
+        reason: explanation,
+        actorAccountId: context.accountId,
+      },
+      existing ?? null,
+    );
+    const rows = await getAttendanceRows(
+      context,
+      parsed.data.attendanceDate,
+      parsed.data.attendanceDate,
+      employee.id,
+    );
+    res
+      .status(201)
+      .json(
+        CreateManualAttendanceEventResponse.parse(
+          attendanceResponse(
+            rows.find((row) => row.attendance.id === updated.id)!,
+          ),
+        ),
+      );
+  },
+);
 
 router.patch(
   "/attendance/:attendanceId/correction",

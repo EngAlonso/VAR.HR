@@ -1178,6 +1178,43 @@ export const ListAttendanceHistoryResponse = zod.array(ListAttendanceHistoryResp
 
 
 /**
+ * @summary Add a reviewed manual attendance movement for an employee
+ */
+export const createManualAttendanceEventBodyReasonMax = 1000;
+
+
+
+export const CreateManualAttendanceEventBody = zod.object({
+  "employeeId": zod.string(),
+  "attendanceDate": zod.iso.date(),
+  "direction": zod.enum(['in', 'out']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "reason": zod.string().min(1).max(createManualAttendanceEventBodyReasonMax)
+})
+
+export const CreateManualAttendanceEventResponse = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "date": zod.iso.date(),
+  "status": zod.enum(['present', 'late', 'absent', 'on_leave', 'incomplete', 'holiday']),
+  "scheduledStart": zod.string(),
+  "checkIn": zod.iso.datetime({"offset":true}).nullable(),
+  "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "workedHours": zod.number(),
+  "overtimeHours": zod.number(),
+  "lateMinutes": zod.int(),
+  "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "explanation": zod.string().optional()
+})
+
+
+/**
  * @summary Preview the deterministic attendance calculation
  */
 export const PreviewAttendanceCalculationParams = zod.object({

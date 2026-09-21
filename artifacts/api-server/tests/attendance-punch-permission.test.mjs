@@ -22,8 +22,14 @@ const frontend = readFileSync(
 test("attendance recording is a separately grantable account permission", () => {
   assert.match(auth, /"attendance\.punch"/);
   assert.match(tenantContext, /\.\.\.explicitPermissions/);
-  assert.match(route, /canUseCapability\(context, "attendance\.punch"\)/);
+  assert.match(
+    route,
+    /context\.role === "employee"\s*\|\|\s*!canUseCapability\(context, "attendance\.punch"\)/s,
+  );
+  assert.match(route, /router\.post\(\s*"\/attendance\/manual-event"/s);
+  assert.match(frontend, /useCreateManualAttendanceEvent/);
   assert.match(frontend, /includes\("attendance\.punch"\)/);
+  assert.match(frontend, /manualPunchTitle/);
 });
 
 test("attendance recording recalculates the stored attendance result", () => {
