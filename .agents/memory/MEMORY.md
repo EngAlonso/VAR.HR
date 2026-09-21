@@ -4,3 +4,4 @@
 - [Biometric out-of-order metrics](biometric-out-of-order-metrics.md) — recalculate all derived attendance values when an earlier movement arrives after a later one.
 - [Attendance calculation schedule](attendance-calculation-schedule.md) — historical rows must calculate against their stored shift, not a later company default.
 - [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
+- [Backup restore compatibility](backup-restore-compatibility.md) — normalize newly added required columns because jsonb_populate_record turns omitted fields into NULL.

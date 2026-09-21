@@ -120,3 +120,12 @@ test("backup and restore continue carrying both biometric tables", () => {
       backups.indexOf('"var_hr_employee_identities"'),
   );
 });
+
+test("restore normalizes required columns added after older backups", () => {
+  assert.match(backups, /function normalizeRestoreRow\(/);
+  assert.match(
+    backups,
+    /name_en:\s*row\.name_en\s*\?\?\s*row\.name\s*\?\?\s*""/,
+  );
+  assert.match(backups, /const restoreRow = normalizeRestoreRow\(table, row\)/);
+});

@@ -543,6 +543,94 @@ async function reconcilePlatformAccounts(
   );
 }
 
+function normalizeRestoreRow(
+  table: string,
+  row: JsonRecord,
+): JsonRecord {
+  // jsonb_populate_record fills omitted columns with NULL instead of applying
+  // the table default. Keep restores compatible with backups created before
+  // newly-added NOT NULL columns were introduced.
+  switch (table) {
+    case "var_hr_companies":
+      return {
+        ...row,
+        name_en: row.name_en ?? row.name ?? "",
+        address: row.address ?? "",
+        timezone: row.timezone ?? "Africa/Cairo",
+        currency: row.currency ?? "EGP",
+        active: row.active ?? true,
+      };
+    case "var_hr_departments":
+      return {
+        ...row,
+        name_ar: row.name_ar ?? "",
+        name_en: row.name_en ?? row.name ?? "",
+        description: row.description ?? null,
+        manager_id: row.manager_id ?? null,
+        default_schedule_id: row.default_schedule_id ?? null,
+        active: row.active ?? true,
+      };
+    case "var_hr_branches":
+      return {
+        ...row,
+        name_en: row.name_en ?? row.name ?? "",
+        gps_enabled: row.gps_enabled ?? false,
+        latitude: row.latitude ?? null,
+        longitude: row.longitude ?? null,
+        radius_meters: row.radius_meters ?? null,
+        active: row.active ?? true,
+      };
+    case "var_hr_employees":
+      return {
+        ...row,
+        first_name_en: row.first_name_en ?? row.first_name ?? "",
+        last_name_en: row.last_name_en ?? row.last_name ?? "",
+        phone: row.phone ?? null,
+        national_id: row.national_id ?? null,
+        biometric_code: row.biometric_code ?? null,
+        working_hours: row.working_hours ?? 8,
+        department_id: row.department_id ?? null,
+        status: row.status ?? "active",
+        role: row.role ?? "employee",
+        automatic_overtime: row.automatic_overtime ?? null,
+        salary: row.salary ?? 0,
+      };
+    case "var_hr_work_schedules":
+      return {
+        ...row,
+        name_ar: row.name_ar ?? "",
+        name_en: row.name_en ?? row.name ?? "",
+        working_days: row.working_days ?? ["Sun", "Mon", "Tue", "Wed", "Thu"],
+        start_time: row.start_time ?? "09:00",
+        end_time: row.end_time ?? "17:00",
+        overnight: row.overnight ?? false,
+        required_hours: row.required_hours ?? 8,
+        break_duration_minutes: row.break_duration_minutes ?? 0,
+        break_paid: row.break_paid ?? true,
+        grace_minutes: row.grace_minutes ?? 10,
+        early_checkout_grace_minutes: row.early_checkout_grace_minutes ?? 0,
+        overtime_after_minutes: row.overtime_after_minutes ?? 30,
+        overtime_eligible: row.overtime_eligible ?? true,
+        active: row.active ?? true,
+      };
+    case "var_hr_user_accounts":
+      return {
+        ...row,
+        full_name: row.full_name ?? "",
+        full_name_en: row.full_name_en ?? row.full_name ?? "",
+        primary_phone: row.primary_phone ?? "",
+        backup_phones: row.backup_phones ?? [],
+        email: row.email ?? "",
+        backup_emails: row.backup_emails ?? [],
+        display_role: row.display_role ?? "Staff",
+        employee_id: row.employee_id ?? null,
+        active: row.active ?? true,
+      };
+    default:
+      return row;
+  }
+}
+
 async function insertScope(
   client: QueryClient,
   scope: BackupScope,
@@ -570,21 +658,7 @@ async function insertScope(
       ) {
         throw new Error("Backup contains a company outside the restore scope.");
       }
-      // jsonb_populate_record fills omitted columns with NULL rather than
-      // applying the table default. Older backups predate the department
-      // management fields, so normalize those rows without changing the
-      // stored payload or its integrity checksum.
-      const restoreRow =
-        table === "var_hr_departments"
-          ? {
-              ...row,
-              name_ar: row.name_ar ?? "",
-              description: row.description ?? null,
-              manager_id: row.manager_id ?? null,
-              default_schedule_id: row.default_schedule_id ?? null,
-              active: row.active ?? true,
-            }
-          : row;
+      const restoreRow = normalizeRestoreRow(table, row);
       const json = JSON.stringify(restoreRow);
       await client.query(
         `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM jsonb_populate_record(NULL::${quoteIdentifier(table)}, $1::jsonb) ON CONFLICT DO NOTHING`,
