@@ -5014,12 +5014,15 @@ router.post(
       context.companyId,
       parsed.data.attendanceDate,
     );
-    const schedule = await effectiveScheduleFor(
+    const resolvedSchedule = await effectiveScheduleFor(
       context.companyId,
       employee.id,
       parsed.data.attendanceDate,
       rules,
     );
+    const schedule = existing
+      ? scheduleForAttendanceCalculation(existing, resolvedSchedule)
+      : resolvedSchedule;
     const holiday = isHolidayDate(
       parsed.data.attendanceDate,
       rules,

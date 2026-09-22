@@ -8679,17 +8679,27 @@ function EmployeeAttendanceMovement({
   employeeName,
   biometricCode,
   canPrint,
+  canManualPunch = false,
   fullPage = false,
 }: {
   employeeId: string;
   employeeName: string;
   biometricCode?: string | null;
   canPrint: boolean;
+  canManualPunch?: boolean;
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const qc = useQueryClient();
   const [open, setOpen] = useState(fullPage);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [manualPunch, setManualPunch] = useState<{
+    attendanceDate: string;
+    direction: "in" | "out";
+    occurredAt: string;
+    reason: string;
+  } | null>(null);
+  const createManualPunch = useCreateManualAttendanceEvent();
   const [year, monthNumber] = month.split("-").map(Number);
   const from = `${month}-01`;
   const to = new Date(Date.UTC(year, monthNumber, 0))
@@ -8730,6 +8740,53 @@ function EmployeeAttendanceMovement({
   const hours = (value?: number) =>
     `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
+
+  function openManualPunch() {
+    const attendanceDate = `${month}-01`;
+    setManualPunch({
+      attendanceDate,
+      direction: "in",
+      occurredAt: `${attendanceDate}T09:00`,
+      reason: "",
+    });
+  }
+
+  function submitManualPunch(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !manualPunch?.attendanceDate ||
+      !manualPunch.occurredAt ||
+      !manualPunch.reason.trim()
+    ) {
+      return;
+    }
+    createManualPunch.mutate(
+      {
+        data: {
+          employeeId,
+          attendanceDate: manualPunch.attendanceDate,
+          direction: manualPunch.direction,
+          occurredAt: new Date(manualPunch.occurredAt).toISOString(),
+          reason: manualPunch.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("manualPunchSaved"));
+          setManualPunch(null);
+          qc.invalidateQueries({
+            queryKey: getGetReportQueryKey(reportParams),
+          });
+          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListAttendanceHistoryQueryKey(),
+          });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("manualPunchFailed"))),
+      },
+    );
+  }
 
   function printMovement() {
     if (!report.data) return;
@@ -8782,33 +8839,46 @@ function EmployeeAttendanceMovement({
   }
 
   return (
-    <div
-      className={cn(
-        fullPage ? "space-y-5" : "mt-6 border-t border-border pt-6",
-      )}
-      data-testid={`employee-attendance-movement-${employeeId}`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="font-display text-lg font-semibold">
-            {t("attendanceMovementTitle")}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("attendanceMovementDetail")}
-          </p>
-        </div>
-        {!fullPage && (
-          <Button
-            variant={open ? "outline" : "primary"}
-            onClick={() => setOpen((value) => !value)}
-            data-testid={`button-toggle-attendance-movement-${employeeId}`}
-          >
-            <Activity size={16} />
-            {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
-          </Button>
+    <>
+      <div
+        className={cn(
+          fullPage ? "space-y-5" : "mt-6 border-t border-border pt-6",
         )}
-      </div>
-      {open && (
+        data-testid={`employee-attendance-movement-${employeeId}`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">
+              {t("attendanceMovementTitle")}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("attendanceMovementDetail")}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canManualPunch && (
+              <Button
+                variant="outline"
+                onClick={openManualPunch}
+                data-testid={`button-add-manual-punch-${employeeId}`}
+              >
+                <Plus size={15} />
+                {t("addManualPunch")}
+              </Button>
+            )}
+            {!fullPage && (
+              <Button
+                variant={open ? "outline" : "primary"}
+                onClick={() => setOpen((value) => !value)}
+                data-testid={`button-toggle-attendance-movement-${employeeId}`}
+              >
+                <Activity size={16} />
+                {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
+              </Button>
+            )}
+          </div>
+        </div>
+        {open && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
             <Field
@@ -8977,8 +9047,88 @@ function EmployeeAttendanceMovement({
             />
           )}
         </div>
+        )}
+      </div>
+      {manualPunch && (
+        <Modal
+          title={t("manualPunchTitle")}
+          onClose={() => setManualPunch(null)}
+        >
+          <form onSubmit={submitManualPunch} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t("manualPunchDetail")}
+            </p>
+            <Info label={t("employee")} value={employeeName} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label={t("punchDate")}
+                type="date"
+                value={manualPunch.attendanceDate}
+                onChange={(value) =>
+                  setManualPunch({
+                    ...manualPunch,
+                    attendanceDate: value,
+                    occurredAt: `${value}T${manualPunch.occurredAt.slice(11, 16) || "09:00"}`,
+                  })
+                }
+              />
+              <label className="block text-sm font-semibold">
+                {t("punchDirection")}
+                <select
+                  value={manualPunch.direction}
+                  onChange={(event) =>
+                    setManualPunch({
+                      ...manualPunch,
+                      direction: event.target.value as "in" | "out",
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="in">{t("punchIn")}</option>
+                  <option value="out">{t("punchOut")}</option>
+                </select>
+              </label>
+            </div>
+            <Field
+              label={t("punchTime")}
+              type="datetime-local"
+              value={manualPunch.occurredAt}
+              onChange={(value) =>
+                setManualPunch({ ...manualPunch, occurredAt: value })
+              }
+            />
+            <label className="block text-sm font-semibold">
+              {t("punchReason")}
+              <textarea
+                required
+                minLength={1}
+                maxLength={1000}
+                value={manualPunch.reason}
+                onChange={(event) =>
+                  setManualPunch({ ...manualPunch, reason: event.target.value })
+                }
+                placeholder={t("punchReasonPlaceholder")}
+                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setManualPunch(null)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button type="submit" disabled={createManualPunch.isPending}>
+                {createManualPunch.isPending
+                  ? t("saving")
+                  : t("saveManualPunch")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }
 
@@ -11913,7 +12063,11 @@ function Attendance() {
                 type="date"
                 value={manualPunch.attendanceDate}
                 onChange={(value) =>
-                  setManualPunch({ ...manualPunch, attendanceDate: value })
+                  setManualPunch({
+                    ...manualPunch,
+                    attendanceDate: value,
+                    occurredAt: `${value}T${manualPunch.occurredAt.slice(11, 16) || "09:00"}`,
+                  })
                 }
               />
               <label className="block text-sm font-semibold">
@@ -24271,6 +24425,9 @@ function EmployeeMovementPage() {
   });
   const isSelf = auth.account.accountType === "employee";
   const canPrint = !isSelf;
+  const canManualPunch =
+    !isSelf &&
+    (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
 
   if (isSelf && auth.account.employeeId !== employeeId) {
     return <Redirect to="/profile" />;
@@ -24353,6 +24510,7 @@ function EmployeeMovementPage() {
         employeeName={employeeDisplayName(locale, employee.data)}
         biometricCode={employee.data.biometricCode}
         canPrint={canPrint}
+        canManualPunch={canManualPunch}
         fullPage
       />
     </div>
