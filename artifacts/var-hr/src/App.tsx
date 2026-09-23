@@ -1013,6 +1013,10 @@ const copy = {
     lastName: "Last name",
     email: "Email",
     monthlySalary: "Monthly salary",
+    dailyRate: "Daily rate",
+    hourlyRate: "Hourly rate",
+    salaryRatesHint:
+      "Calculated from this month's scheduled working days and the employee's daily working hours.",
     select: "Select",
     createDepartment: "Create department",
     departmentName: "Department name",
@@ -2658,6 +2662,10 @@ const pageCopy = {
     firstName: "الاسم الأول",
     lastName: "اسم العائلة",
     monthlySalary: "الراتب الشهري",
+    dailyRate: "سعر اليوم",
+    hourlyRate: "سعر الساعة",
+    salaryRatesHint:
+      "محسوب من أيام العمل المجدولة هذا الشهر وساعات العمل اليومية للموظف.",
     select: "اختر",
     departmentName: "اسم القسم",
     createDepartment: "إنشاء قسم",
@@ -5366,6 +5374,25 @@ function money(value: number | undefined, currency = "EGP") {
     currency,
     maximumFractionDigits: 0,
   }).format(value || 0);
+}
+function scheduledWorkingDaysInCurrentMonth(workingDays: unknown): number | null {
+  if (!Array.isArray(workingDays) || workingDays.length === 0) return null;
+  const allowedDays = new Set(
+    workingDays.filter((day): day is string => typeof day === "string"),
+  );
+  if (allowedDays.size === 0) return null;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let count = 0;
+  for (let day = 1; day <= lastDay; day += 1) {
+    if (allowedDays.has(dayNames[new Date(year, month, day).getDay()])) {
+      count += 1;
+    }
+  }
+  return Math.max(1, count);
 }
 function date(value?: string) {
   if (!value) return "—";
@@ -10173,6 +10200,17 @@ function EmployeeProfilePage() {
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
+  const scheduledDayCount = scheduledWorkingDaysInCurrentMonth(
+    employeeSchedule.data?.schedule?.workingDays,
+  );
+  const monthlySalary = Number(employee.data?.salary ?? 0);
+  const workingHours = Number(employee.data?.workingHours ?? 0);
+  const dailyRate =
+    scheduledDayCount && Number.isFinite(monthlySalary)
+      ? monthlySalary / scheduledDayCount
+      : null;
+  const hourlyRate =
+    dailyRate != null && workingHours > 0 ? dailyRate / workingHours : null;
   const leaveBalances = useListLeaveBalances({
     query: {
       enabled: Boolean(employeeId),
@@ -10683,6 +10721,24 @@ function EmployeeProfilePage() {
                   testId={`text-profile-salary-${employee.data.id}`}
                 />
                 <Info
+                  label={t("dailyRate")}
+                  value={
+                    dailyRate != null
+                      ? money(dailyRate, currency)
+                      : t("notAvailable")
+                  }
+                  testId={`text-profile-daily-rate-${employee.data.id}`}
+                />
+                <Info
+                  label={t("hourlyRate")}
+                  value={
+                    hourlyRate != null
+                      ? money(hourlyRate, currency)
+                      : t("notAvailable")
+                  }
+                  testId={`text-profile-hourly-rate-${employee.data.id}`}
+                />
+                <Info
                   label={t("workingHours")}
                   value={
                     employee.data.workingHours != null
@@ -10692,6 +10748,9 @@ function EmployeeProfilePage() {
                   testId={`text-profile-working-hours-${employee.data.id}`}
                 />
               </div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                {t("salaryRatesHint")}
+              </p>
             </EmployeeProfileSection>
 
             <EmployeeProfileSection
