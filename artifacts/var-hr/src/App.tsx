@@ -1016,7 +1016,7 @@ const copy = {
     dailyRate: "Daily rate",
     hourlyRate: "Hourly rate",
     salaryRatesHint:
-      "Calculated from this month's scheduled working days and the employee's daily working hours.",
+      "Calculated from this month's company working days and the employee's daily working hours.",
     select: "Select",
     createDepartment: "Create department",
     departmentName: "Department name",
@@ -2665,7 +2665,7 @@ const pageCopy = {
     dailyRate: "سعر اليوم",
     hourlyRate: "سعر الساعة",
     salaryRatesHint:
-      "محسوب من أيام العمل المجدولة هذا الشهر وساعات العمل اليومية للموظف.",
+      "محسوب من أيام عمل الشركة هذا الشهر وساعات العمل اليومية للموظف.",
     select: "اختر",
     departmentName: "اسم القسم",
     createDepartment: "إنشاء قسم",
@@ -10200,8 +10200,9 @@ function EmployeeProfilePage() {
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
+  const attendanceRules = useGetAttendanceRules();
   const scheduledDayCount = scheduledWorkingDaysInCurrentMonth(
-    employeeSchedule.data?.schedule?.workingDays,
+    attendanceRules.data?.workingDays,
   );
   const monthlySalary = Number(employee.data?.salary ?? 0);
   const workingHours = Number(employee.data?.workingHours ?? 0);
