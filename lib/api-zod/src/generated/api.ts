@@ -3601,6 +3601,62 @@ export const DeletePayrollAdjustmentResponse = zod.void()
 
 
 /**
+ * @summary Calculate an employee payroll amount through a selected date
+ */
+export const GetEmployeePayrollSummaryQueryParams = zod.object({
+  "employeeId": zod.uuid(),
+  "from": zod.iso.date(),
+  "to": zod.iso.date()
+})
+
+export const GetEmployeePayrollSummaryResponse = zod.object({
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "calculatedAt": zod.iso.datetime({"offset":true}),
+  "basicSalary": zod.number(),
+  "additions": zod.number(),
+  "overtime": zod.number(),
+  "timeMultiplierPremium": zod.number(),
+  "attendanceDeductions": zod.number(),
+  "otherDeductions": zod.number(),
+  "netSalary": zod.number(),
+  "regularHours": zod.number(),
+  "overtimeHours": zod.number(),
+  "lateMinutes": zod.int(),
+  "earlyCheckoutMinutes": zod.int(),
+  "missingHours": zod.number(),
+  "absentDays": zod.number(),
+  "lineItems": zod.array(zod.object({
+  "label": zod.string(),
+  "amount": zod.number(),
+  "type": zod.enum(['basic', 'addition', 'overtime', 'attendance_deduction', 'early_checkout_deduction', 'absence_deduction', 'deduction']),
+  "explanation": zod.string()
+})),
+  "currency": zod.string(),
+  "payrollPeriod": zod.union([zod.object({
+  "id": zod.string(),
+  "cycleId": zod.string().nullish(),
+  "cycleName": zod.string().nullish(),
+  "payDay": zod.int().nullish(),
+  "label": zod.string(),
+  "from": zod.iso.date(),
+  "to": zod.iso.date(),
+  "status": zod.enum(['draft', 'calculated', 'finalized', 'approved', 'locked']),
+  "employeeCount": zod.int(),
+  "totalNet": zod.number(),
+  "finalizedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "finalizedBy": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
  * @summary Get the current employee's payroll calculation
  */
 export const GetMyPayrollQueryParams = zod.object({

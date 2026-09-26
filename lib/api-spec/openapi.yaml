@@ -1626,6 +1626,33 @@ paths:
       responses:
         "204":
           description: Adjustment deleted
+  /payroll/employee-summary:
+    get:
+      operationId: getEmployeePayrollSummary
+      tags: [payroll]
+      summary: Calculate an employee payroll amount through a selected date
+      parameters:
+        - name: employeeId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Employee payroll summary through the selected date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeePayrollSummary"
+        "404":
+          description: Employee not found
   /payroll/my:
     get:
       operationId: getMyPayroll
@@ -3832,6 +3859,59 @@ components:
           enum: [fixed, variable]
         amount: { type: number, minimum: 0 }
         reason: { type: string, minLength: 1 }
+    EmployeePayrollSummary:
+      type: object
+      required:
+        [
+          employee,
+          from,
+          to,
+          calculatedAt,
+          basicSalary,
+          additions,
+          overtime,
+          timeMultiplierPremium,
+          attendanceDeductions,
+          otherDeductions,
+          netSalary,
+          regularHours,
+          overtimeHours,
+          lateMinutes,
+          earlyCheckoutMinutes,
+          missingHours,
+          absentDays,
+          lineItems,
+          currency,
+          payrollPeriod,
+        ]
+      properties:
+        employee:
+          $ref: "#/components/schemas/EmployeeReference"
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        calculatedAt: { type: string, format: date-time }
+        basicSalary: { type: number }
+        additions: { type: number }
+        overtime: { type: number }
+        timeMultiplierPremium: { type: number }
+        attendanceDeductions: { type: number }
+        otherDeductions: { type: number }
+        netSalary: { type: number }
+        regularHours: { type: number }
+        overtimeHours: { type: number }
+        lateMinutes: { type: integer }
+        earlyCheckoutMinutes: { type: integer }
+        missingHours: { type: number }
+        absentDays: { type: number }
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollLineItem"
+        currency: { type: string }
+        payrollPeriod:
+          anyOf:
+            - $ref: "#/components/schemas/PayrollPeriod"
+            - type: "null"
     WorkSchedule:
       type: object
       required:

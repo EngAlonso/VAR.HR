@@ -73,6 +73,7 @@ import type {
   EmployeePasswordChangeInput,
   EmployeePayrollCycleAssignment,
   EmployeePayrollCycleAssignmentInput,
+  EmployeePayrollSummary,
   EmployeeSchedule,
   EmployeeScheduleInput,
   EmployeeUpdate,
@@ -80,6 +81,7 @@ import type {
   GetAttendanceReportParams,
   GetBranchParams,
   GetDepartmentParams,
+  GetEmployeePayrollSummaryParams,
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
   GetReportParams,
@@ -7323,6 +7325,90 @@ export const useDeletePayrollAdjustment = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeletePayrollAdjustmentMutationOptions(options));
     }
+
+export const getGetEmployeePayrollSummaryUrl = (params: GetEmployeePayrollSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/employee-summary?${stringifiedParams}` : `/api/payroll/employee-summary`
+}
+
+/**
+ * @summary Calculate an employee payroll amount through a selected date
+ */
+export const getEmployeePayrollSummary = async (params: GetEmployeePayrollSummaryParams, options?: Parameters<typeof customFetch>[1]): Promise<EmployeePayrollSummary> => {
+
+  return customFetch<EmployeePayrollSummary>(getGetEmployeePayrollSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmployeePayrollSummaryQueryKey = (params?: GetEmployeePayrollSummaryParams,) => {
+    return [
+    `/api/payroll/employee-summary`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetEmployeePayrollSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getEmployeePayrollSummary>>, TError = ErrorType<void>>(params: GetEmployeePayrollSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployeePayrollSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmployeePayrollSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployeePayrollSummary>>> = ({ signal }) => getEmployeePayrollSummary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployeePayrollSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmployeePayrollSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployeePayrollSummary>>>
+export type GetEmployeePayrollSummaryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Calculate an employee payroll amount through a selected date
+ */
+
+export function useGetEmployeePayrollSummary<TData = Awaited<ReturnType<typeof getEmployeePayrollSummary>>, TError = ErrorType<void>>(
+ params: GetEmployeePayrollSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployeePayrollSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmployeePayrollSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetMyPayrollUrl = (params?: GetMyPayrollParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -95,6 +95,8 @@ import {
   ReverseAttendanceTimeAdjustmentResponse,
   GetMyPayrollQueryParams,
   GetMyPayrollResponse,
+  GetEmployeePayrollSummaryQueryParams,
+  GetEmployeePayrollSummaryResponse,
   GetPayrollCalculationParams,
   GetPayrollCalculationResponse,
   GetDashboardSummaryResponse,
@@ -9603,13 +9605,31 @@ async function calculatePayrollPeriod(
   context: TenantContext,
   req: Request,
   period: typeof payrollPeriodsTable.$inferSelect,
+  options: {
+    employeeId?: string;
+    through?: string;
+    persist?: boolean;
+  } = {},
 ) {
-  const existing = await storedPayrollCalculation(context, req, period);
-  if (period.status === "finalized" || period.status === "locked")
+  const persist = options.persist !== false;
+  const calculationPeriod = {
+    ...period,
+    to:
+      options.through && options.through < period.to
+        ? options.through
+        : period.to,
+  };
+  const existing = persist
+    ? await storedPayrollCalculation(context, req, period)
+    : null;
+  if (persist && (period.status === "finalized" || period.status === "locked"))
     return existing;
   let rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
+  if (options.employeeId) {
+    rows = rows.filter((row) => row.employee.id === options.employeeId);
+  }
   if (period.cycleId) {
     const assignments = await db
       .select({ employeeId: employeePayrollCycleAssignmentsTable.employeeId })
@@ -9628,16 +9648,25 @@ async function calculatePayrollPeriod(
     const employeeIds = new Set(assignments.map((item) => item.employeeId));
     rows = rows.filter((row) => employeeIds.has(row.employee.id));
   }
-  await synchronizePayrollAttendance(context, rows, period.from, period.to);
-  const attendance = await getAttendanceRows(context, period.from, period.to);
+  await synchronizePayrollAttendance(
+    context,
+    rows,
+    calculationPeriod.from,
+    calculationPeriod.to,
+  );
+  const attendance = await getAttendanceRows(
+    context,
+    calculationPeriod.from,
+    calculationPeriod.to,
+  );
   const storedAttendanceCalculations = await db
     .select()
     .from(attendanceCalculationsTable)
     .where(
       and(
         eq(attendanceCalculationsTable.companyId, context.companyId),
-        gte(attendanceCalculationsTable.attendanceDate, period.from),
-        lte(attendanceCalculationsTable.attendanceDate, period.to),
+        gte(attendanceCalculationsTable.attendanceDate, calculationPeriod.from),
+        lte(attendanceCalculationsTable.attendanceDate, calculationPeriod.to),
       ),
     );
   const calculationsByEmployee = new Map<
@@ -9671,8 +9700,11 @@ async function calculatePayrollPeriod(
   const currentAnnualEntitlement = await currentAnnualLeaveEntitlement(
     context.companyId,
   );
-  const dates = dateStrings(period.from, period.to);
-  const periodRules = await attendanceRulesFor(context.companyId, period.from);
+  const dates = dateStrings(calculationPeriod.from, calculationPeriod.to);
+  const periodRules = await attendanceRulesFor(
+    context.companyId,
+    calculationPeriod.from,
+  );
   const rulesByDate = new Map<string, ResolvedAttendanceRules>(
     await Promise.all(
       dates.map(async (date) => [
@@ -9730,6 +9762,7 @@ async function calculatePayrollPeriod(
   const calculationVersion =
     Math.max(0, ...existingVersions.map((item) => item.calculationVersion)) + 1;
   let totalNet = 0;
+  const calculatedItems: Array<Record<string, unknown>> = [];
 
   for (const row of rows) {
     const employeeAttendance = attendance.filter(
@@ -9743,14 +9776,14 @@ async function calculatePayrollPeriod(
     const employeeLeaveRows = approvedLeaves.filter(
       (leave) =>
         leave.employeeId === row.employee.id &&
-        leave.from <= period.to &&
-        leave.to >= period.from,
+        leave.from <= calculationPeriod.to &&
+        leave.to >= calculationPeriod.from,
     );
     const leaveDates = new Set(
       employeeLeaveRows.flatMap((leave) =>
         dateStrings(
-          leave.from < period.from ? period.from : leave.from,
-          leave.to > period.to ? period.to : leave.to,
+          leave.from < calculationPeriod.from ? calculationPeriod.from : leave.from,
+          leave.to > calculationPeriod.to ? calculationPeriod.to : leave.to,
         ),
       ),
     );
@@ -9759,8 +9792,8 @@ async function calculatePayrollPeriod(
         .filter(
           (permission) =>
             permission.employeeId === row.employee.id &&
-            permission.date >= period.from &&
-            permission.date <= period.to,
+            permission.date >= calculationPeriod.from &&
+            permission.date <= calculationPeriod.to,
         )
         .map((permission) => permission.date),
     );
@@ -9792,7 +9825,7 @@ async function calculatePayrollPeriod(
       (total, leave) => total + leave.days,
       0,
     );
-    const scheduledDates = dates.filter((dateValue) => {
+    const isScheduledDate = (dateValue: string) => {
       const dateRules = rulesByDate.get(dateValue) ?? periodRules;
       const schedule = effectiveScheduleFromRows(
         row.employee.id,
@@ -9804,12 +9837,29 @@ async function calculatePayrollPeriod(
         isWorkingScheduleDay(schedule, dateValue) &&
         !isHolidayDate(dateValue, dateRules, holidays)
       );
-    });
+    };
+    const scheduledDates = dates.filter(isScheduledDate);
+    const fullPeriodScheduledDates = options.persist
+      ? scheduledDates
+      : dateStrings(period.from, period.to).filter((dateValue) => {
+          const dateRules = rulesByDate.get(dateValue) ?? periodRules;
+          const schedule = effectiveScheduleFromRows(
+            row.employee.id,
+            dateValue,
+            dateRules,
+            scheduleRows,
+          );
+          return (
+            isWorkingScheduleDay(schedule, dateValue) &&
+            !isHolidayDate(dateValue, dateRules, holidays)
+          );
+        });
     const scheduledDateSet = new Set(scheduledDates);
     const scheduledAttendanceCalculations = employeeCalculations.filter(
       (calculation) => scheduledDateSet.has(calculation.attendanceDate),
     );
-    const scheduledDayCount = Math.max(1, scheduledDates.length);
+    const elapsedScheduledDayCount = Math.max(1, scheduledDates.length);
+    const scheduledDayCount = Math.max(1, fullPeriodScheduledDates.length);
     const absentDays = scheduledDates.filter(
       (dateValue) =>
         !attendanceDates.has(dateValue) &&
@@ -9850,9 +9900,9 @@ async function calculatePayrollPeriod(
     const rules = employeeCalculations[0]
       ? await attendanceRulesFor(
           context.companyId,
-          period.from,
+          calculationPeriod.from,
         )
-      : await attendanceRulesFor(context.companyId, period.from);
+      : await attendanceRulesFor(context.companyId, calculationPeriod.from);
     const employeeWorkingHours = Math.max(
       0.01,
       Number(row.employee.workingHours ?? rules.requiredHours ?? 8),
@@ -9937,8 +9987,14 @@ async function calculatePayrollPeriod(
       lateDeduction + earlyDeduction + absenceDeduction,
     );
     const otherDeductions = adjustmentDeductions;
+    const basicSalary = options.persist
+      ? row.employee.salary
+      : moneyValue(
+          row.employee.salary *
+            (scheduledDates.length / Math.max(1, fullPeriodScheduledDates.length)),
+        );
     const netSalary = moneyValue(
-      row.employee.salary +
+      basicSalary +
         additions +
         overtime +
         timeMultiplierPremium -
@@ -9949,7 +10005,7 @@ async function calculatePayrollPeriod(
     const lineItems: PayrollLineItem[] = [
       {
         label: message(req, "basicSalary"),
-        amount: row.employee.salary,
+        amount: basicSalary,
         type: "basic",
         explanation: message(req, "compensationProfile"),
       },
@@ -10041,11 +10097,32 @@ async function calculatePayrollPeriod(
             : message(req, "variableAdjustmentExplanation"),
       })),
     ];
+    const calculatedItem = {
+      employee: employeeReference(row.employee, row.department.name),
+      basicSalary,
+      additions,
+      overtime,
+      timeMultiplierPremium,
+      attendanceDeductions,
+      otherDeductions,
+      netSalary,
+      regularHours: moneyValue(regularHours),
+      overtimeHours: moneyValue(overtimeHours),
+      lateMinutes,
+      earlyCheckoutMinutes,
+      missingHours: moneyValue(missingHours),
+      absentDays: calculatedAbsenceDays,
+      leaveDays,
+      leaveBalances: employeeLeaveBalances,
+      lineItems,
+    };
+    calculatedItems.push(calculatedItem);
+    if (!persist) continue;
     await db.insert(payrollCalculationsTable).values({
       companyId: context.companyId,
       periodId: period.id,
       employeeId: row.employee.id,
-      basicSalary: row.employee.salary,
+      basicSalary,
       additions,
       overtime,
       timeMultiplierPremium,
@@ -10061,7 +10138,7 @@ async function calculatePayrollPeriod(
       lineItems,
       inputsSnapshot: {
         rules,
-        period: { from: period.from, to: period.to },
+        period: { from: calculationPeriod.from, to: calculationPeriod.to },
         attendance: {
           regularHours,
           overtimeHours,
@@ -10087,6 +10164,42 @@ async function calculatePayrollPeriod(
     });
   }
   const calculatedAt = new Date();
+  if (!persist) {
+    const totals = calculatedItems.reduce(
+      (total, item) => ({
+        basicSalary: total.basicSalary + Number(item.basicSalary ?? 0),
+        additions: total.additions + Number(item.additions ?? 0),
+        overtime: total.overtime + Number(item.overtime ?? 0),
+        timeMultiplierPremium:
+          total.timeMultiplierPremium +
+          Number(item.timeMultiplierPremium ?? 0),
+        attendanceDeductions:
+          total.attendanceDeductions +
+          Number(item.attendanceDeductions ?? 0),
+        otherDeductions:
+          total.otherDeductions + Number(item.otherDeductions ?? 0),
+        netSalary: total.netSalary + Number(item.netSalary ?? 0),
+      }),
+      {
+        basicSalary: 0,
+        additions: 0,
+        overtime: 0,
+        timeMultiplierPremium: 0,
+        attendanceDeductions: 0,
+        otherDeductions: 0,
+        netSalary: 0,
+      },
+    );
+    return {
+      period: payrollPeriodResponse(calculationPeriod),
+      calculatedAt: calculatedAt.toISOString(),
+      items: calculatedItems,
+      totals: Object.fromEntries(
+        Object.entries(totals).map(([key, value]) => [key, moneyValue(value)]),
+      ),
+      explanation: message(req, "payrollFoundationExplanation"),
+    };
+  }
   const updated = await db
     .update(payrollPeriodsTable)
     .set({
@@ -10447,6 +10560,83 @@ router.delete(
     res.status(204).send(DeletePayrollAdjustmentResponse.parse(undefined));
   },
 );
+
+router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  const query = GetEmployeePayrollSummaryQueryParams.safeParse({
+    employeeId: req.query.employeeId ? String(req.query.employeeId) : undefined,
+    from: req.query.from ? String(req.query.from) : undefined,
+    to: req.query.to ? String(req.query.to) : undefined,
+  });
+  if (!query.success || query.data.from > query.data.to) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
+    return;
+  }
+  if (
+    !canUseCapability(context, "payroll.view") &&
+    context.employeeId !== query.data.employeeId
+  ) {
+    denyCapability(res, req, "payroll.view");
+    return;
+  }
+  const employee = (await employeeRows(context)).find(
+    (row) => row.employee.id === query.data.employeeId,
+  );
+  if (!employee) {
+    res.status(404).json({ error: message(req, "employeeNotFound") });
+    return;
+  }
+  const [period] = await db
+    .select()
+    .from(payrollPeriodsTable)
+    .where(
+      and(
+        eq(payrollPeriodsTable.companyId, context.companyId),
+        lte(payrollPeriodsTable.from, query.data.from),
+        gte(payrollPeriodsTable.to, query.data.to),
+      ),
+    )
+    .orderBy(desc(payrollPeriodsTable.to))
+    .limit(1);
+  if (!period) {
+    res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
+    return;
+  }
+  const calculation = await calculatePayrollPeriod(context, req, period, {
+    employeeId: query.data.employeeId,
+    through: query.data.to,
+    persist: false,
+  });
+  const item = calculation?.items?.[0];
+  if (!item) {
+    res.status(404).json({ error: message(req, "payrollCalculationMissing") });
+    return;
+  }
+  res.json(
+    GetEmployeePayrollSummaryResponse.parse({
+      employee: item.employee,
+      from: query.data.from,
+      to: query.data.to,
+      calculatedAt: calculation.calculatedAt,
+      basicSalary: item.basicSalary,
+      additions: item.additions,
+      overtime: item.overtime,
+      timeMultiplierPremium: item.timeMultiplierPremium,
+      attendanceDeductions: item.attendanceDeductions,
+      otherDeductions: item.otherDeductions,
+      netSalary: item.netSalary,
+      regularHours: item.regularHours,
+      overtimeHours: item.overtimeHours,
+      lateMinutes: item.lateMinutes,
+      earlyCheckoutMinutes: item.earlyCheckoutMinutes,
+      missingHours: item.missingHours,
+      absentDays: item.absentDays,
+      lineItems: item.lineItems,
+      currency: context.company.currency,
+      payrollPeriod: calculation.period,
+    }),
+  );
+});
 
 router.get("/payroll/my", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);

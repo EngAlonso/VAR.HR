@@ -142,6 +142,7 @@ import {
   useDeletePayrollPeriod,
   useCalculatePayroll,
   useGetPayrollCalculation,
+  useGetEmployeePayrollSummary,
   useFinalizePayroll,
   useListPayrollAdjustments,
   useCreatePayrollAdjustment,
@@ -202,6 +203,7 @@ import {
   getListEmployeePayrollCycleAssignmentsQueryKey,
   getGetMyPayrollQueryKey,
   getGetPayrollCalculationQueryKey,
+  getGetEmployeePayrollSummaryQueryKey,
   getListPayrollAdjustmentsQueryKey,
   getListDevicesQueryKey,
   getListDeviceMappingsQueryKey,
@@ -8707,6 +8709,7 @@ function EmployeeAttendanceMovement({
   biometricCode,
   canPrint,
   canManualPunch = false,
+  canManagePayroll = false,
   fullPage = false,
 }: {
   employeeId: string;
@@ -8714,6 +8717,7 @@ function EmployeeAttendanceMovement({
   biometricCode?: string | null;
   canPrint: boolean;
   canManualPunch?: boolean;
+  canManagePayroll?: boolean;
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
@@ -8726,12 +8730,54 @@ function EmployeeAttendanceMovement({
     occurredAt: string;
     reason: string;
   } | null>(null);
+  const [showAdjustment, setShowAdjustment] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    type: "addition",
+    category: "fixed",
+    amount: "",
+    reason: "",
+  });
   const createManualPunch = useCreateManualAttendanceEvent();
+  const payrollPeriods = useListPayrollPeriods({
+    query: {
+      enabled: canManagePayroll,
+      queryKey: getListPayrollPeriodsQueryKey(),
+    },
+  });
   const [year, monthNumber] = month.split("-").map(Number);
   const from = `${month}-01`;
   const to = new Date(Date.UTC(year, monthNumber, 0))
     .toISOString()
     .slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const summaryTo = to > today ? today : to;
+  const summaryParams = useMemo(
+    () => ({ employeeId, from, to: summaryTo }),
+    [employeeId, from, summaryTo],
+  );
+  const payrollSummary = useGetEmployeePayrollSummary(summaryParams, {
+    query: {
+      enabled: open && Boolean(employeeId) && summaryTo >= from,
+      queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
+    },
+  });
+  const openPayrollPeriod = payrollPeriods.data?.find(
+    (period: any) =>
+      period.status !== "finalized" &&
+      period.status !== "locked" &&
+      period.from <= from &&
+      period.to >= to,
+  );
+  const employeeAdjustments = useListPayrollAdjustments(
+    { employeeId },
+    {
+      query: {
+        enabled: canManagePayroll && open,
+        queryKey: getListPayrollAdjustmentsQueryKey({ employeeId }),
+      },
+    },
+  );
+  const createAdjustment = useCreatePayrollAdjustment();
   const reportParams = useMemo(
     () => ({
       type: "attendance" as const,
@@ -8808,9 +8854,56 @@ function EmployeeAttendanceMovement({
           qc.invalidateQueries({
             queryKey: getListAttendanceHistoryQueryKey(),
           });
+          qc.invalidateQueries({
+            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
+          });
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("manualPunchFailed"))),
+      },
+    );
+  }
+
+  function submitAdjustment(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !openPayrollPeriod ||
+      !adjustmentForm.amount ||
+      Number(adjustmentForm.amount) < 0 ||
+      !adjustmentForm.reason.trim()
+    ) {
+      return;
+    }
+    createAdjustment.mutate(
+      {
+        data: {
+          periodId: openPayrollPeriod.id,
+          employeeId,
+          type: adjustmentForm.type as "addition" | "deduction",
+          category: adjustmentForm.category as "fixed" | "variable",
+          amount: Number(adjustmentForm.amount),
+          reason: adjustmentForm.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("adjustmentCreated"));
+          setShowAdjustment(false);
+          setAdjustmentForm({
+            type: "addition",
+            category: "fixed",
+            amount: "",
+            reason: "",
+          });
+          qc.invalidateQueries({
+            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
+          });
+          qc.invalidateQueries({
+            queryKey: getListPayrollAdjustmentsQueryKey({ employeeId }),
+          });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, t("adjustmentCreateFailed"))),
       },
     );
   }
@@ -8893,6 +8986,17 @@ function EmployeeAttendanceMovement({
                 {t("addManualPunch")}
               </Button>
             )}
+            {canManagePayroll && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAdjustment(true)}
+                disabled={!openPayrollPeriod}
+                data-testid={`button-add-payroll-adjustment-${employeeId}`}
+              >
+                <Coins size={15} />
+                {t("addAdjustment")}
+              </Button>
+            )}
             {!fullPage && (
               <Button
                 variant={open ? "outline" : "primary"}
@@ -8925,7 +9029,79 @@ function EmployeeAttendanceMovement({
                 {t("printAttendanceMovement")}
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={() => payrollSummary.refetch()}
+              disabled={
+                payrollSummary.isFetching || summaryTo < from
+              }
+              data-testid={`button-calculate-payroll-through-date-${employeeId}`}
+            >
+              <Coins size={16} />
+              {payrollSummary.isFetching ? t("saving") : t("calculate")}
+            </Button>
           </div>
+          {payrollSummary.isLoading ? (
+            <Skeleton className="h-32" />
+          ) : payrollSummary.data ? (
+            <Card className="border-primary/20 bg-primary/[0.04] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h4 className="font-semibold">{t("payroll")}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {from} – {summaryTo}
+                  </p>
+                </div>
+                <div className="text-end">
+                  <p className="text-xs text-muted-foreground">{t("net")}</p>
+                  <p className="font-display text-2xl font-semibold text-primary">
+                    {money(payrollSummary.data.netSalary, payrollSummary.data.currency)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <Info label={t("basicSalary")} value={money(payrollSummary.data.basicSalary, payrollSummary.data.currency)} />
+                <Info label={t("additions")} value={money(payrollSummary.data.additions, payrollSummary.data.currency)} />
+                <Info label={t("overtime")} value={money(payrollSummary.data.overtime, payrollSummary.data.currency)} />
+                <Info label={t("attendanceDeductions")} value={money(payrollSummary.data.attendanceDeductions, payrollSummary.data.currency)} />
+                <Info label={t("otherDeductions")} value={money(payrollSummary.data.otherDeductions, payrollSummary.data.currency)} />
+              </div>
+              {canManagePayroll && employeeAdjustments.data?.length ? (
+                <div className="mt-4 border-t border-border/70 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("adjustments")}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {employeeAdjustments.data
+                      .filter(
+                        (adjustment: any) =>
+                          adjustment.periodId === payrollSummary.data?.payrollPeriod?.id,
+                      )
+                      .map((adjustment: any) => (
+                        <div
+                          className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2 text-sm"
+                          key={adjustment.id}
+                        >
+                          <span className="min-w-0 truncate">
+                            {adjustment.reason}
+                          </span>
+                          <span
+                            className={
+                              adjustment.type === "addition"
+                                ? "font-semibold text-emerald-600"
+                                : "font-semibold text-destructive"
+                            }
+                          >
+                            {adjustment.type === "addition" ? "+" : "−"}
+                            {money(adjustment.amount, payrollSummary.data.currency)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+            </Card>
+          ) : null}
           {report.isLoading ? (
             <Skeleton className="h-56" />
           ) : report.isError ? (
@@ -9150,6 +9326,91 @@ function EmployeeAttendanceMovement({
                 {createManualPunch.isPending
                   ? t("saving")
                   : t("saveManualPunch")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {showAdjustment && (
+        <Modal title={t("addAdjustment")} onClose={() => setShowAdjustment(false)}>
+          <form onSubmit={submitAdjustment} className="space-y-4">
+            <Info label={t("employee")} value={employeeName} />
+            <Info
+              label={t("payrollPeriod")}
+              value={
+                openPayrollPeriod
+                  ? `${openPayrollPeriod.label} · ${openPayrollPeriod.from} – ${openPayrollPeriod.to}`
+                  : t("noPayrollCycle")
+              }
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm font-semibold">
+                {t("adjustmentType")}
+                <select
+                  value={adjustmentForm.type}
+                  onChange={(event) =>
+                    setAdjustmentForm({
+                      ...adjustmentForm,
+                      type: event.target.value,
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="addition">{t("addition")}</option>
+                  <option value="deduction">{t("deduction")}</option>
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                {t("category")}
+                <select
+                  value={adjustmentForm.category}
+                  onChange={(event) =>
+                    setAdjustmentForm({
+                      ...adjustmentForm,
+                      category: event.target.value,
+                    })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="fixed">{t("fixed")}</option>
+                  <option value="variable">{t("variable")}</option>
+                </select>
+              </label>
+            </div>
+            <Field
+              label={t("amount")}
+              type="number"
+              min="0"
+              step="0.01"
+              value={adjustmentForm.amount}
+              onChange={(value) =>
+                setAdjustmentForm({ ...adjustmentForm, amount: value })
+              }
+            />
+            <label className="block text-sm font-semibold">
+              {t("reason")}
+              <textarea
+                required
+                value={adjustmentForm.reason}
+                onChange={(event) =>
+                  setAdjustmentForm({
+                    ...adjustmentForm,
+                    reason: event.target.value,
+                  })
+                }
+                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setShowAdjustment(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button type="submit" disabled={createAdjustment.isPending || !openPayrollPeriod}>
+                {createAdjustment.isPending ? t("saving") : t("addAdjustment")}
               </Button>
             </div>
           </form>
@@ -24488,6 +24749,9 @@ function EmployeeMovementPage() {
   const canManualPunch =
     !isSelf &&
     (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
+  const canManagePayroll =
+    !isSelf &&
+    (workspace.data?.capabilities?.includes("payroll.manage") ?? false);
 
   if (isSelf && auth.account.employeeId !== employeeId) {
     return <Redirect to="/profile" />;
@@ -24571,6 +24835,7 @@ function EmployeeMovementPage() {
         biometricCode={employee.data.biometricCode}
         canPrint={canPrint}
         canManualPunch={canManualPunch}
+        canManagePayroll={canManagePayroll}
         fullPage
       />
     </div>

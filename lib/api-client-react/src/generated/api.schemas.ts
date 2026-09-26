@@ -1969,6 +1969,29 @@ export interface PayrollAdjustmentInput {
   reason: string;
 }
 
+export interface EmployeePayrollSummary {
+  employee: EmployeeReference;
+  from: string;
+  to: string;
+  calculatedAt: string;
+  basicSalary: number;
+  additions: number;
+  overtime: number;
+  timeMultiplierPremium: number;
+  attendanceDeductions: number;
+  otherDeductions: number;
+  netSalary: number;
+  regularHours: number;
+  overtimeHours: number;
+  lateMinutes: number;
+  earlyCheckoutMinutes: number;
+  missingHours: number;
+  absentDays: number;
+  lineItems: PayrollLineItem[];
+  currency: string;
+  payrollPeriod: PayrollPeriod | null;
+}
+
 export interface WorkSchedule {
   id: string;
   name: string;
@@ -2880,6 +2903,12 @@ export const GetReportPermissionType = {
 export type ListPayrollAdjustmentsParams = {
 periodId?: string;
 employeeId?: EmployeeIdQueryParameter;
+};
+
+export type GetEmployeePayrollSummaryParams = {
+employeeId: string;
+from: string;
+to: string;
 };
 
 export type GetMyPayrollParams = {
