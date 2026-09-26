@@ -8761,13 +8761,18 @@ function EmployeeAttendanceMovement({
       queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
     },
   });
-  const openPayrollPeriod = payrollPeriods.data?.find(
+  const openPayrollPeriods = (payrollPeriods.data ?? []).filter(
     (period: any) =>
       period.status !== "finalized" &&
-      period.status !== "locked" &&
-      period.from <= from &&
-      period.to >= to,
+      period.status !== "locked",
   );
+  const openPayrollPeriod =
+    openPayrollPeriods.find(
+      (period: any) => period.from <= from && period.to >= summaryTo,
+    ) ??
+    openPayrollPeriods.find(
+      (period: any) => period.from <= summaryTo && period.to >= from,
+    );
   const employeeAdjustments = useListPayrollAdjustments(
     { employeeId },
     {
@@ -8990,7 +8995,6 @@ function EmployeeAttendanceMovement({
               <Button
                 variant="outline"
                 onClick={() => setShowAdjustment(true)}
-                disabled={!openPayrollPeriod}
                 data-testid={`button-add-payroll-adjustment-${employeeId}`}
               >
                 <Coins size={15} />
@@ -9043,6 +9047,12 @@ function EmployeeAttendanceMovement({
           </div>
           {payrollSummary.isLoading ? (
             <Skeleton className="h-32" />
+          ) : payrollSummary.isError ? (
+            <Card className="border-destructive/20 bg-destructive/[0.04] p-4">
+              <p className="text-sm text-destructive">
+                {apiErrorMessage(payrollSummary.error, t("calculationFailed"))}
+              </p>
+            </Card>
           ) : payrollSummary.data ? (
             <Card className="border-primary/20 bg-primary/[0.04] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -9335,14 +9345,17 @@ function EmployeeAttendanceMovement({
         <Modal title={t("addAdjustment")} onClose={() => setShowAdjustment(false)}>
           <form onSubmit={submitAdjustment} className="space-y-4">
             <Info label={t("employee")} value={employeeName} />
-            <Info
-              label={t("payrollPeriod")}
-              value={
-                openPayrollPeriod
-                  ? `${openPayrollPeriod.label} · ${openPayrollPeriod.from} – ${openPayrollPeriod.to}`
-                  : t("noPayrollCycle")
-              }
-            />
+            {openPayrollPeriod ? (
+              <Info
+                label={t("payrollPeriod")}
+                value={`${openPayrollPeriod.label} · ${openPayrollPeriod.from} – ${openPayrollPeriod.to}`}
+              />
+            ) : (
+              <Empty
+                title={t("noPayrollPeriods")}
+                detail={t("periodsFromApi")}
+              />
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm font-semibold">
                 {t("adjustmentType")}
@@ -9409,7 +9422,10 @@ function EmployeeAttendanceMovement({
               >
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={createAdjustment.isPending || !openPayrollPeriod}>
+              <Button
+                type="submit"
+                disabled={createAdjustment.isPending || !openPayrollPeriod}
+              >
                 {createAdjustment.isPending ? t("saving") : t("addAdjustment")}
               </Button>
             </div>
@@ -24751,7 +24767,8 @@ function EmployeeMovementPage() {
     (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
   const canManagePayroll =
     !isSelf &&
-    (workspace.data?.capabilities?.includes("payroll.manage") ?? false);
+    ((workspace.data?.capabilities?.includes("payroll.manage") ?? false) ||
+      (workspace.data?.capabilities?.includes("payroll.view") ?? false));
 
   if (isSelf && auth.account.employeeId !== employeeId) {
     return <Redirect to="/profile" />;

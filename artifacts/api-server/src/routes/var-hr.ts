@@ -9208,7 +9208,10 @@ router.delete("/payroll/cycles/:cycleId", async (req, res): Promise<void> => {
 
 router.get("/payroll/periods", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "payroll.view")) {
+  if (
+    !canUseCapability(context, "payroll.view") &&
+    !canUseCapability(context, "payroll.manage")
+  ) {
     denyCapability(res, req, "payroll.view");
     return;
   }
@@ -10370,7 +10373,10 @@ router.post(
 
 router.get("/payroll/adjustments", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
-  if (!canUseCapability(context, "payroll.view")) {
+  if (
+    !canUseCapability(context, "payroll.view") &&
+    !canUseCapability(context, "payroll.manage")
+  ) {
     denyCapability(res, req, "payroll.view");
     return;
   }
@@ -10574,6 +10580,7 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
   }
   if (
     !canUseCapability(context, "payroll.view") &&
+    !canUseCapability(context, "payroll.manage") &&
     context.employeeId !== query.data.employeeId
   ) {
     denyCapability(res, req, "payroll.view");
@@ -10598,11 +10605,21 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
     )
     .orderBy(desc(payrollPeriodsTable.to))
     .limit(1);
-  if (!period) {
-    res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
-    return;
-  }
-  const calculation = await calculatePayrollPeriod(context, req, period, {
+  const calculationPeriod = period ?? {
+    id: "00000000-0000-0000-0000-000000000000",
+    companyId: context.companyId,
+    cycleId: null,
+    label: `${query.data.from} – ${query.data.to}`,
+    from: query.data.from,
+    to: query.data.to,
+    status: "draft",
+    employeeCount: 0,
+    totalNet: 0,
+    calculatedAt: null,
+    finalizedAt: null,
+    finalizedBy: null,
+  };
+  const calculation = await calculatePayrollPeriod(context, req, calculationPeriod, {
     employeeId: query.data.employeeId,
     through: query.data.to,
     persist: false,
