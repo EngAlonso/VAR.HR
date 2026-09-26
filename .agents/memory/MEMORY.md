@@ -6,3 +6,4 @@
 - [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
 - [Backup restore compatibility](backup-restore-compatibility.md) — normalize newly added required columns because jsonb_populate_record turns omitted fields into NULL.
 - [Company workday authority](company-workday-authority.md) — use attendance rules workingDays as the company-wide source for day/hour rate displays.
+- [ADMS timestamp normalization](adms-timezone-normalization.md) — interpret offset-free device timestamps in the company timezone before assigning attendance dates.
