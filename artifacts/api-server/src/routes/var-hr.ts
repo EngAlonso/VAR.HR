@@ -9672,11 +9672,23 @@ async function calculatePayrollPeriod(
         lte(attendanceCalculationsTable.attendanceDate, calculationPeriod.to),
       ),
     );
+  const storedCalculationIds = new Set(
+    storedAttendanceCalculations.map((calculation) => calculation.attendanceId),
+  );
+  const transientAttendanceCalculations = await Promise.all(
+    attendance
+      .filter((item) => !storedCalculationIds.has(item.attendance.id))
+      .map((item) => attendanceCalculationFor(context, item.attendance, false)),
+  );
+  const allAttendanceCalculations = [
+    ...storedAttendanceCalculations,
+    ...transientAttendanceCalculations,
+  ];
   const calculationsByEmployee = new Map<
     string,
-    typeof storedAttendanceCalculations
+    typeof allAttendanceCalculations
   >();
-  for (const calculation of storedAttendanceCalculations) {
+  for (const calculation of allAttendanceCalculations) {
     const employeeCalculations =
       calculationsByEmployee.get(calculation.employeeId) ?? [];
     employeeCalculations.push(calculation);
@@ -10605,13 +10617,20 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
     )
     .orderBy(desc(payrollPeriodsTable.to))
     .limit(1);
+  const cycleRange = employee.payrollCycle
+    ? cyclePeriodRange(employee.payrollCycle.startDay, query.data.to)
+    : null;
+  const fallbackFrom = cycleRange?.from ?? query.data.from;
+  const fallbackTo = cycleRange?.to ?? query.data.to;
   const calculationPeriod = period ?? {
     id: "00000000-0000-0000-0000-000000000000",
     companyId: context.companyId,
     cycleId: null,
-    label: `${query.data.from} – ${query.data.to}`,
-    from: query.data.from,
-    to: query.data.to,
+    label: employee.payrollCycle
+      ? `${employee.payrollCycle.name} · ${fallbackFrom} – ${fallbackTo}`
+      : `${fallbackFrom} – ${fallbackTo}`,
+    from: fallbackFrom,
+    to: fallbackTo,
     status: "draft",
     employeeCount: 0,
     totalNet: 0,

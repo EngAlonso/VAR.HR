@@ -4537,6 +4537,7 @@ const reportCopy = {
     backToEmployeeProfile: "Back to employee profile",
     printAttendanceMovement: "Print movement record",
     attendanceMonth: "Month",
+    payrollThroughDate: "Calculate through",
     scheduledEnd: "Scheduled end",
     deductedMinutes: "Deducted minutes",
     doublePay: "2× pay",
@@ -4639,6 +4640,7 @@ const reportCopy = {
     backToEmployeeProfile: "العودة إلى ملف الموظف",
     printAttendanceMovement: "طباعة سجل الحركة",
     attendanceMonth: "الشهر",
+    payrollThroughDate: "احتساب حتى تاريخ",
     scheduledEnd: "نهاية الدوام المجدولة",
     deductedMinutes: "دقائق الخصم",
     doublePay: "مضاعف ٢×",
@@ -4744,6 +4746,7 @@ const reportCopy = {
     backToEmployeeProfile: "Retour au profil de l’employé",
     printAttendanceMovement: "Imprimer le registre de mouvement",
     attendanceMonth: "Mois",
+    payrollThroughDate: "Calculer jusqu'au",
     scheduledEnd: "Fin planifiée",
     deductedMinutes: "Minutes déduites",
     doublePay: "Paie 2×",
@@ -4849,6 +4852,7 @@ const reportCopy = {
     backToEmployeeProfile: "Zurück zum Mitarbeiterprofil",
     printAttendanceMovement: "Bewegungsprotokoll drucken",
     attendanceMonth: "Monat",
+    payrollThroughDate: "Berechnen bis",
     scheduledEnd: "Geplantes Ende",
     deductedMinutes: "Abgezogene Minuten",
     doublePay: "2×-Vergütung",
@@ -8724,6 +8728,7 @@ function EmployeeAttendanceMovement({
   const qc = useQueryClient();
   const [open, setOpen] = useState(fullPage);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [throughDate, setThroughDate] = useState("");
   const [manualPunch, setManualPunch] = useState<{
     attendanceDate: string;
     direction: "in" | "out";
@@ -8750,7 +8755,11 @@ function EmployeeAttendanceMovement({
     .toISOString()
     .slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
-  const summaryTo = to > today ? today : to;
+  const latestAvailableDate = to > today ? today : to;
+  const summaryTo =
+    throughDate >= from && throughDate <= latestAvailableDate
+      ? throughDate
+      : latestAvailableDate;
   const summaryParams = useMemo(
     () => ({ employeeId, from, to: summaryTo }),
     [employeeId, from, summaryTo],
@@ -9021,6 +9030,14 @@ function EmployeeAttendanceMovement({
               type="month"
               value={month}
               onChange={setMonth}
+            />
+            <Field
+              label={t("payrollThroughDate")}
+              type="date"
+              value={summaryTo}
+              min={from}
+              max={latestAvailableDate}
+              onChange={setThroughDate}
             />
             {canPrint && (
               <Button
