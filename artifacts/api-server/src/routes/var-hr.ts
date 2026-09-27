@@ -887,7 +887,7 @@ const defaultAttendanceRules = {
   hourlyRateDivisor: 160,
   lateDeductionMethod: "hourly_rate" as const,
   lateDeductionFactor: 1,
-  earlyCheckoutDeductionFactor: 0.5,
+  earlyCheckoutDeductionFactor: 1,
   absenceDeductionMethod: "daily_rate" as const,
   absenceDeductionFactor: 1,
   latePenaltyMultiplier: 1,
@@ -949,12 +949,12 @@ function rulesConfiguration(
     overtimeMultiplier: rules.overtimeMultiplier,
     hourlyRateDivisor: rules.hourlyRateDivisor,
     lateDeductionMethod: rules.lateDeductionMethod,
-    // Monetary late deductions use the same multiplier as late penalties.
-    // Keep the legacy column in the response synchronized with that rule.
+    // Monetary deductions use the same multipliers as their attendance
+    // penalties. The *DeductionFactor fields are legacy compatibility fields.
     lateDeductionFactor: rules.latePenaltyMultiplier,
-    earlyCheckoutDeductionFactor: rules.earlyCheckoutDeductionFactor,
+    earlyCheckoutDeductionFactor: rules.earlyDeparturePenaltyMultiplier,
     absenceDeductionMethod: rules.absenceDeductionMethod,
-    absenceDeductionFactor: rules.absenceDeductionFactor,
+    absenceDeductionFactor: rules.absencePenaltyMultiplier,
     latePenaltyMultiplier: rules.latePenaltyMultiplier,
     earlyDeparturePenaltyMultiplier: rules.earlyDeparturePenaltyMultiplier,
     absencePenaltyMultiplier: rules.absencePenaltyMultiplier,
@@ -1029,6 +1029,13 @@ async function attendanceRulesFor(
       configuration[change.fieldName] = change.oldValue;
     }
   }
+  // Historical rule changes may contain the legacy factor fields. Re-derive
+  // them after replaying history so old payroll periods follow the same
+  // penalty multipliers as current periods.
+  configuration.lateDeductionFactor = configuration.latePenaltyMultiplier;
+  configuration.earlyCheckoutDeductionFactor =
+    configuration.earlyDeparturePenaltyMultiplier;
+  configuration.absenceDeductionFactor = configuration.absencePenaltyMultiplier;
   return {
     ...defaultAttendanceRules,
     id: selected.id,
@@ -7085,7 +7092,17 @@ router.put("/rules", async (req, res): Promise<void> => {
     return;
   }
   const current = await ensureAttendanceRules(context.companyId);
-  const { reason, ...nextValues } = parsed.data;
+  const { reason, ...submittedValues } = parsed.data;
+  // Keep the legacy monetary-factor columns aligned with the penalty
+  // multipliers. This prevents stale clients or old records from creating
+  // different values for the same attendance rule.
+  const nextValues = {
+    ...submittedValues,
+    lateDeductionFactor: submittedValues.latePenaltyMultiplier,
+    earlyCheckoutDeductionFactor:
+      submittedValues.earlyDeparturePenaltyMultiplier,
+    absenceDeductionFactor: submittedValues.absencePenaltyMultiplier,
+  };
   const previousValues = rulesConfiguration(current);
   const changedEntries = Object.entries(nextValues).filter(
     ([field, value]) =>
@@ -9968,7 +9985,7 @@ async function calculatePayrollPeriod(
     const earlyDeduction = moneyValue(
       (earlyPenaltyMinutes / 60) *
         hourlyRate *
-        rules.earlyCheckoutDeductionFactor,
+        rules.earlyDeparturePenaltyMultiplier,
     );
     const calculatedAbsenceDays = Math.max(
       scheduledAttendanceCalculations.filter(
@@ -9983,9 +10000,13 @@ async function calculatePayrollPeriod(
       (rules.absenceDeductionMethod as string) === "none"
         ? 0
         : (rules.absenceDeductionMethod as string) === "fixed_per_day"
-          ? moneyValue(calculatedAbsenceDays * rules.absenceDeductionFactor)
+          ? moneyValue(
+              calculatedAbsenceDays * rules.absencePenaltyMultiplier,
+            )
           : moneyValue(
-              calculatedAbsenceDays * dailyRate * rules.absenceDeductionFactor,
+              calculatedAbsenceDays *
+                dailyRate *
+                rules.absencePenaltyMultiplier,
             );
     const employeeAdjustments = adjustments.filter(
       (adjustment) => adjustment.employeeId === row.employee.id,

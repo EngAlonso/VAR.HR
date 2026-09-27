@@ -13699,6 +13699,19 @@ function Rules() {
         annualLeavePeriodStartMonth: Number(
           q.data.annualLeavePeriodStartMonth ?? 1,
         ),
+         lateDeductionFactor: Number(
+           q.data.latePenaltyMultiplier ?? q.data.lateDeductionFactor ?? 1,
+         ),
+         earlyCheckoutDeductionFactor: Number(
+           q.data.earlyDeparturePenaltyMultiplier ??
+             q.data.earlyCheckoutDeductionFactor ??
+             1,
+         ),
+         absenceDeductionFactor: Number(
+           q.data.absencePenaltyMultiplier ??
+             q.data.absenceDeductionFactor ??
+             1,
+         ),
       });
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
@@ -13729,8 +13742,10 @@ function Rules() {
             enabled: item.enabled !== false,
           })),
            lateDeductionFactor: Number(form.latePenaltyMultiplier),
-          earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
-          absenceDeductionFactor: Number(form.absenceDeductionFactor),
+           earlyCheckoutDeductionFactor: Number(
+             form.earlyDeparturePenaltyMultiplier,
+           ),
+           absenceDeductionFactor: Number(form.absencePenaltyMultiplier),
           absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),
           annualLeaveEntitlement: Number(form.annualLeaveEntitlement),
           annualLeavePeriodStartMonth: Number(form.annualLeavePeriodStartMonth),
