@@ -13728,7 +13728,7 @@ function Rules() {
             multiplier: Number(item.multiplier),
             enabled: item.enabled !== false,
           })),
-          lateDeductionFactor: Number(form.lateDeductionFactor),
+           lateDeductionFactor: Number(form.latePenaltyMultiplier),
           earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
           absenceDeductionFactor: Number(form.absenceDeductionFactor),
           absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),

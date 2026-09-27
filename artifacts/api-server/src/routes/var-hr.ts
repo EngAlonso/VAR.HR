@@ -886,7 +886,7 @@ const defaultAttendanceRules = {
   overtimeMultiplier: 1,
   hourlyRateDivisor: 160,
   lateDeductionMethod: "hourly_rate" as const,
-  lateDeductionFactor: 0.5,
+  lateDeductionFactor: 1,
   earlyCheckoutDeductionFactor: 0.5,
   absenceDeductionMethod: "daily_rate" as const,
   absenceDeductionFactor: 1,
@@ -949,7 +949,9 @@ function rulesConfiguration(
     overtimeMultiplier: rules.overtimeMultiplier,
     hourlyRateDivisor: rules.hourlyRateDivisor,
     lateDeductionMethod: rules.lateDeductionMethod,
-    lateDeductionFactor: rules.lateDeductionFactor,
+    // Monetary late deductions use the same multiplier as late penalties.
+    // Keep the legacy column in the response synchronized with that rule.
+    lateDeductionFactor: rules.latePenaltyMultiplier,
     earlyCheckoutDeductionFactor: rules.earlyCheckoutDeductionFactor,
     absenceDeductionMethod: rules.absenceDeductionMethod,
     absenceDeductionFactor: rules.absenceDeductionFactor,
@@ -9957,11 +9959,11 @@ async function calculatePayrollPeriod(
       (rules.lateDeductionMethod as string) === "none"
         ? 0
         : (rules.lateDeductionMethod as string) === "fixed_per_minute"
-          ? moneyValue(latePenaltyMinutes * rules.lateDeductionFactor)
+          ? moneyValue(latePenaltyMinutes * rules.latePenaltyMultiplier)
           : moneyValue(
               (latePenaltyMinutes / 60) *
                 hourlyRate *
-                rules.lateDeductionFactor,
+                rules.latePenaltyMultiplier,
             );
     const earlyDeduction = moneyValue(
       (earlyPenaltyMinutes / 60) *
