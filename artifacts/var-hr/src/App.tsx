@@ -4531,19 +4531,22 @@ const reportCopy = {
     earlyCheckoutMinutes: "Early checkout minutes",
     attendanceMovementTitle: "Employee movement record",
     attendanceMovementDetail:
-      "Full monthly attendance, fingerprint, deductions, and overtime details.",
+      "Detailed attendance, fingerprint, deductions, and overtime records for a selected date range.",
     showAttendanceMovement: "View movement record",
     hideAttendanceMovement: "Hide movement record",
     backToEmployeeProfile: "Back to employee profile",
     printAttendanceMovement: "Print movement record",
     attendanceMonth: "Month",
+    attendanceFromDate: "From date",
+    attendanceToDate: "To date",
+    attendanceDateRange: "Date range",
     payrollThroughDate: "Calculate through",
     scheduledEnd: "Scheduled end",
     deductedMinutes: "Deducted minutes",
     doublePay: "2× pay",
     multiplier: "Multiplier",
     fingerprintSource: "Fingerprint / source",
-    noAttendanceMovement: "No movement records for this month",
+    noAttendanceMovement: "No movement records for this date range",
     yes: "Yes",
     no: "No",
     company: "Company",
@@ -4634,19 +4637,22 @@ const reportCopy = {
     minutes: "دقيقة",
     attendanceMovementTitle: "سجل حركة الموظف",
     attendanceMovementDetail:
-      "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
+      "سجل مفصل للحضور والبصمة والخصومات والعمل الإضافي خلال فترة تاريخية محددة.",
     showAttendanceMovement: "عرض سجل الحركة",
     hideAttendanceMovement: "إخفاء سجل الحركة",
     backToEmployeeProfile: "العودة إلى ملف الموظف",
     printAttendanceMovement: "طباعة سجل الحركة",
     attendanceMonth: "الشهر",
+    attendanceFromDate: "من تاريخ",
+    attendanceToDate: "إلى تاريخ",
+    attendanceDateRange: "نطاق التاريخ",
     payrollThroughDate: "احتساب حتى تاريخ",
     scheduledEnd: "نهاية الدوام المجدولة",
     deductedMinutes: "دقائق الخصم",
     doublePay: "مضاعف ٢×",
     multiplier: "المضاعف",
     fingerprintSource: "البصمة / المصدر",
-    noAttendanceMovement: "لا توجد حركة مسجلة لهذا الشهر",
+    noAttendanceMovement: "لا توجد حركة مسجلة خلال نطاق التاريخ المحدد",
     yes: "نعم",
     no: "لا",
     company: "الشركة",
@@ -4740,19 +4746,22 @@ const reportCopy = {
     minutes: "minutes",
     attendanceMovementTitle: "Registre de mouvement de l’employé",
     attendanceMovementDetail:
-      "Présence mensuelle complète, empreinte, retenues et heures supplémentaires.",
+      "Présence, empreinte, retenues et heures supplémentaires pour une période sélectionnée.",
     showAttendanceMovement: "Voir le registre de mouvement",
     hideAttendanceMovement: "Masquer le registre de mouvement",
     backToEmployeeProfile: "Retour au profil de l’employé",
     printAttendanceMovement: "Imprimer le registre de mouvement",
     attendanceMonth: "Mois",
+    attendanceFromDate: "Du",
+    attendanceToDate: "Au",
+    attendanceDateRange: "Période",
     payrollThroughDate: "Calculer jusqu'au",
     scheduledEnd: "Fin planifiée",
     deductedMinutes: "Minutes déduites",
     doublePay: "Paie 2×",
     multiplier: "Multiplicateur",
     fingerprintSource: "Empreinte / source",
-    noAttendanceMovement: "Aucun mouvement pour ce mois",
+    noAttendanceMovement: "Aucun mouvement pour cette période",
     yes: "Oui",
     no: "Non",
     company: "Entreprise",
@@ -4846,19 +4855,22 @@ const reportCopy = {
     minutes: "Minuten",
     attendanceMovementTitle: "Mitarbeiter-Bewegungsprotokoll",
     attendanceMovementDetail:
-      "Vollständige monatliche Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht.",
+      "Detaillierte Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht für einen ausgewählten Zeitraum.",
     showAttendanceMovement: "Bewegungsprotokoll anzeigen",
     hideAttendanceMovement: "Bewegungsprotokoll ausblenden",
     backToEmployeeProfile: "Zurück zum Mitarbeiterprofil",
     printAttendanceMovement: "Bewegungsprotokoll drucken",
     attendanceMonth: "Monat",
+    attendanceFromDate: "Von",
+    attendanceToDate: "Bis",
+    attendanceDateRange: "Zeitraum",
     payrollThroughDate: "Berechnen bis",
     scheduledEnd: "Geplantes Ende",
     deductedMinutes: "Abgezogene Minuten",
     doublePay: "2×-Vergütung",
     multiplier: "Multiplikator",
     fingerprintSource: "Fingerabdruck / Quelle",
-    noAttendanceMovement: "Keine Bewegungsdaten für diesen Monat",
+    noAttendanceMovement: "Keine Bewegungsdaten für diesen Zeitraum",
     yes: "Ja",
     no: "Nein",
     company: "Unternehmen",
@@ -8727,8 +8739,9 @@ function EmployeeAttendanceMovement({
   const { locale, t } = useI18n();
   const qc = useQueryClient();
   const [open, setOpen] = useState(fullPage);
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [throughDate, setThroughDate] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+  const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
+  const [to, setTo] = useState(today);
   const [manualPunch, setManualPunch] = useState<{
     attendanceDate: string;
     direction: "in" | "out";
@@ -8749,17 +8762,7 @@ function EmployeeAttendanceMovement({
       queryKey: getListPayrollPeriodsQueryKey(),
     },
   });
-  const [year, monthNumber] = month.split("-").map(Number);
-  const from = `${month}-01`;
-  const to = new Date(Date.UTC(year, monthNumber, 0))
-    .toISOString()
-    .slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  const latestAvailableDate = to > today ? today : to;
-  const summaryTo =
-    throughDate >= from && throughDate <= latestAvailableDate
-      ? throughDate
-      : latestAvailableDate;
+  const summaryTo = to;
   const summaryParams = useMemo(
     () => ({ employeeId, from, to: summaryTo }),
     [employeeId, from, summaryTo],
@@ -8829,7 +8832,7 @@ function EmployeeAttendanceMovement({
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
 
   function openManualPunch() {
-    const attendanceDate = `${month}-01`;
+    const attendanceDate = from;
     setManualPunch({
       attendanceDate,
       direction: "in",
@@ -8967,7 +8970,7 @@ function EmployeeAttendanceMovement({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceMonth"))}: ${escapeHtml(periodLabel(month))}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
@@ -9026,18 +9029,21 @@ function EmployeeAttendanceMovement({
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
             <Field
-              label={t("attendanceMonth")}
-              type="month"
-              value={month}
-              onChange={setMonth}
+              name="attendance-from-date"
+              label={t("attendanceFromDate")}
+              type="date"
+              value={from}
+              max={to}
+              onChange={setFrom}
             />
             <Field
-              label={t("payrollThroughDate")}
+              name="attendance-to-date"
+              label={t("attendanceToDate")}
               type="date"
-              value={summaryTo}
+              value={to}
               min={from}
-              max={latestAvailableDate}
-              onChange={setThroughDate}
+              max={today}
+              onChange={setTo}
             />
             {canPrint && (
               <Button
