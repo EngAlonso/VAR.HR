@@ -10816,9 +10816,11 @@ function EmployeeProfilePage() {
       balance.type.toLowerCase().includes("annual"),
   );
   const update = useUpdateEmployee();
+  const assignSchedule = useAssignEmployeeSchedule();
   const remove = useDeleteEmployee();
   const departments = useListDepartments();
   const branches = useListBranches();
+  const schedules = useListWorkSchedules();
   const payrollCycles = useListPayrollCycles();
   const payrollCycleAssignments = useListEmployeePayrollCycleAssignments(
     employeeId,
@@ -10844,6 +10846,8 @@ function EmployeeProfilePage() {
     biometricCode: "",
     workingHours: "8",
     salary: "0",
+    joinedOn: "",
+    scheduleId: "",
     departmentId: "",
     branchId: "",
     status: "active",
@@ -10879,6 +10883,11 @@ function EmployeeProfilePage() {
       biometricCode: employee.data.biometricCode ?? "",
       workingHours: String(employee.data.workingHours ?? 8),
       salary: String(employee.data.salary ?? 0),
+      joinedOn: employee.data.joinedOn,
+      scheduleId:
+        employeeSchedule.data?.assignment?.scheduleId ||
+        employeeSchedule.data?.schedule?.id ||
+        "",
       departmentId: employee.data.department?.id ?? "",
       branchId: employee.data.branch?.id ?? "",
       status: employee.data.status,
@@ -10895,6 +10904,8 @@ function EmployeeProfilePage() {
     if (
       !employeeNumber.match(/^[1-9][0-9]*$/) ||
       !arabicName ||
+      !editForm.joinedOn ||
+      !editForm.scheduleId ||
       !editForm.branchId
     ) {
       toast.error(t("couldNotSaveRecord"));
@@ -10914,6 +10925,7 @@ function EmployeeProfilePage() {
           biometricCode: editForm.biometricCode.trim(),
           workingHours: Number(editForm.workingHours),
           salary: Number(editForm.salary),
+          joinedOn: editForm.joinedOn,
           departmentId: editForm.departmentId || null,
           branchId: editForm.branchId,
           status: editForm.status,
@@ -10921,10 +10933,37 @@ function EmployeeProfilePage() {
       },
       {
         onSuccess: () => {
-          toast.success(t("employeeSaved"));
-          setEditing(false);
-          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) });
+          const effectiveFrom =
+            employeeSchedule.data?.assignment?.effectiveFrom ||
+            editForm.joinedOn;
+          assignSchedule.mutate(
+            {
+              employeeId,
+              data: {
+                scheduleId: editForm.scheduleId,
+                effectiveFrom,
+                effectiveTo:
+                  employeeSchedule.data?.assignment?.effectiveTo ?? null,
+              },
+            },
+            {
+              onSuccess: () => {
+                toast.success(t("employeeSaved"));
+                setEditing(false);
+                qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+                qc.invalidateQueries({
+                  queryKey: getGetEmployeeQueryKey(employeeId),
+                });
+                qc.invalidateQueries({
+                  queryKey: getGetEmployeeScheduleQueryKey(employeeId),
+                });
+              },
+              onError: (error: unknown) =>
+                toast.error(
+                  apiErrorMessage(error, t("scheduleAssignmentFailed")),
+                ),
+            },
+          );
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
@@ -11594,6 +11633,39 @@ function EmployeeProfilePage() {
                 value={editForm.salary}
                 onChange={(value) => setEditForm({ ...editForm, salary: value })}
               />
+              <Field
+                label={t("employmentStartDate")}
+                type="date"
+                value={editForm.joinedOn}
+                required
+                onChange={(value) => setEditForm({ ...editForm, joinedOn: value })}
+              />
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("shift")}</span>
+                <select
+                  value={editForm.scheduleId}
+                  required
+                  disabled={schedules.isLoading || !schedules.data?.length}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, scheduleId: event.target.value })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="">
+                    {schedules.isLoading
+                      ? t("loading")
+                      : schedules.data?.length
+                        ? t("selectSchedule")
+                        : t("noShifts")}
+                  </option>
+                  {schedules.data?.map((schedule: any) => (
+                    <option key={schedule.id} value={schedule.id}>
+                      {localizedName(locale, schedule.nameAr || schedule.name, schedule.nameEn || schedule.name)}{" "}
+                      · {schedule.startTime}–{schedule.endTime}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="block text-sm font-semibold">
                 <span className="mb-2 block">{t("department")}</span>
                 <select
@@ -11645,7 +11717,10 @@ function EmployeeProfilePage() {
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" disabled={update.isPending}>
+              <Button
+                type="submit"
+                disabled={update.isPending || assignSchedule.isPending}
+              >
                 {t("saveChanges")}
               </Button>
             </div>

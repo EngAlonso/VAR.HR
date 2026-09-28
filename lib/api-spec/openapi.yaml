@@ -2764,6 +2764,7 @@ components:
         workingHours: { type: number, minimum: 0, maximum: 24 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
+        joinedOn: { type: string, format: date }
         salary: { type: number, minimum: 0 }
         status:
           type: string

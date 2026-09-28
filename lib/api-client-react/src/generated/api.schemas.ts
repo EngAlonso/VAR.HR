@@ -608,6 +608,7 @@ export interface EmployeeUpdate {
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;
+  joinedOn?: string;
   /** @minimum 0 */
   salary?: number;
   status?: EmployeeUpdateStatus;

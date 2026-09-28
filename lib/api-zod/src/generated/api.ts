@@ -996,6 +996,7 @@ export const UpdateEmployeeBody = zod.object({
   "workingHours": zod.number().min(updateEmployeeBodyWorkingHoursMin).max(updateEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
+  "joinedOn": zod.iso.date().optional(),
   "salary": zod.number().min(updateEmployeeBodySalaryMin).optional(),
   "status": zod.enum(['active', 'inactive']).optional(),
   "automaticOvertime": zod.enum(['default', 'enabled', 'disabled']).optional()
