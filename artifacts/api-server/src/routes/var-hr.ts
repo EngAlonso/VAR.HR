@@ -336,6 +336,7 @@ function canUseCapability(
     holidays: ["holidays.view", "holidays.manage"],
     devices: ["devices.view", "devices.manage"],
     "sync-history": ["sync-history.view"],
+    "attendance.absence_leave": ["attendance.correct", "attendance.adjust"],
   };
   const granted = [capability, ...(aliases[capability] ?? [])];
   return (

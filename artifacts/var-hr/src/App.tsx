@@ -8774,8 +8774,12 @@ function EmployeeAttendanceMovement({
   const { locale, t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
+  const workspaceCapabilities = workspace.data?.capabilities ?? [];
   const canConvertAbsence =
-    workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
+    workspace.data?.role !== "employee" &&
+    (workspaceCapabilities.includes("attendance.absence_leave") ||
+      workspaceCapabilities.includes("attendance.correct") ||
+      workspaceCapabilities.includes("attendance.adjust"));
   const [open, setOpen] = useState(fullPage);
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
@@ -9009,6 +9013,10 @@ function EmployeeAttendanceMovement({
 
   function printMovement() {
     if (!report.data) return;
+    const printScale = Math.min(
+      1,
+      Math.max(0.1, 720 / (Math.max(rows.length, 1) * 13 + 190)),
+    );
     const escapeHtml = (value: unknown) =>
       String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -9055,8 +9063,65 @@ function EmployeeAttendanceMovement({
       .join("");
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const printCss = `
+      @page { size: auto; margin: 4mm; }
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+      body {
+        position: relative;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        color: #152638;
+      }
+      .sheet {
+        position: absolute;
+        inset: 0;
+        width: calc(100% / ${printScale});
+        height: calc(100% / ${printScale});
+        overflow: hidden;
+        padding: 4px;
+        transform: scale(${printScale});
+        transform-origin: top left;
+      }
+      h1 { margin: 0 0 3px; font-size: 16px; }
+      p { margin: 0 0 6px; color: #607080; font-size: 9px; }
+      .summary {
+        display: flex;
+        gap: 5px;
+        flex-wrap: nowrap;
+        margin: 0 0 6px;
+        white-space: nowrap;
+      }
+      .chip {
+        background: #edf4f4;
+        border-radius: 999px;
+        padding: 3px 6px;
+        font-size: 8px;
+      }
+      table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        font-size: 7px;
+        line-height: 1.05;
+      }
+      th, td {
+        overflow: hidden;
+        border: 1px solid #d8e0e4;
+        padding: 2px 3px;
+        text-align: start;
+        white-space: nowrap;
+        text-overflow: clip;
+      }
+      th { background: #edf4f4; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      @media print {
+        body { padding: 0; }
+        .sheet { break-inside: avoid; page-break-inside: avoid; }
+      }
+    `;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>${printCss}</style></head><body><main class="sheet"><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></main><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
