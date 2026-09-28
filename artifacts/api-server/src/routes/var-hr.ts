@@ -1515,18 +1515,20 @@ function attendanceMetrics(input: {
           0,
           Math.round(input.schedule.requiredHours * 60) - netWorkedMinutes,
         );
-  const overtimeMinutes = input.schedule.overtimeEligible
-    ? input.holiday
-      ? netWorkedMinutes
-      : workingDay
-        ? Math.max(
-            0,
-            netWorkedMinutes -
-              normalScheduledMinutes -
-              input.schedule.overtimeAfterMinutes,
-          )
-        : 0
-    : 0;
+  // Keep the actual extra worked minutes independent from the payroll
+  // eligibility switch. The switch is applied later when automatic overtime
+  // is converted into payable overtime, while movement history still needs
+  // to show the minutes that were actually worked.
+  const overtimeMinutes = input.holiday
+    ? netWorkedMinutes
+    : workingDay
+      ? Math.max(
+          0,
+          netWorkedMinutes -
+            normalScheduledMinutes -
+            input.schedule.overtimeAfterMinutes,
+        )
+      : 0;
   return {
     workedMinutes,
     netWorkedMinutes,
@@ -1908,7 +1910,7 @@ async function attendanceCalculationFor(
         scheduledEnd: schedule.endTime,
         requiredHours: schedule.requiredHours,
         workedHours: metrics.workedHours,
-        overtimeHours: metrics.overtimeHours,
+        overtimeHours: Number((finalOvertimeMinutes / 60).toFixed(2)),
         lateMinutes: metrics.lateMinutes,
         earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
         missingMinutes: metrics.missingMinutes,
@@ -8256,29 +8258,16 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           !filters.attendanceStatus ||
           row.attendance.status === filters.attendanceStatus,
       );
-    const attendanceIds = rows.map((row) => row.attendance.id);
-    const storedCalculations = attendanceIds.length
-      ? await db
-          .select({ calculation: attendanceCalculationsTable })
-          .from(attendanceCalculationsTable)
-          .where(
-            and(
-              eq(attendanceCalculationsTable.companyId, context.companyId),
-              inArray(attendanceCalculationsTable.attendanceId, attendanceIds),
-            ),
-          )
-      : [];
-    const calculationByAttendanceId = new Map(
-      storedCalculations.map((row) => [
-        row.calculation.attendanceId,
-        row.calculation,
-      ]),
-    );
     response.rows = await Promise.all(
       rows.map(async (row) => {
-        const calculation =
-          calculationByAttendanceId.get(row.attendance.id) ??
-          (await attendanceCalculationFor(context, row.attendance, false));
+        // Recalculate instead of trusting a historical snapshot. This keeps
+        // movement history's actual overtime minutes correct after the
+        // automatic-pay eligibility policy changes.
+        const calculation = await attendanceCalculationFor(
+          context,
+          row.attendance,
+          false,
+        );
         return {
           employee: employeeReference(row.employee, row.department.name),
           date: row.attendance.date,
@@ -8288,8 +8277,12 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           scheduledEnd: row.attendance.scheduledEnd,
           requiredHours: row.attendance.requiredHours,
           workedHours: row.attendance.workedHours,
-          overtimeHours: row.attendance.overtimeHours,
-          overtimeMinutes: calculation.finalOvertimeMinutes,
+          // Movement history shows actual extra worked minutes. Payable
+          // overtime remains represented by finalOvertimeMinutes/overtimeHours.
+          overtimeHours: Number(
+            (calculation.finalOvertimeMinutes / 60).toFixed(2),
+          ),
+          overtimeMinutes: calculation.originalOvertimeMinutes,
           lateMinutes: row.attendance.lateMinutes,
           earlyCheckoutMinutes: row.attendance.earlyCheckoutMinutes,
           deductedMinutes: calculation.finalPenaltyMinutes,
@@ -8309,8 +8302,8 @@ router.get("/reports/data", async (req, res): Promise<void> => {
       (t, r) => t + r.attendance.workedHours,
       0,
     );
-    response.totals.overtimeHours = rows.reduce(
-      (t, r) => t + r.attendance.overtimeHours,
+    response.totals.overtimeHours = response.rows.reduce(
+      (t, r) => t + Number(r.overtimeMinutes ?? 0) / 60,
       0,
     );
     response.totals.presentDays = rows.filter(
@@ -9694,28 +9687,14 @@ async function calculatePayrollPeriod(
     calculationPeriod.from,
     calculationPeriod.to,
   );
-  const storedAttendanceCalculations = await db
-    .select()
-    .from(attendanceCalculationsTable)
-    .where(
-      and(
-        eq(attendanceCalculationsTable.companyId, context.companyId),
-        gte(attendanceCalculationsTable.attendanceDate, calculationPeriod.from),
-        lte(attendanceCalculationsTable.attendanceDate, calculationPeriod.to),
-      ),
-    );
-  const storedCalculationIds = new Set(
-    storedAttendanceCalculations.map((calculation) => calculation.attendanceId),
+  // Recalculate every attendance row from its stored schedule and current
+  // employee eligibility. Stored calculation snapshots may predate the
+  // distinction between actual and payable overtime.
+  const allAttendanceCalculations = await Promise.all(
+    attendance.map((item) =>
+      attendanceCalculationFor(context, item.attendance, false),
+    ),
   );
-  const transientAttendanceCalculations = await Promise.all(
-    attendance
-      .filter((item) => !storedCalculationIds.has(item.attendance.id))
-      .map((item) => attendanceCalculationFor(context, item.attendance, false)),
-  );
-  const allAttendanceCalculations = [
-    ...storedAttendanceCalculations,
-    ...transientAttendanceCalculations,
-  ];
   const calculationsByEmployee = new Map<
     string,
     typeof allAttendanceCalculations

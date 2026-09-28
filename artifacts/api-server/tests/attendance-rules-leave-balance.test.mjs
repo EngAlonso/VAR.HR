@@ -279,6 +279,30 @@ test("attendance movement shows overtime multipliers only for actual overtime", 
   assert.doesNotMatch(app, /<th className="px-4 py-3">\{t\("doublePay"\)\}<\/th>/);
 });
 
+test("actual overtime minutes stay visible while payable overtime remains gated", () => {
+  assert.match(
+    route,
+    /const overtimeMinutes = input\.holiday[\s\S]*normalScheduledMinutes[\s\S]*input\.schedule\.overtimeAfterMinutes/,
+  );
+  assert.match(
+    route,
+    /const automaticOvertimeMinutes = calculationSchedule\.overtimeEligible/,
+  );
+  assert.match(
+    route,
+    /overtimeHours: Number\(\(finalOvertimeMinutes \/ 60\)\.toFixed\(2\)\)/,
+  );
+  assert.match(route, /overtimeMinutes: calculation\.originalOvertimeMinutes/);
+  assert.match(
+    route,
+    /const calculation = await attendanceCalculationFor\(\s*context,\s*row\.attendance,\s*false,\s*\)/,
+  );
+  assert.match(
+    route,
+    /const allAttendanceCalculations = await Promise\.all\(\s*attendance\.map\(\(item\) =>\s*attendanceCalculationFor\(context, item\.attendance, false\)/,
+  );
+});
+
 test("employee attendance movement starts with the first day of the month", () => {
   assert.match(
     app,
