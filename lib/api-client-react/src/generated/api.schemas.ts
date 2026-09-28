@@ -1689,6 +1689,8 @@ export interface ReportRow {
   earlyCheckoutMinutes?: number;
   deductedMinutes?: number;
   overtimeHours?: number;
+  /** @minimum 0 */
+  overtimeMinutes?: number;
   overtimeMultiplier?: number;
   multiplierSource?: string;
   doublePay?: boolean;
@@ -1983,6 +1985,8 @@ export interface EmployeePayrollSummary {
   netSalary: number;
   regularHours: number;
   overtimeHours: number;
+  /** @minimum 0 */
+  overtimeMinutes: number;
   lateMinutes: number;
   earlyCheckoutMinutes: number;
   missingHours: number;

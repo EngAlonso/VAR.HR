@@ -23,6 +23,8 @@ export interface EmployeePayrollSummary {
   netSalary: number;
   regularHours: number;
   overtimeHours: number;
+  /** @minimum 0 */
+  overtimeMinutes: number;
   lateMinutes: number;
   earlyCheckoutMinutes: number;
   missingHours: number;

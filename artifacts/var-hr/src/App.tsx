@@ -1184,6 +1184,7 @@ const copy = {
     refreshPreview: "Refresh preview",
     previewReport: "Preview report",
     overtimeHours: "Overtime hours",
+    overtimeMinutes: "Overtime minutes",
     employeeDetail: "Employee detail",
     chooseReportingWindow: "Choose a reporting window",
     setDatesAbovePreview: "Set the dates above to preview attendance evidence.",
@@ -2491,6 +2492,7 @@ const pageCopy = {
     reportsDetail: "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
     setDatesAbove: "حدد التواريخ أعلاه لمعاينة بيانات الحضور.",
     overtimeHours: "ساعات إضافية",
+    overtimeMinutes: "دقائق الإضافي",
     employeeDetail: "تفاصيل الموظف",
     generalPayroll: "عمليات الرواتب العامة",
     payrollTitle: "الرواتب",
@@ -3156,6 +3158,7 @@ const pageCopy = {
     setDatesAbove:
       "Définissez les dates ci-dessus pour prévisualiser les données.",
     overtimeHours: "Heures supplémentaires",
+    overtimeMinutes: "Minutes supplémentaires",
     employeeDetail: "Détail de l’employé",
     generalPayroll: "Opérations générales de paie",
     payrollTitle: "Paie",
@@ -3559,6 +3562,7 @@ const pageCopy = {
     setDatesAbove:
       "Legen Sie oben die Daten fest, um die Anwesenheitsdaten anzuzeigen.",
     overtimeHours: "Überstunden",
+    overtimeMinutes: "Überstundenminuten",
     employeeDetail: "Mitarbeiterdetails",
     generalPayroll: "Allgemeine Lohnabrechnung",
     payrollTitle: "Lohnabrechnung",
@@ -8943,6 +8947,7 @@ function EmployeeAttendanceMovement({
       t("checkIn"),
       t("checkOut"),
       t("deductedMinutes"),
+      t("overtimeMinutes"),
       t("overtimeMultiplier"),
       t("workedHours"),
       t("attendanceStatus"),
@@ -8961,7 +8966,8 @@ function EmployeeAttendanceMovement({
             <td>${escapeHtml(time(row.checkIn))}</td>
             <td>${escapeHtml(time(row.checkOut))}</td>
             <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
-            <td>${escapeHtml(Number(row.overtimeHours || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
+            <td>${escapeHtml(minutes(row.overtimeMinutes))}</td>
+            <td>${escapeHtml(Number(row.overtimeMinutes || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
             <td>${escapeHtml(hours(row.workedHours))}</td>
             <td>${escapeHtml(statusLabel(row.attendanceStatus || "—", t))}</td>
           </tr>`,
@@ -9092,10 +9098,11 @@ function EmployeeAttendanceMovement({
                   </p>
                 </div>
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <Info label={t("basicSalary")} value={money(payrollSummary.data.basicSalary, payrollSummary.data.currency)} />
                 <Info label={t("additions")} value={money(payrollSummary.data.additions, payrollSummary.data.currency)} />
                 <Info label={t("overtime")} value={money(payrollSummary.data.overtime, payrollSummary.data.currency)} />
+                <Info label={t("overtimeMinutes")} value={minutes(payrollSummary.data.overtimeMinutes)} />
                 <Info label={t("attendanceDeductions")} value={money(payrollSummary.data.attendanceDeductions, payrollSummary.data.currency)} />
                 <Info label={t("otherDeductions")} value={money(payrollSummary.data.otherDeductions, payrollSummary.data.currency)} />
               </div>
@@ -9141,7 +9148,7 @@ function EmployeeAttendanceMovement({
             <ErrorState retry={() => report.refetch()} />
           ) : rows.length ? (
             <Card className="overflow-hidden">
-              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-3">
+              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Info
                   label={t("records")}
                   value={rows.length}
@@ -9161,6 +9168,15 @@ function EmployeeAttendanceMovement({
                   value={minutes(
                     rows.reduce(
                       (sum, row) => sum + Number(row.deductedMinutes || 0),
+                      0,
+                    ),
+                  )}
+                />
+                <Info
+                  label={t("overtimeMinutes")}
+                  value={minutes(
+                    rows.reduce(
+                      (sum, row) => sum + Number(row.overtimeMinutes || 0),
                       0,
                     ),
                   )}
@@ -9194,6 +9210,10 @@ function EmployeeAttendanceMovement({
                         label={t("deductedMinutes")}
                         value={minutes(row.deductedMinutes)}
                       />
+                      <Info
+                        label={t("overtimeMinutes")}
+                        value={minutes(row.overtimeMinutes)}
+                      />
                     </div>
                     <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
                       <p>{sourceLabel(row)}</p>
@@ -9218,6 +9238,7 @@ function EmployeeAttendanceMovement({
                       <th className="px-4 py-3">{t("checkIn")}</th>
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("deductedMinutes")}</th>
+                      <th className="px-4 py-3">{t("overtimeMinutes")}</th>
                       <th className="px-4 py-3">{t("overtimeMultiplier")}</th>
                       <th className="px-4 py-3">{t("workedHours")}</th>
                       <th className="px-4 py-3">{t("attendanceStatus")}</th>
@@ -9251,15 +9272,18 @@ function EmployeeAttendanceMovement({
                         <td className="px-4 py-3 font-mono">
                           {minutes(row.deductedMinutes)}
                         </td>
+                        <td className="px-4 py-3 font-mono">
+                          {minutes(row.overtimeMinutes)}
+                        </td>
                         <td className="px-4 py-3">
                           <Badge
                             tone={
-                              Number(row.overtimeHours || 0) > 0
+                              Number(row.overtimeMinutes || 0) > 0
                                 ? "good"
                                 : "neutral"
                             }
                           >
-                            {Number(row.overtimeHours || 0) > 0
+                            {Number(row.overtimeMinutes || 0) > 0
                               ? `${row.overtimeMultiplier ?? "—"}×`
                               : "—"}
                           </Badge>
@@ -14184,6 +14208,7 @@ function Rules() {
                   "absencePenaltyMultiplier",
                   t("absenceMultiplier"),
                 ],
+                ["overtimeMultiplier", t("overtimeMultiplier")],
                 [
                   "permissionCoveredMinutesMultiplier",
                   t("permissionCoveredMinutes"),
@@ -14206,9 +14231,14 @@ function Rules() {
                       key === "fullDayPermissionMultiplier") && (
                       <option value={0}>0x</option>
                     )}
-                    <option value={1}>1x</option>
-                    <option value={2}>2x</option>
-                    <option value={3}>3x</option>
+                    {(key === "overtimeMultiplier"
+                      ? [1, 1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25, 3]
+                      : [1, 2, 3]
+                    ).map((multiplier) => (
+                      <option key={multiplier} value={multiplier}>
+                        {multiplier}x
+                      </option>
+                    ))}
                   </select>
                 </label>
               ))}

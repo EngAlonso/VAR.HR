@@ -8289,6 +8289,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           requiredHours: row.attendance.requiredHours,
           workedHours: row.attendance.workedHours,
           overtimeHours: row.attendance.overtimeHours,
+          overtimeMinutes: calculation.finalOvertimeMinutes,
           lateMinutes: row.attendance.lateMinutes,
           earlyCheckoutMinutes: row.attendance.earlyCheckoutMinutes,
           deductedMinutes: calculation.finalPenaltyMinutes,
@@ -9621,6 +9622,18 @@ async function synchronizePayrollAttendance(
       }
     }
   }
+  // Attendance rows may already exist with a calculation produced under older
+  // punches or attendance rules. Recalculate every existing row in scope
+  // before payroll reads the stored calculations.
+  for (const attendance of existing) {
+    if (
+      employeeIds.has(attendance.employeeId) &&
+      attendance.date >= from &&
+      attendance.date <= through
+    ) {
+      await attendanceCalculationFor(context, attendance, true);
+    }
+  }
 }
 
 async function calculatePayrollPeriod(
@@ -9918,6 +9931,10 @@ async function calculatePayrollPeriod(
         0,
       ),
     );
+    const overtimeMinutes = employeeCalculations.reduce(
+      (total, calculation) => total + calculation.finalOvertimeMinutes,
+      0,
+    );
     const lateMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.effectiveLateMinutes,
       0,
@@ -10146,6 +10163,7 @@ async function calculatePayrollPeriod(
       netSalary,
       regularHours: moneyValue(regularHours),
       overtimeHours: moneyValue(overtimeHours),
+      overtimeMinutes,
       lateMinutes,
       earlyCheckoutMinutes,
       missingHours: moneyValue(missingHours),
@@ -10180,6 +10198,7 @@ async function calculatePayrollPeriod(
         attendance: {
           regularHours,
           overtimeHours,
+          overtimeMinutes,
           lateMinutes,
           earlyCheckoutMinutes,
           missingHours,
@@ -10686,6 +10705,7 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
       netSalary: item.netSalary,
       regularHours: item.regularHours,
       overtimeHours: item.overtimeHours,
+      overtimeMinutes: item.overtimeMinutes,
       lateMinutes: item.lateMinutes,
       earlyCheckoutMinutes: item.earlyCheckoutMinutes,
       missingHours: item.missingHours,

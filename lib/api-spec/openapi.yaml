@@ -3564,6 +3564,7 @@ components:
         earlyCheckoutMinutes: { type: integer }
         deductedMinutes: { type: integer }
         overtimeHours: { type: number }
+        overtimeMinutes: { type: integer, minimum: 0 }
         overtimeMultiplier: { type: number }
         multiplierSource: { type: string }
         doublePay: { type: boolean }
@@ -3876,6 +3877,7 @@ components:
           netSalary,
           regularHours,
           overtimeHours,
+          overtimeMinutes,
           lateMinutes,
           earlyCheckoutMinutes,
           missingHours,
@@ -3899,6 +3901,7 @@ components:
         netSalary: { type: number }
         regularHours: { type: number }
         overtimeHours: { type: number }
+        overtimeMinutes: { type: integer, minimum: 0 }
         lateMinutes: { type: integer }
         earlyCheckoutMinutes: { type: integer }
         missingHours: { type: number }

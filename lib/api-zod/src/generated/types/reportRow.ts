@@ -30,6 +30,8 @@ export interface ReportRow {
   earlyCheckoutMinutes?: number;
   deductedMinutes?: number;
   overtimeHours?: number;
+  /** @minimum 0 */
+  overtimeMinutes?: number;
   overtimeMultiplier?: number;
   multiplierSource?: string;
   doublePay?: boolean;

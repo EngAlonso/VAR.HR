@@ -3071,6 +3071,10 @@ export const GetReportQueryParams = zod.object({
   "permissionType": zod.enum(['Short absence', 'Late arrival', 'Early departure', 'Remote work', 'Personal errand']).optional()
 })
 
+export const getReportResponseRowsItemOvertimeMinutesMin = 0;
+
+
+
 export const GetReportResponse = zod.object({
   "reportType": zod.enum(['employees', 'attendance', 'leave', 'permission', 'overtime', 'payroll']),
   "company": zod.object({
@@ -3120,6 +3124,7 @@ export const GetReportResponse = zod.object({
   "earlyCheckoutMinutes": zod.int().optional(),
   "deductedMinutes": zod.int().optional(),
   "overtimeHours": zod.number().optional(),
+  "overtimeMinutes": zod.int().min(getReportResponseRowsItemOvertimeMinutesMin).optional(),
   "overtimeMultiplier": zod.number().optional(),
   "multiplierSource": zod.string().optional(),
   "doublePay": zod.boolean().optional(),
@@ -3609,6 +3614,10 @@ export const GetEmployeePayrollSummaryQueryParams = zod.object({
   "to": zod.iso.date()
 })
 
+export const getEmployeePayrollSummaryResponseOvertimeMinutesMin = 0;
+
+
+
 export const GetEmployeePayrollSummaryResponse = zod.object({
   "employee": zod.object({
   "id": zod.string(),
@@ -3628,6 +3637,7 @@ export const GetEmployeePayrollSummaryResponse = zod.object({
   "netSalary": zod.number(),
   "regularHours": zod.number(),
   "overtimeHours": zod.number(),
+  "overtimeMinutes": zod.int().min(getEmployeePayrollSummaryResponseOvertimeMinutesMin),
   "lateMinutes": zod.int(),
   "earlyCheckoutMinutes": zod.int(),
   "missingHours": zod.number(),
