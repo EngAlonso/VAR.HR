@@ -1,0 +1,29 @@
+{
+  "id": "/",
+  "name": "VAR HR",
+  "short_name": "VAR HR",
+  "description": "VAR HR workforce, attendance, leave, and payroll operations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fffaf7",
+  "theme_color": "#ff3c00",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
