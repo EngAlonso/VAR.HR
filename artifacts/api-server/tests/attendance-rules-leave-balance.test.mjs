@@ -310,6 +310,21 @@ test("employee attendance movement starts with the first day of the month", () =
   );
 });
 
+test("attendance movement calculation refreshes both report rows and payroll totals", () => {
+  assert.match(
+    app,
+    /async function recalculateAttendanceMovement\(\)[\s\S]*Promise\.all\(\[report\.refetch\(\), payrollSummary\.refetch\(\)\]\)/,
+  );
+  assert.match(
+    app,
+    /onClick=\{\(\) => void recalculateAttendanceMovement\(\)\}/,
+  );
+  assert.match(
+    app,
+    /report\.isFetching \|\| payrollSummary\.isFetching \|\| summaryTo < from/,
+  );
+});
+
 test("printed attendance movement localizes status and totals late minutes", () => {
   assert.match(
     app,

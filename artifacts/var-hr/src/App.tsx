@@ -8818,6 +8818,10 @@ function EmployeeAttendanceMovement({
   const rows = [...(report.data?.rows ?? [])].sort((a, b) =>
     (a.date ?? "").localeCompare(b.date ?? ""),
   );
+  async function recalculateAttendanceMovement() {
+    if (summaryTo < from) return;
+    await Promise.all([report.refetch(), payrollSummary.refetch()]);
+  }
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
@@ -9064,14 +9068,16 @@ function EmployeeAttendanceMovement({
             )}
             <Button
               variant="outline"
-              onClick={() => payrollSummary.refetch()}
+              onClick={() => void recalculateAttendanceMovement()}
               disabled={
-                payrollSummary.isFetching || summaryTo < from
+                report.isFetching || payrollSummary.isFetching || summaryTo < from
               }
               data-testid={`button-calculate-payroll-through-date-${employeeId}`}
             >
               <Coins size={16} />
-              {payrollSummary.isFetching ? t("saving") : t("calculate")}
+              {report.isFetching || payrollSummary.isFetching
+                ? t("calculating")
+                : t("calculate")}
             </Button>
           </div>
           {payrollSummary.isLoading ? (
