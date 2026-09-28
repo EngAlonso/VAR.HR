@@ -5829,9 +5829,25 @@ function employeeDisplayName(
     lastNameEn?: string;
   },
 ) {
-  return locale === "ar"
-    ? `${employee.firstName} ${employee.lastName}`
-    : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`;
+  const firstName =
+    locale === "ar" ? employee.firstName : employee.firstNameEn || employee.firstName;
+  const lastName =
+    locale === "ar" ? employee.lastName : employee.lastNameEn || employee.lastName;
+  return [firstName, lastName]
+    .filter(Boolean)
+    .filter((value, index, values) => index === 0 || value !== values[index - 1])
+    .join(" ");
+}
+
+function splitEmployeeFullName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) {
+    return { firstName: "", lastName: "" };
+  }
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" ") || parts[0],
+  };
 }
 
 function accountDisplayName(locale: Locale, account: { fullName: string; fullNameEn?: string }) {
@@ -10821,10 +10837,8 @@ function EmployeeProfilePage() {
   });
   const [editForm, setEditForm] = useState({
     employeeNumber: "",
-    firstName: "",
-    lastName: "",
-    firstNameEn: "",
-    lastNameEn: "",
+    arabicName: "",
+    englishName: "",
     phone: "",
     nationalId: "",
     biometricCode: "",
@@ -10846,10 +10860,20 @@ function EmployeeProfilePage() {
     if (!employee.data) return;
     setEditForm({
       employeeNumber: employee.data.employeeNumber,
-      firstName: employee.data.firstName,
-      lastName: employee.data.lastName,
-      firstNameEn: employee.data.firstNameEn ?? "",
-      lastNameEn: employee.data.lastNameEn ?? "",
+      arabicName: [employee.data.firstName, employee.data.lastName]
+        .filter(Boolean)
+        .filter(
+          (value, index, values) =>
+            index === 0 || value !== values[index - 1],
+        )
+        .join(" "),
+      englishName: [employee.data.firstNameEn, employee.data.lastNameEn]
+        .filter(Boolean)
+        .filter(
+          (value, index, values) =>
+            index === 0 || value !== values[index - 1],
+        )
+        .join(" "),
       phone: employee.data.phone ?? "",
       nationalId: employee.data.nationalId ?? "",
       biometricCode: employee.data.biometricCode ?? "",
@@ -10864,10 +10888,13 @@ function EmployeeProfilePage() {
   function saveEdit(event: FormEvent) {
     event.preventDefault();
     const employeeNumber = editForm.employeeNumber.trim();
+    const arabicName = editForm.arabicName.trim();
+    const englishName = editForm.englishName.trim();
+    const arabicParts = splitEmployeeFullName(arabicName);
+    const englishParts = splitEmployeeFullName(englishName);
     if (
       !employeeNumber.match(/^[1-9][0-9]*$/) ||
-      !editForm.firstName.trim() ||
-      !editForm.lastName.trim() ||
+      !arabicName ||
       !editForm.branchId
     ) {
       toast.error(t("couldNotSaveRecord"));
@@ -10878,10 +10905,10 @@ function EmployeeProfilePage() {
         employeeId,
         data: {
           employeeNumber,
-          firstName: editForm.firstName.trim(),
-          lastName: editForm.lastName.trim(),
-          firstNameEn: editForm.firstNameEn.trim(),
-          lastNameEn: editForm.lastNameEn.trim(),
+          firstName: arabicParts.firstName,
+          lastName: arabicParts.lastName,
+          firstNameEn: englishParts.firstName,
+          lastNameEn: englishParts.lastName,
           phone: editForm.phone.trim(),
           nationalId: editForm.nationalId.trim(),
           biometricCode: editForm.biometricCode.trim(),
@@ -11524,26 +11551,15 @@ function EmployeeProfilePage() {
                 {t("employeeNumberEditHint")}
               </p>
               <Field
-                label={t("firstName")}
-                value={editForm.firstName}
+                label={t("arabicName")}
+                value={editForm.arabicName}
                 required
-                onChange={(value) => setEditForm({ ...editForm, firstName: value })}
+                onChange={(value) => setEditForm({ ...editForm, arabicName: value })}
               />
               <Field
-                label={t("lastName")}
-                value={editForm.lastName}
-                required
-                onChange={(value) => setEditForm({ ...editForm, lastName: value })}
-              />
-              <Field
-                label={locale === "ar" ? "English first name" : "الاسم الأول بالإنجليزية"}
-                value={editForm.firstNameEn}
-                onChange={(value) => setEditForm({ ...editForm, firstNameEn: value })}
-              />
-              <Field
-                label={locale === "ar" ? "English last name" : "اسم العائلة بالإنجليزية"}
-                value={editForm.lastNameEn}
-                onChange={(value) => setEditForm({ ...editForm, lastNameEn: value })}
+                label={t("englishName")}
+                value={editForm.englishName}
+                onChange={(value) => setEditForm({ ...editForm, englishName: value })}
               />
               <Field
                 label={t("phoneNumber")}
