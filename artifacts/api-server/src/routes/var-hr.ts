@@ -1516,18 +1516,20 @@ function attendanceMetrics(input: {
           Math.round(input.schedule.requiredHours * 60) - netWorkedMinutes,
         );
   // Keep the actual extra worked minutes independent from the payroll
-  // eligibility switch. The switch is applied later when automatic overtime
-  // is converted into payable overtime, while movement history still needs
-  // to show the minutes that were actually worked.
-  const overtimeMinutes = input.holiday
+  // eligibility switch. The configured value is a minimum qualification
+  // threshold: once the raw extra time reaches it, count all extra minutes.
+  const rawOvertimeMinutes = input.holiday
     ? netWorkedMinutes
     : workingDay
       ? Math.max(
           0,
           netWorkedMinutes -
-            normalScheduledMinutes -
-            input.schedule.overtimeAfterMinutes,
+            normalScheduledMinutes,
         )
+      : 0;
+  const overtimeMinutes =
+    rawOvertimeMinutes >= input.schedule.overtimeAfterMinutes
+      ? rawOvertimeMinutes
       : 0;
   return {
     workedMinutes,
@@ -1820,22 +1822,24 @@ async function attendanceCalculationFor(
   });
   const totalPenaltyMinutes =
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
-  const automaticOvertimeMinutes = calculationSchedule.overtimeEligible
-    ? holiday
-      ? finalWorkedMinutes
-      : Math.max(
-          0,
-          finalWorkedMinutes -
-            Math.max(
-              0,
-              scheduledMinutes -
-                (calculationSchedule.breakPaid
-                  ? 0
-                  : calculationSchedule.breakDurationMinutes),
-            ) -
-            rules.overtimeAfterMinutes,
-        )
-    : 0;
+  const rawAutomaticOvertimeMinutes = holiday
+    ? finalWorkedMinutes
+    : Math.max(
+        0,
+        finalWorkedMinutes -
+          Math.max(
+            0,
+            scheduledMinutes -
+              (calculationSchedule.breakPaid
+                ? 0
+                : calculationSchedule.breakDurationMinutes),
+          ),
+      );
+  const automaticOvertimeMinutes =
+    calculationSchedule.overtimeEligible &&
+    rawAutomaticOvertimeMinutes >= calculationSchedule.overtimeAfterMinutes
+      ? rawAutomaticOvertimeMinutes
+      : 0;
   const finalOvertimeMinutes = Math.max(
     0,
     automaticOvertimeMinutes + manualOvertimeMinutes,
@@ -1852,7 +1856,7 @@ async function attendanceCalculationFor(
     `Late: raw ${metrics.rawLateMinutes} minutes; grace ${metrics.lateGraceMinutes} minutes is an exemption threshold, so effective delay is ${metrics.lateMinutes} minutes.`,
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} minutes; grace ${metrics.earlyDepartureGraceMinutes} minutes is an exemption threshold, so effective early departure is ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
-    `Normal time: ${metrics.normalWorkedMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+    `Normal time: ${metrics.normalWorkedMinutes} minutes; raw extra time: ${Math.max(0, metrics.netWorkedMinutes - metrics.normalWorkedMinutes)} minutes; overtime qualification threshold: ${calculationSchedule.overtimeAfterMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
     `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
     `Time multipliers: ${timeMultiplier.applied.length ? timeMultiplier.applied.join(", ") : "none"}; premium equivalent ${timeMultiplier.premiumMinutes.toFixed(3)} minutes.`,
     `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
