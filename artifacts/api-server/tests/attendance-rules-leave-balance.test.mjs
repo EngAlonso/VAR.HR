@@ -136,6 +136,18 @@ test("payroll employee details expose calculated absence days", () => {
   assert.match(app, /t\("missingHours"\)/);
 });
 
+test("employee payroll preview uses the selected start and end dates", () => {
+  assert.match(
+    route,
+    /from\?: string;[\s\S]*through\?: string;[\s\S]*const calculationPeriod = \{[\s\S]*from: options\.from \?\? period\.from/,
+  );
+  assert.match(
+    route,
+    /calculatePayrollPeriod\(context, req, calculationPeriod, \{[\s\S]*from: query\.data\.from,[\s\S]*through: query\.data\.to/,
+  );
+  assert.match(route, /const fullPeriodDates = dateStrings\(period\.from, period\.to\)/);
+});
+
 test("leave balances expose configured leave-year boundaries and states", () => {
   assert.match(route, /leavePeriodBounds/);
   assert.match(route, /periodStartMonth/);

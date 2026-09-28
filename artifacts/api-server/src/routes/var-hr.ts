@@ -9659,6 +9659,7 @@ async function calculatePayrollPeriod(
   period: typeof payrollPeriodsTable.$inferSelect,
   options: {
     employeeId?: string;
+    from?: string;
     through?: string;
     persist?: boolean;
   } = {},
@@ -9666,6 +9667,7 @@ async function calculatePayrollPeriod(
   const persist = options.persist !== false;
   const calculationPeriod = {
     ...period,
+    from: options.from ?? period.from,
     to:
       options.through && options.through < period.to
         ? options.through
@@ -9751,13 +9753,15 @@ async function calculatePayrollPeriod(
     context.companyId,
   );
   const dates = dateStrings(calculationPeriod.from, calculationPeriod.to);
+  const fullPeriodDates = dateStrings(period.from, period.to);
   const periodRules = await attendanceRulesFor(
     context.companyId,
     calculationPeriod.from,
   );
+  const rulesDates = [...new Set([...dates, ...fullPeriodDates])];
   const rulesByDate = new Map<string, ResolvedAttendanceRules>(
     await Promise.all(
-      dates.map(async (date) => [
+      rulesDates.map(async (date) => [
         date,
         await attendanceRulesFor(context.companyId, date),
       ] as const),
@@ -10685,6 +10689,7 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
   };
   const calculation = await calculatePayrollPeriod(context, req, calculationPeriod, {
     employeeId: query.data.employeeId,
+    from: query.data.from,
     through: query.data.to,
     persist: false,
   });
