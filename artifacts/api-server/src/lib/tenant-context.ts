@@ -219,6 +219,7 @@ export function workspaceCapabilities(
       "attendance.punch",
       "attendance.correct",
       "attendance.adjust",
+  "attendance.absence_leave",
       "leave.approve",
       "permissions.approve",
       "payroll.view",

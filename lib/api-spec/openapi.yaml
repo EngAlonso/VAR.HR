@@ -706,6 +706,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRecord"
+  /attendance/{attendanceId}/annual-leave:
+    post:
+      operationId: convertAbsenceToAnnualLeave
+      tags: [attendance]
+      summary: Convert an absent attendance day to annual leave
+      parameters:
+        - $ref: "#/components/parameters/AttendanceId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConvertAbsenceToAnnualLeaveInput"
+      responses:
+        "200":
+          description: Absence converted to annual leave
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConvertAbsenceToAnnualLeaveResponse"
   /attendance/{attendanceId}/calculation:
     get:
       operationId: previewAttendanceCalculation
@@ -2994,6 +3014,22 @@ components:
       required: [reason]
       properties:
         reason: { type: string, minLength: 1 }
+    ConvertAbsenceToAnnualLeaveInput:
+      type: object
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+    ConvertAbsenceToAnnualLeaveResponse:
+      type: object
+      required:
+        [attendanceId, employeeId, date, leaveRequestId, leaveType, days, balanceRemaining]
+      properties:
+        attendanceId: { type: string }
+        employeeId: { type: string }
+        date: { type: string, format: date }
+        leaveRequestId: { type: string }
+        leaveType: { type: string }
+        days: { type: number }
+        balanceRemaining: { type: number }
     EmployeeReference:
       type: object
       required: [id, name, initials, department]
@@ -3549,6 +3585,7 @@ components:
       properties:
         employee:
           $ref: "#/components/schemas/EmployeeReference"
+        attendanceId: { type: string }
         department: { type: string }
         branch: { type: string }
         email: { type: string }

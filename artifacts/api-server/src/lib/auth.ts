@@ -211,6 +211,11 @@ export const STANDARD_PERMISSIONS = [
     "Create, approve, reverse, and audit manual attendance adjustments.",
   ],
   [
+    "attendance.absence_leave",
+    "Convert absence to annual leave",
+    "Turn an employee absence into an approved annual-leave day and update payroll.",
+  ],
+  [
     "leave.create",
     "Create leave requests",
     "Submit leave requests for the signed-in employee.",

@@ -52,6 +52,8 @@ import type {
   BulkScheduleAssignmentInput,
   BulkScheduleAssignmentResponse,
   ChangeEmployeePassword200,
+  ConvertAbsenceToAnnualLeaveInput,
+  ConvertAbsenceToAnnualLeaveResponse,
   CreateLeavePolicyInput,
   DashboardSummary,
   Department,
@@ -3336,6 +3338,78 @@ export const useCreateManualAttendanceEvent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateManualAttendanceEventMutationOptions(options));
+    }
+
+export const getConvertAbsenceToAnnualLeaveUrl = (attendanceId: string,) => {
+
+
+
+
+  return `/api/attendance/${attendanceId}/annual-leave`
+}
+
+/**
+ * @summary Convert an absent attendance day to annual leave
+ */
+export const convertAbsenceToAnnualLeave = async (attendanceId: string,
+    convertAbsenceToAnnualLeaveInput?: ConvertAbsenceToAnnualLeaveInput, options?: Parameters<typeof customFetch>[1]): Promise<ConvertAbsenceToAnnualLeaveResponse> => {
+
+  return customFetch<ConvertAbsenceToAnnualLeaveResponse>(getConvertAbsenceToAnnualLeaveUrl(attendanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(convertAbsenceToAnnualLeaveInput)
+  }
+);}
+
+
+
+
+
+export const getConvertAbsenceToAnnualLeaveMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>, TError,{attendanceId: string;data?: BodyType<ConvertAbsenceToAnnualLeaveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>, TError,{attendanceId: string;data?: BodyType<ConvertAbsenceToAnnualLeaveInput>}, TContext> => {
+
+const mutationKey = ['convertAbsenceToAnnualLeave'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>, {attendanceId: string;data?: BodyType<ConvertAbsenceToAnnualLeaveInput>}> = (props) => {
+          const {attendanceId,data} = props ?? {};
+
+          return  convertAbsenceToAnnualLeave(attendanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConvertAbsenceToAnnualLeaveMutationResult = NonNullable<Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>>
+    export type ConvertAbsenceToAnnualLeaveMutationBody = BodyType<ConvertAbsenceToAnnualLeaveInput> | undefined
+    export type ConvertAbsenceToAnnualLeaveMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Convert an absent attendance day to annual leave
+ */
+export const useConvertAbsenceToAnnualLeave = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>, TError,{attendanceId: string;data?: BodyType<ConvertAbsenceToAnnualLeaveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof convertAbsenceToAnnualLeave>>,
+        TError,
+        {attendanceId: string;data?: BodyType<ConvertAbsenceToAnnualLeaveInput>},
+        TContext
+      > => {
+      return useMutation(getConvertAbsenceToAnnualLeaveMutationOptions(options));
     }
 
 export const getPreviewAttendanceCalculationUrl = (attendanceId: string,) => {

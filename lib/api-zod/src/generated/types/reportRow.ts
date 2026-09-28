@@ -10,6 +10,7 @@ import type { PayrollLineItem } from './payrollLineItem';
 
 export interface ReportRow {
   employee: EmployeeReference;
+  attendanceId?: string;
   department?: string;
   branch?: string;
   email?: string;

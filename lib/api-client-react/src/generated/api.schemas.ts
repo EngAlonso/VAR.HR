@@ -905,6 +905,24 @@ export interface AttendanceTimeAdjustmentReverseInput {
   reason: string;
 }
 
+export interface ConvertAbsenceToAnnualLeaveInput {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  reason?: string;
+}
+
+export interface ConvertAbsenceToAnnualLeaveResponse {
+  attendanceId: string;
+  employeeId: string;
+  date: string;
+  leaveRequestId: string;
+  leaveType: string;
+  days: number;
+  balanceRemaining: number;
+}
+
 export interface LeaveBalance {
   id: string;
   employee: EmployeeReference;
@@ -1669,6 +1687,7 @@ export interface PayrollLineItem {
 
 export interface ReportRow {
   employee: EmployeeReference;
+  attendanceId?: string;
   department?: string;
   branch?: string;
   email?: string;

@@ -1215,6 +1215,32 @@ export const CreateManualAttendanceEventResponse = zod.object({
 
 
 /**
+ * @summary Convert an absent attendance day to annual leave
+ */
+export const ConvertAbsenceToAnnualLeaveParams = zod.object({
+  "attendanceId": zod.coerce.string()
+})
+
+export const convertAbsenceToAnnualLeaveBodyReasonMax = 1000;
+
+
+
+export const ConvertAbsenceToAnnualLeaveBody = zod.object({
+  "reason": zod.string().min(1).max(convertAbsenceToAnnualLeaveBodyReasonMax).optional()
+})
+
+export const ConvertAbsenceToAnnualLeaveResponse = zod.object({
+  "attendanceId": zod.string(),
+  "employeeId": zod.string(),
+  "date": zod.iso.date(),
+  "leaveRequestId": zod.string(),
+  "leaveType": zod.string(),
+  "days": zod.number(),
+  "balanceRemaining": zod.number()
+})
+
+
+/**
  * @summary Preview the deterministic attendance calculation
  */
 export const PreviewAttendanceCalculationParams = zod.object({
@@ -3109,6 +3135,7 @@ export const GetReportResponse = zod.object({
   "initials": zod.string(),
   "department": zod.string()
 }),
+  "attendanceId": zod.string().optional(),
   "department": zod.string().optional(),
   "branch": zod.string().optional(),
   "email": zod.string().optional(),

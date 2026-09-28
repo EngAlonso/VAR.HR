@@ -84,6 +84,9 @@ import {
   RecalculateAttendanceResponse,
   CreateAttendanceTimeAdjustmentBody,
   CreateAttendanceTimeAdjustmentResponse,
+  ConvertAbsenceToAnnualLeaveBody,
+  ConvertAbsenceToAnnualLeaveParams,
+  ConvertAbsenceToAnnualLeaveResponse,
   CreateManualAttendanceEventBody,
   CreateManualAttendanceEventResponse,
   DecideAttendanceTimeAdjustmentBody,
@@ -4361,6 +4364,178 @@ async function attendanceForCalculation(
   return rows.find((row) => row.attendance.id === attendanceId);
 }
 
+router.post(
+  "/attendance/:attendanceId/annual-leave",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.absence_leave")) {
+      denyCapability(res, req, "attendance.absence_leave");
+      return;
+    }
+    const params = ConvertAbsenceToAnnualLeaveParams.safeParse(req.params);
+    const parsed = ConvertAbsenceToAnnualLeaveBody.safeParse(req.body ?? {});
+    if (
+      !params.success ||
+      !parsed.success ||
+      !isUuid(params.data.attendanceId)
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const row = await attendanceForCalculation(
+      context,
+      params.data.attendanceId,
+    );
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    if (row.attendance.status !== "absent") {
+      res.status(409).json({
+        error: "Only absent attendance days can be converted to annual leave.",
+      });
+      return;
+    }
+    await ensureLeaveAccruals(context.companyId, row.attendance.date);
+    const policy = await annualLeavePolicyFor(
+      context.companyId,
+      row.attendance.date,
+    );
+    const reason =
+      parsed.data.reason?.trim() ||
+      `Converted absence on ${row.attendance.date} to annual leave`;
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`${context.companyId}:${row.attendance.employeeId}:${row.attendance.date.slice(0, 7)}`}))`,
+      );
+      const [existingLeave] = await tx
+        .select({ id: leaveRequestsTable.id })
+        .from(leaveRequestsTable)
+        .where(
+          and(
+            eq(leaveRequestsTable.companyId, context.companyId),
+            eq(leaveRequestsTable.employeeId, row.attendance.employeeId),
+            eq(leaveRequestsTable.type, policy.leaveType),
+            lte(leaveRequestsTable.from, row.attendance.date),
+            gte(leaveRequestsTable.to, row.attendance.date),
+            or(
+              eq(leaveRequestsTable.status, "pending"),
+              eq(leaveRequestsTable.status, "approved"),
+            ),
+          ),
+        )
+        .limit(1);
+      if (existingLeave) return { kind: "overlap" as const };
+      const [balance] = await tx
+        .select()
+        .from(leaveBalancesTable)
+        .where(
+          and(
+            eq(leaveBalancesTable.companyId, context.companyId),
+            eq(leaveBalancesTable.employeeId, row.attendance.employeeId),
+            eq(leaveBalancesTable.type, policy.leaveType),
+          ),
+        )
+        .limit(1);
+      if (!balance) return { kind: "missing_balance" as const };
+      const available = balance.allocated - balance.used - balance.pending;
+      if (!policy.allowNegative && available < 1) {
+        return { kind: "insufficient_balance" as const };
+      }
+      const [request] = await tx
+        .insert(leaveRequestsTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: row.attendance.employeeId,
+          type: policy.leaveType,
+          from: row.attendance.date,
+          to: row.attendance.date,
+          days: 1,
+          reason,
+          status: "approved",
+          decidedBy: context.accountId,
+          decisionReason: reason,
+          decidedAt: new Date(),
+        })
+        .returning();
+      const [updatedBalance] = await tx
+        .update(leaveBalancesTable)
+        .set({ used: sql`${leaveBalancesTable.used} + 1` })
+        .where(
+          and(
+            eq(leaveBalancesTable.id, balance.id),
+            eq(leaveBalancesTable.companyId, context.companyId),
+            policy.allowNegative
+              ? undefined
+              : sql`${leaveBalancesTable.used} + 1 <= ${leaveBalancesTable.allocated} - ${leaveBalancesTable.pending}`,
+          ),
+        )
+        .returning();
+      if (!updatedBalance) {
+        throw new Error("Annual leave balance changed while converting absence");
+      }
+      const beforeBalance = balance.allocated - balance.used;
+      const afterBalance = updatedBalance.allocated - updatedBalance.used;
+      await tx.insert(leaveBalanceTransactionsTable).values({
+        companyId: context.companyId,
+        employeeId: row.attendance.employeeId,
+        leaveType: policy.leaveType,
+        amount: -1,
+        transactionType: "deduction",
+        beforeBalance,
+        afterBalance,
+        sourceRequestId: request.id,
+        actorId: context.accountId,
+        reason,
+        eventDate: row.attendance.date,
+        transactionKey: `request:${request.id}:approved`,
+      });
+      return {
+        kind: "created" as const,
+        request,
+        balanceRemaining: afterBalance,
+      };
+    });
+    if (result.kind === "overlap") {
+      res.status(409).json({
+        error: "This absence day already has a pending or approved leave.",
+      });
+      return;
+    }
+    if (result.kind === "missing_balance") {
+      res.status(409).json({
+        error: message(req, "leaveBalanceMissing", { type: policy.leaveType }),
+      });
+      return;
+    }
+    if (result.kind === "insufficient_balance") {
+      res.status(409).json({
+        error: message(req, "leaveExceedsBalance", { type: policy.leaveType }),
+      });
+      return;
+    }
+    await attendanceCalculationFor(context, row.attendance, true);
+    await recordAudit(
+      context.companyId,
+      "converted_absence_to_annual_leave",
+      "leave_request",
+      result.request.id,
+      result.request,
+    );
+    res.json(
+      ConvertAbsenceToAnnualLeaveResponse.parse({
+        attendanceId: row.attendance.id,
+        employeeId: row.attendance.employeeId,
+        date: row.attendance.date,
+        leaveRequestId: result.request.id,
+        leaveType: result.request.type,
+        days: result.request.days,
+        balanceRemaining: result.balanceRemaining,
+      }),
+    );
+  },
+);
+
 router.get(
   "/attendance/:attendanceId/calculation",
   async (req, res): Promise<void> => {
@@ -8305,6 +8480,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
         );
         return {
           employee: employeeReference(row.employee, row.department.name),
+          attendanceId: row.attendance.id,
           date: row.attendance.date,
           attendanceStatus: row.attendance.status,
           attendanceState: calculation.attendanceState,
