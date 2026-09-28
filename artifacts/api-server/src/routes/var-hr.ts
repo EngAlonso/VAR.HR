@@ -432,6 +432,27 @@ function scheduleDurationMinutes(startTime: string, endTime: string): number {
   return duration > 0 ? duration : duration + 1440;
 }
 
+function overtimeMinutesAfterScheduleEnd(input: {
+  checkIn: Date | null;
+  checkOut: Date | null;
+  attendanceDate: string;
+  schedule: Pick<EffectiveSchedule, "startTime" | "endTime">;
+  timeZone: string;
+}): number {
+  if (!input.checkIn || !input.checkOut) return 0;
+  const scheduledEndElapsed = scheduleDurationMinutes(
+    input.schedule.startTime,
+    input.schedule.endTime,
+  );
+  const checkOutElapsed = localElapsedMinutes(
+    input.checkOut,
+    input.attendanceDate,
+    input.schedule.startTime,
+    input.timeZone,
+  );
+  return Math.max(0, checkOutElapsed - scheduledEndElapsed);
+}
+
 type TimeMultiplierRule = {
   from: string;
   to: string;
@@ -1521,11 +1542,13 @@ function attendanceMetrics(input: {
   const rawOvertimeMinutes = input.holiday
     ? netWorkedMinutes
     : workingDay
-      ? Math.max(
-          0,
-          netWorkedMinutes -
-            normalScheduledMinutes,
-        )
+      ? overtimeMinutesAfterScheduleEnd({
+          checkIn: input.checkIn,
+          checkOut: input.checkOut,
+          attendanceDate: input.attendanceDate,
+          schedule: input.schedule,
+          timeZone: input.timeZone,
+        })
       : 0;
   const overtimeMinutes =
     rawOvertimeMinutes >= input.schedule.overtimeAfterMinutes
@@ -1545,6 +1568,7 @@ function attendanceMetrics(input: {
     rawEarlyDepartureMinutes,
     missingMinutes,
     rawLateMinutes,
+    rawOvertimeMinutes,
     lateGraceMinutes: input.schedule.graceMinutes,
     earlyDepartureGraceMinutes: input.schedule.earlyCheckoutGraceMinutes,
     workingDay,
@@ -1824,17 +1848,13 @@ async function attendanceCalculationFor(
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
   const rawAutomaticOvertimeMinutes = holiday
     ? finalWorkedMinutes
-    : Math.max(
-        0,
-        finalWorkedMinutes -
-          Math.max(
-            0,
-            scheduledMinutes -
-              (calculationSchedule.breakPaid
-                ? 0
-                : calculationSchedule.breakDurationMinutes),
-          ),
-      );
+    : overtimeMinutesAfterScheduleEnd({
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        attendanceDate: attendance.date,
+        schedule: calculationSchedule,
+        timeZone: context.company.timezone,
+      });
   const automaticOvertimeMinutes =
     calculationSchedule.overtimeEligible &&
     rawAutomaticOvertimeMinutes >= calculationSchedule.overtimeAfterMinutes
@@ -1856,7 +1876,7 @@ async function attendanceCalculationFor(
     `Late: raw ${metrics.rawLateMinutes} minutes; grace ${metrics.lateGraceMinutes} minutes is an exemption threshold, so effective delay is ${metrics.lateMinutes} minutes.`,
     `Early departure: raw ${metrics.rawEarlyDepartureMinutes} minutes; grace ${metrics.earlyDepartureGraceMinutes} minutes is an exemption threshold, so effective early departure is ${metrics.earlyCheckoutMinutes} minutes.`,
     `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
-    `Normal time: ${metrics.normalWorkedMinutes} minutes; raw extra time: ${Math.max(0, metrics.netWorkedMinutes - metrics.normalWorkedMinutes)} minutes; overtime qualification threshold: ${calculationSchedule.overtimeAfterMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+    `Scheduled end: ${calculationSchedule.endTime}; raw extra time after scheduled end: ${metrics.rawOvertimeMinutes} minutes; overtime qualification threshold: ${calculationSchedule.overtimeAfterMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
     `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
     `Time multipliers: ${timeMultiplier.applied.length ? timeMultiplier.applied.join(", ") : "none"}; premium equivalent ${timeMultiplier.premiumMinutes.toFixed(3)} minutes.`,
     `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,

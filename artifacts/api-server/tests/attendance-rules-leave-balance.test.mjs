@@ -282,11 +282,11 @@ test("attendance movement shows overtime multipliers only for actual overtime", 
 test("actual overtime minutes stay visible while payable overtime remains gated", () => {
   assert.match(
     route,
-    /const rawOvertimeMinutes = input\.holiday[\s\S]*normalScheduledMinutes[\s\S]*const overtimeMinutes =\s*rawOvertimeMinutes >= input\.schedule\.overtimeAfterMinutes/,
+    /function overtimeMinutesAfterScheduleEnd[\s\S]*const rawOvertimeMinutes = input\.holiday[\s\S]*overtimeMinutesAfterScheduleEnd[\s\S]*const overtimeMinutes =\s*rawOvertimeMinutes >= input\.schedule\.overtimeAfterMinutes/,
   );
   assert.match(
     route,
-    /const rawAutomaticOvertimeMinutes = holiday[\s\S]*const automaticOvertimeMinutes =\s*calculationSchedule\.overtimeEligible[\s\S]*rawAutomaticOvertimeMinutes >= calculationSchedule\.overtimeAfterMinutes/,
+    /const rawAutomaticOvertimeMinutes = holiday[\s\S]*overtimeMinutesAfterScheduleEnd[\s\S]*const automaticOvertimeMinutes =\s*calculationSchedule\.overtimeEligible[\s\S]*rawAutomaticOvertimeMinutes >= calculationSchedule\.overtimeAfterMinutes/,
   );
   assert.match(
     route,
