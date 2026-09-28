@@ -89,15 +89,20 @@ test("attendance calculations keep the schedule stored on the attendance record"
   );
 });
 
-test("absence-to-annual-leave deduction is explicit and idempotent", () => {
+test("absence-to-annual-leave deduction follows the explicit attendance rule", () => {
   assert.match(route, /absenceDeductsAnnualLeave/);
   assert.match(route, /absenceLeaveDeductionDays/);
   assert.match(route, /calculateAnnualLeaveDeduction/);
-  assert.match(route, /absenceKind: "approved_permission"/);
+  assert.match(route, /automaticallyDeductAbsence/);
+  assert.match(route, /absenceLeaveDeductionTrigger === "any_absence"/);
+  assert.match(route, /"approved_permission"/);
+  assert.match(route, /absenceKind,\s*date/);
+  assert.match(route, /absence_leave:\$\{attendance\.id\}/);
   assert.match(route, /permission_leave:\$\{request\.id\}/);
   assert.doesNotMatch(route, /const shouldDeductAnnualLeave = true/);
-  assert.match(leaveBalanceLogic, /absenceKind !== "approved_permission"/);
-  assert.match(leaveBalanceLogic, /attendanceState !== "unexcused_absence"/);
+  assert.match(leaveBalanceLogic, /"unexcused_absence"/);
+  assert.match(leaveBalanceLogic, /"missing_attendance"/);
+  assert.match(leaveBalanceLogic, /includes\(absenceKind\)/);
   assert.match(route, /transactionType: "deduction"/);
   assert.match(route, /absence_leave_reversal:\$\{attendance\.id\}/);
   assert.match(route, /transactionType: "restoration"/);

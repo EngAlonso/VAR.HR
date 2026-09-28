@@ -10,7 +10,15 @@ export function calculateAnnualLeaveDeduction({
   used,
   pending,
 }) {
-  if (absenceKind !== "approved_permission") return 0;
+  if (
+    ![
+      "approved_permission",
+      "unexcused_absence",
+      "missing_attendance",
+    ].includes(absenceKind)
+  ) {
+    return 0;
+  }
 
   const month = Number(date.slice(5, 7));
   const allowedMonths = new Set(

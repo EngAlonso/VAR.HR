@@ -1769,9 +1769,15 @@ async function attendanceCalculationFor(
             : !attendance.checkIn
               ? "missing_attendance"
               : "present";
-  // Unauthorized absence is handled only by the configured attendance
-  // penalty below. It must never consume annual leave. Older absence-derived
-  // transactions are reversed when this record is recalculated.
+  const automaticallyDeductAbsence =
+    persist &&
+    rules.absenceDeductsAnnualLeave &&
+    (attendanceState === "unexcused_absence" ||
+      (rules.absenceLeaveDeductionTrigger === "any_absence" &&
+        attendanceState === "missing_attendance"));
+  // Automatic annual-leave deductions are controlled by the explicit
+  // attendance rule. Older deductions are restored when the attendance no
+  // longer qualifies, such as after a correction or disabling the rule.
   if (persist) {
     const [priorAbsenceDeduction] = await db
       .select()
@@ -1800,7 +1806,8 @@ async function attendanceCalculationFor(
     if (
       priorAbsenceDeduction &&
       priorAbsenceDeduction.amount < 0 &&
-      !priorReversal
+      !priorReversal &&
+      !automaticallyDeductAbsence
     ) {
       const [balance] = await db
         .select()
@@ -1839,6 +1846,18 @@ async function attendanceCalculationFor(
             .where(eq(leaveBalancesTable.id, balance.id));
         }
       }
+    }
+    if (
+      automaticallyDeductAbsence &&
+      !priorAbsenceDeduction &&
+      (attendanceState === "unexcused_absence" ||
+        attendanceState === "missing_attendance")
+    ) {
+      await applyAutomaticAbsenceAnnualLeave(
+        context,
+        attendance,
+        attendanceState,
+      );
     }
   }
   const latePenaltyMinutes =
@@ -5684,6 +5703,10 @@ async function cappedAnnualLeaveDeduction(
   policy: typeof leavePoliciesTable.$inferSelect,
   date: string,
   requestedDays: number,
+  absenceKind:
+    | "approved_permission"
+    | "unexcused_absence"
+    | "missing_attendance" = "approved_permission",
   queryDb: any = db,
 ) {
   if (
@@ -5705,7 +5728,7 @@ async function cappedAnnualLeaveDeduction(
     ? await currentAnnualLeaveEntitlement(balance.companyId)
     : balance.allocated;
   return calculateAnnualLeaveDeduction({
-    absenceKind: "approved_permission",
+    absenceKind,
     date,
     allowedBalanceMonths: policyBalanceMonths(policy),
     monthlyDeductionLimit: monthlyLimit,
@@ -5714,6 +5737,88 @@ async function cappedAnnualLeaveDeduction(
     allocated,
     used: balance.used,
     pending: balance.pending,
+  });
+}
+
+async function applyAutomaticAbsenceAnnualLeave(
+  context: TenantContext,
+  attendance: typeof attendanceTable.$inferSelect,
+  absenceKind: "unexcused_absence" | "missing_attendance",
+) {
+  await ensureLeaveAccruals(context.companyId, attendance.date);
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`${context.companyId}:${attendance.employeeId}:${attendance.date.slice(0, 7)}`}))`,
+    );
+    const rules = await attendanceRulesFor(context.companyId, attendance.date);
+    if (!rules.absenceDeductsAnnualLeave) return 0;
+    if (
+      absenceKind === "missing_attendance" &&
+      rules.absenceLeaveDeductionTrigger !== "any_absence"
+    ) {
+      return 0;
+    }
+    const policy = await annualLeavePolicyFor(context.companyId, attendance.date);
+    if (!policy || policy.deductionMode !== "automatic") return 0;
+    const [balance] = await tx
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, context.companyId),
+          eq(leaveBalancesTable.employeeId, attendance.employeeId),
+          eq(leaveBalancesTable.type, policy.leaveType),
+        ),
+      )
+      .limit(1);
+    if (!balance) return 0;
+    const configuredDays = Math.max(
+      0,
+      Number(rules.absenceLeaveDeductionDays ?? 0),
+    );
+    const deduction = await cappedAnnualLeaveDeduction(
+      balance,
+      policy,
+      attendance.date,
+      configuredDays,
+      absenceKind,
+      tx,
+    );
+    if (deduction <= 0) return 0;
+    const beforeBalance = Math.max(0, balance.allocated - balance.used);
+    const [transaction] = await tx
+      .insert(leaveBalanceTransactionsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: attendance.employeeId,
+        leaveType: policy.leaveType,
+        amount: -deduction,
+        transactionType: "deduction",
+        beforeBalance,
+        afterBalance: Math.max(0, beforeBalance - deduction),
+        actorId: "system",
+        reason: `Automatic annual leave deduction for ${absenceKind} on ${attendance.date}`,
+        eventDate: attendance.date,
+        transactionKey: `absence_leave:${attendance.id}`,
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!transaction) return 0;
+    const [updatedBalance] = await tx
+      .update(leaveBalancesTable)
+      .set({ used: sql`${leaveBalancesTable.used} + ${deduction}` })
+      .where(
+        and(
+          eq(leaveBalancesTable.id, balance.id),
+          eq(leaveBalancesTable.companyId, context.companyId),
+          sql`${leaveBalancesTable.used} + ${deduction} <= ${leaveBalancesTable.allocated} - ${leaveBalancesTable.pending}`,
+        ),
+      )
+      .returning({ id: leaveBalancesTable.id });
+    if (!updatedBalance) {
+      throw new Error("Annual leave balance changed while applying absence");
+    }
+    return deduction;
   });
 }
 
@@ -5751,6 +5856,7 @@ async function applyApprovedPermissionAnnualLeave(
       policy,
       request.date,
       configuredDays,
+      "approved_permission",
       tx,
     );
     if (deduction <= 0) return 0;

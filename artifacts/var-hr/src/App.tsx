@@ -2002,7 +2002,7 @@ const pageCopy = {
     anyAbsenceMissing: "Any absence or missing attendance",
     leaveDaysPerAbsence: "Leave days deducted per absence",
     deductAnnualLeaveForUnapproved:
-      "Deduct an annual-leave day for an unapproved absence",
+      "Automatically deduct annual leave for qualifying absences",
     absenceDeductionDetail:
       "Off by default; absences never silently consume annual leave.",
     policyEnabled: "Policy enabled",
@@ -2484,7 +2484,7 @@ const pageCopy = {
     anyAbsenceMissing: "كل غياب أو عدم تسجيل حضور",
     leaveDaysPerAbsence: "أيام الخصم لكل غياب",
     deductAnnualLeaveForUnapproved:
-      "خصم يوم غياب من رصيد الإجازة السنوية",
+      "خصم الرصيد السنوي تلقائياً للغياب المستحق للخصم",
     absenceDeductionDetail:
       "مغلق افتراضياً؛ لن يخصم الغياب من الإجازة السنوية دون تفعيل صريح.",
     policyEnabled: "السياسة مفعلة",

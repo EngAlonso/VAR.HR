@@ -38,6 +38,23 @@ test("unauthorized absence never deducts annual leave", () => {
   );
 });
 
+test("configured absence states can deduct annual leave", () => {
+  assert.equal(
+    calculateAnnualLeaveDeduction({
+      ...base,
+      absenceKind: "unexcused_absence",
+    }),
+    1,
+  );
+  assert.equal(
+    calculateAnnualLeaveDeduction({
+      ...base,
+      absenceKind: "missing_attendance",
+    }),
+    1,
+  );
+});
+
 test("configured unauthorized-absence penalty is separate", () => {
   assert.equal(
     calculateAbsencePenaltyMinutes({

@@ -10,3 +10,4 @@
 - [Payroll cycle proration](payroll-cycle-proration.md) — prorate monthly salary against the full assigned cycle, while capping attendance and absence at the requested through-date.
 - [Actual vs payable overtime](actual-vs-payable-overtime.md) — movement history shows extra worked minutes; payroll uses only eligible final overtime.
 - [Regular hours vs actual attendance](regular-hours-vs-actual-attendance.md) — basic hours must be clipped to the assigned schedule; raw check-in/out duration remains separate.
+- [Automatic absence leave deduction](automatic-absence-leave-deduction.md) — the attendance checkbox is the master switch; trigger, caps, allowed months, and balance still constrain deductions.
