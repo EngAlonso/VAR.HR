@@ -577,6 +577,14 @@ export const EmployeeUpdateStatus = {
   inactive: 'inactive',
 } as const;
 
+export type EmployeeUpdateRole = typeof EmployeeUpdateRole[keyof typeof EmployeeUpdateRole];
+
+
+export const EmployeeUpdateRole = {
+  employee: 'employee',
+  manager: 'manager',
+} as const;
+
 export type EmployeeUpdateAutomaticOvertime = typeof EmployeeUpdateAutomaticOvertime[keyof typeof EmployeeUpdateAutomaticOvertime];
 
 
@@ -612,6 +620,7 @@ export interface EmployeeUpdate {
   /** @minimum 0 */
   salary?: number;
   status?: EmployeeUpdateStatus;
+  role?: EmployeeUpdateRole;
   automaticOvertime?: EmployeeUpdateAutomaticOvertime;
 }
 

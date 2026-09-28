@@ -10351,6 +10351,7 @@ function AddEmployeePage() {
     joinedOn: new Date().toISOString().slice(0, 10),
     salary: "0",
     scheduleId: "",
+    role: "employee",
     payrollCycleId: "",
   });
 
@@ -10405,6 +10406,7 @@ function AddEmployeePage() {
           joinedOn: form.joinedOn,
           scheduleId: form.scheduleId,
           payrollCycleId: form.payrollCycleId || null,
+          role: form.role as "employee" | "manager",
         },
       },
       {
@@ -10719,6 +10721,21 @@ function AddEmployeePage() {
                 ))}
               </select>
             </label>
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("role")}</span>
+              <select
+                name="role"
+                data-testid="select-employee-role"
+                value={form.role}
+                onChange={(event) =>
+                  setForm({ ...form, role: event.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+              >
+                <option value="employee">{t("roleEmployee")}</option>
+                <option value="manager">{t("roleManager")}</option>
+              </select>
+            </label>
           </div>
         </Card>
 
@@ -10850,6 +10867,7 @@ function EmployeeProfilePage() {
     scheduleId: "",
     departmentId: "",
     branchId: "",
+    role: "employee",
     status: "active",
   });
   useEffect(() => {
@@ -10890,6 +10908,7 @@ function EmployeeProfilePage() {
         "",
       departmentId: employee.data.department?.id ?? "",
       branchId: employee.data.branch?.id ?? "",
+      role: employee.data.role,
       status: employee.data.status,
     });
     setEditing(true);
@@ -10928,6 +10947,7 @@ function EmployeeProfilePage() {
           joinedOn: editForm.joinedOn,
           departmentId: editForm.departmentId || null,
           branchId: editForm.branchId,
+          role: editForm.role,
           status: editForm.status,
         } as any,
       },
@@ -11710,6 +11730,20 @@ function EmployeeProfilePage() {
                 >
                   <option value="active">{t("active")}</option>
                   <option value="inactive">{t("inactive")}</option>
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("role")}</span>
+                <select
+                  value={editForm.role}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, role: event.target.value })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  data-testid={`select-edit-employee-role-${employee.data.id}`}
+                >
+                  <option value="employee">{t("roleEmployee")}</option>
+                  <option value="manager">{t("roleManager")}</option>
                 </select>
               </label>
             </div>

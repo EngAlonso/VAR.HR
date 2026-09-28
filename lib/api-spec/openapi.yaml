@@ -2769,6 +2769,9 @@ components:
         status:
           type: string
           enum: [active, inactive]
+        role:
+          type: string
+          enum: [employee, manager]
         automaticOvertime:
           type: string
           enum: [default, enabled, disabled]

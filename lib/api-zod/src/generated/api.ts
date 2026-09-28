@@ -999,6 +999,7 @@ export const UpdateEmployeeBody = zod.object({
   "joinedOn": zod.iso.date().optional(),
   "salary": zod.number().min(updateEmployeeBodySalaryMin).optional(),
   "status": zod.enum(['active', 'inactive']).optional(),
+  "role": zod.enum(['employee', 'manager']).optional(),
   "automaticOvertime": zod.enum(['default', 'enabled', 'disabled']).optional()
 })
 
