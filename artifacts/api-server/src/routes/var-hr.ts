@@ -8468,6 +8468,18 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           !filters.attendanceStatus ||
           row.attendance.status === filters.attendanceStatus,
       );
+    const [movementRules, movementHolidays] = await Promise.all([
+      attendanceRulesFor(context.companyId, from),
+      holidaysForCompany(context.companyId),
+    ]);
+    const movementScheduledDayCount = Math.max(
+      1,
+      dateStrings(from, to).filter(
+        (dateValue) =>
+          movementRules.workingDays.includes(weekdayFor(dateValue)) &&
+          !isHolidayDate(dateValue, movementRules, movementHolidays),
+      ).length,
+    );
     response.rows = await Promise.all(
       rows.map(async (row) => {
         // Recalculate instead of trusting a historical snapshot. This keeps
@@ -8477,6 +8489,21 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           context,
           row.attendance,
           false,
+        );
+        const employeeWorkingHours = Math.max(
+          0.01,
+          Number(row.employee.workingHours ?? movementRules.requiredHours ?? 8),
+        );
+        const hourlyRate =
+          row.employee.salary /
+          movementScheduledDayCount /
+          employeeWorkingHours;
+        const overtimeAmount = moneyValue(
+          (calculation.finalOvertimeMinutes / 60) *
+            hourlyRate *
+            (movementRules.overtimeMethod === "multiplier"
+              ? calculation.appliedOvertimeMultiplier
+              : 1),
         );
         return {
           employee: employeeReference(row.employee, row.department.name),
@@ -8503,6 +8530,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           overtimeMultiplier: calculation.appliedOvertimeMultiplier,
           multiplierSource: calculation.multiplierSource,
           doublePay: calculation.appliedOvertimeMultiplier >= 2,
+          overtimeAmount,
           biometricCode: row.employee.biometricCode,
           source: row.attendance.source,
           checkIn: asDate(row.attendance.checkIn),

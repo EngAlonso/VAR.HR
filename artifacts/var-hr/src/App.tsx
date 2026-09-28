@@ -106,6 +106,7 @@ import {
   useCheckIn,
   useCheckOut,
   useCreateManualAttendanceEvent,
+  useConvertAbsenceToAnnualLeave,
   useCorrectAttendance,
   usePreviewAttendanceCalculation,
   useListAttendanceTimeAdjustments,
@@ -1811,6 +1812,17 @@ const pageCopy = {
     attendancePunchPermissionRequired:
       "Manual attendance entry is available only to accounts granted this permission.",
     addManualPunch: "Add manual punch",
+    addAbsenceLeave: "Add annual-leave day",
+    addAbsenceLeaveDetail:
+      "Choose an absence day to convert it into an approved annual-leave day.",
+    absenceDays: "Absence days",
+    noAbsenceDays: "No absence days in this date range",
+    convertToAnnualLeave: "Convert to annual leave",
+    convertingToAnnualLeave: "Converting…",
+    absenceConvertedToAnnualLeave: "Absence converted to annual leave",
+    absenceConversionFailed: "Could not convert the absence to annual leave",
+    overtimePayableAmount: "Payable overtime amount",
+    overtimeMultiplierApplied: "Multiplier applied",
     manualPunchTitle: "Add a manual attendance punch",
     manualPunchDetail:
       "Use this after reviewing the missed punch, such as camera footage.",
@@ -2284,6 +2296,17 @@ const pageCopy = {
     attendancePunchPermissionRequired:
       "إضافة البصمة اليدوية متاحة فقط للحسابات التي يمنحها صاحب الشركة هذه الصلاحية.",
     addManualPunch: "إضافة بصمة يدوية",
+    addAbsenceLeave: "إضافة يوم رصيد",
+    addAbsenceLeaveDetail:
+      "اختر يوم غياب لتحويله إلى يوم إجازة سنوية معتمدة.",
+    absenceDays: "أيام الغياب",
+    noAbsenceDays: "لا توجد أيام غياب خلال نطاق التاريخ المحدد",
+    convertToAnnualLeave: "تحويل إلى إجازة سنوية",
+    convertingToAnnualLeave: "جارٍ التحويل…",
+    absenceConvertedToAnnualLeave: "تم تحويل الغياب إلى إجازة سنوية",
+    absenceConversionFailed: "تعذر تحويل الغياب إلى إجازة سنوية",
+    overtimePayableAmount: "قيمة الإضافي المستحقة",
+    overtimeMultiplierApplied: "المضاعف المطبق",
     manualPunchTitle: "إضافة بصمة حضور أو انصراف",
     manualPunchDetail:
       "استخدمها بعد مراجعة البصمة المفقودة، مثل مراجعة تسجيلات الكاميرات.",
@@ -4528,6 +4551,7 @@ const reportCopy = {
     checkOut: "Check out",
     overtimeHours: "Overtime hours",
     overtimeAmount: "Overtime amount",
+    overtimePayableAmount: "Payable overtime amount",
     payrollStatus: "Payroll status",
     period: "Period",
     salary: "Salary",
@@ -4634,6 +4658,7 @@ const reportCopy = {
     checkOut: "الخروج",
     overtimeHours: "ساعات إضافية",
     overtimeAmount: "قيمة إضافية",
+    overtimePayableAmount: "قيمة الإضافي المستحقة",
     payrollStatus: "حالة الرواتب",
     period: "الفترة",
     salary: "الراتب",
@@ -6139,6 +6164,7 @@ function permissionLabel(
     "attendance.view": "عرض الحضور",
     "attendance.punch": "إضافة بصمة حضور يدوية",
     "attendance.correct": "تصحيح الحضور",
+    "attendance.absence_leave": "تحويل الغياب إلى إجازة سنوية",
     "leave.approve": "اعتماد الإجازات",
     "leave.create": "إنشاء طلبات الإجازات",
     "permissions.create": "إنشاء طلبات الأذونات",
@@ -6193,6 +6219,7 @@ function permissionDescription(
     "attendance.view": "عرض سجلات الحضور والانصراف.",
     "attendance.punch": "إضافة حركة حضور أو انصراف يدوية بعد المراجعة.",
     "attendance.correct": "تصحيح سجلات الحضور.",
+    "attendance.absence_leave": "تحويل يوم الغياب إلى إجازة سنوية معتمدة وتحديث الراتب.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
     "permissions.create": "إرسال طلبات الأذونات.",
@@ -8746,6 +8773,9 @@ function EmployeeAttendanceMovement({
 }) {
   const { locale, t } = useI18n();
   const qc = useQueryClient();
+  const workspace = useGetWorkspace();
+  const canConvertAbsence =
+    workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
   const [open, setOpen] = useState(fullPage);
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
@@ -8757,6 +8787,10 @@ function EmployeeAttendanceMovement({
     reason: string;
   } | null>(null);
   const [showAdjustment, setShowAdjustment] = useState(false);
+  const [showAbsenceLeave, setShowAbsenceLeave] = useState(false);
+  const [convertingAttendanceId, setConvertingAttendanceId] = useState<
+    string | null
+  >(null);
   const [adjustmentForm, setAdjustmentForm] = useState({
     type: "addition",
     category: "fixed",
@@ -8764,6 +8798,7 @@ function EmployeeAttendanceMovement({
     reason: "",
   });
   const createManualPunch = useCreateManualAttendanceEvent();
+  const convertAbsenceToAnnualLeave = useConvertAbsenceToAnnualLeave();
   const payrollPeriods = useListPayrollPeriods({
     query: {
       enabled: canManagePayroll,
@@ -8822,6 +8857,9 @@ function EmployeeAttendanceMovement({
   const rows = [...(report.data?.rows ?? [])].sort((a, b) =>
     (a.date ?? "").localeCompare(b.date ?? ""),
   );
+  const absenceRows = rows.filter(
+    (row) => row.attendanceStatus === "absent" && row.attendanceId,
+  );
   async function recalculateAttendanceMovement() {
     if (summaryTo < from) return;
     await Promise.all([report.refetch(), payrollSummary.refetch()]);
@@ -8842,6 +8880,38 @@ function EmployeeAttendanceMovement({
   const hours = (value?: number) =>
     `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
+  const overtimePay = (value?: number) =>
+    money(value, report.data?.currency ?? "EGP");
+
+  function convertAbsence(attendanceId: string) {
+    setConvertingAttendanceId(attendanceId);
+    convertAbsenceToAnnualLeave.mutate(
+      { attendanceId },
+      {
+        onSuccess: () => {
+          toast.success(t("absenceConvertedToAnnualLeave"));
+          setShowAbsenceLeave(false);
+          setConvertingAttendanceId(null);
+          qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) });
+          qc.invalidateQueries({
+            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
+          });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+          qc.invalidateQueries({
+            queryKey: getListLeaveBalanceTransactionsQueryKey(),
+          });
+          qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetAttendanceReportQueryKey() });
+          qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
+          qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() });
+        },
+        onError: (error: unknown) => {
+          setConvertingAttendanceId(null);
+          toast.error(apiErrorMessage(error, t("absenceConversionFailed")));
+        },
+      },
+    );
+  }
 
   function openManualPunch() {
     const attendanceDate = from;
@@ -8957,6 +9027,7 @@ function EmployeeAttendanceMovement({
       t("deductedMinutes"),
       t("overtimeMinutes"),
       t("overtimeMultiplier"),
+      t("overtimePayableAmount"),
       t("workedHours"),
       t("attendanceStatus"),
     ]
@@ -8976,6 +9047,7 @@ function EmployeeAttendanceMovement({
             <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
             <td>${escapeHtml(minutes(row.overtimeMinutes))}</td>
             <td>${escapeHtml(Number(row.overtimeHours || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
+            <td>${escapeHtml(overtimePay(row.overtimeAmount))}</td>
             <td>${escapeHtml(hours(row.workedHours))}</td>
             <td>${escapeHtml(statusLabel(row.attendanceStatus || "—", t))}</td>
           </tr>`,
@@ -9025,6 +9097,18 @@ function EmployeeAttendanceMovement({
               >
                 <Coins size={15} />
                 {t("addAdjustment")}
+              </Button>
+            )}
+            {canConvertAbsence && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAbsenceLeave(true)}
+                disabled={!absenceRows.length}
+                data-testid={`button-add-absence-leave-${employeeId}`}
+              >
+                <CalendarDays size={15} />
+                {t("addAbsenceLeave")}
+                {absenceRows.length ? ` (${absenceRows.length})` : ""}
               </Button>
             )}
             {!fullPage && (
@@ -9158,7 +9242,7 @@ function EmployeeAttendanceMovement({
             <ErrorState retry={() => report.refetch()} />
           ) : rows.length ? (
             <Card className="overflow-hidden">
-              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-5">
                 <Info
                   label={t("records")}
                   value={rows.length}
@@ -9187,6 +9271,15 @@ function EmployeeAttendanceMovement({
                   value={minutes(
                     rows.reduce(
                       (sum, row) => sum + Number(row.overtimeMinutes || 0),
+                      0,
+                    ),
+                  )}
+                />
+                <Info
+                  label={t("overtimePayableAmount")}
+                  value={overtimePay(
+                    rows.reduce(
+                      (sum, row) => sum + Number(row.overtimeAmount || 0),
                       0,
                     ),
                   )}
@@ -9224,6 +9317,18 @@ function EmployeeAttendanceMovement({
                         label={t("overtimeMinutes")}
                         value={minutes(row.overtimeMinutes)}
                       />
+                      <Info
+                        label={t("overtimePayableAmount")}
+                        value={overtimePay(row.overtimeAmount)}
+                      />
+                      <Info
+                        label={t("overtimeMultiplierApplied")}
+                        value={
+                          Number(row.overtimeHours || 0) > 0
+                            ? `${row.overtimeMultiplier ?? "—"}×`
+                            : "—"
+                        }
+                      />
                     </div>
                     <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
                       <p>{sourceLabel(row)}</p>
@@ -9250,6 +9355,7 @@ function EmployeeAttendanceMovement({
                       <th className="px-4 py-3">{t("deductedMinutes")}</th>
                       <th className="px-4 py-3">{t("overtimeMinutes")}</th>
                       <th className="px-4 py-3">{t("overtimeMultiplier")}</th>
+                      <th className="px-4 py-3">{t("overtimePayableAmount")}</th>
                       <th className="px-4 py-3">{t("basicWorkingHours")}</th>
                       <th className="px-4 py-3">{t("attendanceStatus")}</th>
                     </tr>
@@ -9297,6 +9403,9 @@ function EmployeeAttendanceMovement({
                               ? `${row.overtimeMultiplier ?? "—"}×`
                               : "—"}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          {overtimePay(row.overtimeAmount)}
                         </td>
                         <td className="px-4 py-3 font-mono">
                           {hours(row.regularHours)}
@@ -9487,6 +9596,66 @@ function EmployeeAttendanceMovement({
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+      {showAbsenceLeave && (
+        <Modal
+          title={t("addAbsenceLeave")}
+          onClose={() => {
+            if (!convertAbsenceToAnnualLeave.isPending) {
+              setShowAbsenceLeave(false);
+            }
+          }}
+        >
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              {t("addAbsenceLeaveDetail")}
+            </p>
+            <Info label={t("employee")} value={employeeName} />
+            {absenceRows.length ? (
+              <div className="space-y-2">
+                {absenceRows.map((row) => {
+                  const attendanceId = row.attendanceId as string;
+                  const isConverting = convertingAttendanceId === attendanceId;
+                  return (
+                    <div
+                      key={attendanceId}
+                      className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold">
+                          {date(row.date ?? undefined)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {weekday(row.date)} ·{" "}
+                          {statusLabel(row.attendanceStatus || "—", t)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={() => convertAbsence(attendanceId)}
+                        disabled={
+                          convertAbsenceToAnnualLeave.isPending ||
+                          Boolean(convertingAttendanceId)
+                        }
+                      >
+                        <CalendarDays size={15} />
+                        {isConverting
+                          ? t("convertingToAnnualLeave")
+                          : t("convertToAnnualLeave")}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Empty
+                title={t("noAbsenceDays")}
+                detail={t("historyWillAppear")}
+              />
+            )}
+          </div>
         </Modal>
       )}
     </>
