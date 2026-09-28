@@ -4479,6 +4479,7 @@ const reportCopy = {
       "Try a wider reporting window or remove one of the filters.",
     records: "records",
     workedHours: "Worked hours",
+    basicWorkingHours: "Basic working hours",
     presentDays: "Present days",
     lateDays: "Late days",
     absentDays: "Absent days",
@@ -4585,6 +4586,7 @@ const reportCopy = {
     noReportRowsDetail: "جرّب نطاقاً أوسع أو أزل أحد الفلاتر.",
     records: "سجلات",
     workedHours: "ساعات العمل",
+    basicWorkingHours: "ساعات العمل الأساسية",
     presentDays: "أيام الحضور",
     lateDays: "أيام التأخر",
     absentDays: "أيام الغياب",
@@ -4691,6 +4693,7 @@ const reportCopy = {
     noReportRowsDetail: "Élargissez la période ou retirez un filtre.",
     records: "enregistrements",
     workedHours: "Heures travaillées",
+    basicWorkingHours: "Heures de travail de base",
     presentDays: "Jours présents",
     lateDays: "Jours en retard",
     absentDays: "Jours absents",
@@ -4801,6 +4804,7 @@ const reportCopy = {
       "Erweitern Sie den Zeitraum oder entfernen Sie einen Filter.",
     records: "Datensätze",
     workedHours: "Arbeitsstunden",
+    basicWorkingHours: "Grundarbeitszeit",
     presentDays: "Anwesenheitstage",
     lateDays: "Verspätete Tage",
     absentDays: "Abwesende Tage",
@@ -8980,7 +8984,7 @@ function EmployeeAttendanceMovement({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
@@ -9161,10 +9165,10 @@ function EmployeeAttendanceMovement({
                   testId={`text-attendance-movement-records-${employeeId}`}
                 />
                 <Info
-                  label={t("workedHours")}
+                  label={t("basicWorkingHours")}
                   value={hours(
                     rows.reduce(
-                      (sum, row) => sum + Number(row.workedHours || 0),
+                      (sum, row) => sum + Number(row.regularHours || 0),
                       0,
                     ),
                   )}
@@ -9209,8 +9213,8 @@ function EmployeeAttendanceMovement({
                       <Info label={t("checkIn")} value={time(row.checkIn)} />
                       <Info label={t("checkOut")} value={time(row.checkOut)} />
                       <Info
-                        label={t("workedHours")}
-                        value={hours(row.workedHours)}
+                        label={t("basicWorkingHours")}
+                        value={hours(row.regularHours)}
                       />
                       <Info
                         label={t("deductedMinutes")}
@@ -9246,7 +9250,7 @@ function EmployeeAttendanceMovement({
                       <th className="px-4 py-3">{t("deductedMinutes")}</th>
                       <th className="px-4 py-3">{t("overtimeMinutes")}</th>
                       <th className="px-4 py-3">{t("overtimeMultiplier")}</th>
-                      <th className="px-4 py-3">{t("workedHours")}</th>
+                      <th className="px-4 py-3">{t("basicWorkingHours")}</th>
                       <th className="px-4 py-3">{t("attendanceStatus")}</th>
                     </tr>
                   </thead>
@@ -9295,7 +9299,7 @@ function EmployeeAttendanceMovement({
                           </Badge>
                         </td>
                         <td className="px-4 py-3 font-mono">
-                          {hours(row.workedHours)}
+                          {hours(row.regularHours)}
                         </td>
                         <td className="px-4 py-3">
                           <Status value={row.attendanceStatus || "—"} />
@@ -14626,7 +14630,7 @@ function reportColumns(
       employee,
       { key: "checkIn", label: t("checkIn") },
       { key: "checkOut", label: t("checkOut") },
-      { key: "workedHours", label: t("workedHours") },
+      { key: "regularHours", label: t("basicWorkingHours") },
       { key: "lateMinutes", label: t("lateMinutes") },
       { key: "earlyCheckoutMinutes", label: t("earlyCheckoutMinutes") },
       { key: "overtimeHours", label: t("overtimeHours") },
@@ -14700,7 +14704,8 @@ function reportCell(
   )
     return money(Number(row[key] ?? 0), currency);
   if (
-    key === "workedHours" ||
+     key === "workedHours" ||
+     key === "regularHours" ||
     key === "overtimeHours" ||
     key === "durationHours"
   )
@@ -14739,7 +14744,16 @@ function reportTotals(
   const result: Array<[string, string]> = [
     [t("records"), String(totals.records)],
   ];
-  if (kind === "attendance" || kind === "overtime") {
+  if (kind === "attendance") {
+    const basicHours = (data.rows ?? []).reduce(
+      (total: number, row: any) => total + Number(row.regularHours ?? 0),
+      0,
+    );
+    result.push(
+      [t("basicWorkingHours"), `${basicHours.toFixed(2)}h`],
+      [t("overtimeHours"), `${Number(totals.overtimeHours ?? 0).toFixed(2)}h`],
+    );
+  } else if (kind === "overtime") {
     result.push(
       [t("workedHours"), `${Number(totals.workedHours ?? 0).toFixed(2)}h`],
       [t("overtimeHours"), `${Number(totals.overtimeHours ?? 0).toFixed(2)}h`],
@@ -15342,7 +15356,20 @@ function Reports() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               [t("records"), data.totals.records],
-              [t("workedHours"), `${data.totals.workedHours.toFixed(2)}h`],
+              [
+                kind === "attendance"
+                  ? t("basicWorkingHours")
+                  : t("workedHours"),
+                kind === "attendance"
+                  ? `${(data.rows ?? [])
+                      .reduce(
+                        (total: number, row: any) =>
+                          total + Number(row.regularHours ?? 0),
+                        0,
+                      )
+                      .toFixed(2)}h`
+                  : `${data.totals.workedHours.toFixed(2)}h`,
+              ],
               [t("overtimeHours"), `${data.totals.overtimeHours.toFixed(2)}h`],
               [
                 kind === "payroll" ? t("net") : t("leaveDays"),

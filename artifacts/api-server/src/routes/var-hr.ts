@@ -1515,6 +1515,17 @@ function attendanceMetrics(input: {
         input.timeZone,
       )
     : 0;
+  const scheduledWorkedMinutes =
+    input.checkIn && input.checkOut
+      ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
+      : 0;
+  const regularWorkedMinutes = Math.max(
+    0,
+    scheduledWorkedMinutes -
+      (input.schedule.breakPaid
+        ? 0
+        : Math.min(unpaidBreakMinutes, scheduledWorkedMinutes)),
+  );
   const rawLateMinutes =
     input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed);
   // Grace is an exemption threshold, not time credited back to the employee.
@@ -1559,7 +1570,7 @@ function attendanceMetrics(input: {
     netWorkedMinutes,
     breakMinutes,
     unpaidBreakMinutes,
-    normalWorkedMinutes: Math.min(netWorkedMinutes, normalScheduledMinutes),
+    normalWorkedMinutes: Math.min(regularWorkedMinutes, normalScheduledMinutes),
     overtimeMinutes,
     workedHours: Number((workedMinutes / 60).toFixed(2)),
     overtimeHours: Number((overtimeMinutes / 60).toFixed(2)),
@@ -8301,6 +8312,9 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           scheduledEnd: row.attendance.scheduledEnd,
           requiredHours: row.attendance.requiredHours,
           workedHours: row.attendance.workedHours,
+          regularHours: Number(
+            (calculation.normalWorkedMinutes / 60).toFixed(2),
+          ),
           // Movement history shows actual extra worked minutes. Payable
           // overtime remains represented by finalOvertimeMinutes/overtimeHours.
           overtimeHours: Number(
