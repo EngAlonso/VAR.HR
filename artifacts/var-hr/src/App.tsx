@@ -9013,9 +9013,12 @@ function EmployeeAttendanceMovement({
 
   function printMovement() {
     if (!report.data) return;
+    // The movement record is intentionally printed as one A4 sheet. The
+    // table can contain many days, so scale the complete sheet down instead
+    // of letting the browser split rows across multiple pages.
     const printScale = Math.min(
       1,
-      Math.max(0.1, 720 / (Math.max(rows.length, 1) * 13 + 190)),
+      Math.max(0.01, 750 / (Math.max(rows.length, 1) * 13 + 190)),
     );
     const escapeHtml = (value: unknown) =>
       String(value ?? "")
@@ -9064,9 +9067,9 @@ function EmployeeAttendanceMovement({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     const printCss = `
-      @page { size: auto; margin: 4mm; }
+      @page { size: A4 landscape; margin: 0; }
       * { box-sizing: border-box; }
-      html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+      html, body { width: 297mm; height: 210mm; margin: 0; padding: 0; }
       body {
         position: relative;
         overflow: hidden;
@@ -9079,7 +9082,7 @@ function EmployeeAttendanceMovement({
         width: calc(100% / ${printScale});
         height: calc(100% / ${printScale});
         overflow: hidden;
-        padding: 4px;
+        padding: 4mm;
         transform: scale(${printScale});
         transform-origin: top left;
       }
@@ -9116,7 +9119,7 @@ function EmployeeAttendanceMovement({
       th { background: #edf4f4; }
       tr { break-inside: avoid; page-break-inside: avoid; }
       @media print {
-        body { padding: 0; }
+        html, body { width: 297mm; height: 210mm; }
         .sheet { break-inside: avoid; page-break-inside: avoid; }
       }
     `;
@@ -9168,7 +9171,6 @@ function EmployeeAttendanceMovement({
               <Button
                 variant="outline"
                 onClick={() => setShowAbsenceLeave(true)}
-                disabled={!absenceRows.length}
                 data-testid={`button-add-absence-leave-${employeeId}`}
               >
                 <CalendarDays size={15} />
