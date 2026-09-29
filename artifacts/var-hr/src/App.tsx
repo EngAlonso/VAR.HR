@@ -615,6 +615,13 @@ const companyAdminNav: NavItem[] = [
     capability: "employees.view",
   },
   {
+    href: "/attendance",
+    key: "attendance",
+    icon: Clock3,
+    roles: ["company_owner"],
+    capability: "attendance.view",
+  },
+  {
     href: "/requests",
     key: "companyNavRequests",
     icon: CalendarDays,
