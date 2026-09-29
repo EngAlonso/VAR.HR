@@ -12316,7 +12316,8 @@ function Attendance() {
   const checkOut = useCheckOut();
   const createManualPunch = useCreateManualAttendanceEvent();
   const canApproveLocation =
-    workspace.data?.capabilities?.includes("attendance.location.approve") ??
+    workspace.data?.capabilities?.includes("attendance.location.approve") ||
+    workspace.data?.capabilities?.includes("attendance.correct") ||
     false;
   const punchRequests = useListAttendancePunchRequests({
     query: {
