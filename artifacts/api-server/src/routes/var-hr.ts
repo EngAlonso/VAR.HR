@@ -5037,6 +5037,16 @@ async function recordCurrentAttendance(
       rules.gpsPolicy,
       locale,
     );
+    if (
+      rules.gpsPolicy === "required" &&
+      locationValidation.status !== "verified"
+    ) {
+      res.status(403).json({
+        error: locationValidation.explanation,
+        locationStatus: locationValidation.status,
+      });
+      return;
+    }
     const [created] = await db
       .insert(attendanceTable)
       .values({
@@ -5125,6 +5135,16 @@ async function recordCurrentAttendance(
           | "pending",
         explanation: existing.explanation,
       };
+  if (
+    rules.gpsPolicy === "required" &&
+    locationValidation.status !== "verified"
+  ) {
+    res.status(403).json({
+      error: locationValidation.explanation,
+      locationStatus: locationValidation.status,
+    });
+    return;
+  }
   const [updated] = await db
     .update(attendanceTable)
     .set({

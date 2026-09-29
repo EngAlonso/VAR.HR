@@ -54,6 +54,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  MapPin,
   Menu,
   MoreHorizontal,
   Network,
@@ -4002,6 +4003,7 @@ const part4Copy = {
     noAttendanceLocationsDetail:
       "Add a location before requiring GPS attendance.",
     saveLocation: "Save location",
+    useCurrentLocation: "Use my current location",
     locationState: "GPS attendance state",
     locationNotRequired: "Location not required",
     locationVerified: "Inside geofence",
@@ -4129,6 +4131,7 @@ const part4Copy = {
     noAttendanceLocations: "لا توجد مواقع حضور مُعدة",
     noAttendanceLocationsDetail: "أضف موقعاً قبل إلزام الحضور عبر GPS.",
     saveLocation: "حفظ الموقع",
+    useCurrentLocation: "استخدام موقعي الحالي",
     locationState: "حالة الحضور عبر GPS",
     locationNotRequired: "الموقع غير مطلوب",
     locationVerified: "داخل النطاق الجغرافي",
@@ -20216,6 +20219,9 @@ function Devices() {
     radiusMeters: "100",
     active: true,
   });
+  const [locationGpsState, setLocationGpsState] = useState<
+    "idle" | "requesting"
+  >("idle");
   const [showLocation, setShowLocation] = useState(false);
   const activeDevice = q.data?.find(
     (device: any) => device.id === selectedDeviceId,
@@ -20364,6 +20370,7 @@ function Devices() {
     );
   }
   function openLocation(location?: any) {
+    setLocationGpsState("idle");
     setLocationForm(
       location
         ? {
@@ -20384,6 +20391,35 @@ function Devices() {
           },
     );
     setShowLocation(true);
+  }
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      toast.warning(t("gpsUnavailable"));
+      return;
+    }
+    setLocationGpsState("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationForm((current) => ({
+          ...current,
+          latitude: String(position.coords.latitude),
+          longitude: String(position.coords.longitude),
+        }));
+        setLocationGpsState("idle");
+        toast.success(t("attendanceLocationCaptured"));
+      },
+      (error) => {
+        setLocationGpsState("idle");
+        toast.warning(
+          error.code === 1 ? t("gpsPermissionDenied") : t("gpsUnavailable"),
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    );
   }
   function submitLocation(e: FormEvent) {
     e.preventDefault();
@@ -21116,6 +21152,18 @@ function Devices() {
                 }
               />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={useCurrentLocation}
+              disabled={locationGpsState === "requesting"}
+              className="w-full"
+            >
+              <MapPin size={15} />
+              {locationGpsState === "requesting"
+                ? t("gpsRequesting")
+                : t("useCurrentLocation")}
+            </Button>
             <Field
               label={t("radiusMeters")}
               required
