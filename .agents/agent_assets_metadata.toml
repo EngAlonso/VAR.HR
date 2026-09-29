@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "bbRDqGzX0Mefaa_zEnFne"
+uri = "file://screenshots/pwa-install-button-authenticated.jpg"
+type = "image"
+title = "مكان زر تنزيل تطبيق VAR HR"
+description = "لقطة شاشة بعد تسجيل الدخول توضح زر Install app في الشريط العلوي بجانب الإشعارات."
+logical_id = "02d42111-d16a-4155-aa3f-7a6f3b30f47b"
+content_hash = "sha256:6c9ed04bd5d000250031a8ddb922a661347cfd0c32f401a2c4ee05f09515d345"
+size = 139896
+mtime_ms = 1790677044745
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:0e840966-8c32-4509-8b9b-ca6d24ff43f4/02d42111-d16a-4155-aa3f-7a6f3b30f47b/ed5adf94-2dcf-4f34-9415-2fe6e54703db"
+storage_version_token = "1790677053393519"
+content_type = "image/jpeg"
