@@ -9018,6 +9018,7 @@ function EmployeeAttendanceMovement({
             queryKey: getListLeaveBalanceTransactionsQueryKey(),
           });
           qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           qc.invalidateQueries({ queryKey: getGetAttendanceReportQueryKey() });
           qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
           qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() });
@@ -9067,6 +9068,7 @@ function EmployeeAttendanceMovement({
             queryKey: getGetReportQueryKey(reportParams),
           });
           qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           qc.invalidateQueries({
             queryKey: getListAttendanceHistoryQueryKey(),
           });
@@ -12316,6 +12318,7 @@ function Attendance() {
           t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
         );
         qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+        qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
       },
       onError: (error: unknown) =>
@@ -12372,6 +12375,7 @@ function Attendance() {
           toast.success(t("manualPunchSaved"));
           setManualPunch(null);
           qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           qc.invalidateQueries({
             queryKey: getListAttendanceHistoryQueryKey(),
           });
@@ -12403,6 +12407,7 @@ function Attendance() {
           toast.success(t("attendanceCorrectionUpdated"));
           setCorrection(null);
           qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           qc.invalidateQueries({
             queryKey: getListAttendanceHistoryQueryKey(),
           });
