@@ -21,6 +21,7 @@ export interface EmployeeInput {
   nationalId?: string;
   /** @minLength 1 */
   biometricCode?: string;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24

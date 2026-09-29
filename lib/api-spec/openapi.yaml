@@ -852,6 +852,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRecord"
+        "202":
+          description: Location attendance is waiting for manager or HR approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendancePunchRequest"
   /attendance/check-out:
     post:
       operationId: checkOut
@@ -870,6 +876,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceRecord"
+        "202":
+          description: Location attendance is waiting for manager or HR approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendancePunchRequest"
+  /attendance/punch-requests:
+    get:
+      operationId: listAttendancePunchRequests
+      tags: [attendance]
+      summary: List location attendance punches waiting for approval
+      responses:
+        "200":
+          description: Location attendance approval requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendancePunchRequest"
+  /attendance/punch-requests/{requestId}/decision:
+    post:
+      operationId: decideAttendancePunchRequest
+      tags: [attendance]
+      summary: Approve or reject a location attendance punch
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendancePunchDecisionInput"
+      responses:
+        "200":
+          description: Updated location attendance request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendancePunchRequest"
   /attendance/{attendanceId}/correction:
     patch:
       operationId: correctAttendance
@@ -2702,6 +2751,7 @@ components:
         phone: { type: ["string", "null"] }
         nationalId: { type: ["string", "null"] }
         biometricCode: { type: ["string", "null"] }
+        locationAttendanceEnabled: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
         department:
           oneOf:
@@ -2738,6 +2788,7 @@ components:
         phone: { type: string }
         nationalId: { type: string, minLength: 1 }
         biometricCode: { type: string, minLength: 1 }
+        locationAttendanceEnabled: { type: boolean, default: false }
         workingHours: { type: number, minimum: 0, maximum: 24 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
@@ -2761,6 +2812,7 @@ components:
         phone: { type: string }
         nationalId: { type: string, minLength: 1 }
         biometricCode: { type: string, minLength: 1 }
+        locationAttendanceEnabled: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
@@ -2856,6 +2908,41 @@ components:
           type: string
           enum: [web, mobile, biometric, manual]
         explanation: { type: string }
+        location:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
+        approvalStatus:
+          type: string
+          enum: [not_required, approved]
+    AttendancePunchRequest:
+      type: object
+      required: [id, employee, attendanceDate, direction, occurredAt, source, locationStatus, location, explanation, status, requestedAt]
+      properties:
+        id: { type: string }
+        employee: { $ref: "#/components/schemas/EmployeeReference" }
+        attendanceDate: { type: string, format: date }
+        direction: { type: string, enum: [in, out] }
+        occurredAt: { type: string, format: date-time }
+        source: { type: string, enum: [web, mobile] }
+        locationStatus: { type: string }
+        location:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
+        explanation: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        requestedAt: { type: string, format: date-time }
+        decidedAt: { type: ["string", "null"], format: date-time }
+        decisionReason: { type: ["string", "null"] }
+    AttendancePunchDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        reason: { type: string, maxLength: 1000 }
     AttendanceCalculation:
       type: object
       required:

@@ -5,6 +5,8 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { AttendanceRecordApprovalStatus } from './attendanceRecordApprovalStatus';
+import type { AttendanceRecordLocation } from './attendanceRecordLocation';
 import type { AttendanceRecordLocationStatus } from './attendanceRecordLocationStatus';
 import type { AttendanceRecordSource } from './attendanceRecordSource';
 import type { AttendanceRecordStatus } from './attendanceRecordStatus';
@@ -26,4 +28,6 @@ export interface AttendanceRecord {
   locationStatus?: AttendanceRecordLocationStatus;
   source: AttendanceRecordSource;
   explanation?: string;
+  location?: AttendanceRecordLocation;
+  approvalStatus?: AttendanceRecordApprovalStatus;
 }

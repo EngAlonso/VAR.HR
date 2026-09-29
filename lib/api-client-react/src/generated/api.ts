@@ -26,6 +26,8 @@ import type {
   AttendanceEventInput,
   AttendanceLocation,
   AttendanceLocationInput,
+  AttendancePunchDecisionInput,
+  AttendancePunchRequest,
   AttendanceRecord,
   AttendanceReport,
   AttendanceRuleChange,
@@ -3864,9 +3866,9 @@ export const getCheckInUrl = () => {
 /**
  * @summary Record a current user's check-in
  */
-export const checkIn = async (attendanceEventInput?: AttendanceEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRecord> => {
+export const checkIn = async (attendanceEventInput?: AttendanceEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRecord | AttendancePunchRequest> => {
 
-  return customFetch<AttendanceRecord>(getCheckInUrl(),
+  return customFetch<AttendanceRecord | AttendancePunchRequest>(getCheckInUrl(),
   {
     ...options,
     method: 'POST',
@@ -3935,9 +3937,9 @@ export const getCheckOutUrl = () => {
 /**
  * @summary Record a current user's check-out
  */
-export const checkOut = async (attendanceEventInput?: AttendanceEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRecord> => {
+export const checkOut = async (attendanceEventInput?: AttendanceEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendanceRecord | AttendancePunchRequest> => {
 
-  return customFetch<AttendanceRecord>(getCheckOutUrl(),
+  return customFetch<AttendanceRecord | AttendancePunchRequest>(getCheckOutUrl(),
   {
     ...options,
     method: 'POST',
@@ -3993,6 +3995,155 @@ export const useCheckOut = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCheckOutMutationOptions(options));
+    }
+
+export const getListAttendancePunchRequestsUrl = () => {
+
+
+
+
+  return `/api/attendance/punch-requests`
+}
+
+/**
+ * @summary List location attendance punches waiting for approval
+ */
+export const listAttendancePunchRequests = async ( options?: Parameters<typeof customFetch>[1]): Promise<AttendancePunchRequest[]> => {
+
+  return customFetch<AttendancePunchRequest[]>(getListAttendancePunchRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAttendancePunchRequestsQueryKey = () => {
+    return [
+    `/api/attendance/punch-requests`
+    ] as const;
+    }
+
+
+export const getListAttendancePunchRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendancePunchRequests>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendancePunchRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttendancePunchRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendancePunchRequests>>> = ({ signal }) => listAttendancePunchRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttendancePunchRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAttendancePunchRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listAttendancePunchRequests>>>
+export type ListAttendancePunchRequestsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List location attendance punches waiting for approval
+ */
+
+export function useListAttendancePunchRequests<TData = Awaited<ReturnType<typeof listAttendancePunchRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendancePunchRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAttendancePunchRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDecideAttendancePunchRequestUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/attendance/punch-requests/${requestId}/decision`
+}
+
+/**
+ * @summary Approve or reject a location attendance punch
+ */
+export const decideAttendancePunchRequest = async (requestId: string,
+    attendancePunchDecisionInput: AttendancePunchDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<AttendancePunchRequest> => {
+
+  return customFetch<AttendancePunchRequest>(getDecideAttendancePunchRequestUrl(requestId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendancePunchDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getDecideAttendancePunchRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideAttendancePunchRequest>>, TError,{requestId: string;data: BodyType<AttendancePunchDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideAttendancePunchRequest>>, TError,{requestId: string;data: BodyType<AttendancePunchDecisionInput>}, TContext> => {
+
+const mutationKey = ['decideAttendancePunchRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideAttendancePunchRequest>>, {requestId: string;data: BodyType<AttendancePunchDecisionInput>}> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  decideAttendancePunchRequest(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideAttendancePunchRequestMutationResult = NonNullable<Awaited<ReturnType<typeof decideAttendancePunchRequest>>>
+    export type DecideAttendancePunchRequestMutationBody = BodyType<AttendancePunchDecisionInput>
+    export type DecideAttendancePunchRequestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve or reject a location attendance punch
+ */
+export const useDecideAttendancePunchRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideAttendancePunchRequest>>, TError,{requestId: string;data: BodyType<AttendancePunchDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideAttendancePunchRequest>>,
+        TError,
+        {requestId: string;data: BodyType<AttendancePunchDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getDecideAttendancePunchRequestMutationOptions(options));
     }
 
 export const getCorrectAttendanceUrl = (attendanceId: string,) => {

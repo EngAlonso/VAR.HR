@@ -781,6 +781,7 @@ export const ListEmployeesResponseItem = zod.object({
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
+  "locationAttendanceEnabled": zod.boolean().optional(),
   "workingHours": zod.number().min(listEmployeesResponseWorkingHoursMin).max(listEmployeesResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -826,6 +827,7 @@ export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
 
 
 
+export const createEmployeeBodyLocationAttendanceEnabledDefault = false;
 export const createEmployeeBodyWorkingHoursMin = 0;
 export const createEmployeeBodyWorkingHoursMax = 24;
 
@@ -842,6 +844,7 @@ export const CreateEmployeeBody = zod.object({
   "phone": zod.string(),
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
+  "locationAttendanceEnabled": zod.boolean().default(createEmployeeBodyLocationAttendanceEnabledDefault),
   "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
@@ -868,6 +871,7 @@ export const CreateEmployeeResponse = zod.object({
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
+  "locationAttendanceEnabled": zod.boolean().optional(),
   "workingHours": zod.number().min(createEmployeeResponseWorkingHoursMin).max(createEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -928,6 +932,7 @@ export const GetEmployeeResponse = zod.object({
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
+  "locationAttendanceEnabled": zod.boolean().optional(),
   "workingHours": zod.number().min(getEmployeeResponseWorkingHoursMin).max(getEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -993,6 +998,7 @@ export const UpdateEmployeeBody = zod.object({
   "phone": zod.string().optional(),
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
+  "locationAttendanceEnabled": zod.boolean().optional(),
   "workingHours": zod.number().min(updateEmployeeBodyWorkingHoursMin).max(updateEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
@@ -1019,6 +1025,7 @@ export const UpdateEmployeeResponse = zod.object({
   "phone": zod.string().nullish(),
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
+  "locationAttendanceEnabled": zod.boolean().optional(),
   "workingHours": zod.number().min(updateEmployeeResponseWorkingHoursMin).max(updateEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -1135,7 +1142,9 @@ export const GetAttendanceTodayResponse = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
 })),
   "summary": zod.object({
   "present": zod.int(),
@@ -1174,7 +1183,9 @@ export const ListAttendanceHistoryResponseItem = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
 })
 export const ListAttendanceHistoryResponse = zod.array(ListAttendanceHistoryResponseItem)
 
@@ -1212,7 +1223,9 @@ export const CreateManualAttendanceEventResponse = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
 })
 
 
@@ -1657,7 +1670,9 @@ export const CheckInResponse = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
 })
 
 
@@ -1692,7 +1707,73 @@ export const CheckOutResponse = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
+})
+
+
+/**
+ * @summary List location attendance punches waiting for approval
+ */
+export const ListAttendancePunchRequestsResponseItem = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "attendanceDate": zod.iso.date(),
+  "direction": zod.enum(['in', 'out']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "source": zod.enum(['web', 'mobile']),
+  "locationStatus": zod.string(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "explanation": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "requestedAt": zod.iso.datetime({"offset":true}),
+  "decidedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "decisionReason": zod.string().nullish()
+})
+export const ListAttendancePunchRequestsResponse = zod.array(ListAttendancePunchRequestsResponseItem)
+
+
+/**
+ * @summary Approve or reject a location attendance punch
+ */
+export const DecideAttendancePunchRequestParams = zod.object({
+  "requestId": zod.coerce.string()
+})
+
+export const decideAttendancePunchRequestBodyReasonMax = 1000;
+
+
+
+export const DecideAttendancePunchRequestBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "reason": zod.string().max(decideAttendancePunchRequestBodyReasonMax).optional()
+})
+
+export const DecideAttendancePunchRequestResponse = zod.object({
+  "id": zod.string(),
+  "employee": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "initials": zod.string(),
+  "department": zod.string()
+}),
+  "attendanceDate": zod.iso.date(),
+  "direction": zod.enum(['in', 'out']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "source": zod.enum(['web', 'mobile']),
+  "locationStatus": zod.string(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "explanation": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "requestedAt": zod.iso.datetime({"offset":true}),
+  "decidedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "decisionReason": zod.string().nullish()
 })
 
 
@@ -1731,7 +1812,9 @@ export const CorrectAttendanceResponse = zod.object({
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
-  "explanation": zod.string().optional()
+  "explanation": zod.string().optional(),
+  "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "approvalStatus": zod.enum(['not_required', 'approved']).optional()
 })
 
 

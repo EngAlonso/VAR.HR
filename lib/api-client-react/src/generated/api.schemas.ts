@@ -513,6 +513,7 @@ export interface Employee {
   nationalId?: string | null;
   /** @nullable */
   biometricCode?: string | null;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -552,6 +553,7 @@ export interface EmployeeInput {
   nationalId?: string;
   /** @minLength 1 */
   biometricCode?: string;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -608,6 +610,7 @@ export interface EmployeeUpdate {
   nationalId?: string;
   /** @minLength 1 */
   biometricCode?: string;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -721,6 +724,16 @@ export const AttendanceRecordSource = {
   manual: 'manual',
 } as const;
 
+export type AttendanceRecordApprovalStatus = typeof AttendanceRecordApprovalStatus[keyof typeof AttendanceRecordApprovalStatus];
+
+
+export const AttendanceRecordApprovalStatus = {
+  not_required: 'not_required',
+  approved: 'approved',
+} as const;
+
+export type AttendanceRecordLocation = { [key: string]: unknown } | null;
+
 export interface AttendanceRecord {
   id: string;
   employee: EmployeeReference;
@@ -737,12 +750,73 @@ export interface AttendanceRecord {
   locationStatus?: AttendanceRecordLocationStatus;
   source: AttendanceRecordSource;
   explanation?: string;
+  location?: AttendanceRecordLocation;
+  approvalStatus?: AttendanceRecordApprovalStatus;
 }
 
 export interface AttendanceToday {
   date: string;
   records: AttendanceRecord[];
   summary: AttendanceSummary;
+}
+
+export type AttendancePunchRequestDirection = typeof AttendancePunchRequestDirection[keyof typeof AttendancePunchRequestDirection];
+
+
+export const AttendancePunchRequestDirection = {
+  in: 'in',
+  out: 'out',
+} as const;
+
+export type AttendancePunchRequestSource = typeof AttendancePunchRequestSource[keyof typeof AttendancePunchRequestSource];
+
+
+export const AttendancePunchRequestSource = {
+  web: 'web',
+  mobile: 'mobile',
+} as const;
+
+export type AttendancePunchRequestLocation = { [key: string]: unknown } | null;
+
+export type AttendancePunchRequestStatus = typeof AttendancePunchRequestStatus[keyof typeof AttendancePunchRequestStatus];
+
+
+export const AttendancePunchRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface AttendancePunchRequest {
+  id: string;
+  employee: EmployeeReference;
+  attendanceDate: string;
+  direction: AttendancePunchRequestDirection;
+  occurredAt: string;
+  source: AttendancePunchRequestSource;
+  locationStatus: string;
+  location: AttendancePunchRequestLocation;
+  explanation: string;
+  status: AttendancePunchRequestStatus;
+  requestedAt: string;
+  /** @nullable */
+  decidedAt?: string | null;
+  /** @nullable */
+  decisionReason?: string | null;
+}
+
+export type AttendancePunchDecisionInputDecision = typeof AttendancePunchDecisionInputDecision[keyof typeof AttendancePunchDecisionInputDecision];
+
+
+export const AttendancePunchDecisionInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface AttendancePunchDecisionInput {
+  decision: AttendancePunchDecisionInputDecision;
+  /** @maxLength 1000 */
+  reason?: string;
 }
 
 export type AttendanceCalculationScheduleSource = typeof AttendanceCalculationScheduleSource[keyof typeof AttendanceCalculationScheduleSource];

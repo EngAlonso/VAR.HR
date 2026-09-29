@@ -104,6 +104,8 @@ import {
   useDeleteEmployee,
   useGetAttendanceToday,
   useListAttendanceHistory,
+  useListAttendancePunchRequests,
+  useDecideAttendancePunchRequest,
   useCheckIn,
   useCheckOut,
   useCreateManualAttendanceEvent,
@@ -189,6 +191,7 @@ import {
   getGetEmployeeQueryKey,
   getGetAttendanceTodayQueryKey,
   getListAttendanceHistoryQueryKey,
+  getListAttendancePunchRequestsQueryKey,
   getPreviewAttendanceCalculationQueryKey,
   getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
@@ -6196,6 +6199,7 @@ function permissionLabel(
     "attendance.view": "عرض الحضور",
     "attendance.punch": "إضافة بصمة حضور يدوية",
     "attendance.correct": "تصحيح الحضور",
+    "attendance.location.approve": "اعتماد بصمات الموقع",
     "attendance.absence_leave": "تحويل الغياب إلى إجازة سنوية",
     "leave.approve": "اعتماد الإجازات",
     "leave.create": "إنشاء طلبات الإجازات",
@@ -6251,6 +6255,7 @@ function permissionDescription(
     "attendance.view": "عرض سجلات الحضور والانصراف.",
     "attendance.punch": "إضافة حركة حضور أو انصراف يدوية بعد المراجعة.",
     "attendance.correct": "تصحيح سجلات الحضور.",
+    "attendance.location.approve": "اعتماد أو رفض أول بصمة موقع للموظفين المحددين.",
     "attendance.absence_leave": "تحويل يوم الغياب إلى إجازة سنوية معتمدة وتحديث الراتب.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
@@ -10455,6 +10460,7 @@ function AddEmployeePage() {
     scheduleId: "",
     role: "employee",
     payrollCycleId: "",
+    locationAttendanceEnabled: false,
   });
 
   useEffect(() => {
@@ -10509,6 +10515,7 @@ function AddEmployeePage() {
           scheduleId: form.scheduleId,
           payrollCycleId: form.payrollCycleId || null,
           role: form.role as "employee" | "manager",
+          locationAttendanceEnabled: form.locationAttendanceEnabled,
         },
       },
       {
@@ -10762,6 +10769,31 @@ function AddEmployeePage() {
                 {t("payrollCycleHint")}
               </p>
             </label>
+            <label className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] p-4 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 accent-primary"
+                checked={form.locationAttendanceEnabled}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    locationAttendanceEnabled: event.target.checked,
+                  })
+                }
+              />
+              <span>
+                <span className="block font-semibold">
+                  {locale === "ar"
+                    ? "تسجيل الحضور بالموقع لهذا الموظف"
+                    : "Require location attendance for this employee"}
+                </span>
+                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                  {locale === "ar"
+                    ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، بينما بصمة الجهاز تدخل مباشرة."
+                    : "The first phone punch needs manager or HR approval before it is added; device punches remain direct."}
+                </span>
+              </span>
+            </label>
           </div>
         </Card>
 
@@ -10971,6 +11003,7 @@ function EmployeeProfilePage() {
     branchId: "",
     role: "employee",
     status: "active",
+    locationAttendanceEnabled: false,
   });
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
@@ -11012,6 +11045,7 @@ function EmployeeProfilePage() {
       branchId: employee.data.branch?.id ?? "",
       role: employee.data.role,
       status: employee.data.status,
+      locationAttendanceEnabled: employee.data.locationAttendanceEnabled ?? false,
     });
     setEditing(true);
   }
@@ -11051,6 +11085,7 @@ function EmployeeProfilePage() {
           branchId: editForm.branchId,
           role: editForm.role,
           status: editForm.status,
+          locationAttendanceEnabled: editForm.locationAttendanceEnabled,
         } as any,
       },
       {
@@ -11848,6 +11883,31 @@ function EmployeeProfilePage() {
                   <option value="manager">{t("roleManager")}</option>
                 </select>
               </label>
+              <label className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] p-4 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-1 size-4 accent-primary"
+                  checked={editForm.locationAttendanceEnabled}
+                  onChange={(event) =>
+                    setEditForm({
+                      ...editForm,
+                      locationAttendanceEnabled: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <span className="block font-semibold">
+                    {locale === "ar"
+                      ? "تسجيل الحضور بالموقع لهذا الموظف"
+                      : "Require location attendance for this employee"}
+                  </span>
+                  <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                    {locale === "ar"
+                      ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، بينما بصمة الجهاز تدخل مباشرة."
+                      : "The first phone punch needs manager or HR approval before it is added; device punches remain direct."}
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
@@ -12194,6 +12254,41 @@ function Employees() {
   );
 }
 
+function AttendanceLocationLinks({
+  location,
+  locale,
+}: {
+  location?: Record<string, any> | null;
+  locale: Locale;
+}) {
+  if (!location || typeof location !== "object") return null;
+  const checkIn = location.checkIn ?? (location.latitude != null ? location : null);
+  const checkOut = location.checkOut ?? null;
+  const links = [
+    checkIn ? { label: locale === "ar" ? "موقع الحضور" : "Check-in location", point: checkIn } : null,
+    checkOut ? { label: locale === "ar" ? "موقع الانصراف" : "Check-out location", point: checkOut } : null,
+  ].filter(Boolean) as Array<{ label: string; point: any }>;
+  return (
+    <div className="flex flex-wrap justify-end gap-1.5">
+      {links.map(({ label, point }) =>
+        typeof point.latitude === "number" && typeof point.longitude === "number" ? (
+          <a
+            key={label}
+            href={`https://www.google.com/maps?q=${point.latitude},${point.longitude}`}
+            target="_blank"
+            rel="noreferrer"
+            title={`${label}: ${point.latitude}, ${point.longitude}`}
+            className="inline-flex items-center gap-1 rounded-md border border-primary/20 px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/5"
+          >
+            <MapPin size={11} />
+            {label}
+          </a>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
 function Attendance() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
@@ -12220,6 +12315,16 @@ function Attendance() {
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const createManualPunch = useCreateManualAttendanceEvent();
+  const canApproveLocation =
+    workspace.data?.capabilities?.includes("attendance.location.approve") ??
+    false;
+  const punchRequests = useListAttendancePunchRequests({
+    query: {
+      enabled: canApproveLocation,
+      queryKey: getListAttendancePunchRequestsQueryKey(),
+    },
+  });
+  const decidePunchRequestMutation = useDecideAttendancePunchRequest();
   const correct = useCorrectAttendance();
   const calculation = usePreviewAttendanceCalculation(selectedAttendanceId, {
     query: {
@@ -12315,18 +12420,46 @@ function Attendance() {
     }
     const data = location ? { source: "web", ...location } : { source: "web" };
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
-      onSuccess: () => {
+       onSuccess: (result: any) => {
         setGpsState(location ? "captured" : "unavailable");
         toast.success(
-          t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
+           result?.status === "pending"
+             ? locale === "ar"
+               ? "تم إرسال أول بصمة للمراجعة قبل إضافتها للسجل."
+               : "The first location punch was sent for approval."
+             : t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
         );
         qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
         qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
+         qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
       },
       onError: (error: unknown) =>
         toast.error(apiErrorMessage(error, t("attendanceNotAccepted"))),
     });
+  }
+  function decidePunchRequest(id: string, decision: "approved" | "rejected") {
+    decidePunchRequestMutation.mutate(
+      { requestId: id, data: { decision } },
+      {
+        onSuccess: () => {
+          toast.success(
+            decision === "approved"
+              ? locale === "ar"
+                ? "تم اعتماد بصمة الموقع وإضافتها للسجل."
+                : "Location punch approved and added to attendance."
+              : locale === "ar"
+                ? "تم رفض بصمة الموقع."
+                : "Location punch rejected.",
+          );
+          qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
+        },
+        onError: (error: unknown) =>
+          toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث طلب البصمة." : "Could not update punch request.")),
+      },
+    );
   }
   function openCorrection(item: any) {
     setCorrection({
@@ -12535,6 +12668,59 @@ function Attendance() {
           </div>
         }
       />
+      {canApproveLocation && punchRequests.data?.length ? (
+        <Card className="mb-6 border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10">
+          <div className="flex items-start justify-between gap-4 border-b border-amber-200/70 p-5">
+            <div>
+              <h2 className="font-display text-lg font-semibold">
+                {locale === "ar" ? "موافقات تسجيل الموقع" : "Location attendance approvals"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === "ar"
+                  ? "أول بصمة من الموظفين المحددين لا تدخل السجل إلا بعد الاعتماد."
+                  : "The first location punch for selected employees stays out of attendance until approved."}
+              </p>
+            </div>
+            <Badge tone="warn">{punchRequests.data.length}</Badge>
+          </div>
+          <div className="divide-y divide-amber-200/60">
+            {punchRequests.data.map((request: any) => (
+              <div key={request.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="font-semibold">{request.employee.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {request.direction === "in"
+                      ? locale === "ar"
+                        ? "حضور"
+                        : "Check-in"
+                      : locale === "ar"
+                        ? "انصراف"
+                        : "Check-out"}{" "}
+                    · {date(request.attendanceDate)} · {displayTime(request.occurredAt)}
+                  </div>
+                  <AttendanceLocationLinks location={request.location} locale={locale} />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={decidePunchRequestMutation.isPending}
+                    onClick={() => decidePunchRequest(request.id, "rejected")}
+                  >
+                    {locale === "ar" ? "رفض" : "Reject"}
+                  </Button>
+                  <Button
+                    disabled={decidePunchRequestMutation.isPending}
+                    onClick={() => decidePunchRequest(request.id, "approved")}
+                  >
+                    <Check size={15} />
+                    {locale === "ar" ? "اعتماد وإضافة للسجل" : "Approve & add"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
       {tab === "today" ? (
         <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
           <Card className="bg-secondary p-6 text-sidebar-foreground">
@@ -12661,6 +12847,7 @@ function Attendance() {
                       <span className="text-[10px] text-muted-foreground">
                         {locationLabel(x.locationStatus)}
                       </span>
+                       <AttendanceLocationLinks location={x.location} locale={locale} />
                     </div>
                   </div>
                 ))}
@@ -12740,6 +12927,7 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
+                      <th className="px-4 py-3">{locale === "ar" ? "الموقع" : "Location"}</th>
                       {(canCorrect || canAdjust || canManualPunch) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
@@ -12757,6 +12945,9 @@ function Attendance() {
                         <td className="px-4 py-4 font-mono">{x.workedHours}</td>
                         <td className="px-5 py-4">
                           <Status value={x.status} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <AttendanceLocationLinks location={x.location} locale={locale} />
                         </td>
                         {(canCorrect || canAdjust || canManualPunch) && (
                           <td className="px-5 py-4 text-right">

@@ -23,6 +23,7 @@ export interface EmployeeUpdate {
   nationalId?: string;
   /** @minLength 1 */
   biometricCode?: string;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24

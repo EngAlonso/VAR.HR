@@ -48,6 +48,9 @@ import {
   CreateDeviceMappingResponse,
   CreateAttendanceLocationBody,
   CreateAttendanceLocationResponse,
+  DecideAttendancePunchRequestBody,
+  DecideAttendancePunchRequestParams,
+  DecideAttendancePunchRequestResponse,
   CreateEmployeeBody,
   CreateEmployeeResponse,
   DeleteBranchParams,
@@ -121,6 +124,7 @@ import {
   ListAttendanceHistoryResponse,
   ListAttendanceRuleChangesResponse,
   ListAttendanceLocationsResponse,
+  ListAttendancePunchRequestsResponse,
   ListBiometricProvidersResponse,
   ListDeviceMappingsParams,
   ListDeviceMappingsResponse,
@@ -211,6 +215,7 @@ import {
   attendanceRulesTable,
   attendanceRuleChangesTable,
   attendanceLocationsTable,
+  attendancePunchRequestsTable,
   attendanceTable,
   attendanceCalculationsTable,
   attendanceTimeAdjustmentsTable,
@@ -337,6 +342,7 @@ function canUseCapability(
     devices: ["devices.view", "devices.manage"],
     "sync-history": ["sync-history.view"],
     "attendance.absence_leave": ["attendance.correct", "attendance.adjust"],
+    "attendance.location.approve": ["attendance.correct"],
   };
   const granted = [capability, ...(aliases[capability] ?? [])];
   return (
@@ -2502,6 +2508,7 @@ function employeeResponse(
     phone: row.employee.phone,
     nationalId: row.employee.nationalId,
     biometricCode: row.employee.biometricCode,
+    locationAttendanceEnabled: row.employee.locationAttendanceEnabled,
     workingHours: row.employee.workingHours,
     department: row.department
       ? {
@@ -2852,7 +2859,70 @@ function attendanceResponse(
       | "pending",
     source: row.attendance.source as "web" | "mobile" | "biometric" | "manual",
     explanation: row.attendance.explanation,
+    location: row.attendance.location,
+    approvalStatus:
+      row.attendance.source === "web" || row.attendance.source === "mobile"
+        ? "approved"
+        : "not_required",
   };
+}
+
+function attendancePunchRequestResponse(
+  row: Awaited<ReturnType<typeof attendancePunchRequestRows>>[number],
+) {
+  return attendancePunchRequestResponseFrom(
+    row.request,
+    row.employee,
+    row.department?.name ?? "—",
+  );
+}
+
+function attendancePunchRequestResponseFrom(
+  request: typeof attendancePunchRequestsTable.$inferSelect,
+  employee: typeof employeesTable.$inferSelect,
+  departmentName: string,
+) {
+  return {
+    id: request.id,
+    employee: employeeReference(employee, departmentName),
+    attendanceDate: request.attendanceDate,
+    direction: request.direction as "in" | "out",
+    occurredAt: request.occurredAt.toISOString(),
+    source: request.source as "web" | "mobile",
+    locationStatus: request.locationStatus,
+    location: request.location,
+    explanation: request.explanation,
+    status: request.status as "pending" | "approved" | "rejected",
+    requestedAt: request.requestedAt.toISOString(),
+    decidedAt: request.decidedAt?.toISOString() ?? null,
+    decisionReason: request.decisionReason,
+  };
+}
+
+async function attendancePunchRequestRows(context: TenantContext) {
+  return db
+    .select({
+      request: attendancePunchRequestsTable,
+      employee: employeesTable,
+      department: departmentsTable,
+    })
+    .from(attendancePunchRequestsTable)
+    .innerJoin(
+      employeesTable,
+      eq(attendancePunchRequestsTable.employeeId, employeesTable.id),
+    )
+    .leftJoin(
+      departmentsTable,
+      eq(employeesTable.departmentId, departmentsTable.id),
+    )
+    .where(
+      and(
+        eq(attendancePunchRequestsTable.companyId, context.companyId),
+        eq(attendancePunchRequestsTable.status, "pending"),
+        employeeScopeCondition(context),
+      ),
+    )
+    .orderBy(desc(attendancePunchRequestsTable.requestedAt));
 }
 
 function requestEmployeeReference(
@@ -3823,6 +3893,7 @@ router.post("/employees", async (req, res): Promise<void> => {
           phone: parsed.data.phone,
           nationalId: parsed.data.nationalId,
           biometricCode: parsed.data.biometricCode,
+          locationAttendanceEnabled: parsed.data.locationAttendanceEnabled ?? false,
           workingHours: parsed.data.workingHours ?? 8,
           departmentId: parsed.data.departmentId,
           branchId: parsed.data.branchId,
@@ -4376,6 +4447,191 @@ router.get("/attendance/history", async (req, res): Promise<void> => {
   );
 });
 
+router.get("/attendance/punch-requests", async (req, res): Promise<void> => {
+  const context = await getTenantContext(req);
+  if (!canUseCapability(context, "attendance.location.approve")) {
+    denyCapability(res, req, "attendance.location.approve");
+    return;
+  }
+  const rows = await attendancePunchRequestRows(context);
+  res.json(
+    ListAttendancePunchRequestsResponse.parse(
+      rows.map(attendancePunchRequestResponse),
+    ),
+  );
+});
+
+router.post(
+  "/attendance/punch-requests/:requestId/decision",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "attendance.location.approve")) {
+      denyCapability(res, req, "attendance.location.approve");
+      return;
+    }
+    const params = DecideAttendancePunchRequestParams.safeParse(req.params);
+    const parsed = DecideAttendancePunchRequestBody.safeParse(req.body ?? {});
+    if (!params.success || !parsed.success || !isUuid(params.data.requestId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [row] = await db
+      .select({
+        request: attendancePunchRequestsTable,
+        employee: employeesTable,
+        department: departmentsTable,
+      })
+      .from(attendancePunchRequestsTable)
+      .innerJoin(
+        employeesTable,
+        eq(attendancePunchRequestsTable.employeeId, employeesTable.id),
+      )
+      .leftJoin(
+        departmentsTable,
+        eq(employeesTable.departmentId, departmentsTable.id),
+      )
+      .where(
+        and(
+          eq(attendancePunchRequestsTable.id, params.data.requestId),
+          eq(attendancePunchRequestsTable.companyId, context.companyId),
+          employeeScopeCondition(context),
+        ),
+      )
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: message(req, "attendanceNotFound") });
+      return;
+    }
+    if (row.request.status !== "pending") {
+      res.status(409).json({
+        error: "Only pending location attendance punches can be decided.",
+      });
+      return;
+    }
+
+    const reason = parsed.data.reason?.trim() || null;
+    if (parsed.data.decision === "approved") {
+      const rules = await attendanceRulesFor(
+        context.companyId,
+        row.request.attendanceDate,
+      );
+      const schedule = await effectiveScheduleFor(
+        context.companyId,
+        row.employee.id,
+        row.request.attendanceDate,
+        rules,
+      );
+      const holiday = isHolidayDate(
+        row.request.attendanceDate,
+        rules,
+        await holidaysForCompany(context.companyId),
+      );
+      const location = row.request.location;
+      const checkInLocation =
+        location && typeof location === "object" && !Array.isArray(location)
+          ? (location as any).checkIn ?? location
+          : null;
+      const metrics = attendanceMetrics({
+        checkIn: row.request.occurredAt,
+        checkOut: null,
+        attendanceDate: row.request.attendanceDate,
+        schedule,
+        rules,
+        timeZone: context.company.timezone,
+        holiday,
+      });
+      const [existing] = await db
+        .select()
+        .from(attendanceTable)
+        .where(
+          and(
+            eq(attendanceTable.companyId, context.companyId),
+            eq(attendanceTable.employeeId, row.employee.id),
+            eq(attendanceTable.date, row.request.attendanceDate),
+          ),
+        )
+        .limit(1);
+      if (existing) {
+        res.status(409).json({
+          error: "An attendance record already exists for this date.",
+        });
+        return;
+      }
+      const [created] = await db
+        .insert(attendanceTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: row.employee.id,
+          date: row.request.attendanceDate,
+          status: holiday
+            ? "holiday"
+            : metrics.rawLateMinutes > schedule.graceMinutes
+              ? "late"
+              : "present",
+          scheduledStart: schedule.startTime,
+          scheduledEnd: schedule.endTime,
+          requiredHours: schedule.requiredHours,
+          checkIn: row.request.occurredAt,
+          workedHours: 0,
+          overtimeHours: 0,
+          lateMinutes: metrics.lateMinutes,
+          source: row.request.source,
+          locationStatus: row.request.locationStatus,
+          location: checkInLocation
+            ? { checkIn: checkInLocation }
+            : row.request.location,
+          explanation: `${row.request.explanation} Approved by manager/HR.`,
+        })
+        .returning();
+      await attendanceCalculationFor(context, created, true);
+      await recordAudit(
+        context.companyId,
+        "approved",
+        "attendance_punch_request",
+        row.request.id,
+        { request: row.request, attendance: created, reason },
+      );
+    }
+
+    const [updated] = await db
+      .update(attendancePunchRequestsTable)
+      .set({
+        status: parsed.data.decision,
+        decidedBy: context.accountId,
+        decidedAt: new Date(),
+        decisionReason: reason,
+      })
+      .where(
+        and(
+          eq(attendancePunchRequestsTable.id, row.request.id),
+          eq(attendancePunchRequestsTable.status, "pending"),
+        ),
+      )
+      .returning();
+    if (!updated) {
+      res.status(409).json({ error: "This attendance punch was already decided." });
+      return;
+    }
+    await recordAudit(
+      context.companyId,
+      parsed.data.decision,
+      "attendance_punch_request",
+      updated.id,
+      updated,
+      row.request,
+    );
+    res.json(
+      DecideAttendancePunchRequestResponse.parse(
+        attendancePunchRequestResponseFrom(
+          updated,
+          row.employee,
+          row.department?.name ?? "—",
+        ),
+      ),
+    );
+  },
+);
+
 async function attendanceForCalculation(
   context: TenantContext,
   attendanceId: string,
@@ -4895,6 +5151,20 @@ async function recordCurrentAttendance(
     res.status(400).json({ error: message(req, "noActiveEmployee") });
     return;
   }
+  const [currentEmployee] = await db
+    .select()
+    .from(employeesTable)
+    .where(
+      and(
+        eq(employeesTable.id, context.employeeId),
+        eq(employeesTable.companyId, context.companyId),
+      ),
+    )
+    .limit(1);
+  if (!currentEmployee) {
+    res.status(400).json({ error: message(req, "noActiveEmployee") });
+    return;
+  }
   const bodySchema = direction === "in" ? CheckInBody : CheckOutBody;
   const parsed = bodySchema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -5011,6 +5281,12 @@ async function recordCurrentAttendance(
     rules,
   );
   const holiday = isHolidayDate(attendanceDate, rules, holidays);
+  const locationRequiredForEmployee =
+    currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
+  if (locationRequiredForEmployee && !location) {
+    res.status(400).json({ error: message(req, "gpsValidationRequired") });
+    return;
+  }
 
   if (direction === "in") {
     if (existing) {
@@ -5034,16 +5310,81 @@ async function recordCurrentAttendance(
     const locationValidation = await resolveAttendanceLocation(
       context,
       location,
-      rules.gpsPolicy,
+      locationRequiredForEmployee ? "required" : rules.gpsPolicy,
       locale,
     );
     if (
-      rules.gpsPolicy === "required" &&
+      (rules.gpsPolicy === "required" || locationRequiredForEmployee) &&
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
         error: locationValidation.explanation,
         locationStatus: locationValidation.status,
+      });
+      return;
+    }
+    if (locationRequiredForEmployee) {
+      const [pending] = await db
+        .select()
+        .from(attendancePunchRequestsTable)
+        .where(
+          and(
+            eq(attendancePunchRequestsTable.companyId, context.companyId),
+            eq(attendancePunchRequestsTable.employeeId, context.employeeId),
+            eq(attendancePunchRequestsTable.attendanceDate, attendanceDate),
+            eq(attendancePunchRequestsTable.direction, "in"),
+            eq(attendancePunchRequestsTable.status, "pending"),
+          ),
+        )
+        .limit(1);
+      if (pending) {
+        res.status(409).json({
+          error: "Your first location attendance punch is already waiting for approval.",
+          code: "ATTENDANCE_PUNCH_APPROVAL_PENDING",
+        });
+        return;
+      }
+      const [department] = currentEmployee.departmentId
+        ? await db
+            .select({ name: departmentsTable.name })
+            .from(departmentsTable)
+            .where(eq(departmentsTable.id, currentEmployee.departmentId))
+            .limit(1)
+        : [undefined];
+      const [request] = await db
+        .insert(attendancePunchRequestsTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: context.employeeId,
+          attendanceDate,
+          direction: "in",
+          occurredAt: eventAt,
+          source: parsed.data.source,
+          locationStatus: locationValidation.status,
+          location: {
+            checkIn: { ...location, capturedAt: eventAt.toISOString() },
+          },
+          explanation: locationValidation.explanation,
+          requestedBy: context.accountId,
+        })
+        .returning();
+      res.status(202).json({
+        id: request.id,
+        employee: employeeReference(
+          currentEmployee,
+          department?.name ?? "—",
+        ),
+        attendanceDate: request.attendanceDate,
+        direction: request.direction,
+        occurredAt: request.occurredAt.toISOString(),
+        source: request.source,
+        locationStatus: request.locationStatus,
+        location: request.location,
+        explanation: request.explanation,
+        status: request.status,
+        requestedAt: request.requestedAt.toISOString(),
+        decidedAt: null,
+        decisionReason: null,
       });
       return;
     }
@@ -5068,7 +5409,7 @@ async function recordCurrentAttendance(
         source: parsed.data.source,
         locationStatus: locationValidation.status,
         location: location
-          ? { ...location, capturedAt: eventAt.toISOString() }
+          ? { checkIn: { ...location, capturedAt: eventAt.toISOString() } }
           : null,
         explanation: holiday
           ? `${locationValidation.explanation} Company holiday.`
@@ -5119,11 +5460,11 @@ async function recordCurrentAttendance(
     holiday,
   });
   const earlyDeparture = metrics.earlyCheckoutMinutes > 0;
-  const locationValidation = location
+    const locationValidation = location
     ? await resolveAttendanceLocation(
         context,
         location,
-        rules.gpsPolicy,
+          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
         locale,
       )
     : {
@@ -5136,7 +5477,7 @@ async function recordCurrentAttendance(
         explanation: existing.explanation,
       };
   if (
-    rules.gpsPolicy === "required" &&
+    (rules.gpsPolicy === "required" || locationRequiredForEmployee) &&
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({
@@ -5160,9 +5501,16 @@ async function recordCurrentAttendance(
           : existing.status,
       source: parsed.data.source,
       locationStatus: locationValidation.status,
-      location: location
-        ? { ...location, capturedAt: eventAt.toISOString() }
-        : existing.location,
+       location: location
+         ? {
+             ...(existing.location &&
+             typeof existing.location === "object" &&
+             !Array.isArray(existing.location)
+               ? existing.location
+               : {}),
+             checkOut: { ...location, capturedAt: eventAt.toISOString() },
+           }
+         : existing.location,
       explanation: `${earlyDeparture ? message(req, "earlyDeparture") : ""}${location ? `${locationValidation.explanation} ` : ""}${holiday ? "Company holiday. " : ""}${message(req, "workedHours", { worked: metrics.workedHours.toFixed(2), overtime: metrics.overtimeHours.toFixed(2) })}`,
       updatedAt: now,
     })

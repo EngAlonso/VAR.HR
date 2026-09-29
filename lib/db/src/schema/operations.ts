@@ -40,6 +40,38 @@ export const attendanceTable = pgTable("var_hr_attendance", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const attendancePunchRequestsTable = pgTable("var_hr_attendance_punch_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companiesTable.id),
+  employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
+  attendanceDate: date("attendance_date", { mode: "string" }).notNull(),
+  direction: text("direction").notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+  source: text("source").notNull().default("web"),
+  locationStatus: text("location_status").notNull().default("pending"),
+  location: jsonb("location"),
+  explanation: text("explanation").notNull().default("Attendance location requires approval."),
+  status: text("status").notNull().default("pending"),
+  requestedBy: text("requested_by").notNull(),
+  decidedBy: text("decided_by"),
+  decisionReason: text("decision_reason"),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+}, (table) => ({
+  companyStatusIndex: index("var_hr_attendance_punch_requests_company_status_idx").on(
+    table.companyId,
+    table.status,
+    table.requestedAt,
+  ),
+  employeeDateIndex: index("var_hr_attendance_punch_requests_employee_date_idx").on(
+    table.companyId,
+    table.employeeId,
+    table.attendanceDate,
+  ),
+}));
+
+export type AttendancePunchRequest = typeof attendancePunchRequestsTable.$inferSelect;
+
 export const attendanceCalculationsTable = pgTable("var_hr_attendance_calculations", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),

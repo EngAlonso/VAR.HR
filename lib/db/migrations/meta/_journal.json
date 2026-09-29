@@ -15,6 +15,13 @@
       "when": 1789934400000,
       "tag": "0001_add_localized_names",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790688000000,
+      "tag": "0002_location_attendance_approval",
+      "breakpoints": true
     }
   ]
 }

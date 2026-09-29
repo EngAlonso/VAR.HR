@@ -26,6 +26,7 @@ export interface Employee {
   nationalId?: string | null;
   /** @nullable */
   biometricCode?: string | null;
+  locationAttendanceEnabled?: boolean;
   /**
      * @minimum 0
      * @maximum 24

@@ -68,6 +68,7 @@ export const employeesTable = pgTable(
     phone: text("phone"),
     nationalId: text("national_id"),
     biometricCode: text("biometric_code"),
+    locationAttendanceEnabled: boolean("location_attendance_enabled").notNull().default(false),
     workingHours: numeric("working_hours", { precision: 4, scale: 2, mode: "number" })
       .notNull()
       .default(8),
