@@ -917,6 +917,10 @@ const copy = {
     operationsDesk: "operations desk",
     activeWorkspace: "Active workspace",
     support: "Support",
+    pwaInstall: "Install app",
+    pwaInstalled: "VAR HR was added to your home screen.",
+    pwaIosInstallHint: "On iPhone, tap Share, then Add to Home Screen.",
+    pwaInstallFailed: "The app could not be installed. Please try again.",
     language: "Language",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
@@ -1297,6 +1301,11 @@ const copy = {
     operationsDesk: "مكتب العمليات",
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
+    pwaInstall: "تنزيل التطبيق",
+    pwaInstalled: "تمت إضافة VAR HR إلى الشاشة الرئيسية.",
+    pwaIosInstallHint:
+      "على iPhone اضغط على مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
+    pwaInstallFailed: "تعذر تنزيل التطبيق. حاول مرة أخرى.",
     language: "اللغة",
     openNavigation: "فتح التنقل",
     closeNavigation: "إغلاق التنقل",
@@ -7345,15 +7354,65 @@ function WorkspaceState({
   );
 }
 
+type PwaInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+};
+
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] =
+    useState<PwaInstallPromptEvent | null>(null);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [isIosDevice, setIsIosDevice] = useState(false);
   const pointerStart = useRef<{ id: number; x: number } | null>(null);
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
   const branding = useSiteBranding();
   const isArabic = locale === "ar";
   const isMobile = useIsMobile();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const displayMode = window.matchMedia("(display-mode: standalone)");
+    const updateInstalledState = () => {
+      const standaloneNavigator = (
+        window.navigator as Navigator & { standalone?: boolean }
+      ).standalone;
+      setIsPwaInstalled(displayMode.matches || standaloneNavigator === true);
+    };
+    const ios =
+      /iphone|ipad|ipod/i.test(window.navigator.userAgent) ||
+      (window.navigator.platform === "MacIntel" &&
+        window.navigator.maxTouchPoints > 1);
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as PwaInstallPromptEvent);
+    };
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setIsPwaInstalled(true);
+    };
+
+    setIsIosDevice(ios);
+    updateInstalledState();
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    displayMode.addEventListener?.("change", updateInstalledState);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+      displayMode.removeEventListener?.("change", updateInstalledState);
+    };
+  }, []);
   const workspaceQuery = useGetWorkspace();
   const summaryQuery = useGetDashboardSummary({
     query: {
@@ -7459,6 +7518,25 @@ function Shell({ children }: { children: ReactNode }) {
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
+  const canInstallPwa =
+    !isPwaInstalled && (Boolean(installPrompt) || isIosDevice);
+  async function installPwa() {
+    if (!installPrompt) {
+      if (isIosDevice) toast.info(t("pwaIosInstallHint"));
+      return;
+    }
+
+    try {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      setInstallPrompt(null);
+      if (choice.outcome === "accepted") {
+        toast.success(t("pwaInstalled"));
+      }
+    } catch {
+      toast.error(t("pwaInstallFailed"));
+    }
+  }
   const accountInitials = auth.account.fullName
     .trim()
     .split(/\s+/)
@@ -7675,6 +7753,19 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
+            {canInstallPwa && (
+              <Button
+                variant="outline"
+                className="min-h-10 shrink-0 rounded-xl p-2 sm:px-3"
+                onClick={() => void installPwa()}
+                title={t("pwaInstall")}
+                aria-label={t("pwaInstall")}
+                data-testid="button-install-pwa"
+              >
+                <Download size={16} />
+                <span className="hidden md:inline">{t("pwaInstall")}</span>
+              </Button>
+            )}
             <NotificationCenter locale={locale} />
             <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
