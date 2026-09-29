@@ -14,3 +14,17 @@ mtime_ms = 1790677044745
 storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:0e840966-8c32-4509-8b9b-ca6d24ff43f4/02d42111-d16a-4155-aa3f-7a6f3b30f47b/ed5adf94-2dcf-4f34-9415-2fe6e54703db"
 storage_version_token = "1790677053393519"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "T4F3H01-eKnc1KIng6DqU"
+uri = "file://screenshots/pwa-install-button-arabic.jpg"
+type = "image"
+title = "زر تثبيت التطبيق في الواجهة العربية"
+description = "لقطة شاشة نهائية توضح زر تثبيت ثابتًا أسفل يمين مساحة المحتوى، مع بقائه أثناء التمرير."
+logical_id = "72df849d-9b19-4fdb-91c9-6352de64ac30"
+content_hash = "sha256:8dc54887e567c00fe6dbc70903acebdaa97b2a98127da50f91343bebb5dd2ad4"
+size = 128117
+mtime_ms = 1790677985540
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:0e840966-8c32-4509-8b9b-ca6d24ff43f4/72df849d-9b19-4fdb-91c9-6352de64ac30/57b0e9a4-2a9d-4ae3-8afa-759eea9cb087"
+storage_version_token = "1790677994697429"
+content_type = "image/jpeg"

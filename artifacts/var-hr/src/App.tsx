@@ -920,6 +920,8 @@ const copy = {
     pwaInstall: "Install app",
     pwaInstalled: "VAR HR was added to your home screen.",
     pwaIosInstallHint: "On iPhone, tap Share, then Add to Home Screen.",
+    pwaBrowserInstallHint:
+      "Open your browser menu and choose Install app or Add to Home screen.",
     pwaInstallFailed: "The app could not be installed. Please try again.",
     language: "Language",
     openNavigation: "Open navigation",
@@ -1301,10 +1303,12 @@ const copy = {
     operationsDesk: "مكتب العمليات",
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
-    pwaInstall: "تنزيل التطبيق",
+    pwaInstall: "تثبيت",
     pwaInstalled: "تمت إضافة VAR HR إلى الشاشة الرئيسية.",
     pwaIosInstallHint:
       "على iPhone اضغط على مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
+    pwaBrowserInstallHint:
+      "افتح قائمة المتصفح واختر تثبيت التطبيق أو الإضافة إلى الشاشة الرئيسية.",
     pwaInstallFailed: "تعذر تنزيل التطبيق. حاول مرة أخرى.",
     language: "اللغة",
     openNavigation: "فتح التنقل",
@@ -7518,19 +7522,20 @@ function Shell({ children }: { children: ReactNode }) {
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
-  const canInstallPwa =
-    !isPwaInstalled && (Boolean(installPrompt) || isIosDevice);
+  const canInstallPwa = !isPwaInstalled;
   async function installPwa() {
     if (!installPrompt) {
       if (isIosDevice) toast.info(t("pwaIosInstallHint"));
+      else toast.info(t("pwaBrowserInstallHint"));
       return;
     }
 
     try {
       await installPrompt.prompt();
       const choice = await installPrompt.userChoice;
-      setInstallPrompt(null);
       if (choice.outcome === "accepted") {
+        setInstallPrompt(null);
+        setIsPwaInstalled(true);
         toast.success(t("pwaInstalled"));
       }
     } catch {
@@ -7753,19 +7758,6 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            {canInstallPwa && (
-              <Button
-                variant="outline"
-                className="min-h-10 shrink-0 rounded-xl p-2 sm:px-3"
-                onClick={() => void installPwa()}
-                title={t("pwaInstall")}
-                aria-label={t("pwaInstall")}
-                data-testid="button-install-pwa"
-              >
-                <Download size={16} />
-                <span className="hidden md:inline">{t("pwaInstall")}</span>
-              </Button>
-            )}
             <NotificationCenter locale={locale} />
             <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
@@ -7817,6 +7809,24 @@ function Shell({ children }: { children: ReactNode }) {
         <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
           {children}
         </main>
+        {canInstallPwa && (
+          <Button
+            variant="primary"
+            className={cn(
+              "fixed bottom-24 z-40 min-h-12 rounded-full px-5 shadow-xl transition-transform hover:-translate-y-0.5 md:bottom-6",
+              isArabic
+                ? "right-4 sm:right-8 lg:right-[calc(248px+2rem)]"
+                : "left-4 sm:left-8 lg:left-[calc(248px+2rem)]",
+            )}
+            onClick={() => void installPwa()}
+            title={t("pwaInstall")}
+            aria-label={t("pwaInstall")}
+            data-testid="button-install-pwa"
+          >
+            <Download size={17} />
+            <span>{t("pwaInstall")}</span>
+          </Button>
+        )}
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
