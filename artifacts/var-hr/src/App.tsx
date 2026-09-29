@@ -1303,7 +1303,7 @@ const copy = {
     operationsDesk: "مكتب العمليات",
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
-    pwaInstall: "تثبيت",
+    pwaInstall: "تثبيت التطبيق",
     pwaInstalled: "تمت إضافة VAR HR إلى الشاشة الرئيسية.",
     pwaIosInstallHint:
       "على iPhone اضغط على مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
