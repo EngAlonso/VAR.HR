@@ -7358,19 +7358,19 @@ function WorkspaceState({
   );
 }
 
-type PwaInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
-};
+import {
+  clearPwaInstallPrompt,
+  getPwaInstallPrompt,
+  initializePwaInstall,
+  subscribeToPwaInstall,
+  type PwaInstallPromptEvent,
+} from "@/lib/pwa-install";
 
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [installPrompt, setInstallPrompt] =
-    useState<PwaInstallPromptEvent | null>(null);
+    useState<PwaInstallPromptEvent | null>(() => getPwaInstallPrompt());
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [isIosDevice, setIsIosDevice] = useState(false);
   const pointerStart = useRef<{ id: number; x: number } | null>(null);
@@ -7382,6 +7382,10 @@ function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    initializePwaInstall();
+    const unsubscribeFromPwaInstall = subscribeToPwaInstall(() => {
+      setInstallPrompt(getPwaInstallPrompt());
+    });
     const displayMode = window.matchMedia("(display-mode: standalone)");
     const updateInstalledState = () => {
       const standaloneNavigator = (
@@ -7393,26 +7397,18 @@ function Shell({ children }: { children: ReactNode }) {
       /iphone|ipad|ipod/i.test(window.navigator.userAgent) ||
       (window.navigator.platform === "MacIntel" &&
         window.navigator.maxTouchPoints > 1);
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as PwaInstallPromptEvent);
-    };
     const handleAppInstalled = () => {
-      setInstallPrompt(null);
+      clearPwaInstallPrompt();
       setIsPwaInstalled(true);
     };
 
     setIsIosDevice(ios);
     updateInstalledState();
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
     displayMode.addEventListener?.("change", updateInstalledState);
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
+      unsubscribeFromPwaInstall();
       window.removeEventListener("appinstalled", handleAppInstalled);
       displayMode.removeEventListener?.("change", updateInstalledState);
     };
@@ -7533,8 +7529,8 @@ function Shell({ children }: { children: ReactNode }) {
     try {
       await installPrompt.prompt();
       const choice = await installPrompt.userChoice;
+      clearPwaInstallPrompt();
       if (choice.outcome === "accepted") {
-        setInstallPrompt(null);
         setIsPwaInstalled(true);
         toast.success(t("pwaInstalled"));
       }
