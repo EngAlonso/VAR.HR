@@ -5319,7 +5319,7 @@ async function recordCurrentAttendance(
       locale,
     );
     if (
-      (rules.gpsPolicy === "required" || locationRequiredForEmployee) &&
+      rules.gpsPolicy === "required" &&
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
@@ -5372,7 +5372,10 @@ async function recordCurrentAttendance(
           location: {
             checkIn: { ...location, capturedAt: eventAt.toISOString() },
           },
-          explanation: locationValidation.explanation,
+          explanation:
+            locationValidation.status === "pending"
+              ? message(req, "gpsLocationCapturedForReview")
+              : locationValidation.explanation,
           requestedBy: context.accountId,
         })
         .returning();
@@ -5485,7 +5488,7 @@ async function recordCurrentAttendance(
         explanation: existing.explanation,
       };
   if (
-    (rules.gpsPolicy === "required" || locationRequiredForEmployee) &&
+    rules.gpsPolicy === "required" &&
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({

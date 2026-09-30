@@ -103,6 +103,8 @@ const messages = {
     gpsLowAccuracy: "The supplied location accuracy is too low for validation.",
     gpsLocationPolicyUnconfigured:
       "Attendance was not recorded because no active attendance location or GPS-enabled branch is configured. Ask the company administrator to set one up.",
+    gpsLocationCapturedForReview:
+      "The phone's GPS position was captured. No fixed attendance zone is configured, so the location will be reviewed manually.",
     subscriptionAccess: "Subscription details require a company owner or platform owner.",
     platformAdmin: "Platform administration requires the platform owner role.",
     activeEmployeeLimit: "Your current plan supports up to {limit} active employees.",
@@ -224,6 +226,8 @@ const messages = {
     gpsLowAccuracy: "دقة الموقع المقدمة منخفضة جداً للتحقق.",
     gpsLocationPolicyUnconfigured:
       "لم يُسجَّل الحضور لعدم إعداد موقع حضور نشط أو فرع مفعّل بـGPS. اطلب من مسؤول الشركة إعداد نطاق جغرافي أولاً.",
+    gpsLocationCapturedForReview:
+      "تم التقاط موقع الهاتف عبر GPS. لا يوجد نطاق حضور ثابت لمقارنته به، لذلك ستتم مراجعة الموقع يدوياً.",
     subscriptionAccess: "تتطلب تفاصيل الاشتراك دور مالك الشركة أو مالك المنصة.",
     platformAdmin: "تتطلب إدارة المنصة دور مالك المنصة.",
     activeEmployeeLimit: "تدعم خطتك الحالية ما يصل إلى {limit} موظفاً نشطاً.",
@@ -345,6 +349,8 @@ const messages = {
     gpsLowAccuracy: "La précision de la position fournie est trop faible pour validation.",
     gpsLocationPolicyUnconfigured:
       "Le pointage n’a pas été enregistré, car aucun lieu de présence actif ni aucune agence compatible GPS n’est configuré. Demandez à l’administrateur de configurer une zone.",
+    gpsLocationCapturedForReview:
+      "La position GPS du téléphone a été capturée. Aucun périmètre fixe n’est configuré ; le lieu sera donc vérifié manuellement.",
     subscriptionAccess: "Les détails de l’abonnement requièrent un propriétaire d’entreprise ou de plateforme.",
     platformAdmin: "L’administration de la plateforme requiert le rôle de propriétaire de la plateforme.",
     activeEmployeeLimit: "Votre plan actuel prend en charge jusqu’à {limit} employés actifs.",
@@ -466,6 +472,8 @@ const messages = {
     gpsLowAccuracy: "Die angegebene Standortgenauigkeit ist zu gering für die Prüfung.",
     gpsLocationPolicyUnconfigured:
       "Die Anwesenheit wurde nicht erfasst, da kein aktiver Anwesenheitsort und keine GPS-fähige Filiale konfiguriert sind. Bitten Sie den Administrator, einen Bereich einzurichten.",
+    gpsLocationCapturedForReview:
+      "Der GPS-Standort des Telefons wurde erfasst. Es ist kein fester Anwesenheitsbereich konfiguriert; der Standort wird manuell geprüft.",
     subscriptionAccess: "Abonnementdetails erfordern einen Unternehmens- oder Plattforminhaber.",
     platformAdmin: "Die Plattformverwaltung erfordert die Rolle des Plattforminhabers.",
     activeEmployeeLimit: "Ihr aktueller Plan unterstützt bis zu {limit} aktive Mitarbeitende.",

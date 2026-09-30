@@ -13,3 +13,4 @@
 - [Automatic absence leave deduction](automatic-absence-leave-deduction.md) — the attendance checkbox is the master switch; trigger, caps, allowed months, and balance still constrain deductions.
 - [PWA shell cache updates](pwa-shell-cache-updates.md) — bump the shell cache version when UI assets change so installed clients receive the new interface.
 - [Payroll-generated attendance source](payroll-generated-attendance-source.md) — API response contracts must accept internal payroll absence rows without widening valid punch inputs.
+- [Field employee location capture](field-employee-location-capture.md) — roaming staff need GPS captured at each phone punch, without requiring a fixed company geofence.

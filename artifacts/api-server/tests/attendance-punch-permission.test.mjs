@@ -57,7 +57,7 @@ test("employees can start the first attendance punch without an existing record"
   assert.match(frontend, /disabled=\{\s*!canPunch\s*\|\|/s);
 });
 
-test("required GPS punches explain when no attendance geofence is configured", () => {
+test("company-required GPS punches explain when no attendance geofence is configured", () => {
   const attendanceRoute = route.slice(
     route.indexOf("async function recordCurrentAttendance"),
     route.indexOf('router.post("/attendance/check-in"'),
@@ -69,7 +69,29 @@ test("required GPS punches explain when no attendance geofence is configured", (
   );
   assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"Attendance was not recorded/);
   assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"لم يُسجَّل الحضور/);
-  assert.match(frontend, /ويلزم وجود نطاق GPS نشط للشركة للتحقق من الموقع/);
+});
+
+test("employee location punches capture GPS without a fixed geofence and wait for review", () => {
+  const attendanceRoute = route.slice(
+    route.indexOf("async function recordCurrentAttendance"),
+    route.indexOf('router.post("/attendance/check-in"'),
+  );
+
+  assert.match(attendanceRoute, /locationRequiredForEmployee && !location/);
+  assert.equal(
+    (
+      attendanceRoute.match(
+        /rules\.gpsPolicy === "required"\s*&&\s*locationValidation\.status !== "verified"/g,
+      ) ?? []
+    ).length,
+    2,
+  );
+  assert.match(
+    attendanceRoute,
+    /locationValidation\.status === "pending"\s*\?\s*message\(req,\s*"gpsLocationCapturedForReview"\)/s,
+  );
+  assert.match(attendanceRoute, /checkIn: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
+  assert.match(frontend, /لا يلزم موقع ثابت للشركة/);
 });
 
 test("attendance responses accept payroll-generated absence records, not punch input", () => {
