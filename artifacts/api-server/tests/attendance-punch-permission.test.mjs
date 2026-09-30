@@ -96,9 +96,9 @@ test("employee location punches capture GPS without a fixed geofence and wait fo
   );
   assert.match(attendanceRoute, /checkIn: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
   assert.match(frontend, /تسجيل الحركة بالموقع \(موقع متغير\)/);
-  assert.match(frontend, /تسجيل الحركة \(موقع ثابت\)/);
+  assert.match(frontend, /تسجيل الحركة بالموقع \(موقع ثابت\)/);
   assert.match(frontend, /Attendance movement with location \(variable location\)/);
-  assert.match(frontend, /Attendance movement \(fixed location\)/);
+  assert.match(frontend, /Attendance movement with location \(fixed location\)/);
   assert.equal(
     (frontend.match(/<EmployeeAttendanceLocationMode/g) ?? []).length,
     2,

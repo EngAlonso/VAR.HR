@@ -1182,7 +1182,7 @@ const copy = {
     overtimeAfterMinutes: "Minimum overtime qualification (minutes)",
     overtimeMultiplier: "Overtime hour multiplier",
     locationVerification: "Attendance location type",
-    gpsPolicy: "Attendance movement (fixed location)",
+    gpsPolicy: "Attendance movement with location (fixed location)",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
@@ -1471,7 +1471,7 @@ const copy = {
     evidenceAnalysis: "الأدلة والتحليل",
     exceptionsSurfaced: "يتم عرض الاستثناءات بوضوح.",
     from: "من",
-    gpsPolicy: "تسجيل الحركة (موقع ثابت)",
+    gpsPolicy: "تسجيل الحركة بالموقع (موقع ثابت)",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
     profileCompanyOwner: "حسابي وبيانات الشركة",
@@ -1943,7 +1943,7 @@ const pageCopy = {
     overtimeStartsAfter: "Minimum overtime qualification (minutes)",
     overtimeAfter: "Minimum overtime qualification (minutes)",
     locationVerification: "Attendance location type",
-    gpsPolicy: "Attendance movement (fixed location)",
+    gpsPolicy: "Attendance movement with location (fixed location)",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
@@ -2425,7 +2425,7 @@ const pageCopy = {
     overtimeAfter: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
     overtimeMultiplier: "مضاعف ساعة العمل الإضافي",
     locationVerification: "نوع تسجيل الحركة",
-    gpsPolicy: "تسجيل الحركة (موقع ثابت)",
+    gpsPolicy: "تسجيل الحركة بالموقع (موقع ثابت)",
     disabled: "معطل",
     optional: "اختياري",
     required: "مطلوب",
@@ -3140,7 +3140,7 @@ const pageCopy = {
     overtimeAfter: "Seuil minimal d’éligibilité aux heures supplémentaires (minutes)",
     overtimeMultiplier: "Multiplicateur d’une heure supplémentaire",
     locationVerification: "Type de lieu de pointage",
-    gpsPolicy: "Pointage (lieu fixe)",
+    gpsPolicy: "Pointage avec localisation (lieu fixe)",
     disabled: "Désactivé",
     optional: "Facultatif",
     required: "Obligatoire",
@@ -3544,7 +3544,7 @@ const pageCopy = {
     overtimeAfter: "Mindestschwelle für Überstunden (Minuten)",
     overtimeMultiplier: "Multiplikator für eine Überstunde",
     locationVerification: "Standorttyp der Zeiterfassung",
-    gpsPolicy: "Zeiterfassung (fester Standort)",
+    gpsPolicy: "Zeiterfassung mit Standort (fester Standort)",
     disabled: "Deaktiviert",
     optional: "Optional",
     required: "Erforderlich",
@@ -12244,7 +12244,7 @@ function EmployeeAttendanceLocationMode({
     locale === "ar"
       ? {
           title: "نوع تسجيل الحركة",
-          fixedTitle: "تسجيل الحركة (موقع ثابت)",
+          fixedTitle: "تسجيل الحركة بالموقع (موقع ثابت)",
           fixedDetail:
             "يتحقق من الموقع مقابل نطاق GPS الثابت الذي تحدده الشركة. يلزم إعداد موقع حضور نشط وتعيين سياسة GPS في الشركة إلى «مطلوب» لتفعيل التحقق.",
           variableTitle: "تسجيل الحركة بالموقع (موقع متغير)",
@@ -12253,7 +12253,7 @@ function EmployeeAttendanceLocationMode({
         }
       : {
           title: "Attendance movement type",
-          fixedTitle: "Attendance movement (fixed location)",
+          fixedTitle: "Attendance movement with location (fixed location)",
           fixedDetail:
             "Checks against company-defined fixed GPS zones. Configure an active attendance location and set the company GPS policy to Required to enforce the site check.",
           variableTitle:

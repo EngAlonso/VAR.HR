@@ -3,7 +3,7 @@ name: Field employee location capture
 description: GPS capture and approval semantics for employees working at changing locations.
 ---
 
-Employees with location attendance enabled use the mode named “تسجيل الحركة بالموقع (موقع متغير)” / “Attendance movement with location (variable location)”. They must provide a phone GPS point at each punch and bypass fixed geofence enforcement even when the company requires it; the first phone check-in remains pending manager/HR approval and carries the captured location for review. The company-level fixed mode is named “تسجيل الحركة (موقع ثابت)” / “Attendance movement (fixed location)” and uses zones configured by the company.
+Employees with location attendance enabled use the mode named “تسجيل الحركة بالموقع (موقع متغير)” / “Attendance movement with location (variable location)”. They must provide a phone GPS point at each punch and bypass fixed geofence enforcement even when the company requires it; the first phone check-in remains pending manager/HR approval and carries the captured location for review. The company-level fixed mode is named “تسجيل الحركة بالموقع (موقع ثابت)” / “Attendance movement with location (fixed location)” and uses zones configured by the company.
 
 **Why:** Field staff work across multiple locations, and the company needs the event-time position without incorrectly rejecting punches outside a fixed office zone.
 
