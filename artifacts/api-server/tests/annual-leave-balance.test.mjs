@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   calculateAbsencePenaltyMinutes,
   calculateAnnualLeaveDeduction,
+  calculateEligibleAnnualLeaveAllocation,
 } from "../src/lib/annual-leave-balance.mjs";
 
 const base = {
@@ -16,6 +17,47 @@ const base = {
   used: 0,
   pending: 0,
 };
+
+test("employees without annual eligibility keep manual balance only", () => {
+  assert.equal(
+    calculateEligibleAnnualLeaveAllocation({
+      eligible: false,
+      annualEntitlement: 21,
+      activatedAt: "2026-09-01T00:00:00.000Z",
+      manualAdjustments: [],
+    }),
+    null,
+  );
+});
+
+test("previous manual balance is counted within the annual entitlement", () => {
+  assert.equal(
+    calculateEligibleAnnualLeaveAllocation({
+      eligible: true,
+      annualEntitlement: 21,
+      activatedAt: "2026-09-10T00:00:00.000Z",
+      manualAdjustments: [
+        { amount: 10, createdAt: "2026-09-09T12:00:00.000Z" },
+      ],
+    }),
+    21,
+  );
+});
+
+test("manual adjustments after activation remain on top of the company entitlement", () => {
+  assert.equal(
+    calculateEligibleAnnualLeaveAllocation({
+      eligible: true,
+      annualEntitlement: 21,
+      activatedAt: "2026-09-10T00:00:00.000Z",
+      manualAdjustments: [
+        { amount: 10, createdAt: "2026-09-09T12:00:00.000Z" },
+        { amount: 2, createdAt: "2026-09-10T12:00:00.000Z" },
+      ],
+    }),
+    23,
+  );
+});
 
 test("selected month + approved permission deducts annual leave", () => {
   assert.equal(calculateAnnualLeaveDeduction(base), 1);

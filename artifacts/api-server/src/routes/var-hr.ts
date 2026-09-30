@@ -287,6 +287,7 @@ import {
   type ProviderAttendanceEvent,
 } from "../lib/biometric-provider";
 import {
+  calculateEligibleAnnualLeaveAllocation,
   calculateAbsencePenaltyMinutes,
   calculateAnnualLeaveDeduction,
 } from "../lib/annual-leave-balance.mjs";
@@ -2514,6 +2515,8 @@ function employeeResponse(
     nationalId: row.employee.nationalId,
     biometricCode: row.employee.biometricCode,
     locationAttendanceEnabled: row.employee.locationAttendanceEnabled,
+    automaticAnnualLeaveEligible:
+      row.employee.automaticAnnualLeaveEligible,
     workingHours: row.employee.workingHours,
     department: row.department
       ? {
@@ -3904,6 +3907,12 @@ router.post("/employees", async (req, res): Promise<void> => {
           nationalId: parsed.data.nationalId,
           biometricCode: parsed.data.biometricCode,
           locationAttendanceEnabled: parsed.data.locationAttendanceEnabled ?? false,
+          automaticAnnualLeaveEligible:
+            parsed.data.automaticAnnualLeaveEligible ?? false,
+          automaticAnnualLeaveActivatedAt:
+            parsed.data.automaticAnnualLeaveEligible === true
+              ? new Date()
+              : null,
           workingHours: parsed.data.workingHours ?? 8,
           departmentId: parsed.data.departmentId,
           branchId: parsed.data.branchId,
@@ -4002,6 +4011,7 @@ router.post("/employees", async (req, res): Promise<void> => {
   if (!employeeAccount || !temporaryPassword) {
     throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
   }
+  await ensureLeaveAccruals(context.companyId);
   const createdEmployee = employee;
   const [row] = await employeeRows(context).then((rows) =>
     rows.filter((item) => item.employee.id === createdEmployee.id),
@@ -4238,8 +4248,17 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(403).json({ error: message(req, "workspaceAccessDenied") });
     return;
   }
+  const automaticAnnualLeaveEligibilityChanged =
+    parsed.data.automaticAnnualLeaveEligible !== undefined &&
+    parsed.data.automaticAnnualLeaveEligible !==
+      before.automaticAnnualLeaveEligible;
   const updateData = {
     ...parsed.data,
+    ...(automaticAnnualLeaveEligibilityChanged &&
+    parsed.data.automaticAnnualLeaveEligible === true &&
+    before.automaticAnnualLeaveActivatedAt === null
+      ? { automaticAnnualLeaveActivatedAt: new Date() }
+      : {}),
     ...(parsed.data.employeeNumber !== undefined
       ? { employeeNumber: parsed.data.employeeNumber.trim() }
       : {}),
@@ -4401,6 +4420,7 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
       ),
     );
   for (const policy of activeLeavePolicies) {
+    if (isAnnualLeaveType(policy.leaveType)) continue;
     await db
       .insert(leaveBalancesTable)
       .values({
@@ -4409,6 +4429,9 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
         type: policy.leaveType,
       })
       .onConflictDoNothing();
+  }
+  if (automaticAnnualLeaveEligibilityChanged) {
+    await ensureLeaveAccruals(context.companyId);
   }
   await recordAudit(
     context.companyId,
@@ -6191,11 +6214,6 @@ function isAnnualLeaveType(value: string) {
   );
 }
 
-async function currentAnnualLeaveEntitlement(companyId: string) {
-  const rules = await attendanceRulesFor(companyId, TODAY);
-  return Number(rules.annualLeaveEntitlement ?? 0);
-}
-
 async function annualPolicyFromAttendanceRules(
   companyId: string,
   date = TODAY,
@@ -6395,9 +6413,7 @@ async function cappedAnnualLeaveDeduction(
     date,
     queryDb,
   );
-  const allocated = isAnnualLeaveType(balance.type)
-    ? await currentAnnualLeaveEntitlement(balance.companyId)
-    : balance.allocated;
+  const allocated = balance.allocated;
   return calculateAnnualLeaveDeduction({
     absenceKind,
     date,
@@ -6421,6 +6437,20 @@ async function applyAutomaticAbsenceAnnualLeave(
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`${context.companyId}:${attendance.employeeId}:${attendance.date.slice(0, 7)}`}))`,
     );
+    const [employee] = await tx
+      .select({
+        automaticAnnualLeaveEligible:
+          employeesTable.automaticAnnualLeaveEligible,
+      })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, attendance.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee?.automaticAnnualLeaveEligible) return 0;
     const rules = await attendanceRulesFor(context.companyId, attendance.date);
     if (!rules.absenceDeductsAnnualLeave) return 0;
     if (
@@ -6502,6 +6532,20 @@ async function applyApprovedPermissionAnnualLeave(
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`${context.companyId}:${request.employeeId}:${request.date.slice(0, 7)}`}))`,
     );
+    const [employee] = await tx
+      .select({
+        automaticAnnualLeaveEligible:
+          employeesTable.automaticAnnualLeaveEligible,
+      })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, request.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee?.automaticAnnualLeaveEligible) return 0;
     const rules = await attendanceRulesFor(context.companyId, request.date);
     if (!rules.absenceDeductsAnnualLeave) return 0;
     const policy = await annualLeavePolicyFor(context.companyId, request.date);
@@ -6645,9 +6689,7 @@ async function leaveBalanceResponse(
     TODAY,
   );
   const unauthorizedAbsenceDays = await unauthorizedAbsenceDaysFor(balance);
-  const allocated = isAnnualLeaveType(balance.type)
-    ? await currentAnnualLeaveEntitlement(balance.companyId)
-    : balance.allocated;
+  const allocated = balance.allocated;
   return {
     id: balance.id,
     employee: employeeReference(employee, department.name),
@@ -6709,7 +6751,14 @@ function addMonths(value: string, months: number) {
 async function ensureLeaveAccruals(companyId: string, through = TODAY) {
   const [employees, policies] = await Promise.all([
     db
-      .select({ id: employeesTable.id, joinedOn: employeesTable.joinedOn })
+      .select({
+        id: employeesTable.id,
+        joinedOn: employeesTable.joinedOn,
+        automaticAnnualLeaveEligible:
+          employeesTable.automaticAnnualLeaveEligible,
+        automaticAnnualLeaveActivatedAt:
+          employeesTable.automaticAnnualLeaveActivatedAt,
+      })
       .from(employeesTable)
       .where(eq(employeesTable.companyId, companyId)),
     db
@@ -6749,23 +6798,61 @@ async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         companyId,
         employeeId: employee.id,
         type: annualPolicy.leaveType,
-        allocated: annualPolicy.annualEntitlement,
+        allocated: 0,
       })
       .onConflictDoNothing();
     employeesWithAnnualBalance.add(employee.id);
   }
-  await db
-    .update(leaveBalancesTable)
-    .set({ allocated: annualPolicy.annualEntitlement })
+  const manualAnnualAdjustments = await db
+    .select({
+      employeeId: leaveBalanceTransactionsTable.employeeId,
+      amount: leaveBalanceTransactionsTable.amount,
+      createdAt: leaveBalanceTransactionsTable.createdAt,
+    })
+    .from(leaveBalanceTransactionsTable)
     .where(
       and(
-        eq(leaveBalancesTable.companyId, companyId),
+        eq(leaveBalanceTransactionsTable.companyId, companyId),
+        eq(leaveBalanceTransactionsTable.transactionType, "manual_adjustment"),
         or(
-          ilike(leaveBalancesTable.type, "annual"),
-          ilike(leaveBalancesTable.type, "annual leave"),
+          ilike(leaveBalanceTransactionsTable.leaveType, "annual"),
+          ilike(leaveBalanceTransactionsTable.leaveType, "annual leave"),
         ),
       ),
     );
+  const manualAdjustmentsByEmployee = new Map<
+    string,
+    typeof manualAnnualAdjustments
+  >();
+  for (const adjustment of manualAnnualAdjustments) {
+    const employeeAdjustments =
+      manualAdjustmentsByEmployee.get(adjustment.employeeId) ?? [];
+    employeeAdjustments.push(adjustment);
+    manualAdjustmentsByEmployee.set(adjustment.employeeId, employeeAdjustments);
+  }
+  for (const employee of employees) {
+    const annualEntitlement = calculateEligibleAnnualLeaveAllocation({
+      eligible: employee.automaticAnnualLeaveEligible,
+      annualEntitlement: annualPolicy.annualEntitlement,
+      activatedAt: employee.automaticAnnualLeaveActivatedAt,
+      manualAdjustments:
+        manualAdjustmentsByEmployee.get(employee.id) ?? [],
+    });
+    if (annualEntitlement === null) continue;
+    await db
+      .update(leaveBalancesTable)
+      .set({ allocated: annualEntitlement })
+      .where(
+        and(
+          eq(leaveBalancesTable.companyId, companyId),
+          eq(leaveBalancesTable.employeeId, employee.id),
+          or(
+            ilike(leaveBalancesTable.type, "annual"),
+            ilike(leaveBalancesTable.type, "annual leave"),
+          ),
+        ),
+      );
+  }
   for (const policy of accrualPolicies) {
     const periodsPerYear =
       policy.accrualFrequency === "monthly"
@@ -7422,9 +7509,7 @@ router.post("/leave/requests", async (req, res): Promise<void> => {
     parsed.data.type,
     calendarDate(parsed.data.from) ?? TODAY,
   );
-  const allocated = isAnnualLeaveType(parsed.data.type)
-    ? await currentAnnualLeaveEntitlement(context.companyId)
-    : balance.allocated;
+  const allocated = balance.allocated;
   if (
     !requestPolicy?.allowNegative &&
     allocated - balance.used - balance.pending < days
@@ -9790,6 +9875,8 @@ router.post("/employees/import", async (req, res): Promise<void> => {
             lastName: String(lastName),
             email: String(email),
             phone: phone ? String(phone) : null,
+            automaticAnnualLeaveEligible: false,
+            automaticAnnualLeaveActivatedAt: null,
             departmentId: String(departmentId),
             branchId: String(branchId),
             status: String(status),
@@ -10673,6 +10760,7 @@ async function calculatePayrollPeriod(
     : null;
   if (persist && (period.status === "finalized" || period.status === "locked"))
     return existing;
+  await ensureLeaveAccruals(context.companyId);
   let rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
   );
@@ -10744,9 +10832,6 @@ async function calculatePayrollPeriod(
         eq(permissionRequestsTable.status, "approved"),
       ),
     );
-  const currentAnnualEntitlement = await currentAnnualLeaveEntitlement(
-    context.companyId,
-  );
   const dates = dateStrings(calculationPeriod.from, calculationPeriod.to);
   const fullPeriodDates = dateStrings(period.from, period.to);
   const periodRules = await attendanceRulesFor(
@@ -10849,9 +10934,7 @@ async function calculatePayrollPeriod(
     const employeeLeaveBalances = leaveBalances
       .filter((balance) => balance.employeeId === row.employee.id)
     .map((balance) => {
-      const allocated = isAnnualLeaveType(balance.type)
-        ? currentAnnualEntitlement
-        : balance.allocated;
+      const allocated = balance.allocated;
       return {
         type: balance.type,
         allocated,

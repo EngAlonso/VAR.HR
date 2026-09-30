@@ -24,6 +24,7 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0
      * @maximum 24

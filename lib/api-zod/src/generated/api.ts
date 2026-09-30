@@ -782,6 +782,7 @@ export const ListEmployeesResponseItem = zod.object({
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
   "locationAttendanceEnabled": zod.boolean().optional(),
+  "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(listEmployeesResponseWorkingHoursMin).max(listEmployeesResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -828,6 +829,7 @@ export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
 
 
 export const createEmployeeBodyLocationAttendanceEnabledDefault = false;
+export const createEmployeeBodyAutomaticAnnualLeaveEligibleDefault = false;
 export const createEmployeeBodyWorkingHoursMin = 0;
 export const createEmployeeBodyWorkingHoursMax = 24;
 
@@ -845,6 +847,7 @@ export const CreateEmployeeBody = zod.object({
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
   "locationAttendanceEnabled": zod.boolean().default(createEmployeeBodyLocationAttendanceEnabledDefault),
+  "automaticAnnualLeaveEligible": zod.boolean().default(createEmployeeBodyAutomaticAnnualLeaveEligibleDefault),
   "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
@@ -872,6 +875,7 @@ export const CreateEmployeeResponse = zod.object({
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
   "locationAttendanceEnabled": zod.boolean().optional(),
+  "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(createEmployeeResponseWorkingHoursMin).max(createEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -933,6 +937,7 @@ export const GetEmployeeResponse = zod.object({
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
   "locationAttendanceEnabled": zod.boolean().optional(),
+  "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(getEmployeeResponseWorkingHoursMin).max(getEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),
@@ -999,6 +1004,7 @@ export const UpdateEmployeeBody = zod.object({
   "nationalId": zod.string().min(1).optional(),
   "biometricCode": zod.string().min(1).optional(),
   "locationAttendanceEnabled": zod.boolean().optional(),
+  "automaticAnnualLeaveEligible": zod.boolean().optional(),
   "workingHours": zod.number().min(updateEmployeeBodyWorkingHoursMin).max(updateEmployeeBodyWorkingHoursMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
@@ -1026,6 +1032,7 @@ export const UpdateEmployeeResponse = zod.object({
   "nationalId": zod.string().nullish(),
   "biometricCode": zod.string().nullish(),
   "locationAttendanceEnabled": zod.boolean().optional(),
+  "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(updateEmployeeResponseWorkingHoursMin).max(updateEmployeeResponseWorkingHoursMax).optional(),
   "department": zod.union([zod.object({
   "id": zod.string(),

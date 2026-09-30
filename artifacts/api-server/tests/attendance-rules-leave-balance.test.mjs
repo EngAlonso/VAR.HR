@@ -119,6 +119,28 @@ test("absence-to-annual-leave deduction follows the explicit attendance rule", (
   assert.match(app, /balanceDeductionMonths/);
 });
 
+test("manual absence conversion decrements annual leave by one day", () => {
+  assert.match(
+    route,
+    /\.set\(\{ used: sql`\$\{leaveBalancesTable\.used\} \+ 1` \}\)/,
+  );
+  assert.match(
+    route,
+    /const afterBalance = updatedBalance\.allocated - updatedBalance\.used/,
+  );
+  assert.match(route, /balanceRemaining: afterBalance/);
+});
+
+test("annual eligibility gates automatic deductions but not manual conversions", () => {
+  assert.equal(
+    (route.match(/if \(!employee\?\.automaticAnnualLeaveEligible\) return 0;/g) ?? [])
+      .length,
+    2,
+  );
+  assert.match(app, /automaticAnnualLeaveEligible:\s*form\.automaticAnnualLeaveEligible/);
+  assert.match(app, /automaticAnnualLeaveEligible:\s*editForm\.automaticAnnualLeaveEligible/);
+});
+
 test("payroll materializes scheduled absences without replacing approved leave", () => {
   assert.match(route, /synchronizePayrollAttendance/);
   assert.match(route, /Automatically materialized as absent during payroll synchronization/);
@@ -160,7 +182,7 @@ test("leave balances expose configured leave-year boundaries and states", () => 
     route,
     /canUseCapability\(context, "leave\.view", true\)[\s\S]*canUseCapability\(context, "employees\.view", true\)/,
   );
-  assert.match(route, /const allocated = isAnnualLeaveType\(balance\.type\)/);
+  assert.match(route, /const allocated = balance\.allocated/);
   assert.match(route, /total: allocated/);
   assert.match(route, /absenceDeducted/);
   assert.match(route, /remaining: allocated - balance\.used - balance\.pending/);
@@ -182,7 +204,7 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(spec, /absenceDeducted:/);
   assert.match(route, /annualLeavePolicyFor/);
   assert.match(route, /isAnnualLeaveType/);
-  assert.match(route, /currentAnnualLeaveEntitlement/);
+  assert.match(route, /calculateEligibleAnnualLeaveAllocation/);
   assert.match(route, /set\(\{ allocated: annualEntitlement \}\)/);
   assert.match(route, /monthStart/);
   assert.match(route, /change\.oldValue/);

@@ -514,6 +514,7 @@ export interface Employee {
   /** @nullable */
   biometricCode?: string | null;
   locationAttendanceEnabled?: boolean;
+  automaticAnnualLeaveEligible: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -554,6 +555,7 @@ export interface EmployeeInput {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0
      * @maximum 24
@@ -611,6 +613,7 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0
      * @maximum 24

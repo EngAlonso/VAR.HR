@@ -1830,6 +1830,9 @@ const pageCopy = {
     employeeEmploymentSection: "Employment details",
     employeeEmploymentDetail:
       "Set the working terms that will guide attendance and payroll calculations.",
+    automaticAnnualLeaveEligible: "Eligible for automatic annual leave",
+    automaticAnnualLeaveEligibleHint:
+      "When off, annual leave is not added or deducted automatically. Manually assigned balances and manual absence conversions still work.",
     workingHours: "Working hours",
     workingHoursHint: "Hours per working day.",
     employmentStartDate: "Employment start date",
@@ -2294,6 +2297,9 @@ const pageCopy = {
     employeeEmploymentSection: "بيانات التوظيف",
     employeeEmploymentDetail:
       "حدد شروط العمل التي ستوجّه حسابات الحضور والرواتب.",
+    automaticAnnualLeaveEligible: "مؤهل للرصيد السنوي التلقائي",
+    automaticAnnualLeaveEligibleHint:
+      "عند إيقافه، لا يُضاف أو يُخصم الرصيد السنوي تلقائيًا. يظل الرصيد المضاف يدويًا والتحويل اليدوي للغياب متاحين.",
     workingHours: "ساعات العمل",
     workingHoursHint: "عدد الساعات في يوم العمل.",
     employmentStartDate: "تاريخ بدء العمل",
@@ -3008,6 +3014,9 @@ const pageCopy = {
     employeeEmploymentSection: "Détails de l’emploi",
     employeeEmploymentDetail:
       "Définissez les conditions qui guideront les calculs de présence et de paie.",
+    automaticAnnualLeaveEligible: "Éligible au congé annuel automatique",
+    automaticAnnualLeaveEligibleHint:
+      "Désactivé, le congé annuel n’est ni ajouté ni déduit automatiquement. Les soldes attribués manuellement et la conversion manuelle des absences restent possibles.",
     workingHours: "Heures de travail",
     workingHoursHint: "Heures par jour travaillé.",
     employmentStartDate: "Date de début d’emploi",
@@ -3412,6 +3421,9 @@ const pageCopy = {
     employeeEmploymentSection: "Beschäftigungsdetails",
     employeeEmploymentDetail:
       "Legen Sie die Angaben fest, die Anwesenheits- und Abrechnungen steuern.",
+    automaticAnnualLeaveEligible: "Für automatischen Jahresurlaub berechtigt",
+    automaticAnnualLeaveEligibleHint:
+      "Ist die Option aus, wird Jahresurlaub weder automatisch gutgeschrieben noch abgezogen. Manuell zugewiesene Salden und manuelle Abwesenheitsumwandlungen bleiben möglich.",
     workingHours: "Arbeitsstunden",
     workingHoursHint: "Stunden pro Arbeitstag.",
     employmentStartDate: "Beschäftigungsbeginn",
@@ -10659,6 +10671,7 @@ function AddEmployeePage() {
     role: "employee",
     payrollCycleId: "",
     locationAttendanceEnabled: false,
+    automaticAnnualLeaveEligible: false,
   });
 
   useEffect(() => {
@@ -10714,12 +10727,15 @@ function AddEmployeePage() {
           payrollCycleId: form.payrollCycleId || null,
           role: form.role as "employee" | "manager",
           locationAttendanceEnabled: form.locationAttendanceEnabled,
+          automaticAnnualLeaveEligible:
+            form.automaticAnnualLeaveEligible,
         },
       },
       {
         onSuccess: (result: any) => {
           toast.success(t("employeeAdded"));
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
           const generated = result?.accountCredentials?.generatedPassword;
           const username = result?.accountCredentials?.username;
           if (generated && username) {
@@ -10977,6 +10993,27 @@ function AddEmployeePage() {
                 })
               }
             />
+            <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-1 accent-primary"
+                checked={form.automaticAnnualLeaveEligible}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    automaticAnnualLeaveEligible: event.target.checked,
+                  })
+                }
+              />
+              <span>
+                <span className="block font-semibold">
+                  {t("automaticAnnualLeaveEligible")}
+                </span>
+                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                  {t("automaticAnnualLeaveEligibleHint")}
+                </span>
+              </span>
+            </label>
           </div>
         </Card>
 
@@ -11187,6 +11224,7 @@ function EmployeeProfilePage() {
     role: "employee",
     status: "active",
     locationAttendanceEnabled: false,
+    automaticAnnualLeaveEligible: false,
   });
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
@@ -11229,6 +11267,8 @@ function EmployeeProfilePage() {
       role: employee.data.role,
       status: employee.data.status,
       locationAttendanceEnabled: employee.data.locationAttendanceEnabled ?? false,
+      automaticAnnualLeaveEligible:
+        employee.data.automaticAnnualLeaveEligible ?? false,
     });
     setEditing(true);
   }
@@ -11269,6 +11309,8 @@ function EmployeeProfilePage() {
           role: editForm.role,
           status: editForm.status,
           locationAttendanceEnabled: editForm.locationAttendanceEnabled,
+          automaticAnnualLeaveEligible:
+            editForm.automaticAnnualLeaveEligible,
         } as any,
       },
       {
@@ -11291,6 +11333,9 @@ function EmployeeProfilePage() {
                 toast.success(t("employeeSaved"));
                 setEditing(false);
                 qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+                qc.invalidateQueries({
+                  queryKey: getListLeaveBalancesQueryKey(),
+                });
                 qc.invalidateQueries({
                   queryKey: getGetEmployeeQueryKey(employeeId),
                 });
@@ -12092,6 +12137,27 @@ function EmployeeProfilePage() {
                   })
                 }
               />
+              <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-1 accent-primary"
+                  checked={editForm.automaticAnnualLeaveEligible}
+                  onChange={(event) =>
+                    setEditForm({
+                      ...editForm,
+                      automaticAnnualLeaveEligible: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <span className="block font-semibold">
+                    {t("automaticAnnualLeaveEligible")}
+                  </span>
+                  <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                    {t("automaticAnnualLeaveEligibleHint")}
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>

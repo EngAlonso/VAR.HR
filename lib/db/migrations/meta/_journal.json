@@ -29,6 +29,13 @@
       "when": 1790790000000,
       "tag": "0003_employee_work_locations",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790793600000,
+      "tag": "0004_employee_annual_leave_eligibility",
+      "breakpoints": true
     }
   ]
 }

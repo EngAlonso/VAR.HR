@@ -590,6 +590,13 @@ function normalizeRestoreRow(
         phone: row.phone ?? null,
         national_id: row.national_id ?? null,
         biometric_code: row.biometric_code ?? null,
+        automatic_annual_leave_eligible:
+          row.automatic_annual_leave_eligible ?? true,
+        automatic_annual_leave_activated_at:
+          row.automatic_annual_leave_activated_at ??
+          (row.automatic_annual_leave_eligible == null
+            ? new Date().toISOString()
+            : null),
         working_hours: row.working_hours ?? 8,
         department_id: row.department_id ?? null,
         status: row.status ?? "active",
