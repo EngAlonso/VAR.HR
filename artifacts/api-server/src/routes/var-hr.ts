@@ -4516,11 +4516,15 @@ router.post(
 
     const reason = parsed.data.reason?.trim() || null;
     if (parsed.data.decision === "approved") {
+      if (row.request.direction !== "in" && row.request.direction !== "out") {
+        res.status(409).json({ error: "This attendance punch has an invalid direction." });
+        return;
+      }
       const rules = await attendanceRulesFor(
         context.companyId,
         row.request.attendanceDate,
       );
-      const schedule = await effectiveScheduleFor(
+      const resolvedSchedule = await effectiveScheduleFor(
         context.companyId,
         row.employee.id,
         row.request.attendanceDate,
@@ -4531,20 +4535,6 @@ router.post(
         rules,
         await holidaysForCompany(context.companyId),
       );
-      const location = row.request.location;
-      const checkInLocation =
-        location && typeof location === "object" && !Array.isArray(location)
-          ? (location as any).checkIn ?? location
-          : null;
-      const metrics = attendanceMetrics({
-        checkIn: row.request.occurredAt,
-        checkOut: null,
-        attendanceDate: row.request.attendanceDate,
-        schedule,
-        rules,
-        timeZone: context.company.timezone,
-        holiday,
-      });
       const [existing] = await db
         .select()
         .from(attendanceTable)
@@ -4556,45 +4546,131 @@ router.post(
           ),
         )
         .limit(1);
-      if (existing) {
+      if (row.request.direction === "in" && existing) {
         res.status(409).json({
           error: "An attendance record already exists for this date.",
         });
         return;
       }
-      const [created] = await db
-        .insert(attendanceTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: row.employee.id,
-          date: row.request.attendanceDate,
-          status: holiday
-            ? "holiday"
-            : metrics.rawLateMinutes > schedule.graceMinutes
-              ? "late"
-              : "present",
-          scheduledStart: schedule.startTime,
-          scheduledEnd: schedule.endTime,
-          requiredHours: schedule.requiredHours,
+      const requestLocation = row.request.location;
+      const punchLocation =
+        requestLocation &&
+        typeof requestLocation === "object" &&
+        !Array.isArray(requestLocation)
+          ? (requestLocation as any)[
+              row.request.direction === "out" ? "checkOut" : "checkIn"
+            ] ?? requestLocation
+          : requestLocation;
+      let approvedAttendance: typeof attendanceTable.$inferSelect | undefined;
+
+      if (row.request.direction === "in") {
+        const metrics = attendanceMetrics({
           checkIn: row.request.occurredAt,
-          workedHours: 0,
-          overtimeHours: 0,
-          lateMinutes: metrics.lateMinutes,
-          source: row.request.source,
-          locationStatus: row.request.locationStatus,
-          location: checkInLocation
-            ? { checkIn: checkInLocation }
-            : row.request.location,
-          explanation: `${row.request.explanation} Approved by manager/HR.`,
-        })
-        .returning();
-      await attendanceCalculationFor(context, created, true);
+          checkOut: null,
+          attendanceDate: row.request.attendanceDate,
+          schedule: resolvedSchedule,
+          rules,
+          timeZone: context.company.timezone,
+          holiday,
+        });
+        [approvedAttendance] = await db
+          .insert(attendanceTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: row.employee.id,
+            date: row.request.attendanceDate,
+            status: holiday
+              ? "holiday"
+              : metrics.rawLateMinutes > resolvedSchedule.graceMinutes
+                ? "late"
+                : "present",
+            scheduledStart: resolvedSchedule.startTime,
+            scheduledEnd: resolvedSchedule.endTime,
+            requiredHours: resolvedSchedule.requiredHours,
+            checkIn: row.request.occurredAt,
+            workedHours: 0,
+            overtimeHours: 0,
+            lateMinutes: metrics.lateMinutes,
+            source: row.request.source,
+            locationStatus: row.request.locationStatus,
+            location: punchLocation ? { checkIn: punchLocation } : requestLocation,
+            explanation: `${row.request.explanation} Approved by manager/HR.`,
+          })
+          .returning();
+      } else {
+        if (!existing?.checkIn || existing.checkOut) {
+          res.status(409).json({
+            error: "A check-out can only be approved for an open attendance record.",
+          });
+          return;
+        }
+        const schedule = scheduleForAttendanceCalculation(
+          existing,
+          resolvedSchedule,
+        );
+        const metrics = attendanceMetrics({
+          checkIn: existing.checkIn,
+          checkOut: row.request.occurredAt,
+          attendanceDate: row.request.attendanceDate,
+          schedule,
+          rules,
+          timeZone: context.company.timezone,
+          holiday,
+        });
+        const earlyDeparture = metrics.earlyCheckoutMinutes > 0;
+        const existingLocation =
+          existing.location &&
+          typeof existing.location === "object" &&
+          !Array.isArray(existing.location)
+            ? (existing.location as Record<string, unknown>)
+            : {};
+        [approvedAttendance] = await db
+          .update(attendanceTable)
+          .set({
+            checkOut: row.request.occurredAt,
+            workedHours: metrics.workedHours,
+            overtimeHours: metrics.overtimeHours,
+            earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
+            missingMinutes: metrics.missingMinutes,
+            status: holiday
+              ? "holiday"
+              : earlyDeparture || metrics.missingMinutes > 0
+                ? "incomplete"
+                : existing.status,
+            source: row.request.source,
+            locationStatus: row.request.locationStatus,
+            location: punchLocation
+              ? { ...existingLocation, checkOut: punchLocation }
+              : existing.location,
+            explanation: `${earlyDeparture ? `${message(req, "earlyDeparture")} ` : ""}${row.request.explanation} Approved by manager/HR. ${holiday ? "Company holiday. " : ""}${message(req, "workedHours", { worked: metrics.workedHours.toFixed(2), overtime: metrics.overtimeHours.toFixed(2) })}`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(attendanceTable.id, existing.id),
+              isNull(attendanceTable.checkOut),
+            ),
+          )
+          .returning();
+        if (!approvedAttendance) {
+          res.status(409).json({
+            error: "This attendance record already has a check-out.",
+          });
+          return;
+        }
+      }
+
+      if (!approvedAttendance) {
+        res.status(500).json({ error: "The attendance punch could not be applied." });
+        return;
+      }
+      await attendanceCalculationFor(context, approvedAttendance, true);
       await recordAudit(
         context.companyId,
         "approved",
         "attendance_punch_request",
         row.request.id,
-        { request: row.request, attendance: created, reason },
+        { request: row.request, attendance: approvedAttendance, reason },
       );
     }
 
@@ -5307,15 +5383,6 @@ async function recordCurrentAttendance(
       });
       return;
     }
-    const metrics = attendanceMetrics({
-      checkIn: eventAt,
-      checkOut: null,
-      attendanceDate,
-      schedule,
-      rules,
-      timeZone: context.company.timezone,
-      holiday,
-    });
     const locationValidation = await resolveAttendanceLocation(
       context,
       location,
@@ -5404,6 +5471,15 @@ async function recordCurrentAttendance(
       });
       return;
     }
+    const metrics = attendanceMetrics({
+      checkIn: eventAt,
+      checkOut: null,
+      attendanceDate,
+      schedule,
+      rules,
+      timeZone: context.company.timezone,
+      holiday,
+    });
     const [created] = await db
       .insert(attendanceTable)
       .values({
@@ -5465,22 +5541,15 @@ async function recordCurrentAttendance(
     res.status(409).json({ error: message(req, "checkOutAlready") });
     return;
   }
-  const checkIn = existing.checkIn ?? now;
-  const metrics = attendanceMetrics({
-    checkIn,
-    checkOut: eventAt,
-    attendanceDate,
-    schedule,
-    rules,
-    timeZone: context.company.timezone,
-    holiday,
-  });
-  const earlyDeparture = metrics.earlyCheckoutMinutes > 0;
-    const locationValidation = location
+  if (locationRequiredForEmployee && !existing.checkIn) {
+    res.status(400).json({ error: message(req, "checkInRequired") });
+    return;
+  }
+  const locationValidation = location
     ? await resolveAttendanceLocation(
         context,
         location,
-          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
+        locationRequiredForEmployee ? "required" : rules.gpsPolicy,
         locale,
       )
     : {
@@ -5506,6 +5575,85 @@ async function recordCurrentAttendance(
     });
     return;
   }
+  if (locationRequiredForEmployee) {
+    const [pending] = await db
+      .select()
+      .from(attendancePunchRequestsTable)
+      .where(
+        and(
+          eq(attendancePunchRequestsTable.companyId, context.companyId),
+          eq(attendancePunchRequestsTable.employeeId, context.employeeId),
+          eq(attendancePunchRequestsTable.attendanceDate, attendanceDate),
+          eq(attendancePunchRequestsTable.direction, "out"),
+          eq(attendancePunchRequestsTable.status, "pending"),
+        ),
+      )
+      .limit(1);
+    if (pending) {
+      res.status(409).json({
+        error: "Your check-out location attendance punch is already waiting for approval.",
+        code: "ATTENDANCE_PUNCH_APPROVAL_PENDING",
+      });
+      return;
+    }
+    const [department] = currentEmployee.departmentId
+      ? await db
+          .select({ name: departmentsTable.name })
+          .from(departmentsTable)
+          .where(eq(departmentsTable.id, currentEmployee.departmentId))
+          .limit(1)
+      : [undefined];
+    const [request] = await db
+      .insert(attendancePunchRequestsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: context.employeeId,
+        attendanceDate,
+        direction: "out",
+        occurredAt: eventAt,
+        source: parsed.data.source,
+        locationStatus: locationValidation.status,
+        location: {
+          checkOut: { ...location, capturedAt: eventAt.toISOString() },
+        },
+        explanation:
+          locationValidation.status === "pending"
+            ? message(req, "gpsLocationCapturedForReview")
+            : locationValidation.explanation,
+        requestedBy: context.accountId,
+      })
+      .returning();
+    res.status(202).json({
+      id: request.id,
+      employee: employeeReference(
+        currentEmployee,
+        department?.name ?? "—",
+      ),
+      attendanceDate: request.attendanceDate,
+      direction: request.direction,
+      occurredAt: request.occurredAt.toISOString(),
+      source: request.source,
+      locationStatus: request.locationStatus,
+      location: request.location,
+      explanation: request.explanation,
+      status: request.status,
+      requestedAt: request.requestedAt.toISOString(),
+      decidedAt: null,
+      decisionReason: null,
+    });
+    return;
+  }
+  const checkIn = existing.checkIn ?? now;
+  const metrics = attendanceMetrics({
+    checkIn,
+    checkOut: eventAt,
+    attendanceDate,
+    schedule,
+    rules,
+    timeZone: context.company.timezone,
+    holiday,
+  });
+  const earlyDeparture = metrics.earlyCheckoutMinutes > 0;
   const [updated] = await db
     .update(attendanceTable)
     .set({

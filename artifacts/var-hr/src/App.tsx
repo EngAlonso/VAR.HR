@@ -6262,7 +6262,7 @@ function permissionDescription(
     "attendance.view": "عرض سجلات الحضور والانصراف.",
     "attendance.punch": "إضافة حركة حضور أو انصراف يدوية بعد المراجعة.",
     "attendance.correct": "تصحيح سجلات الحضور.",
-    "attendance.location.approve": "اعتماد أو رفض أول بصمة موقع للموظفين المحددين.",
+    "attendance.location.approve": "اعتماد أو رفض بصمات الموقع للموظفين المحددين.",
     "attendance.absence_leave": "تحويل يوم الغياب إلى إجازة سنوية معتمدة وتحديث الراتب.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
@@ -12246,20 +12246,20 @@ function EmployeeAttendanceLocationMode({
           title: "نوع تسجيل الحركة",
           fixedTitle: "تسجيل الحركة بالموقع (موقع ثابت)",
           fixedDetail:
-            "يتحقق من الموقع مقابل نطاق GPS الثابت الذي تحدده الشركة. يلزم إعداد موقع حضور نشط وتعيين سياسة GPS في الشركة إلى «مطلوب» لتفعيل التحقق.",
+            "تُضاف بصمتا الحضور والانصراف مباشرة دون انتظار موافقة. ويتحقق GPS مقابل نطاق الشركة الثابت عند تفعيل سياسة GPS «مطلوب».",
           variableTitle: "تسجيل الحركة بالموقع (موقع متغير)",
           variableDetail:
-            "يتطلب GPS الهاتف ويلتقط موقعه عند كل بصمة من أي مكان. أول بصمة هاتف تنتظر موافقة المدير أو HR؛ بصمات الأجهزة تدخل مباشرة.",
+            "يتطلب GPS الهاتف ويلتقط موقعه عند كل بصمة من أي مكان. كل بصمات الهاتف تنتظر موافقة المدير أو HR قبل دخولها السجل والحسابات؛ بصمات الأجهزة تدخل مباشرة.",
         }
       : {
           title: "Attendance movement type",
           fixedTitle: "Attendance movement with location (fixed location)",
           fixedDetail:
-            "Checks against company-defined fixed GPS zones. Configure an active attendance location and set the company GPS policy to Required to enforce the site check.",
+            "Check-in and check-out are recorded immediately without manager approval. GPS is checked against company-defined fixed zones when the company GPS policy is Required.",
           variableTitle:
             "Attendance movement with location (variable location)",
           variableDetail:
-            "Requires phone GPS and captures its location at every punch from any site. The first phone punch awaits manager/HR approval; device punches remain direct.",
+            "Requires phone GPS and captures its location at every punch from any site. Every phone punch awaits manager/HR approval before entering attendance and calculations; device punches remain direct.",
         };
 
   return (
@@ -12356,6 +12356,12 @@ function Attendance() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
+  const invalidatePayrollAttendance = () =>
+    qc.invalidateQueries({
+      predicate: ({ queryKey }) =>
+        typeof queryKey[0] === "string" &&
+        queryKey[0].startsWith("/api/payroll/"),
+    });
   const [tab, setTab] = useState<"today" | "history">("today");
   const [filters, setFilters] = useState({ from: "", to: "", employeeId: "" });
   const [correction, setCorrection] = useState<any | null>(null);
@@ -12490,14 +12496,15 @@ function Attendance() {
         toast.success(
            result?.status === "pending"
              ? locale === "ar"
-               ? "تم إرسال أول بصمة للمراجعة قبل إضافتها للسجل."
-               : "The first location punch was sent for approval."
+                ? "تم إرسال بصمة الموقع للموافقة، وستدخل السجل والحسابات بعد اعتمادها."
+                : "Your location punch was sent for approval and will enter attendance and calculations after approval."
              : t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
         );
         qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
         qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
          qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
+          if (result?.status !== "pending") invalidatePayrollAttendance();
       },
       onError: (error: unknown) =>
         toast.error(apiErrorMessage(error, t("attendanceNotAccepted"))),
@@ -12511,8 +12518,8 @@ function Attendance() {
           toast.success(
             decision === "approved"
               ? locale === "ar"
-                ? "تم اعتماد بصمة الموقع وإضافتها للسجل."
-                : "Location punch approved and added to attendance."
+                ? "تم اعتماد بصمة الموقع وتحديث سجل الحضور والحسابات."
+                : "Location punch approved; attendance and calculations updated."
               : locale === "ar"
                 ? "تم رفض بصمة الموقع."
                 : "Location punch rejected.",
@@ -12520,6 +12527,8 @@ function Attendance() {
           qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
           qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
           qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+          if (decision === "approved") invalidatePayrollAttendance();
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث طلب البصمة." : "Could not update punch request.")),
@@ -12742,8 +12751,8 @@ function Attendance() {
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {locale === "ar"
-                  ? "أول بصمة من الموظفين المحددين لا تدخل السجل إلا بعد الاعتماد."
-                  : "The first location punch for selected employees stays out of attendance until approved."}
+                  ? "بصمات الحضور والانصراف بنظام الموقع المتغير لا تدخل السجل أو الحسابات إلا بعد الاعتماد."
+                  : "Variable-location check-in and check-out punches stay out of attendance and calculations until approved."}
               </p>
             </div>
             <Badge tone="warn">{punchRequests.data.length}</Badge>

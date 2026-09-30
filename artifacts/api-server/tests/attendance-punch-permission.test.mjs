@@ -71,10 +71,14 @@ test("company-required GPS punches explain when no attendance geofence is config
   assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"لم يُسجَّل الحضور/);
 });
 
-test("employee location punches capture GPS without a fixed geofence and wait for review", () => {
+test("variable-location check-in and check-out punches wait for approval", () => {
   const attendanceRoute = route.slice(
     route.indexOf("async function recordCurrentAttendance"),
     route.indexOf('router.post("/attendance/check-in"'),
+  );
+  const punchDecisionRoute = route.slice(
+    route.indexOf('router.post(\n  "/attendance/punch-requests/:requestId/decision"'),
+    route.indexOf("async function attendanceForCalculation"),
   );
 
   assert.match(attendanceRoute, /locationRequiredForEmployee && !location/);
@@ -95,10 +99,25 @@ test("employee location punches capture GPS without a fixed geofence and wait fo
     /locationValidation\.status === "pending"\s*\?\s*message\(req,\s*"gpsLocationCapturedForReview"\)/s,
   );
   assert.match(attendanceRoute, /checkIn: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
+  assert.match(attendanceRoute, /direction: "out"/);
+  assert.match(
+    attendanceRoute,
+    /checkOut: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/,
+  );
+  assert.match(punchDecisionRoute, /row\.request\.direction === "out"/);
+  assert.match(punchDecisionRoute, /checkOut: row\.request\.occurredAt/);
+  assert.match(
+    punchDecisionRoute,
+    /await attendanceCalculationFor\(context, approvedAttendance, true\)/,
+  );
   assert.match(frontend, /تسجيل الحركة بالموقع \(موقع متغير\)/);
   assert.match(frontend, /تسجيل الحركة بالموقع \(موقع ثابت\)/);
   assert.match(frontend, /Attendance movement with location \(variable location\)/);
   assert.match(frontend, /Attendance movement with location \(fixed location\)/);
+  assert.match(
+    frontend,
+    /Variable-location check-in and check-out punches stay out of attendance and calculations until approved\./,
+  );
   assert.equal(
     (frontend.match(/<EmployeeAttendanceLocationMode/g) ?? []).length,
     2,
