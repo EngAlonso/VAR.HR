@@ -177,6 +177,8 @@ import {
   useListAttendanceLocations,
   useCreateAttendanceLocation,
   useUpdateAttendanceLocation,
+  useCreateEmployeeWorkLocation,
+  useListEmployeeWorkLocations,
   useGetEmployeeHrRecord,
   useUpdateEmployeeHrRecord,
   useGetSubscription,
@@ -219,6 +221,7 @@ import {
   getListDeviceSyncHistoryQueryKey,
   getListBiometricDeviceEventsQueryKey,
   getListAttendanceLocationsQueryKey,
+  getListEmployeeWorkLocationsQueryKey,
   getGetEmployeeHrRecordQueryKey,
   getGetSubscriptionQueryKey,
   getListPlatformCompaniesQueryKey,
@@ -1059,6 +1062,24 @@ const copy = {
       "Review your account information and linked employee HR information.",
     hrProfileDetail:
       "Review the employee and HR information available to your signed-in workspace identity.",
+    workLocations: "Work locations",
+    changeWorkLocation: "Change work location",
+    workLocationComment: "Where are you working?",
+    workLocationCommentPlaceholder:
+      "Describe the client site or work location you visited.",
+    workLocationCommentRequired: "Add a short comment about this work location.",
+    workLocationInfoOnly:
+      "This is an informational visit log. It does not affect attendance, check-in/out, or payroll.",
+    workLocationGpsRequired:
+      "Allow location access to record your work location.",
+    workLocationSaved: "Work location recorded",
+    workLocationSaveFailed: "Could not record the work location",
+    workLocationHistoryDetail:
+      "Review the places visited by date, with the recorded time, map, and comment.",
+    noWorkLocations: "No work locations recorded yet",
+    noWorkLocationsDetail:
+      "Recorded work locations will appear here, grouped by day.",
+    openWorkLocationMap: "Open map",
     hrRecord: "HR record",
     jobTitle: "Job title",
     employmentType: "Employment type",
@@ -1482,6 +1503,22 @@ const copy = {
       "راجع معلومات حسابك وبياناتك الوظيفية المرتبطة عند توفرها.",
     hrProfileDetail:
       "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
+    workLocations: "مواقع العمل",
+    changeWorkLocation: "تغيير موقع العمل",
+    workLocationComment: "أين تعمل الآن؟",
+    workLocationCommentPlaceholder:
+      "اكتب اسم موقع العميل أو مكان العمل الذي وصلت إليه.",
+    workLocationCommentRequired: "اكتب تعليقًا قصيرًا عن موقع العمل.",
+    workLocationInfoOnly:
+      "هذا سجل معلوماتي لمواقع العمل فقط، ولا يؤثر على الحضور أو الانصراف أو الرواتب.",
+    workLocationGpsRequired: "اسمح بالوصول إلى موقعك لتسجيل موقع العمل.",
+    workLocationSaved: "تم تسجيل موقع العمل",
+    workLocationSaveFailed: "تعذر تسجيل موقع العمل",
+    workLocationHistoryDetail:
+      "راجع الأماكن التي زارها الموظف حسب اليوم، مع الوقت والخريطة والتعليق.",
+    noWorkLocations: "لا توجد مواقع عمل مسجلة حتى الآن",
+    noWorkLocationsDetail: "ستظهر هنا مواقع العمل المسجلة مرتبة حسب اليوم.",
+    openWorkLocationMap: "فتح الخريطة",
     hrRecord: "سجل الموارد البشرية",
     hrRecordCreateHint: "أكمل الحقول أدناه لإنشاء سجل الموارد البشرية للموظف.",
     hrRecordLoadFailed: "تعذر تحميل سجل الموارد البشرية.",
@@ -8572,6 +8609,144 @@ function EmployeeHrPanel({
   );
 }
 
+function WorkLocationChangeButton({
+  employeeId,
+}: {
+  employeeId: string;
+}) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const createLocation = useCreateEmployeeWorkLocation();
+  const [open, setOpen] = useState(false);
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function recordLocation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedComment = comment.trim();
+    if (!trimmedComment) {
+      toast.error(t("workLocationCommentRequired"));
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast.error(t("workLocationGpsRequired"));
+      return;
+    }
+
+    setSaving(true);
+    let position: GeolocationPosition;
+    try {
+      position = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }),
+      );
+    } catch {
+      toast.error(t("workLocationGpsRequired"));
+      setSaving(false);
+      return;
+    }
+
+    try {
+      await createLocation.mutateAsync({
+        employeeId,
+        data: {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          comment: trimmedComment,
+        },
+      });
+      await queryClient.invalidateQueries({
+        queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
+      });
+      toast.success(t("workLocationSaved"));
+      setComment("");
+      setOpen(false);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, t("workLocationSaveFailed")));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => setOpen(true)}
+        data-testid={`button-change-work-location-${employeeId}`}
+      >
+        <MapPin size={16} />
+        {t("changeWorkLocation")}
+      </Button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !saving) {
+              setOpen(false);
+            }
+          }}
+        >
+          <section
+            className="w-full max-w-lg rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="work-location-dialog-title"
+            dir="inherit"
+          >
+            <h2
+              id="work-location-dialog-title"
+              className="font-display text-xl font-semibold"
+            >
+              {t("changeWorkLocation")}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {t("workLocationInfoOnly")}
+            </p>
+            <form onSubmit={recordLocation} className="mt-5 space-y-4">
+              <label className="block text-sm font-semibold">
+                {t("workLocationComment")}
+                <textarea
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  placeholder={t("workLocationCommentPlaceholder")}
+                  maxLength={1000}
+                  required
+                  rows={4}
+                  className="mt-2 min-h-28 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal outline-none focus:border-primary"
+                  data-testid="input-work-location-comment"
+                />
+              </label>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => setOpen(false)}
+                >
+                  {t("cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving || !comment.trim()}
+                  data-testid="button-save-work-location"
+                >
+                  {saving ? t("saving") : t("changeWorkLocation")}
+                </Button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function EmployeeHrProfile({
   employeeIdOverride,
 }: {
@@ -8683,6 +8858,23 @@ function EmployeeHrProfile({
               <Activity size={16} />
               {t("showAttendanceMovement")}
             </Button>
+            {selfService && employee.data.locationAttendanceEnabled ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setLocation(
+                      `/employees/${employee.data.id}/work-locations`,
+                    )
+                  }
+                  data-testid={`button-open-work-locations-${employee.data.id}`}
+                >
+                  <MapPin size={16} />
+                  {t("workLocations")}
+                </Button>
+                <WorkLocationChangeButton employeeId={employee.data.id} />
+              </>
+            ) : null}
           </div>
           <div className="mt-6 border-t border-border pt-6">
             <h3 className="font-display text-lg font-semibold">
@@ -11266,6 +11458,20 @@ function EmployeeProfilePage() {
                   <Activity size={16} />
                   {t("showAttendanceMovement")}
                 </Button>
+                {employee.data.locationAttendanceEnabled ? (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setLocation(
+                        `/employees/${employee.data.id}/work-locations`,
+                      )
+                    }
+                    data-testid={`button-open-work-locations-${employee.data.id}`}
+                  >
+                    <MapPin size={16} />
+                    {t("workLocations")}
+                  </Button>
+                ) : null}
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -25745,6 +25951,196 @@ function EmployeeMovementPage() {
   );
 }
 
+function EmployeeWorkLocationsPage() {
+  const { t, locale } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  const { employeeId = "" } = useParams<{ employeeId: string }>();
+  const workspace = useGetWorkspace();
+  const employee = useGetEmployee(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
+  const workLocations = useListEmployeeWorkLocations(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
+    },
+  });
+  const isEmployee = auth.account.accountType === "employee";
+  const isSelf = isEmployee && auth.account.employeeId === employeeId;
+  const returnPath = isEmployee ? "/profile" : `/employees/${employeeId}`;
+  const localeTag =
+    locale === "ar"
+      ? "ar-EG"
+      : locale === "fr"
+        ? "fr-FR"
+        : locale === "de"
+          ? "de-DE"
+          : "en-US";
+  const entriesByDay = new Map<
+    string,
+    NonNullable<typeof workLocations.data>
+  >();
+  for (const entry of workLocations.data ?? []) {
+    const existing = entriesByDay.get(entry.workDate) ?? [];
+    existing.push(entry);
+    entriesByDay.set(entry.workDate, existing);
+  }
+
+  if (isEmployee && !isSelf) {
+    return <Redirect to="/profile" />;
+  }
+  if (!employeeId || employee.isLoading || workspace.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-44" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-52" />
+      </div>
+    );
+  }
+  if (employee.isError || !employee.data) {
+    return (
+      <div className="space-y-5">
+        <Button
+          variant="quiet"
+          onClick={() => setLocation(returnPath)}
+          data-testid="button-back-from-work-locations"
+        >
+          <ArrowLeft size={16} />
+          {t("backToEmployeeProfile")}
+        </Button>
+        <Card>
+          <Empty
+            title={t("employeeProfileLoadFailed")}
+            detail={t("checkWorkspace")}
+            action={
+              <Button variant="outline" onClick={() => employee.refetch()}>
+                {t("retry")}
+              </Button>
+            }
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-in space-y-5">
+      <Button
+        variant="quiet"
+        onClick={() => setLocation(returnPath)}
+        data-testid="button-back-from-work-locations"
+      >
+        <ArrowLeft size={16} />
+        {t("backToEmployeeProfile")}
+      </Button>
+      <SectionTitle
+        eyebrow={t("employeeProfile")}
+        title={t("workLocations")}
+        detail={t("workLocationHistoryDetail")}
+        action={
+          isSelf && employee.data.locationAttendanceEnabled ? (
+            <WorkLocationChangeButton employeeId={employee.data.id} />
+          ) : undefined
+        }
+      />
+      <p className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+        {t("workLocationInfoOnly")}
+      </p>
+      {workLocations.isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      ) : workLocations.isError ? (
+        <Card>
+          <Empty
+            title={t("workLocationSaveFailed")}
+            detail={t("checkWorkspace")}
+            action={
+              <Button
+                variant="outline"
+                onClick={() => workLocations.refetch()}
+              >
+                {t("retry")}
+              </Button>
+            }
+          />
+        </Card>
+      ) : entriesByDay.size === 0 ? (
+        <Card>
+          <Empty
+            title={t("noWorkLocations")}
+            detail={t("noWorkLocationsDetail")}
+          />
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {[...entriesByDay.entries()].map(([workDate, entries]) => (
+            <details
+              key={workDate}
+              className="group rounded-2xl border border-border bg-card"
+              data-testid={`work-location-day-${workDate}`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+                <span className="font-display font-semibold">
+                  {new Intl.DateTimeFormat(localeTag, {
+                    dateStyle: "full",
+                    timeZone: "UTC",
+                  }).format(new Date(`${workDate}T00:00:00Z`))}
+                </span>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {entries.length}
+                </span>
+              </summary>
+              <div className="space-y-3 border-t border-border p-4 sm:p-5">
+                {entries.map((entry) => (
+                  <article
+                    key={entry.id}
+                    className="rounded-xl bg-muted/50 p-4"
+                    data-testid={`work-location-entry-${entry.id}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-semibold">
+                          {new Intl.DateTimeFormat(localeTag, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                            timeZone:
+                              workspace.data?.company?.timezone || undefined,
+                          }).format(new Date(entry.recordedAt))}
+                        </p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                          {entry.comment}
+                        </p>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                        data-testid={`link-work-location-map-${entry.id}`}
+                      >
+                        <MapPin size={16} />
+                        {t("openWorkLocationMap")}
+                        <ArrowUpRight size={14} />
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function scheduleDayLabel(
   value: string,
   t: (key: AppCopyKey) => string,
@@ -25842,10 +26238,14 @@ function Router() {
   const isOwnMovementPath =
     /^\/employees\/[^/]+\/movement$/.test(location) &&
     location.split("/")[2] === auth.account.employeeId;
+  const isOwnWorkLocationsPath =
+    /^\/employees\/[^/]+\/work-locations$/.test(location) &&
+    location.split("/")[2] === auth.account.employeeId;
   if (
     auth.account.accountType === "employee" &&
     !employeeAllowedPaths.includes(location) &&
-    !isOwnMovementPath
+    !isOwnMovementPath &&
+    !isOwnWorkLocationsPath
   ) {
     return <Redirect to="/" />;
   }
@@ -25858,6 +26258,10 @@ function Router() {
         <Route
           path="/employees/:employeeId/movement"
           component={EmployeeMovementPage}
+        />
+        <Route
+          path="/employees/:employeeId/work-locations"
+          component={EmployeeWorkLocationsPage}
         />
         <Route path="/employees/:employeeId" component={EmployeeProfilePage} />
         <Route path="/employees" component={Employees} />

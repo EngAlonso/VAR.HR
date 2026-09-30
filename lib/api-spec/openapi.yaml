@@ -882,6 +882,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendancePunchRequest"
+  /employees/{employeeId}/work-locations:
+    parameters:
+      - $ref: "#/components/parameters/EmployeeId"
+    get:
+      operationId: listEmployeeWorkLocations
+      tags: [employees]
+      summary: List an employee's recorded work locations
+      responses:
+        "200":
+          description: Recorded work locations, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmployeeWorkLocation"
+    post:
+      operationId: createEmployeeWorkLocation
+      tags: [employees]
+      summary: Record the current employee work location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeWorkLocationInput"
+      responses:
+        "201":
+          description: Work location recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeWorkLocation"
   /attendance/punch-requests:
     get:
       operationId: listAttendancePunchRequests
@@ -2838,6 +2871,27 @@ components:
           type: string
           enum: [web, mobile, biometric, manual]
           default: web
+    EmployeeWorkLocationInput:
+      type: object
+      required: [latitude, longitude, comment]
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        accuracyMeters: { type: ["number", "null"], minimum: 0 }
+        comment: { type: string, minLength: 1, maxLength: 1000 }
+    EmployeeWorkLocation:
+      type: object
+      required:
+        [id, employeeId, workDate, latitude, longitude, accuracyMeters, comment, recordedAt]
+      properties:
+        id: { type: string, format: uuid }
+        employeeId: { type: string, format: uuid }
+        workDate: { type: string, format: date }
+        latitude: { type: number }
+        longitude: { type: number }
+        accuracyMeters: { type: ["number", "null"] }
+        comment: { type: string }
+        recordedAt: { type: string, format: date-time }
     AttendanceCorrectionInput:
       type: object
       required: [reason]

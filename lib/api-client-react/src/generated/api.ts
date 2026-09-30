@@ -81,6 +81,8 @@ import type {
   EmployeeSchedule,
   EmployeeScheduleInput,
   EmployeeUpdate,
+  EmployeeWorkLocation,
+  EmployeeWorkLocationInput,
   GeneratedPassword,
   GetAttendanceReportParams,
   GetBranchParams,
@@ -3995,6 +3997,155 @@ export const useCheckOut = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCheckOutMutationOptions(options));
+    }
+
+export const getListEmployeeWorkLocationsUrl = (employeeId: string,) => {
+
+
+
+
+  return `/api/employees/${employeeId}/work-locations`
+}
+
+/**
+ * @summary List an employee's recorded work locations
+ */
+export const listEmployeeWorkLocations = async (employeeId: string, options?: Parameters<typeof customFetch>[1]): Promise<EmployeeWorkLocation[]> => {
+
+  return customFetch<EmployeeWorkLocation[]>(getListEmployeeWorkLocationsUrl(employeeId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmployeeWorkLocationsQueryKey = (employeeId: string,) => {
+    return [
+    `/api/employees/${employeeId}/work-locations`
+    ] as const;
+    }
+
+
+export const getListEmployeeWorkLocationsQueryOptions = <TData = Awaited<ReturnType<typeof listEmployeeWorkLocations>>, TError = ErrorType<unknown>>(employeeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployeeWorkLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmployeeWorkLocationsQueryKey(employeeId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployeeWorkLocations>>> = ({ signal }) => listEmployeeWorkLocations(employeeId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: employeeId !== null && employeeId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmployeeWorkLocations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEmployeeWorkLocationsQueryResult = NonNullable<Awaited<ReturnType<typeof listEmployeeWorkLocations>>>
+export type ListEmployeeWorkLocationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List an employee's recorded work locations
+ */
+
+export function useListEmployeeWorkLocations<TData = Awaited<ReturnType<typeof listEmployeeWorkLocations>>, TError = ErrorType<unknown>>(
+ employeeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployeeWorkLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEmployeeWorkLocationsQueryOptions(employeeId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEmployeeWorkLocationUrl = (employeeId: string,) => {
+
+
+
+
+  return `/api/employees/${employeeId}/work-locations`
+}
+
+/**
+ * @summary Record the current employee work location
+ */
+export const createEmployeeWorkLocation = async (employeeId: string,
+    employeeWorkLocationInput: EmployeeWorkLocationInput, options?: Parameters<typeof customFetch>[1]): Promise<EmployeeWorkLocation> => {
+
+  return customFetch<EmployeeWorkLocation>(getCreateEmployeeWorkLocationUrl(employeeId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employeeWorkLocationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEmployeeWorkLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployeeWorkLocation>>, TError,{employeeId: string;data: BodyType<EmployeeWorkLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEmployeeWorkLocation>>, TError,{employeeId: string;data: BodyType<EmployeeWorkLocationInput>}, TContext> => {
+
+const mutationKey = ['createEmployeeWorkLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmployeeWorkLocation>>, {employeeId: string;data: BodyType<EmployeeWorkLocationInput>}> = (props) => {
+          const {employeeId,data} = props ?? {};
+
+          return  createEmployeeWorkLocation(employeeId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEmployeeWorkLocationMutationResult = NonNullable<Awaited<ReturnType<typeof createEmployeeWorkLocation>>>
+    export type CreateEmployeeWorkLocationMutationBody = BodyType<EmployeeWorkLocationInput>
+    export type CreateEmployeeWorkLocationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record the current employee work location
+ */
+export const useCreateEmployeeWorkLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployeeWorkLocation>>, TError,{employeeId: string;data: BodyType<EmployeeWorkLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEmployeeWorkLocation>>,
+        TError,
+        {employeeId: string;data: BodyType<EmployeeWorkLocationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEmployeeWorkLocationMutationOptions(options));
     }
 
 export const getListAttendancePunchRequestsUrl = () => {

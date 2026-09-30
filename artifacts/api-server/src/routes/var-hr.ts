@@ -53,6 +53,8 @@ import {
   DecideAttendancePunchRequestResponse,
   CreateEmployeeBody,
   CreateEmployeeResponse,
+  CreateEmployeeWorkLocationBody,
+  CreateEmployeeWorkLocationResponse,
   DeleteBranchParams,
   DeleteBranchResponse,
   DeleteDepartmentParams,
@@ -136,6 +138,8 @@ import {
   ListHolidaysResponse,
   ListEmployeesQueryParams,
   ListEmployeesResponse,
+  ListEmployeeWorkLocationsParams,
+  ListEmployeeWorkLocationsResponse,
   ListLeaveBalancesResponse,
   ListLeaveRequestsResponse,
   ListLeavePoliciesResponse,
@@ -233,6 +237,7 @@ import {
   devicesTable,
   employeeIdentitiesTable,
   employeeHrRecordsTable,
+  employeeWorkLocationsTable,
   employeeScheduleAssignmentsTable,
   employeesTable,
   holidaysTable,
@@ -4051,6 +4056,135 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
   }
   res.json(GetEmployeeResponse.parse(employeeResponse(row)));
 });
+
+router.get(
+  "/employees/:employeeId/work-locations",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = ListEmployeeWorkLocationsParams.safeParse(req.params);
+    if (!params.success || !isUuid(params.data?.employeeId ?? "")) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const isSelf =
+      context.role === "employee" &&
+      params.data.employeeId === context.employeeId;
+    if (
+      (context.role === "employee" && !isSelf) ||
+      (!isSelf && !canUseCapability(context, "employees.view", true))
+    ) {
+      if (context.role === "employee") {
+        res.status(403).json({ error: message(req, "employeeOwnProfile") });
+      } else {
+        denyCapability(res, req, "employees.view");
+      }
+      return;
+    }
+    const [employee] = await employeeRows(context, params.data.employeeId);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(employeeWorkLocationsTable)
+      .where(
+        and(
+          eq(employeeWorkLocationsTable.companyId, context.companyId),
+          eq(employeeWorkLocationsTable.employeeId, params.data.employeeId),
+        ),
+      )
+      .orderBy(
+        desc(employeeWorkLocationsTable.workDate),
+        desc(employeeWorkLocationsTable.recordedAt),
+      );
+    res.json(
+      ListEmployeeWorkLocationsResponse.parse(
+        rows.map((row) => ({
+          id: row.id,
+          employeeId: row.employeeId,
+          workDate: row.workDate,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          accuracyMeters: row.accuracyMeters,
+          comment: row.comment,
+          recordedAt: row.recordedAt.toISOString(),
+        })),
+      ),
+    );
+  },
+);
+
+router.post(
+  "/employees/:employeeId/work-locations",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = ListEmployeeWorkLocationsParams.safeParse(req.params);
+    const parsed = CreateEmployeeWorkLocationBody.safeParse(req.body);
+    if (
+      !params.success ||
+      !isUuid(params.data?.employeeId ?? "") ||
+      !parsed.success ||
+      !validCoordinates(parsed.data.latitude, parsed.data.longitude)
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    if (!context.employeeId || context.employeeId !== params.data.employeeId) {
+      res.status(403).json({ error: message(req, "employeeOwnProfile") });
+      return;
+    }
+    const [employee] = await db
+      .select()
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    if (!employee.locationAttendanceEnabled) {
+      res.status(403).json({ error: message(req, "workspaceAccessDenied") });
+      return;
+    }
+    const comment = parsed.data.comment.trim();
+    if (!comment) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const recordedAt = new Date();
+    const [row] = await db
+      .insert(employeeWorkLocationsTable)
+      .values({
+        companyId: context.companyId,
+        employeeId: employee.id,
+        workDate: localCalendarDate(recordedAt, context.company.timezone),
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+        accuracyMeters: parsed.data.accuracyMeters ?? null,
+        comment,
+        recordedAt,
+      })
+      .returning();
+    res.status(201).json(
+      CreateEmployeeWorkLocationResponse.parse({
+        id: row.id,
+        employeeId: row.employeeId,
+        workDate: row.workDate,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        accuracyMeters: row.accuracyMeters,
+        comment: row.comment,
+        recordedAt: row.recordedAt.toISOString(),
+      }),
+    );
+  },
+);
 
 router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);

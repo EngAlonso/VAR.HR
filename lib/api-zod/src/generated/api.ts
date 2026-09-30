@@ -1714,6 +1714,64 @@ export const CheckOutResponse = zod.object({
 
 
 /**
+ * @summary List an employee's recorded work locations
+ */
+export const ListEmployeeWorkLocationsParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const ListEmployeeWorkLocationsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "employeeId": zod.uuid(),
+  "workDate": zod.iso.date(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "accuracyMeters": zod.number().nullable(),
+  "comment": zod.string(),
+  "recordedAt": zod.iso.datetime({"offset":true})
+})
+export const ListEmployeeWorkLocationsResponse = zod.array(ListEmployeeWorkLocationsResponseItem)
+
+
+/**
+ * @summary Record the current employee work location
+ */
+export const CreateEmployeeWorkLocationParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const createEmployeeWorkLocationBodyLatitudeMin = -90;
+export const createEmployeeWorkLocationBodyLatitudeMax = 90;
+
+export const createEmployeeWorkLocationBodyLongitudeMin = -180;
+export const createEmployeeWorkLocationBodyLongitudeMax = 180;
+
+export const createEmployeeWorkLocationBodyAccuracyMetersMin = 0;
+
+export const createEmployeeWorkLocationBodyCommentMax = 1000;
+
+
+
+export const CreateEmployeeWorkLocationBody = zod.object({
+  "latitude": zod.number().min(createEmployeeWorkLocationBodyLatitudeMin).max(createEmployeeWorkLocationBodyLatitudeMax),
+  "longitude": zod.number().min(createEmployeeWorkLocationBodyLongitudeMin).max(createEmployeeWorkLocationBodyLongitudeMax),
+  "accuracyMeters": zod.number().min(createEmployeeWorkLocationBodyAccuracyMetersMin).nullish(),
+  "comment": zod.string().min(1).max(createEmployeeWorkLocationBodyCommentMax)
+})
+
+export const CreateEmployeeWorkLocationResponse = zod.object({
+  "id": zod.uuid(),
+  "employeeId": zod.uuid(),
+  "workDate": zod.iso.date(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "accuracyMeters": zod.number().nullable(),
+  "comment": zod.string(),
+  "recordedAt": zod.iso.datetime({"offset":true})
+})
+
+
+/**
  * @summary List location attendance punches waiting for approval
  */
 export const ListAttendancePunchRequestsResponseItem = zod.object({

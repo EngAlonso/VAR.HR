@@ -27,3 +27,4 @@ export * from "./auth";
 export * from "./backups";
 export * from "./notifications";
 export * from "./platform";
+export * from "./work-locations";

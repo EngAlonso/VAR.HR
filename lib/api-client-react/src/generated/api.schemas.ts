@@ -649,6 +649,41 @@ export interface AttendanceEventInput {
   source?: AttendanceEventInputSource;
 }
 
+export interface EmployeeWorkLocationInput {
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  accuracyMeters?: number | null;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  comment: string;
+}
+
+export interface EmployeeWorkLocation {
+  id: string;
+  employeeId: string;
+  workDate: string;
+  latitude: number;
+  longitude: number;
+  /** @nullable */
+  accuracyMeters: number | null;
+  comment: string;
+  recordedAt: string;
+}
+
 export type AttendanceCorrectionInputStatus = typeof AttendanceCorrectionInputStatus[keyof typeof AttendanceCorrectionInputStatus];
 
 
