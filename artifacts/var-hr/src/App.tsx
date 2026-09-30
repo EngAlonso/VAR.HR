@@ -11448,30 +11448,32 @@ function EmployeeProfilePage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
                 <Status value={employee.data.status} />
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setLocation(`/employees/${employee.data.id}/movement`)
-                  }
-                  data-testid={`button-open-attendance-movement-${employee.data.id}`}
-                >
-                  <Activity size={16} />
-                  {t("showAttendanceMovement")}
-                </Button>
-                {employee.data.locationAttendanceEnabled ? (
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     onClick={() =>
-                      setLocation(
-                        `/employees/${employee.data.id}/work-locations`,
-                      )
+                      setLocation(`/employees/${employee.data.id}/movement`)
                     }
-                    data-testid={`button-open-work-locations-${employee.data.id}`}
+                    data-testid={`button-open-attendance-movement-${employee.data.id}`}
                   >
-                    <MapPin size={16} />
-                    {t("workLocations")}
+                    <Activity size={16} />
+                    {t("showAttendanceMovement")}
                   </Button>
-                ) : null}
+                  {employee.data.locationAttendanceEnabled ? (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setLocation(
+                          `/employees/${employee.data.id}/work-locations`,
+                        )
+                      }
+                      data-testid={`button-open-work-locations-${employee.data.id}`}
+                    >
+                      <MapPin size={16} />
+                      {t("workLocations")}
+                    </Button>
+                  ) : null}
+                </div>
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (

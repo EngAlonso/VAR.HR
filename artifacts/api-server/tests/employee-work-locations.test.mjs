@@ -51,6 +51,27 @@ test("the work-location profile groups visits by day and shows time, map, and co
   assert.match(frontend, /navigator\.geolocation\.getCurrentPosition/);
 });
 
+test("employee profile keeps work locations beside the movement record button", () => {
+  const movementButton = frontend.indexOf(
+    "data-testid={`button-open-attendance-movement-",
+  );
+  const workLocationsButton = frontend.indexOf(
+    "data-testid={`button-open-work-locations-",
+  );
+  const groupedActions = frontend.lastIndexOf(
+    '<div className="flex items-center gap-2">',
+    movementButton,
+  );
+  const groupEnd = frontend.indexOf("</div>", workLocationsButton);
+
+  assert.ok(movementButton >= 0 && workLocationsButton > movementButton);
+  assert.ok(groupedActions >= 0 && groupEnd > workLocationsButton);
+  assert.match(
+    frontend.slice(groupedActions, groupEnd),
+    /locationAttendanceEnabled/,
+  );
+});
+
 test("work-location endpoints have generated OpenAPI contracts", () => {
   assert.match(apiSpec, /\/employees\/\{employeeId\}\/work-locations:/);
   assert.match(apiSpec, /operationId: listEmployeeWorkLocations/);
