@@ -1181,12 +1181,12 @@ const copy = {
     gracePeriodMinutes: "Grace period (minutes)",
     overtimeAfterMinutes: "Minimum overtime qualification (minutes)",
     overtimeMultiplier: "Overtime hour multiplier",
-    locationVerification: "Location verification",
-    gpsPolicy: "GPS policy",
+    locationVerification: "Attendance location type",
+    gpsPolicy: "Attendance movement (fixed location)",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
-    locationRadiusMeters: "Location radius (meters)",
+    locationRadiusMeters: "Fixed location radius (meters)",
     explainabilityByDefault: "Explainability by default",
     attendanceExceptionsRecorded:
       "Attendance exceptions record their source, location posture, and a human-readable explanation for review.",
@@ -1471,7 +1471,7 @@ const copy = {
     evidenceAnalysis: "الأدلة والتحليل",
     exceptionsSurfaced: "يتم عرض الاستثناءات بوضوح.",
     from: "من",
-    gpsPolicy: "سياسة GPS",
+    gpsPolicy: "تسجيل الحركة (موقع ثابت)",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
     profileCompanyOwner: "حسابي وبيانات الشركة",
@@ -1497,7 +1497,7 @@ const copy = {
     leaveBalances: "أرصدة الإجازات",
     liveWorkspace: "مساحة العمل المباشرة",
     loadingOperationalDate: "جارٍ تحميل التاريخ التشغيلي…",
-    locationVerification: "التحقق من الموقع",
+    locationVerification: "نوع تسجيل الحركة",
     manager: "المدير",
     markInactive: "تعيين كغير نشط",
     mondayOperationalOverview: "نظرة تشغيلية ليوم الاثنين",
@@ -1942,12 +1942,12 @@ const pageCopy = {
     earlyDepartureGrace: "Early departure grace period (minutes)",
     overtimeStartsAfter: "Minimum overtime qualification (minutes)",
     overtimeAfter: "Minimum overtime qualification (minutes)",
-    locationVerification: "Location verification",
-    gpsPolicy: "GPS policy",
+    locationVerification: "Attendance location type",
+    gpsPolicy: "Attendance movement (fixed location)",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
-    locationRadius: "Location radius (meters)",
+    locationRadius: "Fixed location radius (meters)",
     explainability: "Explainability by default",
     attendanceExceptionsNote:
       "Attendance exceptions record their source, location posture, and a human-readable explanation for review.",
@@ -2424,12 +2424,12 @@ const pageCopy = {
     overtimeStartsAfter: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
     overtimeAfter: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
     overtimeMultiplier: "مضاعف ساعة العمل الإضافي",
-    locationVerification: "التحقق من الموقع",
-    gpsPolicy: "سياسة GPS",
+    locationVerification: "نوع تسجيل الحركة",
+    gpsPolicy: "تسجيل الحركة (موقع ثابت)",
     disabled: "معطل",
     optional: "اختياري",
     required: "مطلوب",
-    locationRadius: "نطاق الموقع (بالمتر)",
+    locationRadius: "نطاق الموقع الثابت (بالمتر)",
     explainability: "قابلية التفسير افتراضياً",
     attendanceExceptionsNote:
       "تسجل استثناءات الحضور مصدرها وحالة الموقع وشرحاً واضحاً للمراجعة.",
@@ -3139,12 +3139,12 @@ const pageCopy = {
     overtimeStartsAfter: "Seuil minimal d’éligibilité aux heures supplémentaires (minutes)",
     overtimeAfter: "Seuil minimal d’éligibilité aux heures supplémentaires (minutes)",
     overtimeMultiplier: "Multiplicateur d’une heure supplémentaire",
-    locationVerification: "Vérification de localisation",
-    gpsPolicy: "Politique GPS",
+    locationVerification: "Type de lieu de pointage",
+    gpsPolicy: "Pointage (lieu fixe)",
     disabled: "Désactivé",
     optional: "Facultatif",
     required: "Obligatoire",
-    locationRadius: "Rayon de localisation (mètres)",
+    locationRadius: "Rayon du lieu fixe (mètres)",
     explainability: "Explicabilité par défaut",
     attendanceExceptionsNote:
       "Les exceptions de présence enregistrent leur source, la situation de localisation et une explication lisible.",
@@ -3543,12 +3543,12 @@ const pageCopy = {
     overtimeStartsAfter: "Mindestschwelle für Überstunden (Minuten)",
     overtimeAfter: "Mindestschwelle für Überstunden (Minuten)",
     overtimeMultiplier: "Multiplikator für eine Überstunde",
-    locationVerification: "Standortprüfung",
-    gpsPolicy: "GPS-Richtlinie",
+    locationVerification: "Standorttyp der Zeiterfassung",
+    gpsPolicy: "Zeiterfassung (fester Standort)",
     disabled: "Deaktiviert",
     optional: "Optional",
     required: "Erforderlich",
-    locationRadius: "Standortradius (Meter)",
+    locationRadius: "Radius des festen Standorts (Meter)",
     explainability: "Erklärbarkeit als Standard",
     attendanceExceptionsNote:
       "Anwesenheitsausnahmen speichern Quelle, Standortstatus und eine verständliche Erklärung zur Prüfung.",
@@ -10791,13 +10791,13 @@ function AddEmployeePage() {
               <span>
                 <span className="block font-semibold">
                   {locale === "ar"
-                    ? "تسجيل الحضور بالموقع لهذا الموظف"
-                    : "Require location attendance for this employee"}
+                    ? "تسجيل الحركة بالموقع (موقع متغير)"
+                    : "Attendance movement with location (variable location)"}
                 </span>
                 <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
                   {locale === "ar"
-                    ? "يلتقط النظام موقع الهاتف عند البصمة. أول بصمة هاتف تحتاج موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت للشركة. بصمة الجهاز تدخل مباشرة."
-                    : "GPS is captured at phone punches. The first phone punch is sent to manager/HR for approval before attendance is added; no fixed company site is required. Device punches remain direct."}
+                    ? "يتطلب إذن GPS ويلتقط موقع الهاتف عند كل بصمة. أول بصمة هاتف تنتظر موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت تحدده الشركة. بصمة الجهاز تدخل مباشرة."
+                    : "Requires phone GPS and captures its location at each punch. The first phone punch is sent for manager/HR approval; no company-defined site is needed. Device punches remain direct."}
                 </span>
               </span>
             </label>
@@ -11905,13 +11905,13 @@ function EmployeeProfilePage() {
                 <span>
                   <span className="block font-semibold">
                     {locale === "ar"
-                      ? "تسجيل الحضور بالموقع لهذا الموظف"
-                      : "Require location attendance for this employee"}
+                      ? "تسجيل الحركة بالموقع (موقع متغير)"
+                      : "Attendance movement with location (variable location)"}
                   </span>
                   <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
                     {locale === "ar"
-                      ? "يلتقط النظام موقع الهاتف عند البصمة. أول بصمة هاتف تحتاج موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت للشركة. بصمة الجهاز تدخل مباشرة."
-                      : "GPS is captured at phone punches. The first phone punch is sent to manager/HR for approval before attendance is added; no fixed company site is required. Device punches remain direct."}
+                      ? "يتطلب إذن GPS ويلتقط موقع الهاتف عند كل بصمة. أول بصمة هاتف تنتظر موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت تحدده الشركة. بصمة الجهاز تدخل مباشرة."
+                      : "Requires phone GPS and captures its location at each punch. The first phone punch is sent for manager/HR approval; no company-defined site is needed. Device punches remain direct."}
                   </span>
                 </span>
               </label>
@@ -14965,6 +14965,15 @@ function Rules() {
                   <option value="optional">{t("optional")}</option>
                   <option value="required">{t("required")}</option>
                 </select>
+                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                  {locale === "ar"
+                    ? "يستخدم مواقع الحضور الثابتة ونطاقات GPS التي تحددها الشركة. عند اختيار «مطلوب»، تُرفض البصمات خارج المواقع النشطة."
+                    : locale === "fr"
+                      ? "Utilise les lieux fixes et les zones GPS définis par l’entreprise. Avec « Obligatoire », les pointages hors des zones actives sont refusés."
+                      : locale === "de"
+                        ? "Verwendet die vom Unternehmen festgelegten festen Standorte und GPS-Bereiche. Bei „Erforderlich“ werden Buchungen außerhalb aktiver Bereiche abgelehnt."
+                        : "Uses the fixed attendance locations and GPS zones set by the company. When set to Required, punches outside active locations are rejected."}
+                </span>
               </label>
               <Field
                 label={t("locationRadius")}

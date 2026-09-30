@@ -91,7 +91,11 @@ test("employee location punches capture GPS without a fixed geofence and wait fo
     /locationValidation\.status === "pending"\s*\?\s*message\(req,\s*"gpsLocationCapturedForReview"\)/s,
   );
   assert.match(attendanceRoute, /checkIn: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
-  assert.match(frontend, /لا يلزم موقع ثابت للشركة/);
+  assert.match(frontend, /تسجيل الحركة بالموقع \(موقع متغير\)/);
+  assert.match(frontend, /تسجيل الحركة \(موقع ثابت\)/);
+  assert.match(frontend, /Attendance movement with location \(variable location\)/);
+  assert.match(frontend, /Attendance movement \(fixed location\)/);
+  assert.match(frontend, /لا يلزم موقع ثابت تحدده الشركة/);
 });
 
 test("attendance responses accept payroll-generated absence records, not punch input", () => {
