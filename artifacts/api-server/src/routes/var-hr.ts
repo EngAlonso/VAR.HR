@@ -5222,7 +5222,13 @@ async function recordCurrentAttendance(
           accuracyMeters: parsed.data.accuracyMeters,
         }
       : null;
-  if ((rules.gpsPolicy as string) === "required" && !location) {
+  const locationRequiredForEmployee =
+    currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
+  if (
+    (rules.gpsPolicy as string) === "required" &&
+    !location &&
+    !locationRequiredForEmployee
+  ) {
     res.status(400).json({ error: message(req, "gpsValidationRequired") });
     return;
   }
@@ -5286,8 +5292,6 @@ async function recordCurrentAttendance(
     rules,
   );
   const holiday = isHolidayDate(attendanceDate, rules, holidays);
-  const locationRequiredForEmployee =
-    currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
   if (locationRequiredForEmployee && !location) {
     res.status(400).json({ error: message(req, "gpsValidationRequired") });
     return;
@@ -5320,6 +5324,7 @@ async function recordCurrentAttendance(
     );
     if (
       rules.gpsPolicy === "required" &&
+      !locationRequiredForEmployee &&
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
@@ -5489,6 +5494,7 @@ async function recordCurrentAttendance(
       };
   if (
     rules.gpsPolicy === "required" &&
+    !locationRequiredForEmployee &&
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({

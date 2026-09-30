@@ -81,10 +81,14 @@ test("employee location punches capture GPS without a fixed geofence and wait fo
   assert.equal(
     (
       attendanceRoute.match(
-        /rules\.gpsPolicy === "required"\s*&&\s*locationValidation\.status !== "verified"/g,
+        /rules\.gpsPolicy === "required"\s*&&\s*!locationRequiredForEmployee\s*&&\s*locationValidation\.status !== "verified"/g,
       ) ?? []
     ).length,
     2,
+  );
+  assert.match(
+    attendanceRoute,
+    /rules\.gpsPolicy as string\) === "required"\s*&&\s*!location\s*&&\s*!locationRequiredForEmployee/s,
   );
   assert.match(
     attendanceRoute,
@@ -95,7 +99,14 @@ test("employee location punches capture GPS without a fixed geofence and wait fo
   assert.match(frontend, /تسجيل الحركة \(موقع ثابت\)/);
   assert.match(frontend, /Attendance movement with location \(variable location\)/);
   assert.match(frontend, /Attendance movement \(fixed location\)/);
-  assert.match(frontend, /لا يلزم موقع ثابت تحدده الشركة/);
+  assert.equal(
+    (frontend.match(/<EmployeeAttendanceLocationMode/g) ?? []).length,
+    2,
+  );
+  assert.match(frontend, /name="employee-attendance-location-mode"/);
+  assert.match(frontend, /checked=\{!variableLocation\}/);
+  assert.match(frontend, /checked=\{variableLocation\}/);
+  assert.match(frontend, /من أي مكان/);
 });
 
 test("attendance responses accept payroll-generated absence records, not punch input", () => {

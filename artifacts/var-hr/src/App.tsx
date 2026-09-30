@@ -10776,31 +10776,16 @@ function AddEmployeePage() {
                 {t("payrollCycleHint")}
               </p>
             </label>
-            <label className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] p-4 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
-                className="mt-1 size-4 accent-primary"
-                checked={form.locationAttendanceEnabled}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    locationAttendanceEnabled: event.target.checked,
-                  })
-                }
-              />
-              <span>
-                <span className="block font-semibold">
-                  {locale === "ar"
-                    ? "تسجيل الحركة بالموقع (موقع متغير)"
-                    : "Attendance movement with location (variable location)"}
-                </span>
-                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                  {locale === "ar"
-                    ? "يتطلب إذن GPS ويلتقط موقع الهاتف عند كل بصمة. أول بصمة هاتف تنتظر موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت تحدده الشركة. بصمة الجهاز تدخل مباشرة."
-                    : "Requires phone GPS and captures its location at each punch. The first phone punch is sent for manager/HR approval; no company-defined site is needed. Device punches remain direct."}
-                </span>
-              </span>
-            </label>
+            <EmployeeAttendanceLocationMode
+              locale={locale}
+              variableLocation={form.locationAttendanceEnabled}
+              onChange={(variableLocation) =>
+                setForm({
+                  ...form,
+                  locationAttendanceEnabled: variableLocation,
+                })
+              }
+            />
           </div>
         </Card>
 
@@ -11890,31 +11875,16 @@ function EmployeeProfilePage() {
                   <option value="manager">{t("roleManager")}</option>
                 </select>
               </label>
-              <label className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] p-4 text-sm sm:col-span-2">
-                <input
-                  type="checkbox"
-                  className="mt-1 size-4 accent-primary"
-                  checked={editForm.locationAttendanceEnabled}
-                  onChange={(event) =>
-                    setEditForm({
-                      ...editForm,
-                      locationAttendanceEnabled: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <span className="block font-semibold">
-                    {locale === "ar"
-                      ? "تسجيل الحركة بالموقع (موقع متغير)"
-                      : "Attendance movement with location (variable location)"}
-                  </span>
-                  <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                    {locale === "ar"
-                      ? "يتطلب إذن GPS ويلتقط موقع الهاتف عند كل بصمة. أول بصمة هاتف تنتظر موافقة المدير أو HR قبل إضافتها؛ لا يلزم موقع ثابت تحدده الشركة. بصمة الجهاز تدخل مباشرة."
-                      : "Requires phone GPS and captures its location at each punch. The first phone punch is sent for manager/HR approval; no company-defined site is needed. Device punches remain direct."}
-                  </span>
-                </span>
-              </label>
+              <EmployeeAttendanceLocationMode
+                locale={locale}
+                variableLocation={editForm.locationAttendanceEnabled}
+                onChange={(variableLocation) =>
+                  setEditForm({
+                    ...editForm,
+                    locationAttendanceEnabled: variableLocation,
+                  })
+                }
+              />
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
@@ -12258,6 +12228,92 @@ function Employees() {
         )}
       </Card>
     </div>
+  );
+}
+
+function EmployeeAttendanceLocationMode({
+  locale,
+  variableLocation,
+  onChange,
+}: {
+  locale: Locale;
+  variableLocation: boolean;
+  onChange: (variableLocation: boolean) => void;
+}) {
+  const copy =
+    locale === "ar"
+      ? {
+          title: "نوع تسجيل الحركة",
+          fixedTitle: "تسجيل الحركة (موقع ثابت)",
+          fixedDetail:
+            "يتحقق من الموقع مقابل نطاق GPS الثابت الذي تحدده الشركة. يلزم إعداد موقع حضور نشط وتعيين سياسة GPS في الشركة إلى «مطلوب» لتفعيل التحقق.",
+          variableTitle: "تسجيل الحركة بالموقع (موقع متغير)",
+          variableDetail:
+            "يتطلب GPS الهاتف ويلتقط موقعه عند كل بصمة من أي مكان. أول بصمة هاتف تنتظر موافقة المدير أو HR؛ بصمات الأجهزة تدخل مباشرة.",
+        }
+      : {
+          title: "Attendance movement type",
+          fixedTitle: "Attendance movement (fixed location)",
+          fixedDetail:
+            "Checks against company-defined fixed GPS zones. Configure an active attendance location and set the company GPS policy to Required to enforce the site check.",
+          variableTitle:
+            "Attendance movement with location (variable location)",
+          variableDetail:
+            "Requires phone GPS and captures its location at every punch from any site. The first phone punch awaits manager/HR approval; device punches remain direct.",
+        };
+
+  return (
+    <fieldset className="min-w-0 sm:col-span-2">
+      <legend className="mb-2 text-sm font-semibold">{copy.title}</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label
+          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${
+            !variableLocation
+              ? "border-primary bg-primary/[0.035]"
+              : "border-border hover:border-primary/40"
+          }`}
+        >
+          <input
+            type="radio"
+            name="employee-attendance-location-mode"
+            value="fixed"
+            checked={!variableLocation}
+            onChange={() => onChange(false)}
+            className="mt-1 size-4 accent-primary"
+            data-testid="radio-employee-location-fixed"
+          />
+          <span>
+            <span className="block font-semibold">{copy.fixedTitle}</span>
+            <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+              {copy.fixedDetail}
+            </span>
+          </span>
+        </label>
+        <label
+          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${
+            variableLocation
+              ? "border-primary bg-primary/[0.035]"
+              : "border-border hover:border-primary/40"
+          }`}
+        >
+          <input
+            type="radio"
+            name="employee-attendance-location-mode"
+            value="variable"
+            checked={variableLocation}
+            onChange={() => onChange(true)}
+            className="mt-1 size-4 accent-primary"
+            data-testid="radio-employee-location-variable"
+          />
+          <span>
+            <span className="block font-semibold">{copy.variableTitle}</span>
+            <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+              {copy.variableDetail}
+            </span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
   );
 }
 
@@ -14967,12 +15023,12 @@ function Rules() {
                 </select>
                 <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
                   {locale === "ar"
-                    ? "يستخدم مواقع الحضور الثابتة ونطاقات GPS التي تحددها الشركة. عند اختيار «مطلوب»، تُرفض البصمات خارج المواقع النشطة."
+                    ? "يستخدم نطاقات GPS الثابتة التي تحددها الشركة. عند اختيار «مطلوب» تُرفض بصمات موظفي الموقع الثابت خارجها؛ موظفو الموقع المتغير يرسلون إحداثياتهم للمراجعة دون اشتراط نطاق."
                     : locale === "fr"
-                      ? "Utilise les lieux fixes et les zones GPS définis par l’entreprise. Avec « Obligatoire », les pointages hors des zones actives sont refusés."
+                      ? "Utilise les zones GPS fixes définies par l’entreprise. « Obligatoire » refuse les pointages hors zone en mode fixe ; le mode variable envoie les coordonnées pour vérification sans périmètre fixe."
                       : locale === "de"
-                        ? "Verwendet die vom Unternehmen festgelegten festen Standorte und GPS-Bereiche. Bei „Erforderlich“ werden Buchungen außerhalb aktiver Bereiche abgelehnt."
-                        : "Uses the fixed attendance locations and GPS zones set by the company. When set to Required, punches outside active locations are rejected."}
+                        ? "Verwendet die vom Unternehmen festgelegten GPS-Bereiche. „Erforderlich“ lehnt Buchungen außerhalb des Bereichs im Feststandortmodus ab; im variablen Modus werden Koordinaten ohne festen Bereich zur Prüfung gesendet."
+                        : "Uses company-defined fixed GPS zones. Required rejects fixed-location punches outside them; variable-location employees submit coordinates for review without a fixed zone."}
                 </span>
               </label>
               <Field
