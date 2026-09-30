@@ -22,6 +22,10 @@ const apiSpec = readFileSync(
   new URL("../../../lib/api-spec/openapi.yaml", import.meta.url),
   "utf8",
 );
+const i18n = readFileSync(
+  new URL("../src/lib/i18n.ts", import.meta.url),
+  "utf8",
+);
 
 test("attendance recording is a separately grantable account permission", () => {
   assert.match(auth, /"attendance\.punch"/);
@@ -51,6 +55,21 @@ test("employees can start the first attendance punch without an existing record"
     /const canPunch = action === "in" \|\| Boolean\(record\);/,
   );
   assert.match(frontend, /disabled=\{\s*!canPunch\s*\|\|/s);
+});
+
+test("required GPS punches explain when no attendance geofence is configured", () => {
+  const attendanceRoute = route.slice(
+    route.indexOf("async function recordCurrentAttendance"),
+    route.indexOf('router.post("/attendance/check-in"'),
+  );
+
+  assert.equal(
+    (attendanceRoute.match(/gpsLocationPolicyUnconfigured/g) ?? []).length,
+    2,
+  );
+  assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"Attendance was not recorded/);
+  assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"لم يُسجَّل الحضور/);
+  assert.match(frontend, /ويلزم وجود نطاق GPS نشط للشركة للتحقق من الموقع/);
 });
 
 test("attendance responses accept payroll-generated absence records, not punch input", () => {

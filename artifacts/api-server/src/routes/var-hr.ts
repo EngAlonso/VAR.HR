@@ -5323,7 +5323,10 @@ async function recordCurrentAttendance(
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
-        error: locationValidation.explanation,
+        error:
+          locationValidation.status === "pending"
+            ? message(req, "gpsLocationPolicyUnconfigured")
+            : locationValidation.explanation,
         locationStatus: locationValidation.status,
       });
       return;
@@ -5486,7 +5489,10 @@ async function recordCurrentAttendance(
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({
-      error: locationValidation.explanation,
+      error:
+        locationValidation.status === "pending"
+          ? message(req, "gpsLocationPolicyUnconfigured")
+          : locationValidation.explanation,
       locationStatus: locationValidation.status,
     });
     return;

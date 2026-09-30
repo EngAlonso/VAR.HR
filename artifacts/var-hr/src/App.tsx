@@ -10796,8 +10796,8 @@ function AddEmployeePage() {
                 </span>
                 <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
                   {locale === "ar"
-                    ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، بينما بصمة الجهاز تدخل مباشرة."
-                    : "The first phone punch needs manager or HR approval before it is added; device punches remain direct."}
+                    ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، ويلزم وجود نطاق GPS نشط للشركة للتحقق من الموقع؛ بصمة الجهاز تدخل مباشرة."
+                    : "The first phone punch needs manager or HR approval before it is added, and an active company GPS zone is required; device punches remain direct."}
                 </span>
               </span>
             </label>
@@ -11910,8 +11910,8 @@ function EmployeeProfilePage() {
                   </span>
                   <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
                     {locale === "ar"
-                      ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، بينما بصمة الجهاز تدخل مباشرة."
-                      : "The first phone punch needs manager or HR approval before it is added; device punches remain direct."}
+                      ? "أول بصمة من الهاتف تحتاج موافقة المدير أو HR قبل إضافتها، ويلزم وجود نطاق GPS نشط للشركة للتحقق من الموقع؛ بصمة الجهاز تدخل مباشرة."
+                      : "The first phone punch needs manager or HR approval before it is added, and an active company GPS zone is required; device punches remain direct."}
                   </span>
                 </span>
               </label>
