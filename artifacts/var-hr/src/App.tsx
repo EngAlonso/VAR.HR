@@ -15548,7 +15548,14 @@ function Rules() {
             {t("attendanceRulesChangeHistoryDetail")}
           </p>
         </div>
-        <div className="mt-5 grid gap-3">
+        <div
+          className="mt-5 max-h-80 overflow-y-auto overscroll-contain rounded-xl border border-border p-3"
+          role="region"
+          aria-label={t("attendanceRulesChangeHistory")}
+          tabIndex={0}
+          data-testid="attendance-rules-history-scroll"
+        >
+          <div className="grid gap-3">
           {(changes.data || []).map((change: any) => (
             <div
               key={change.id}
@@ -15614,6 +15621,7 @@ function Rules() {
               {t("noAttendanceRulesHistory")}
             </p>
           )}
+          </div>
         </div>
         </Card>
       )}
