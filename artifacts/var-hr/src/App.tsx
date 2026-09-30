@@ -12366,6 +12366,7 @@ function Attendance() {
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
   const action = record?.checkIn && !record.checkOut ? "out" : "in";
+  const canPunch = action === "in" || Boolean(record);
   const employeeDepartment = record?.employee?.department
     ? departmentLabel(record.employee.department, t)
     : t("companyAttendanceView");
@@ -12787,7 +12788,7 @@ function Attendance() {
               <>
                 <Button
                   disabled={
-                    !record ||
+                    !canPunch ||
                     (action === "in"
                       ? checkIn.isPending
                       : checkOut.isPending) ||

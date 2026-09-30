@@ -14,4 +14,5 @@ export const AttendanceRecordSource = {
   mobile: 'mobile',
   biometric: 'biometric',
   manual: 'manual',
+  payroll_sync: 'payroll_sync',
 } as const;

@@ -1141,7 +1141,7 @@ export const GetAttendanceTodayResponse = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
@@ -1182,7 +1182,7 @@ export const ListAttendanceHistoryResponseItem = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
@@ -1222,7 +1222,7 @@ export const CreateManualAttendanceEventResponse = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
@@ -1669,7 +1669,7 @@ export const CheckInResponse = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
@@ -1706,7 +1706,7 @@ export const CheckOutResponse = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
@@ -1811,7 +1811,7 @@ export const CorrectAttendanceResponse = zod.object({
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
   "locationStatus": zod.enum(['not_required', 'verified', 'outside_geofence', 'low_accuracy', 'pending']).optional(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']),
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual', 'payroll_sync']),
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()

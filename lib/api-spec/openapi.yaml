@@ -2906,7 +2906,7 @@ components:
             [not_required, verified, outside_geofence, low_accuracy, pending]
         source:
           type: string
-          enum: [web, mobile, biometric, manual]
+          enum: [web, mobile, biometric, manual, payroll_sync]
         explanation: { type: string }
         location:
           oneOf:

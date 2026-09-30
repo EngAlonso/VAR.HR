@@ -18,6 +18,10 @@ const frontend = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
 );
+const apiSpec = readFileSync(
+  new URL("../../../lib/api-spec/openapi.yaml", import.meta.url),
+  "utf8",
+);
 
 test("attendance recording is a separately grantable account permission", () => {
   assert.match(auth, /"attendance\.punch"/);
@@ -39,4 +43,29 @@ test("attendance recording recalculates the stored attendance result", () => {
   );
   assert.match(attendanceRoute, /await attendanceCalculationFor\(context, created, true\)/);
   assert.match(attendanceRoute, /await attendanceCalculationFor\(context, updated, true\)/);
+});
+
+test("employees can start the first attendance punch without an existing record", () => {
+  assert.match(
+    frontend,
+    /const canPunch = action === "in" \|\| Boolean\(record\);/,
+  );
+  assert.match(frontend, /disabled=\{\s*!canPunch\s*\|\|/s);
+});
+
+test("attendance responses accept payroll-generated absence records, not punch input", () => {
+  const eventInput = apiSpec.slice(
+    apiSpec.indexOf("    AttendanceEventInput:"),
+    apiSpec.indexOf("    AttendanceCorrectionInput:"),
+  );
+  const attendanceRecord = apiSpec.slice(
+    apiSpec.indexOf("    AttendanceRecord:"),
+    apiSpec.indexOf("    AttendancePunchRequest:"),
+  );
+
+  assert.doesNotMatch(eventInput, /payroll_sync/);
+  assert.match(
+    attendanceRecord,
+    /enum: \[web, mobile, biometric, manual, payroll_sync\]/,
+  );
 });

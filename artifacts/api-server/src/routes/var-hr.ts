@@ -2857,7 +2857,12 @@ function attendanceResponse(
       | "outside_geofence"
       | "low_accuracy"
       | "pending",
-    source: row.attendance.source as "web" | "mobile" | "biometric" | "manual",
+    source: row.attendance.source as
+      | "web"
+      | "mobile"
+      | "biometric"
+      | "manual"
+      | "payroll_sync",
     explanation: row.attendance.explanation,
     location: row.attendance.location,
     approvalStatus:
