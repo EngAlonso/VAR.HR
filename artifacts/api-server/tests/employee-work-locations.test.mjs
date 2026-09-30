@@ -72,6 +72,22 @@ test("employee profile keeps work locations beside the movement record button", 
   );
 });
 
+test("eligible employees record a work-location change from the attendance section", () => {
+  const attendanceStart = frontend.indexOf("function Attendance()");
+  const attendanceEnd = frontend.indexOf("\nfunction ", attendanceStart + 1);
+  const attendance = frontend.slice(attendanceStart, attendanceEnd);
+
+  assert.match(
+    attendance,
+    /workspace\.data\?\.role === "employee" &&\s*selfEmployee\.data\?\.locationAttendanceEnabled/,
+  );
+  assert.match(
+    attendance,
+    /<WorkLocationChangeButton employeeId=\{selfEmployee\.data\.id\}/,
+  );
+  assert.equal((frontend.match(/<WorkLocationChangeButton /g) ?? []).length, 1);
+});
+
 test("work-location endpoints have generated OpenAPI contracts", () => {
   assert.match(apiSpec, /\/employees\/\{employeeId\}\/work-locations:/);
   assert.match(apiSpec, /operationId: listEmployeeWorkLocations/);

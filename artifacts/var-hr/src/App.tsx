@@ -8872,7 +8872,6 @@ function EmployeeHrProfile({
                   <MapPin size={16} />
                   {t("workLocations")}
                 </Button>
-                <WorkLocationChangeButton employeeId={employee.data.id} />
               </>
             ) : null}
           </div>
@@ -12564,6 +12563,16 @@ function Attendance() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
+  const selfEmployeeId =
+    workspace.data?.role === "employee"
+      ? workspace.data.employeeId ?? ""
+      : "";
+  const selfEmployee = useGetEmployee(selfEmployeeId, {
+    query: {
+      enabled: Boolean(selfEmployeeId),
+      queryKey: getGetEmployeeQueryKey(selfEmployeeId),
+    },
+  });
   const invalidatePayrollAttendance = () =>
     qc.invalidateQueries({
       predicate: ({ queryKey }) =>
@@ -12928,7 +12937,11 @@ function Attendance() {
         title={t("attendance")}
         detail={t("attendanceRulesDetail")}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {workspace.data?.role === "employee" &&
+            selfEmployee.data?.locationAttendanceEnabled ? (
+              <WorkLocationChangeButton employeeId={selfEmployee.data.id} />
+            ) : null}
             {canManualPunch && (
               <Button variant="outline" onClick={() => openManualPunch()}>
                 <Plus size={15} />
@@ -26044,11 +26057,6 @@ function EmployeeWorkLocationsPage() {
         eyebrow={t("employeeProfile")}
         title={t("workLocations")}
         detail={t("workLocationHistoryDetail")}
-        action={
-          isSelf && employee.data.locationAttendanceEnabled ? (
-            <WorkLocationChangeButton employeeId={employee.data.id} />
-          ) : undefined
-        }
       />
       <p className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
         {t("workLocationInfoOnly")}
