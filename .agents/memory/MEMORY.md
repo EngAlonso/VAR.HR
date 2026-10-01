@@ -2,7 +2,7 @@
 - [API artifact routing](api-artifact-routing.md) — keep the runnable Express API under artifacts/api-server; root api/ is only for Vercel function entrypoints.
 - [Vercel and Replit data separation](vercel-replit-data-separation.md) — production data and scheduled work must use the environment and database the HR UI reads.
 - [Biometric out-of-order metrics](biometric-out-of-order-metrics.md) — recalculate all derived attendance values when an earlier movement arrives after a later one.
-- [Attendance calculation schedule](attendance-calculation-schedule.md) — historical rows must calculate against their stored shift, not a later company default.
+- [Attendance calculation schedule](attendance-calculation-schedule.md) — preserve punch-row schedules; refresh payroll-generated absences from the effective employee, department, or company shift.
 - [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
 - [Backup restore compatibility](backup-restore-compatibility.md) — normalize newly added required columns because jsonb_populate_record turns omitted fields into NULL.
 - [Company workday authority](company-workday-authority.md) — use attendance rules workingDays as the company-wide source for day/hour rate displays.

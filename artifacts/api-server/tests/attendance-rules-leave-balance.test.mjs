@@ -143,6 +143,11 @@ test("annual eligibility gates automatic deductions but not manual conversions",
 
 test("payroll materializes scheduled absences without replacing approved leave", () => {
   assert.match(route, /synchronizePayrollAttendance/);
+  assert.match(route, /scheduleFallbacksForCompany/);
+  assert.match(route, /departmentDefaults\.get\(departmentId\)/);
+  assert.match(route, /companyDefault/);
+  assert.match(route, /existingAttendance\.source === "payroll_sync"/);
+  assert.match(route, /scheduledStart: schedule\.startTime/);
   assert.match(route, /Automatically materialized as absent during payroll synchronization/);
   assert.match(route, /!isWorkingScheduleDay\(schedule, date\)/);
   assert.match(route, /approvedLeaves\.some/);
@@ -151,6 +156,8 @@ test("payroll materializes scheduled absences without replacing approved leave",
   assert.match(route, /netSalary/);
   assert.match(route, /calculationVersion/);
   assert.match(route, /inputsSnapshot/);
+  assert.match(app, /data-testid="button-install-pwa"/);
+  assert.doesNotMatch(app, /fixed bottom-24 z-40 min-h-12/);
 });
 
 test("payroll employee details expose calculated absence days", () => {

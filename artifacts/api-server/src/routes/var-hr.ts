@@ -1109,6 +1109,14 @@ type ScheduleAssignmentRow = {
   schedule: typeof workSchedulesTable.$inferSelect;
 };
 
+type ScheduleFallbacks = {
+  departmentDefaults: Map<
+    string,
+    typeof workSchedulesTable.$inferSelect
+  >;
+  companyDefault: typeof workSchedulesTable.$inferSelect | null;
+};
+
 function defaultScheduleFromRules(
   rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
 ): EffectiveSchedule {
@@ -1131,9 +1139,11 @@ function defaultScheduleFromRules(
 
 function effectiveScheduleFromRows(
   employeeId: string,
+  departmentId: string | null,
   date: string,
   rules: Awaited<ReturnType<typeof attendanceRulesFor>>,
   rows: ScheduleAssignmentRow[],
+  fallbacks: ScheduleFallbacks,
 ): EffectiveSchedule {
   const assignment = rows
     .filter(
@@ -1147,21 +1157,30 @@ function effectiveScheduleFromRows(
     .sort((a, b) =>
       b.assignment.effectiveFrom.localeCompare(a.assignment.effectiveFrom),
     )[0];
-  if (!assignment) return defaultScheduleFromRules(rules);
+  const departmentDefault = departmentId
+    ? fallbacks.departmentDefaults.get(departmentId)
+    : undefined;
+  const schedule =
+    assignment?.schedule ?? departmentDefault ?? fallbacks.companyDefault;
+  if (!schedule) return defaultScheduleFromRules(rules);
   return {
-    name: assignment.schedule.name,
+    name: schedule.name,
     workingDays: rules.workingDays,
-    startTime: assignment.schedule.startTime,
-    endTime: assignment.schedule.endTime,
-    requiredHours: assignment.schedule.requiredHours,
-    graceMinutes: assignment.schedule.graceMinutes,
-    overtimeAfterMinutes: assignment.schedule.overtimeAfterMinutes,
-    overtimeEligible: assignment.schedule.overtimeEligible,
-    overnight: assignment.schedule.overnight,
-    breakDurationMinutes: assignment.schedule.breakDurationMinutes,
-    breakPaid: assignment.schedule.breakPaid,
-    earlyCheckoutGraceMinutes: assignment.schedule.earlyCheckoutGraceMinutes,
-    source: "employee_assignment",
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    requiredHours: schedule.requiredHours,
+    graceMinutes: schedule.graceMinutes,
+    overtimeAfterMinutes: schedule.overtimeAfterMinutes,
+    overtimeEligible: schedule.overtimeEligible,
+    overnight: schedule.overnight,
+    breakDurationMinutes: schedule.breakDurationMinutes,
+    breakPaid: schedule.breakPaid,
+    earlyCheckoutGraceMinutes: schedule.earlyCheckoutGraceMinutes,
+    source: assignment
+      ? "employee_assignment"
+      : departmentDefault
+        ? "department_default"
+        : "company_default",
   };
 }
 
@@ -1179,6 +1198,52 @@ async function scheduleRowsForCompany(
       eq(employeeScheduleAssignmentsTable.scheduleId, workSchedulesTable.id),
     )
     .where(eq(employeeScheduleAssignmentsTable.companyId, companyId));
+}
+
+async function scheduleFallbacksForCompany(
+  companyId: string,
+): Promise<ScheduleFallbacks> {
+  const [departmentRows, companyRows] = await Promise.all([
+    db
+      .select({
+        departmentId: departmentsTable.id,
+        schedule: workSchedulesTable,
+      })
+      .from(departmentsTable)
+      .innerJoin(
+        workSchedulesTable,
+        eq(departmentsTable.defaultScheduleId, workSchedulesTable.id),
+      )
+      .where(
+        and(
+          eq(departmentsTable.companyId, companyId),
+          eq(departmentsTable.active, true),
+          eq(workSchedulesTable.companyId, companyId),
+          eq(workSchedulesTable.active, true),
+        ),
+      ),
+    db
+      .select({ schedule: workSchedulesTable })
+      .from(companiesTable)
+      .innerJoin(
+        workSchedulesTable,
+        eq(companiesTable.defaultScheduleId, workSchedulesTable.id),
+      )
+      .where(
+        and(
+          eq(companiesTable.id, companyId),
+          eq(workSchedulesTable.companyId, companyId),
+          eq(workSchedulesTable.active, true),
+        ),
+      )
+      .limit(1),
+  ]);
+  return {
+    departmentDefaults: new Map(
+      departmentRows.map((row) => [row.departmentId, row.schedule]),
+    ),
+    companyDefault: companyRows[0]?.schedule ?? null,
+  };
 }
 
 async function effectiveScheduleFor(
@@ -10620,7 +10685,14 @@ async function synchronizePayrollAttendance(
   const through = to < TODAY ? to : TODAY;
   if (from > through) return;
   const dates = dateStrings(from, through);
-  const [existing, approvedLeaves, approvedPermissions, holidays, schedules] =
+  const [
+    existing,
+    approvedLeaves,
+    approvedPermissions,
+    holidays,
+    schedules,
+    scheduleFallbacks,
+  ] =
     await Promise.all([
       db
         .select()
@@ -10652,6 +10724,7 @@ async function synchronizePayrollAttendance(
         ),
       holidaysForCompany(context.companyId),
       scheduleRowsForCompany(context.companyId),
+      scheduleFallbacksForCompany(context.companyId),
     ]);
   const rulesByDate = new Map<string, ResolvedAttendanceRules>(
     await Promise.all(
@@ -10661,9 +10734,13 @@ async function synchronizePayrollAttendance(
       ] as const),
     ),
   );
-  const existingKeys = new Set(
-    existing.map((item) => `${item.employeeId}:${item.date}`),
+  const existingByKey = new Map(
+    existing.map((item) => [
+      `${item.employeeId}:${item.date}`,
+      item,
+    ]),
   );
+  const recalculatedExistingKeys = new Set<string>();
   const employeeIds = new Set(employees.map((row) => row.employee.id));
   for (const permission of approvedPermissions) {
     if (
@@ -10679,12 +10756,48 @@ async function synchronizePayrollAttendance(
       const rules = rulesByDate.get(date)!;
       const schedule = effectiveScheduleFromRows(
         row.employee.id,
+        row.employee.departmentId,
         date,
         rules,
         schedules,
+        scheduleFallbacks,
       );
+      const key = `${row.employee.id}:${date}`;
+      const existingAttendance = existingByKey.get(key);
+      if (existingAttendance) {
+        const scheduleChanged =
+          existingAttendance.scheduledStart !== schedule.startTime ||
+          existingAttendance.scheduledEnd !== schedule.endTime ||
+          existingAttendance.requiredHours !== schedule.requiredHours;
+        if (
+          existingAttendance.source === "payroll_sync" &&
+          existingAttendance.status === "absent" &&
+          scheduleChanged
+        ) {
+          await db
+            .update(attendanceTable)
+            .set({
+              scheduledStart: schedule.startTime,
+              scheduledEnd: schedule.endTime,
+              requiredHours: schedule.requiredHours,
+            })
+            .where(
+              and(
+                eq(attendanceTable.id, existingAttendance.id),
+                eq(attendanceTable.companyId, context.companyId),
+              ),
+            );
+          Object.assign(existingAttendance, {
+            scheduledStart: schedule.startTime,
+            scheduledEnd: schedule.endTime,
+            requiredHours: schedule.requiredHours,
+          });
+          await attendanceCalculationFor(context, existingAttendance, true);
+          recalculatedExistingKeys.add(key);
+        }
+        continue;
+      }
       if (
-        existingKeys.has(`${row.employee.id}:${date}`) ||
         !isWorkingScheduleDay(schedule, date) ||
         isHolidayDate(date, rules, holidays) ||
         approvedLeaves.some(
@@ -10716,8 +10829,9 @@ async function synchronizePayrollAttendance(
         .onConflictDoNothing()
         .returning();
       if (absent) {
-        existingKeys.add(`${row.employee.id}:${date}`);
+        existingByKey.set(key, absent);
         await attendanceCalculationFor(context, absent, true);
+        recalculatedExistingKeys.add(key);
       }
     }
   }
@@ -10728,7 +10842,10 @@ async function synchronizePayrollAttendance(
     if (
       employeeIds.has(attendance.employeeId) &&
       attendance.date >= from &&
-      attendance.date <= through
+      attendance.date <= through &&
+      !recalculatedExistingKeys.has(
+        `${attendance.employeeId}:${attendance.date}`,
+      )
     ) {
       await attendanceCalculationFor(context, attendance, true);
     }
@@ -10847,8 +10964,11 @@ async function calculatePayrollPeriod(
       ] as const),
     ),
   );
-  const holidays = await holidaysForCompany(context.companyId);
-  const scheduleRows = await scheduleRowsForCompany(context.companyId);
+  const [holidays, scheduleRows, scheduleFallbacks] = await Promise.all([
+    holidaysForCompany(context.companyId),
+    scheduleRowsForCompany(context.companyId),
+    scheduleFallbacksForCompany(context.companyId),
+  ]);
   const leaveBalances = await db
     .select()
     .from(leaveBalancesTable)
@@ -10961,9 +11081,11 @@ async function calculatePayrollPeriod(
       const dateRules = rulesByDate.get(dateValue) ?? periodRules;
       const schedule = effectiveScheduleFromRows(
         row.employee.id,
+        row.employee.departmentId,
         dateValue,
         dateRules,
         scheduleRows,
+        scheduleFallbacks,
       );
       return (
         isWorkingScheduleDay(schedule, dateValue) &&
@@ -10977,9 +11099,11 @@ async function calculatePayrollPeriod(
           const dateRules = rulesByDate.get(dateValue) ?? periodRules;
           const schedule = effectiveScheduleFromRows(
             row.employee.id,
+            row.employee.departmentId,
             dateValue,
             dateRules,
             scheduleRows,
+            scheduleFallbacks,
           );
           return (
             isWorkingScheduleDay(schedule, dateValue) &&

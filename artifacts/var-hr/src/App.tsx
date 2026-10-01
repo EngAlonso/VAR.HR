@@ -7868,25 +7868,27 @@ function Shell({ children }: { children: ReactNode }) {
         </header>
         <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
           {children}
+          {canInstallPwa && (
+            <div
+              className={cn(
+                "mt-8 flex",
+                isArabic ? "justify-start" : "justify-end",
+              )}
+            >
+              <Button
+                variant="primary"
+                className="min-h-12 rounded-full px-5 shadow-lg transition-transform hover:-translate-y-0.5"
+                onClick={() => void installPwa()}
+                title={t("pwaInstall")}
+                aria-label={t("pwaInstall")}
+                data-testid="button-install-pwa"
+              >
+                <Download size={17} />
+                <span>{t("pwaInstall")}</span>
+              </Button>
+            </div>
+          )}
         </main>
-        {canInstallPwa && (
-          <Button
-            variant="primary"
-            className={cn(
-              "fixed bottom-24 z-40 min-h-12 rounded-full px-5 shadow-xl transition-transform hover:-translate-y-0.5 md:bottom-6",
-              isArabic
-                ? "right-4 sm:right-8 lg:right-[calc(248px+2rem)]"
-                : "left-4 sm:left-8 lg:left-[calc(248px+2rem)]",
-            )}
-            onClick={() => void installPwa()}
-            title={t("pwaInstall")}
-            aria-label={t("pwaInstall")}
-            data-testid="button-install-pwa"
-          >
-            <Download size={17} />
-            <span>{t("pwaInstall")}</span>
-          </Button>
-        )}
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
