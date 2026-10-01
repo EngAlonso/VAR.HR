@@ -28,7 +28,8 @@ type BackupEnvelope = {
 
 // Keep this order aligned with the foreign keys in lib/db/src/schema. The
 // coverage test ensures every persisted table is included or explicitly
-// excluded. Auth sessions and backup records are intentionally omitted:
+// excluded. Auth sessions, backup records, and the encrypted Google Drive
+// connection are intentionally omitted:
 // sessions must never be restored and backups must not recursively contain
 // other backup payloads.
 const insertOrder = [

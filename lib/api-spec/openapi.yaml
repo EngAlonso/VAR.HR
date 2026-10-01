@@ -2209,6 +2209,71 @@ paths:
       responses:
         "200":
           description: Updated company
+  /platform/google-drive:
+    get:
+      operationId: getPlatformGoogleDriveStatus
+      tags: [platform]
+      summary: Get Google Drive backup connection status
+      responses:
+        "200":
+          description: Google Drive connection and upload status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleDriveStatus"
+    delete:
+      operationId: disconnectPlatformGoogleDrive
+      tags: [platform]
+      summary: Disconnect Google Drive backup uploads
+      responses:
+        "204": { description: Google Drive disconnected; existing Drive files are retained }
+  /platform/google-drive/oauth/start:
+    get:
+      operationId: startPlatformGoogleDriveOAuth
+      tags: [platform]
+      summary: Start Google Drive authorization
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "302": { description: Redirect to Google authorization }
+        "503": { description: Google OAuth is not configured on this deployment }
+  /platform/google-drive/oauth/callback:
+    get:
+      operationId: completePlatformGoogleDriveOAuth
+      tags: [platform]
+      summary: Complete Google Drive authorization
+      parameters:
+        - name: state
+          in: query
+          required: true
+          schema: { type: string }
+        - name: code
+          in: query
+          required: false
+          schema: { type: string }
+        - name: error
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "303": { description: Return to the backup settings page }
+        "400": { description: Invalid or expired authorization state }
+        "403": { description: Platform Owner access required }
+  /platform/google-drive/retry:
+    post:
+      operationId: retryPlatformGoogleDriveBackups
+      tags: [platform]
+      summary: Retry pending scheduled backup uploads
+      responses:
+        "200":
+          description: Retry results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleDriveRetryResult"
 components:
   parameters:
     Search:
@@ -4789,3 +4854,29 @@ components:
         severity: { type: string, enum: [info, warning, critical] }
         title: { type: string }
         detail: { type: string }
+    GoogleDriveStatus:
+      type: object
+      required:
+        [
+          configured,
+          connected,
+          connectedEmail,
+          connectedAt,
+          backupFolderUrl,
+          pendingBackups,
+        ]
+      properties:
+        configured: { type: boolean }
+        connected: { type: boolean }
+        connectedEmail: { type: ["string", "null"] }
+        connectedAt: { type: ["string", "null"], format: date-time }
+        backupFolderUrl: { type: ["string", "null"], format: uri }
+        pendingBackups: { type: integer }
+    GoogleDriveRetryResult:
+      type: object
+      required: [processed, uploaded, failed, pending]
+      properties:
+        processed: { type: integer }
+        uploaded: { type: integer }
+        failed: { type: integer }
+        pending: { type: integer }

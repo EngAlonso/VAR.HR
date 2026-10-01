@@ -16,3 +16,4 @@
 - [Field employee location capture](field-employee-location-capture.md) — roaming staff need GPS captured at each phone punch, without requiring a fixed company geofence.
 - [Informational work-location records](work-location-visit-log.md) — visited-site history is separate from attendance, check-in/out, and payroll.
 - [Annual-leave eligibility migration](annual-leave-eligibility-migration.md) — preserve existing employees as eligible while app-created employees opt out explicitly.
+- [Drizzle migration snapshots](drizzle-migration-snapshots.md) — use relative output paths and review generated SQL; stale snapshots can include unrelated tables.

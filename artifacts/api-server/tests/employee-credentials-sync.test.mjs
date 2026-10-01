@@ -37,8 +37,10 @@ test("changing an employee phone updates the existing linked account username", 
   );
   assert.match(
     phoneSync,
-    /\.set\(\{\s*username: updateData\.phone,\s*primaryPhone: updateData\.phone,\s*updatedAt: new Date\(\),\s*\}\)/s,
+    /\.set\(\{\s*username: updateData\.phone,\s*primaryPhone: updateData\.phone,[\s\S]*?updatedAt: new Date\(\),\s*\}\)/s,
   );
+  assert.match(phoneSync, /fullName: `\$\{updatedEmployee\.firstName\}/);
+  assert.match(phoneSync, /fullNameEn: `\$\{updatedEmployee\.firstNameEn/);
   assert.match(phoneSync, /eq\(userAccountsTable\.id, linkedEmployeeAccountId\)/);
   assert.match(phoneSync, /EMPLOYEE_PHONE_USERNAME_DUPLICATE/);
   assert.doesNotMatch(phoneSync, /passwordHash/);

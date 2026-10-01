@@ -10,6 +10,10 @@ import {
 } from "@workspace/db";
 import { createBackup } from "./backups";
 import { logger } from "./logger";
+import {
+  retryPendingGoogleDriveBackups,
+  uploadScheduledBackupToGoogleDrive,
+} from "./google-drive-backups";
 
 const schedulerIntervalMs = 60_000;
 const advisoryLockSql = "SELECT pg_try_advisory_lock(15480, 23001) AS acquired";
@@ -55,6 +59,19 @@ export async function runAutomaticBackupScheduler() {
     acquired = Boolean(lockResult.rows[0]?.acquired);
     if (!acquired) return { started: false, reason: "already_running" };
 
+    let driveUploaded = 0;
+    let driveFailed = 0;
+    let drivePending = 0;
+    try {
+      const retryResult = await retryPendingGoogleDriveBackups();
+      driveUploaded += retryResult.uploaded;
+      driveFailed += retryResult.failed;
+      drivePending = retryResult.pending;
+    } catch (err) {
+      driveFailed += 1;
+      logger.error({ err }, "Could not retry pending Google Drive backups");
+    }
+
     const [settings] = await db
       .select({
         platformIntervalMinutes:
@@ -69,7 +86,13 @@ export async function runAutomaticBackupScheduler() {
     const platformIntervalMinutes = settings?.platformIntervalMinutes ?? 0;
     const companyIntervalMinutes = settings?.companyIntervalMinutes ?? 0;
     if (platformIntervalMinutes <= 0 && companyIntervalMinutes <= 0) {
-      return { started: true, reason: "disabled" };
+      return {
+        started: true,
+        reason: "disabled",
+        driveUploaded,
+        driveFailed,
+        drivePending,
+      };
     }
 
     const [owner] = await db
@@ -101,13 +124,16 @@ export async function runAutomaticBackupScheduler() {
       try {
         const lastCreatedAt = await lastPlatformScheduledBackup();
         if (isDue(platformIntervalMinutes, lastCreatedAt, now)) {
-          await createBackup({
+          const record = await createBackup({
             scope: "platform",
             companyId: null,
             createdBy: owner.id,
             creationMode: "scheduled",
             scheduleIntervalMinutes: platformIntervalMinutes,
           });
+          const driveResult = await uploadScheduledBackupToGoogleDrive(record);
+          if (driveResult.uploaded) driveUploaded += 1;
+          if (driveResult.errorCode) driveFailed += 1;
           platformCreated += 1;
           logger.info(
             { intervalMinutes: platformIntervalMinutes },
@@ -162,13 +188,16 @@ export async function runAutomaticBackupScheduler() {
             continue;
           }
           try {
-            await createBackup({
+            const record = await createBackup({
               scope: "company",
               companyId: company.id,
               createdBy: owner.id,
               creationMode: "scheduled",
               scheduleIntervalMinutes: companyIntervalMinutes,
             });
+            const driveResult = await uploadScheduledBackupToGoogleDrive(record);
+            if (driveResult.uploaded) driveUploaded += 1;
+            if (driveResult.errorCode) driveFailed += 1;
             companyCreated += 1;
             logger.info(
               { companyId: company.id, intervalMinutes: companyIntervalMinutes },
@@ -194,6 +223,9 @@ export async function runAutomaticBackupScheduler() {
       platformCreated,
       companyCreated,
       failures,
+      driveUploaded,
+      driveFailed,
+      drivePending,
     };
   } finally {
     if (acquired) {

@@ -54,6 +54,7 @@ import type {
   BulkScheduleAssignmentInput,
   BulkScheduleAssignmentResponse,
   ChangeEmployeePassword200,
+  CompletePlatformGoogleDriveOAuthParams,
   ConvertAbsenceToAnnualLeaveInput,
   ConvertAbsenceToAnnualLeaveResponse,
   CreateLeavePolicyInput,
@@ -91,6 +92,8 @@ import type {
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
   GetReportParams,
+  GoogleDriveRetryResult,
+  GoogleDriveStatus,
   HealthStatus,
   Holiday,
   HolidayInput,
@@ -140,6 +143,7 @@ import type {
   SetAuthAccountPassword200,
   StaffAccountCreated,
   StaffAccountInput,
+  StartPlatformGoogleDriveOAuthParams,
   SubscriptionStatus,
   UnsubscribeFromNotificationsBody,
   UpdateAuthAccount200,
@@ -9718,5 +9722,392 @@ export const useUpdatePlatformCompany = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdatePlatformCompanyMutationOptions(options));
+    }
+
+export const getGetPlatformGoogleDriveStatusUrl = () => {
+
+
+
+
+  return `/api/platform/google-drive`
+}
+
+/**
+ * @summary Get Google Drive backup connection status
+ */
+export const getPlatformGoogleDriveStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleDriveStatus> => {
+
+  return customFetch<GoogleDriveStatus>(getGetPlatformGoogleDriveStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformGoogleDriveStatusQueryKey = () => {
+    return [
+    `/api/platform/google-drive`
+    ] as const;
+    }
+
+
+export const getGetPlatformGoogleDriveStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformGoogleDriveStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>> = ({ signal }) => getPlatformGoogleDriveStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformGoogleDriveStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>>
+export type GetPlatformGoogleDriveStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Google Drive backup connection status
+ */
+
+export function useGetPlatformGoogleDriveStatus<TData = Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformGoogleDriveStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformGoogleDriveStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDisconnectPlatformGoogleDriveUrl = () => {
+
+
+
+
+  return `/api/platform/google-drive`
+}
+
+/**
+ * @summary Disconnect Google Drive backup uploads
+ */
+export const disconnectPlatformGoogleDrive = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDisconnectPlatformGoogleDriveUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectPlatformGoogleDriveMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectPlatformGoogleDrive'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>, void> = () => {
+
+
+          return  disconnectPlatformGoogleDrive(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectPlatformGoogleDriveMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>>
+
+    export type DisconnectPlatformGoogleDriveMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Disconnect Google Drive backup uploads
+ */
+export const useDisconnectPlatformGoogleDrive = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectPlatformGoogleDrive>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectPlatformGoogleDriveMutationOptions(options));
+    }
+
+export const getStartPlatformGoogleDriveOAuthUrl = (params?: StartPlatformGoogleDriveOAuthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/platform/google-drive/oauth/start?${stringifiedParams}` : `/api/platform/google-drive/oauth/start`
+}
+
+/**
+ * @summary Start Google Drive authorization
+ */
+export const startPlatformGoogleDriveOAuth = async (params?: StartPlatformGoogleDriveOAuthParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getStartPlatformGoogleDriveOAuthUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartPlatformGoogleDriveOAuthQueryKey = (params?: StartPlatformGoogleDriveOAuthParams,) => {
+    return [
+    `/api/platform/google-drive/oauth/start`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getStartPlatformGoogleDriveOAuthQueryOptions = <TData = Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>, TError = ErrorType<void>>(params?: StartPlatformGoogleDriveOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStartPlatformGoogleDriveOAuthQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>> = ({ signal }) => startPlatformGoogleDriveOAuth(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StartPlatformGoogleDriveOAuthQueryResult = NonNullable<Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>>
+export type StartPlatformGoogleDriveOAuthQueryError = ErrorType<void>
+
+
+/**
+ * @summary Start Google Drive authorization
+ */
+
+export function useStartPlatformGoogleDriveOAuth<TData = Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>, TError = ErrorType<void>>(
+ params?: StartPlatformGoogleDriveOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startPlatformGoogleDriveOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStartPlatformGoogleDriveOAuthQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCompletePlatformGoogleDriveOAuthUrl = (params: CompletePlatformGoogleDriveOAuthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/platform/google-drive/oauth/callback?${stringifiedParams}` : `/api/platform/google-drive/oauth/callback`
+}
+
+/**
+ * @summary Complete Google Drive authorization
+ */
+export const completePlatformGoogleDriveOAuth = async (params: CompletePlatformGoogleDriveOAuthParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCompletePlatformGoogleDriveOAuthUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompletePlatformGoogleDriveOAuthQueryKey = (params?: CompletePlatformGoogleDriveOAuthParams,) => {
+    return [
+    `/api/platform/google-drive/oauth/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCompletePlatformGoogleDriveOAuthQueryOptions = <TData = Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>, TError = ErrorType<void>>(params: CompletePlatformGoogleDriveOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompletePlatformGoogleDriveOAuthQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>> = ({ signal }) => completePlatformGoogleDriveOAuth(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type CompletePlatformGoogleDriveOAuthQueryResult = NonNullable<Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>>
+export type CompletePlatformGoogleDriveOAuthQueryError = ErrorType<void>
+
+
+/**
+ * @summary Complete Google Drive authorization
+ */
+
+export function useCompletePlatformGoogleDriveOAuth<TData = Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>, TError = ErrorType<void>>(
+ params: CompletePlatformGoogleDriveOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completePlatformGoogleDriveOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getCompletePlatformGoogleDriveOAuthQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRetryPlatformGoogleDriveBackupsUrl = () => {
+
+
+
+
+  return `/api/platform/google-drive/retry`
+}
+
+/**
+ * @summary Retry pending scheduled backup uploads
+ */
+export const retryPlatformGoogleDriveBackups = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleDriveRetryResult> => {
+
+  return customFetch<GoogleDriveRetryResult>(getRetryPlatformGoogleDriveBackupsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRetryPlatformGoogleDriveBackupsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext> => {
+
+const mutationKey = ['retryPlatformGoogleDriveBackups'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, void> = () => {
+
+
+          return  retryPlatformGoogleDriveBackups(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryPlatformGoogleDriveBackupsMutationResult = NonNullable<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>>
+
+    export type RetryPlatformGoogleDriveBackupsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Retry pending scheduled backup uploads
+ */
+export const useRetryPlatformGoogleDriveBackups = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRetryPlatformGoogleDriveBackupsMutationOptions(options));
     }
 

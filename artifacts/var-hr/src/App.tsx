@@ -18,6 +18,10 @@ import {
   QueryClientProvider,
   useQueryClient,
 } from "@tanstack/react-query";
+import type {
+  GoogleDriveRetryResult,
+  GoogleDriveStatus,
+} from "@workspace/api-client-react";
 import {
   Link,
   Redirect,
@@ -18796,6 +18800,12 @@ type BackupSummary = {
     includesExternalFiles?: boolean;
     sourceChecksum?: string;
     creationMode?: string;
+    googleDrive?: {
+      state?: string;
+      webViewLink?: string;
+      fileName?: string;
+      attempts?: number;
+    };
   };
   createdAt: string;
 };
@@ -18827,6 +18837,10 @@ function BackupRestore() {
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveAction, setDriveAction] = useState("");
+  const [driveMessage, setDriveMessage] = useState("");
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -18864,8 +18878,8 @@ function BackupRestore() {
         confirm:
           "الاستعادة تستبدل بيانات هذا النطاق بالكامل. سيتم إنشاء نسخة أمان أولاً. هل تريد المتابعة؟",
         confirmDelete: "هل تريد حذف هذه النسخة؟",
-        external:
-          "لا توجد ملفات خارجية في هذا النظام حالياً؛ النسخ تغطي بيانات قاعدة البيانات.",
+         external:
+          "تغطي النسخ سجلات قاعدة البيانات فقط، ولا تشمل الملفات الخارجية.",
         integrity: "سلامة SHA-256",
         records: "سجلات البيانات",
         size: "الحجم",
@@ -18889,6 +18903,35 @@ function BackupRestore() {
         keepAllBackups:
           "لا تُحذف النسخ القديمة تلقائيًا؛ احذفها يدويًا عند الحاجة.",
         automatic: "تلقائية",
+        driveTitle: "نسخة خارجية على Google Drive",
+        driveDetail:
+          "احفظ نسخة إضافية من النسخ المجدولة في Google Drive؛ تبقى نسخ PostgreSQL والتنزيل والاستعادة الحالية كما هي.",
+        driveNotConfigured:
+          "لم تكتمل إعدادات Google OAuth في Vercel بعد. أضف متغيرات Google Drive المطلوبة قبل الربط.",
+        driveConnected: "متصل بحساب",
+        driveDisconnected: "غير متصل",
+        driveLoading: "جارٍ تحميل حالة Google Drive…",
+        driveConnect: "ربط Google Drive",
+        driveReconnect: "إعادة ربط Google Drive",
+        driveDisconnect: "فصل Google Drive",
+        driveConfirmDisconnect:
+          "فصل Google Drive؟ ستبقى النسخ الموجودة في Drive دون حذف.",
+        driveFolder: "فتح مجلد النسخ في Google Drive",
+        drivePending: "نسخ بانتظار الرفع",
+        driveRetry: "إعادة محاولة الرفع",
+        driveRetrying: "جارٍ إعادة المحاولة…",
+        driveRetryComplete: "انتهت محاولة رفع النسخ إلى Google Drive.",
+        driveConnectedToast: "تم ربط Google Drive.",
+        driveDisconnectedToast:
+          "تم فصل Google Drive. النسخ الموجودة لم تُحذف.",
+        driveCancelled: "تم إلغاء ربط Google Drive.",
+        driveError: "تعذر إكمال إجراء Google Drive.",
+        driveNeedsSchedule:
+          "فعّل نسخة يومية أو أسبوعية واحدة على الأقل كي تُنشأ النسخ التي ستُرفع.",
+        driveUploaded: "نسخة محفوظة في Google Drive",
+        driveUploadPending: "بانتظار الرفع إلى Google Drive",
+        driveUploadFailed: "تعذر رفع هذه النسخة إلى Google Drive",
+        openDriveFile: "فتح النسخة في Google Drive",
       }
     : {
         title: "Backup & restore",
@@ -18925,7 +18968,7 @@ function BackupRestore() {
           "Restore replaces all data in this scope. A safety backup will be created first. Continue?",
         confirmDelete: "Delete this backup?",
         external:
-          "There is no external file storage in this system currently; backups cover database data.",
+          "Backups cover database records only; they do not include external file uploads.",
         integrity: "SHA-256 integrity",
         records: "Data records",
         size: "Size",
@@ -18949,6 +18992,35 @@ function BackupRestore() {
         keepAllBackups:
           "Old backups are not deleted automatically; remove them manually when needed.",
         automatic: "Automatic",
+        driveTitle: "External copy in Google Drive",
+        driveDetail:
+          "Save an additional copy of scheduled backups in Google Drive. Existing PostgreSQL backups, downloads, and restores remain unchanged.",
+        driveNotConfigured:
+          "Google OAuth is not configured in Vercel yet. Add the required Google Drive environment variables before connecting.",
+        driveConnected: "Connected as",
+        driveDisconnected: "Not connected",
+        driveLoading: "Loading Google Drive status…",
+        driveConnect: "Connect Google Drive",
+        driveReconnect: "Reconnect Google Drive",
+        driveDisconnect: "Disconnect Google Drive",
+        driveConfirmDisconnect:
+          "Disconnect Google Drive? Existing Drive backups will not be deleted.",
+        driveFolder: "Open backup folder in Google Drive",
+        drivePending: "Backups waiting to upload",
+        driveRetry: "Retry pending uploads",
+        driveRetrying: "Retrying…",
+        driveRetryComplete: "Google Drive upload retry finished.",
+        driveConnectedToast: "Google Drive connected.",
+        driveDisconnectedToast:
+          "Google Drive disconnected. Existing Drive files were kept.",
+        driveCancelled: "Google Drive connection was cancelled.",
+        driveError: "Could not complete the Google Drive action.",
+        driveNeedsSchedule:
+          "Enable at least one daily or weekly schedule to create backups for Drive.",
+        driveUploaded: "Copy saved in Google Drive",
+        driveUploadPending: "Waiting to upload to Google Drive",
+        driveUploadFailed: "This backup could not be uploaded to Google Drive",
+        openDriveFile: "Open backup in Google Drive",
       };
 
   const load = async () => {
@@ -18976,10 +19048,41 @@ function BackupRestore() {
       setScheduleLoading(false);
     }
   };
+  const loadDriveStatus = async () => {
+    setDriveLoading(true);
+    setDriveMessage("");
+    try {
+      setDriveStatus(
+        await authRequest<GoogleDriveStatus>("/api/platform/google-drive"),
+      );
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveLoading(false);
+    }
+  };
   useEffect(() => {
     if (role === "platform_owner" || role === "company_owner") void load();
     if (role === "platform_owner") void loadSchedule();
+    if (role === "platform_owner") void loadDriveStatus();
   }, [role]);
+  useEffect(() => {
+    if (!isPlatformOwner) return;
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("drive");
+    if (!result) return;
+    if (result === "connected") toast.success(labels.driveConnectedToast);
+    else if (result === "cancelled") setDriveMessage(labels.driveCancelled);
+    else setDriveMessage(labels.driveError);
+    params.delete("drive");
+    const query = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+    if (result === "connected") void loadDriveStatus();
+  }, [isPlatformOwner]);
 
   const saveSchedule = async () => {
     setScheduleSaving(true);
@@ -19001,6 +19104,45 @@ function BackupRestore() {
       setScheduleError(labels.scheduleFailed);
     } finally {
       setScheduleSaving(false);
+    }
+  };
+
+  const connectGoogleDrive = () => {
+    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.location.assign(
+      `/api/platform/google-drive/oauth/start?returnTo=${encodeURIComponent(returnTo)}`,
+    );
+  };
+
+  const disconnectGoogleDrive = async () => {
+    if (!window.confirm(labels.driveConfirmDisconnect)) return;
+    setDriveAction("disconnect");
+    setDriveMessage("");
+    try {
+      await authRequest("/api/platform/google-drive", { method: "DELETE" });
+      toast.success(labels.driveDisconnectedToast);
+      await loadDriveStatus();
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveAction("");
+    }
+  };
+
+  const retryGoogleDrive = async () => {
+    setDriveAction("retry");
+    setDriveMessage("");
+    try {
+      const result = await authRequest<GoogleDriveRetryResult>(
+        "/api/platform/google-drive/retry",
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      toast.success(`${labels.driveRetryComplete} ${result.uploaded}`);
+      await Promise.all([loadDriveStatus(), load()]);
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveAction("");
     }
   };
 
@@ -19213,6 +19355,112 @@ function BackupRestore() {
           </div>
         </Card>
       )}
+      {isPlatformOwner && (
+        <Card className="mb-5">
+          <div className="border-b border-border p-5">
+            <h2 className="font-display text-lg font-semibold">
+              {labels.driveTitle}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {labels.driveDetail}
+            </p>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  driveStatus?.connected
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {driveLoading
+                  ? labels.driveLoading
+                  : driveStatus?.connected
+                    ? `${labels.driveConnected} ${driveStatus.connectedEmail ?? ""}`
+                    : labels.driveDisconnected}
+              </span>
+              {driveStatus && driveStatus.pendingBackups > 0 && (
+                <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  {labels.drivePending}: {driveStatus.pendingBackups}
+                </span>
+              )}
+            </div>
+            {driveStatus?.backupFolderUrl && (
+              <a
+                className="inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                href={driveStatus.backupFolderUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {labels.driveFolder}
+              </a>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={connectGoogleDrive}
+                disabled={
+                  driveLoading ||
+                  driveAction !== "" ||
+                  !driveStatus?.configured
+                }
+              >
+                {driveStatus?.connected
+                  ? labels.driveReconnect
+                  : labels.driveConnect}
+              </Button>
+              {driveStatus?.connected && (
+                <Button
+                  variant="outline"
+                  onClick={() => void disconnectGoogleDrive()}
+                  disabled={driveAction !== ""}
+                >
+                  {labels.driveDisconnect}
+                </Button>
+              )}
+              {driveStatus && driveStatus.pendingBackups > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => void retryGoogleDrive()}
+                  disabled={
+                    driveAction !== "" ||
+                    !driveStatus.configured ||
+                    !driveStatus.connected
+                  }
+                >
+                  {driveAction === "retry"
+                    ? labels.driveRetrying
+                    : labels.driveRetry}
+                </Button>
+              )}
+            </div>
+            {driveStatus && !driveStatus.configured && (
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-200"
+              >
+                {labels.driveNotConfigured}
+              </div>
+            )}
+            {driveStatus &&
+              scheduleLoaded &&
+              schedule.platformBackupIntervalMinutes <= 0 &&
+              schedule.companyBackupIntervalMinutes <= 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {labels.driveNeedsSchedule}
+                </p>
+              )}
+            {driveMessage && (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                {driveMessage}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
       <Card>
         <div className="border-b border-border p-5">
           <div className="flex items-start justify-between gap-3">
@@ -19282,6 +19530,15 @@ function BackupRestore() {
                     <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">
                       {labels.integrity}: {backup.checksum}
                     </p>
+                      {backup.metadata.creationMode === "scheduled" && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {backup.metadata.googleDrive?.state === "uploaded"
+                            ? labels.driveUploaded
+                            : backup.metadata.googleDrive?.state === "failed"
+                              ? labels.driveUploadFailed
+                              : labels.driveUploadPending}
+                        </p>
+                      )}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
                     <Info
@@ -19309,6 +19566,18 @@ function BackupRestore() {
                     <Download size={14} />
                     {labels.download}
                   </Button>
+                  {backup.metadata.googleDrive?.state === "uploaded" &&
+                    backup.metadata.googleDrive.webViewLink && (
+                      <a
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-input px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        href={backup.metadata.googleDrive.webViewLink}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ArrowUpRight size={14} />
+                        {labels.openDriveFile}
+                      </a>
+                    )}
                   <Button
                     variant="quiet"
                     onClick={() => void remove(backup)}

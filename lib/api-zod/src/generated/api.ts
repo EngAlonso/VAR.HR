@@ -4710,3 +4710,55 @@ export const UpdatePlatformCompanyBody = zod.object({
 export const UpdatePlatformCompanyResponse = zod.unknown()
 
 
+/**
+ * @summary Get Google Drive backup connection status
+ */
+export const GetPlatformGoogleDriveStatusResponse = zod.object({
+  "configured": zod.boolean(),
+  "connected": zod.boolean(),
+  "connectedEmail": zod.string().nullable(),
+  "connectedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "backupFolderUrl": zod.url().nullable(),
+  "pendingBackups": zod.int()
+})
+
+
+/**
+ * @summary Disconnect Google Drive backup uploads
+ */
+export const DisconnectPlatformGoogleDriveResponse = zod.void()
+
+
+/**
+ * @summary Start Google Drive authorization
+ */
+export const StartPlatformGoogleDriveOAuthQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+export const StartPlatformGoogleDriveOAuthResponse = zod.void()
+
+
+/**
+ * @summary Complete Google Drive authorization
+ */
+export const CompletePlatformGoogleDriveOAuthQueryParams = zod.object({
+  "state": zod.coerce.string(),
+  "code": zod.coerce.string().optional(),
+  "error": zod.coerce.string().optional()
+})
+
+export const CompletePlatformGoogleDriveOAuthResponse = zod.void()
+
+
+/**
+ * @summary Retry pending scheduled backup uploads
+ */
+export const RetryPlatformGoogleDriveBackupsResponse = zod.object({
+  "processed": zod.int(),
+  "uploaded": zod.int(),
+  "failed": zod.int(),
+  "pending": zod.int()
+})
+
+

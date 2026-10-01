@@ -2879,6 +2879,25 @@ export interface PlatformSummary {
   alerts: PlatformAlert[];
 }
 
+export interface GoogleDriveStatus {
+  configured: boolean;
+  connected: boolean;
+  /** @nullable */
+  connectedEmail: string | null;
+  /** @nullable */
+  connectedAt: string | null;
+  /** @nullable */
+  backupFolderUrl: string | null;
+  pendingBackups: number;
+}
+
+export interface GoogleDriveRetryResult {
+  processed: number;
+  uploaded: number;
+  failed: number;
+  pending: number;
+}
+
 export type SearchParameter = string;
 
 export type StatusParameter = typeof StatusParameter[keyof typeof StatusParameter];
@@ -3076,5 +3095,15 @@ page?: number;
  * @maximum 100
  */
 pageSize?: number;
+};
+
+export type StartPlatformGoogleDriveOAuthParams = {
+returnTo?: string;
+};
+
+export type CompletePlatformGoogleDriveOAuthParams = {
+state: string;
+code?: string;
+error?: string;
 };
 

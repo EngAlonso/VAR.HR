@@ -43,6 +43,7 @@ test("every persisted database table is backed up or explicitly excluded", () =>
   const intentionallyExcluded = new Set([
     "var_hr_auth_sessions",
     "var_hr_backup_records",
+    "var_hr_google_drive_connection",
   ]);
   const includedTables = new Set(tableOrder);
   assert.deepEqual(
