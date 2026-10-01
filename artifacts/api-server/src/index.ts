@@ -1,6 +1,7 @@
 // @ts-nocheck
 import "dotenv/config";
 import app from "./app";
+import { startAutomaticBackupScheduler } from "./lib/backup-scheduler";
 import { logger } from "./lib/logger";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -39,6 +40,7 @@ async function start(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
+    startAutomaticBackupScheduler();
   });
 }
 

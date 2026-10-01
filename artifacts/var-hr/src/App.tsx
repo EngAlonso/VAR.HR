@@ -18793,8 +18793,15 @@ type BackupSummary = {
     tableCounts?: Record<string, number>;
     includesExternalFiles?: boolean;
     sourceChecksum?: string;
+    creationMode?: string;
   };
   createdAt: string;
+};
+
+type BackupSchedule = {
+  platformBackupIntervalMinutes: number;
+  companyBackupIntervalMinutes: number;
+  schedulerReady: boolean;
 };
 
 function BackupRestore() {
@@ -18809,6 +18816,15 @@ function BackupRestore() {
     null,
   );
   const [selectedFilename, setSelectedFilename] = useState("");
+  const [schedule, setSchedule] = useState<BackupSchedule>({
+    platformBackupIntervalMinutes: 0,
+    companyBackupIntervalMinutes: 0,
+    schedulerReady: false,
+  });
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -18851,6 +18867,26 @@ function BackupRestore() {
         integrity: "سلامة SHA-256",
         records: "سجلات البيانات",
         size: "الحجم",
+        scheduleTitle: "النسخ الاحتياطي التلقائي",
+        scheduleDetail:
+          "حدد تكرار نسخة المنصة ونسخة كل شركة بشكل مستقل.",
+        scheduleLoading: "جارٍ تحميل إعدادات الجدولة…",
+        scheduleRuntime:
+          "الخوادم المستمرة تشغّل الجدولة تلقائيًا. في الخوادم serverless، اربط Cron يوميًا بالمسار /api/internal/backup-scheduler وأرسل CRON_SECRET في ترويسة Authorization.",
+        platformFrequency: "تكرار نسخة المنصة",
+        companyFrequency: "تكرار نسخة كل شركة",
+        off: "متوقف",
+        daily: "يوميًا",
+        weekly: "أسبوعيًا",
+        saveSchedule: "حفظ الجدولة",
+        savingSchedule: "جارٍ الحفظ…",
+        scheduleSaved: "تم حفظ إعدادات النسخ التلقائي.",
+        scheduleFailed: "تعذر تحميل أو حفظ إعدادات النسخ التلقائي.",
+        schedulerNeedsSecret:
+          "لتشغيل النسخ على Vercel، أضف CRON_SECRET إلى إعدادات بيئة النشر. لن تعمل الجدولة قبل ذلك.",
+        keepAllBackups:
+          "لا تُحذف النسخ القديمة تلقائيًا؛ احذفها يدويًا عند الحاجة.",
+        automatic: "تلقائية",
       }
     : {
         title: "Backup & restore",
@@ -18891,6 +18927,26 @@ function BackupRestore() {
         integrity: "SHA-256 integrity",
         records: "Data records",
         size: "Size",
+        scheduleTitle: "Automatic backup schedule",
+        scheduleDetail:
+          "Set separate schedules for the full platform and each company.",
+        scheduleLoading: "Loading schedule settings…",
+        scheduleRuntime:
+          "Long-running servers run the schedule automatically. On serverless hosts, call /api/internal/backup-scheduler daily with CRON_SECRET in the Authorization header.",
+        platformFrequency: "Platform backup frequency",
+        companyFrequency: "Company backup frequency",
+        off: "Off",
+        daily: "Daily",
+        weekly: "Weekly",
+        saveSchedule: "Save schedule",
+        savingSchedule: "Saving…",
+        scheduleSaved: "Automatic backup schedule saved.",
+        scheduleFailed: "Automatic backup settings could not be loaded or saved.",
+        schedulerNeedsSecret:
+          "For Vercel, add CRON_SECRET to the deployment environment before scheduled backups can run.",
+        keepAllBackups:
+          "Old backups are not deleted automatically; remove them manually when needed.",
+        automatic: "Automatic",
       };
 
   const load = async () => {
@@ -18904,9 +18960,47 @@ function BackupRestore() {
       setLoading(false);
     }
   };
+  const loadSchedule = async () => {
+    setScheduleLoading(true);
+    setScheduleError("");
+    try {
+      setSchedule(
+        await authRequest<BackupSchedule>("/api/platform/backup-schedule"),
+      );
+      setScheduleLoaded(true);
+    } catch {
+      setScheduleError(labels.scheduleFailed);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
   useEffect(() => {
     if (role === "platform_owner" || role === "company_owner") void load();
+    if (role === "platform_owner") void loadSchedule();
   }, [role]);
+
+  const saveSchedule = async () => {
+    setScheduleSaving(true);
+    setScheduleError("");
+    try {
+      setSchedule(
+        await authRequest<BackupSchedule>("/api/platform/backup-schedule", {
+          method: "PATCH",
+          body: JSON.stringify({
+            platformBackupIntervalMinutes:
+              schedule.platformBackupIntervalMinutes,
+            companyBackupIntervalMinutes:
+              schedule.companyBackupIntervalMinutes,
+          }),
+        }),
+      );
+      toast.success(labels.scheduleSaved);
+    } catch {
+      setScheduleError(labels.scheduleFailed);
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
 
   const create = async () => {
     setPending("create");
@@ -19016,6 +19110,107 @@ function BackupRestore() {
         title={labels.title}
         detail={labels.detail}
       />
+      {isPlatformOwner && (
+        <Card className="mb-5">
+          <div className="border-b border-border p-5">
+            <h2 className="font-display text-lg font-semibold">
+              {labels.scheduleTitle}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {labels.scheduleDetail}
+            </p>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">
+                  {labels.platformFrequency}
+                </span>
+                <select
+                  aria-label={labels.platformFrequency}
+                  data-testid="platform-backup-frequency"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  value={schedule.platformBackupIntervalMinutes}
+                  disabled={!scheduleLoaded || scheduleSaving}
+                  onChange={(event) =>
+                    setSchedule((current) => ({
+                      ...current,
+                      platformBackupIntervalMinutes: Number(
+                        event.target.value,
+                      ),
+                    }))
+                  }
+                >
+                  <option value={0}>{labels.off}</option>
+                  <option value={1440}>{labels.daily}</option>
+                  <option value={10080}>{labels.weekly}</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">
+                  {labels.companyFrequency}
+                </span>
+                <select
+                  aria-label={labels.companyFrequency}
+                  data-testid="company-backup-frequency"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  value={schedule.companyBackupIntervalMinutes}
+                  disabled={!scheduleLoaded || scheduleSaving}
+                  onChange={(event) =>
+                    setSchedule((current) => ({
+                      ...current,
+                      companyBackupIntervalMinutes: Number(
+                        event.target.value,
+                      ),
+                    }))
+                  }
+                >
+                  <option value={0}>{labels.off}</option>
+                  <option value={1440}>{labels.daily}</option>
+                  <option value={10080}>{labels.weekly}</option>
+                </select>
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {labels.scheduleRuntime}
+            </p>
+            {scheduleError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                {scheduleError}
+              </div>
+            )}
+            {scheduleLoaded && !schedule.schedulerReady && (
+              <div
+                role="alert"
+                data-testid="backup-scheduler-setup-warning"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                {labels.schedulerNeedsSecret}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {labels.keepAllBackups}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                data-testid="save-backup-schedule"
+                onClick={() => void saveSchedule()}
+                disabled={!scheduleLoaded || scheduleSaving}
+              >
+                {scheduleSaving ? labels.savingSchedule : labels.saveSchedule}
+              </Button>
+              {scheduleLoading && (
+                <span className="text-sm text-muted-foreground" role="status">
+                  {labels.scheduleLoading}
+                </span>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
       <Card>
         <div className="border-b border-border p-5">
           <div className="flex items-start justify-between gap-3">
@@ -19071,6 +19266,11 @@ function BackupRestore() {
                           backup.status === "safety" ? "completed" : "active"
                         }
                       />
+                      {backup.metadata.creationMode === "scheduled" && (
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                          {labels.automatic}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(backup.createdAt).toLocaleString(

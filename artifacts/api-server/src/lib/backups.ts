@@ -252,6 +252,8 @@ export async function createBackup(input: {
   companyId: string | null;
   createdBy: string;
   status?: string;
+  creationMode?: "scheduled";
+  scheduleIntervalMinutes?: number;
 }) {
   const built = await buildBackupPayload(input.scope, input.companyId);
   const [record] = await db
@@ -269,6 +271,10 @@ export async function createBackup(input: {
         scope: input.scope,
         companyId: input.companyId,
         includesExternalFiles: false,
+        ...(input.creationMode ? { creationMode: input.creationMode } : {}),
+        ...(input.scheduleIntervalMinutes != null
+          ? { scheduleIntervalMinutes: input.scheduleIntervalMinutes }
+          : {}),
         tableCounts: Object.fromEntries(
           Object.entries(built.payload.data).map(([table, rows]) => [
             table,
@@ -635,6 +641,14 @@ function normalizeRestoreRow(
   // the table default. Keep restores compatible with backups created before
   // newly-added NOT NULL columns were introduced.
   switch (table) {
+    case "var_hr_platform_settings":
+      return {
+        ...row,
+        platform_backup_interval_minutes:
+          row.platform_backup_interval_minutes ?? 0,
+        company_backup_interval_minutes:
+          row.company_backup_interval_minutes ?? 0,
+      };
     case "var_hr_companies":
       return {
         ...row,

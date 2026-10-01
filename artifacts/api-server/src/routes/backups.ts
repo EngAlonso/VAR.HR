@@ -1,9 +1,11 @@
 // @ts-nocheck
+import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { backupRecordsTable, companiesTable, db } from "@workspace/db";
 import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName } from "../lib/backups";
+import { runAutomaticBackupScheduler } from "../lib/backup-scheduler";
 import { writeAuthAudit } from "../lib/auth";
 import {
   WorkspaceAccessError,
@@ -12,6 +14,35 @@ import {
 } from "../lib/tenant-context";
 
 const router = Router();
+
+router.get("/internal/backup-scheduler", async (req, res): Promise<void> => {
+  const configuredSecret = process.env.CRON_SECRET;
+  if (!configuredSecret) {
+    res.status(503).json({ error: "Scheduled backup trigger is not configured." });
+    return;
+  }
+
+  const expected = Buffer.from(`Bearer ${configuredSecret}`);
+  const provided = Buffer.from(req.get("authorization") ?? "");
+  if (
+    expected.length !== provided.length ||
+    !timingSafeEqual(expected, provided)
+  ) {
+    res.status(401).json({ error: "Unauthorized scheduler request." });
+    return;
+  }
+
+  const result = await runAutomaticBackupScheduler();
+  if (result.reason === "no_active_platform_owner") {
+    res.status(503).json(result);
+    return;
+  }
+  if (result.failures > 0) {
+    res.status(500).json(result);
+    return;
+  }
+  res.json(result);
+});
 
 function canManageBackups(role: string): boolean {
   return role === "platform_owner" || role === "company_owner";

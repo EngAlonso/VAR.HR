@@ -452,6 +452,20 @@ const siteSettingsSchema = z.object({
   siteName: z.string().trim().min(1).max(120),
   logoVariant: logoVariantSchema,
 });
+const backupScheduleSchema = z
+  .object({
+    platformBackupIntervalMinutes: z.union([
+      z.literal(0),
+      z.literal(1440),
+      z.literal(10080),
+    ]),
+    companyBackupIntervalMinutes: z.union([
+      z.literal(0),
+      z.literal(1440),
+      z.literal(10080),
+    ]),
+  })
+  .strict();
 const selfAccountSchema = z.object({
   fullName: z.string().trim().min(1).max(160).optional(),
   username: z
@@ -719,6 +733,73 @@ router.patch("/platform/site-settings", async (req, res): Promise<void> => {
     metadata: { fields: ["siteName", "logoVariant"] },
   });
   res.json(await loadPlatformSettings());
+});
+
+async function loadBackupSchedule() {
+  const [settings] = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(eq(platformSettingsTable.id, "default"))
+    .limit(1);
+  return {
+    platformBackupIntervalMinutes:
+      settings?.platformBackupIntervalMinutes ?? 0,
+    companyBackupIntervalMinutes:
+      settings?.companyBackupIntervalMinutes ?? 0,
+    schedulerReady:
+      process.env.VERCEL !== "1" || Boolean(process.env.CRON_SECRET),
+  };
+}
+
+router.get("/platform/backup-schedule", async (req, res): Promise<void> => {
+  await requirePlatformOwner(req);
+  res.json(await loadBackupSchedule());
+});
+
+router.patch("/platform/backup-schedule", async (req, res): Promise<void> => {
+  const context = await requirePlatformOwner(req);
+  const parsed = backupScheduleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Backup intervals must be disabled, daily, or weekly.",
+    });
+    return;
+  }
+
+  await db
+    .insert(platformSettingsTable)
+    .values({
+      id: "default",
+      platformBackupIntervalMinutes:
+        parsed.data.platformBackupIntervalMinutes,
+      companyBackupIntervalMinutes:
+        parsed.data.companyBackupIntervalMinutes,
+    })
+    .onConflictDoUpdate({
+      target: platformSettingsTable.id,
+      set: {
+        platformBackupIntervalMinutes:
+          parsed.data.platformBackupIntervalMinutes,
+        companyBackupIntervalMinutes:
+          parsed.data.companyBackupIntervalMinutes,
+        updatedAt: new Date(),
+      },
+    });
+
+  await writeAuthAudit({
+    accountId: context.accountId,
+    companyId: null,
+    action: "platform_backup_schedule_updated",
+    entityType: "platform_settings",
+    entityId: "default",
+    metadata: {
+      platformBackupIntervalMinutes:
+        parsed.data.platformBackupIntervalMinutes,
+      companyBackupIntervalMinutes:
+        parsed.data.companyBackupIntervalMinutes,
+    },
+  });
+  res.json(await loadBackupSchedule());
 });
 
 router.get("/platform/database/entities", async (req, res): Promise<void> => {
