@@ -4,7 +4,7 @@ import { backupRecordsTable, db, pool } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 export const BACKUP_FORMAT_VERSION = 1;
-export const BACKUP_SCHEMA_VERSION = "2026-08-22";
+export const BACKUP_SCHEMA_VERSION = "2026-10-01";
 
 type BackupScope = "platform" | "company";
 type JsonRecord = Record<string, unknown>;
@@ -26,9 +26,15 @@ type BackupEnvelope = {
   data: Record<string, JsonRecord[]>;
 };
 
+// Keep this order aligned with the foreign keys in lib/db/src/schema. The
+// coverage test ensures every persisted table is included or explicitly
+// excluded. Auth sessions and backup records are intentionally omitted:
+// sessions must never be restored and backups must not recursively contain
+// other backup payloads.
 const insertOrder = [
   "var_hr_permissions",
   "var_hr_plans",
+  "var_hr_platform_settings",
   "var_hr_companies",
   "var_hr_departments",
   "var_hr_branches",
@@ -41,10 +47,15 @@ const insertOrder = [
   "var_hr_leave_balances",
   "var_hr_payroll_periods",
   "var_hr_work_schedules",
+  "var_hr_employee_schedule_assignments",
   "var_hr_holidays",
   "var_hr_subscriptions",
   "var_hr_attendance",
+  "var_hr_attendance_punch_requests",
+  "var_hr_attendance_calculations",
+  "var_hr_attendance_time_adjustments",
   "var_hr_leave_requests",
+  "var_hr_leave_balance_transactions",
   "var_hr_permission_requests",
   "var_hr_payroll_calculations",
   "var_hr_payroll_adjustments",
@@ -52,13 +63,34 @@ const insertOrder = [
   "var_hr_device_employee_mappings",
   "var_hr_biometric_events",
   "var_hr_biometric_sync_history",
+  "var_hr_biometric_device_commands",
   "var_hr_attendance_locations",
   "var_hr_user_accounts",
   "var_hr_account_permissions",
+  "var_hr_notifications",
+  "var_hr_notification_subscriptions",
+  "var_hr_attendance_rule_changes",
+  "var_hr_leave_policies",
   "var_hr_employee_identities",
   "var_hr_audit_logs",
   "var_hr_auth_audit_events",
 ] as const;
+
+const optionalTablesForLegacyBackups = new Set([
+  "var_hr_platform_settings",
+  "var_hr_employee_schedule_assignments",
+  "var_hr_attendance_punch_requests",
+  "var_hr_attendance_calculations",
+  "var_hr_attendance_time_adjustments",
+  "var_hr_attendance_rule_changes",
+  "var_hr_leave_policies",
+  "var_hr_leave_balance_transactions",
+  "var_hr_biometric_device_commands",
+  "var_hr_notifications",
+  "var_hr_notification_subscriptions",
+]);
+
+const platformOnlyTables = new Set(["var_hr_platform_settings"]);
 
 const companyScopedTables = new Set([
   "var_hr_departments",
@@ -75,7 +107,11 @@ const companyScopedTables = new Set([
   "var_hr_holidays",
   "var_hr_subscriptions",
   "var_hr_attendance",
+  "var_hr_attendance_punch_requests",
+  "var_hr_attendance_calculations",
+  "var_hr_attendance_time_adjustments",
   "var_hr_leave_requests",
+  "var_hr_leave_balance_transactions",
   "var_hr_permission_requests",
   "var_hr_payroll_calculations",
   "var_hr_payroll_adjustments",
@@ -83,7 +119,13 @@ const companyScopedTables = new Set([
   "var_hr_device_employee_mappings",
   "var_hr_biometric_events",
   "var_hr_biometric_sync_history",
+  "var_hr_biometric_device_commands",
   "var_hr_attendance_locations",
+  "var_hr_employee_schedule_assignments",
+  "var_hr_notifications",
+  "var_hr_notification_subscriptions",
+  "var_hr_attendance_rule_changes",
+  "var_hr_leave_policies",
   "var_hr_employee_identities",
   "var_hr_audit_logs",
   "var_hr_auth_audit_events",
@@ -129,6 +171,9 @@ async function rowsForTable(
   companyId: string | null,
 ): Promise<JsonRecord[]> {
   const tableName = quoteIdentifier(table);
+  if (scope === "company" && platformOnlyTables.has(table)) {
+    return [];
+  }
   if (scope === "company" && companyScopedTables.has(table)) {
     return (await client.query(`SELECT * FROM ${tableName} WHERE company_id = $1`, [
       companyId,
@@ -257,8 +302,17 @@ function validateEnvelope(value: unknown, expectedScope: BackupScope, companyId:
   if (expectedChecksum !== manifest.integrity.checksum) {
     throw new Error("Backup integrity validation failed.");
   }
+  for (const table of Object.keys(envelope.data)) {
+    if (!insertOrder.includes(table as (typeof insertOrder)[number])) {
+      throw new Error("Backup contains a table that is not supported.");
+    }
+  }
   for (const table of insertOrder) {
-    if (!Array.isArray(envelope.data[table])) {
+    const rows = envelope.data[table];
+    if (rows === undefined && optionalTablesForLegacyBackups.has(table)) {
+      continue;
+    }
+    if (!Array.isArray(rows)) {
       throw new Error("Backup is missing an allowlisted table.");
     }
   }
@@ -297,8 +351,16 @@ export function validateUploadedBackup(
   if (!candidate.data || typeof candidate.data !== "object" || Array.isArray(candidate.data)) {
     throw new Error("Backup data is missing.");
   }
+  for (const table of Object.keys(candidate.data)) {
+    if (!insertOrder.includes(table as (typeof insertOrder)[number])) {
+      throw new Error(`Backup contains unsupported table ${table}.`);
+    }
+  }
   for (const table of insertOrder) {
     const rows = (candidate.data as Record<string, unknown>)[table];
+    if (rows === undefined && optionalTablesForLegacyBackups.has(table)) {
+      continue;
+    }
     if (!Array.isArray(rows) || rows.some((row) => !isJsonRecord(row))) {
       throw new Error(`Backup data for ${table} is invalid.`);
     }
@@ -325,6 +387,11 @@ export function validateUploadedBackup(
         throw new Error("Backup contains a permission for an unknown account.");
       }
     }
+    for (const table of platformOnlyTables) {
+      if ((candidate.data[table] as unknown[] | undefined)?.length) {
+        throw new Error(`Company backups cannot contain ${table} data.`);
+      }
+    }
   }
   // Reject session material if a hand-edited file attempts to smuggle it in.
   const serialized = JSON.stringify(candidate.data);
@@ -335,16 +402,18 @@ export function validateUploadedBackup(
   const checked = validateEnvelope(value, expectedScope, expectedScope === "company" ? manifest.companyId : null);
   const sourceCompanyId = checked.manifest.companyId;
   const data = Object.fromEntries(
-    Object.entries(checked.data).map(([table, rows]) => [
+    insertOrder.map((table) => [
       table,
-      expectedScope === "company"
-        ? rows.map((row) => {
-            const copy = { ...row };
-            if ("company_id" in copy) copy.company_id = targetCompanyId;
-            if (table === "var_hr_companies" && copy.id === sourceCompanyId) copy.id = targetCompanyId;
-            return copy;
-          })
-        : rows,
+      (checked.data[table] ?? []).map((row) => {
+        const copy = { ...row };
+        if (expectedScope === "company") {
+          if ("company_id" in copy) copy.company_id = targetCompanyId;
+          if (table === "var_hr_companies" && copy.id === sourceCompanyId) {
+            copy.id = targetCompanyId;
+          }
+        }
+        return copy;
+      }),
     ]),
   ) as Record<string, JsonRecord[]>;
   const checksum = checksumFor(canonicalPayload(data));
@@ -536,8 +605,21 @@ async function reconcilePlatformAccounts(
       table,
       rows.map((row) => {
         const copy = { ...row };
-        if (typeof copy.account_id === "string") {
-          copy.account_id = sourceToTarget.get(copy.account_id) ?? copy.account_id;
+        for (const column of [
+          "account_id",
+          "user_id",
+          "actor_id",
+          "created_by",
+          "requested_by",
+          "decided_by",
+          "approved_by",
+          "rejected_by",
+          "reversed_by",
+        ]) {
+          if (typeof copy[column] === "string") {
+            copy[column] =
+              sourceToTarget.get(copy[column] as string) ?? copy[column];
+          }
         }
         return copy;
       }),
@@ -649,6 +731,7 @@ async function insertScope(
   for (const table of insertOrder) {
     if (scope === "company" && table === "var_hr_permissions") continue;
     if (scope === "company" && table === "var_hr_plans") continue;
+    if (scope === "company" && platformOnlyTables.has(table)) continue;
     for (const row of data[table] ?? []) {
       if (scope === "company" && table === companyUserTable && row.company_id !== companyId) {
         throw new Error("Backup contains an account outside its company.");
@@ -675,6 +758,24 @@ async function insertScope(
       );
     }
   }
+}
+
+async function synchronizeBiometricCommandSequence(
+  client: QueryClient,
+): Promise<void> {
+  const sequence = `pg_get_serial_sequence('"var_hr_biometric_device_commands"', 'command_number')::regclass`;
+  await client.query(`
+    SELECT setval(
+      ${sequence},
+      GREATEST(
+        COALESCE((SELECT MAX(command_number) FROM "var_hr_biometric_device_commands"), 0),
+        COALESCE(pg_sequence_last_value(${sequence}), 0),
+        1
+      ),
+      EXISTS (SELECT 1 FROM "var_hr_biometric_device_commands")
+        OR pg_sequence_last_value(${sequence}) IS NOT NULL
+    )
+  `);
 }
 
 export async function restoreBackup(
@@ -708,6 +809,7 @@ export async function restoreBackup(
     if (expectedScope === "platform") {
       await reconcilePlatformAccountEmployees(client, restoreData);
     }
+    await synchronizeBiometricCommandSequence(client);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
