@@ -69,6 +69,8 @@ const messages = {
     payrollFinalizedImmutable: "Approved, finalized, or locked payroll cannot be changed.",
     attendanceRulePayrollRecalculationFailed:
       "The rule was saved, but one or more open payroll periods could not be recalculated. Recalculate them before approval.",
+    scheduleAttendanceRecalculationFailed:
+      "The shift was saved, but attendance in one or more open payroll periods could not be recalculated. Recalculate those periods before approval.",
     personalPayrollOnly: "Personal payroll is available only to an employee identity.",
     overtimeLineLabel: "Overtime",
     timeMultiplierPremiumLineLabel: "Time multiplier premium",
@@ -195,6 +197,8 @@ const messages = {
     payrollFinalizedImmutable: "لا يمكن تغيير الرواتب المعتمدة أو النهائية أو المقفلة.",
     attendanceRulePayrollRecalculationFailed:
       "تم حفظ القاعدة، لكن تعذر إعادة حساب فترة رواتب مفتوحة واحدة أو أكثر. أعد حسابها قبل الاعتماد.",
+    scheduleAttendanceRecalculationFailed:
+      "تم حفظ الشيفت، لكن تعذرت إعادة حساب الحضور في فترة رواتب مفتوحة أو أكثر. أعد حسابها قبل الاعتماد.",
     personalPayrollOnly: "الرواتب الشخصية متاحة فقط لهوية موظف.",
     overtimeLineLabel: "العمل الإضافي",
     timeMultiplierPremiumLineLabel: "بدل مضاعفة الساعات",
@@ -321,6 +325,8 @@ const messages = {
     payrollFinalizedImmutable: "Une paie approuvée, finalisée ou verrouillée ne peut plus être modifiée.",
     attendanceRulePayrollRecalculationFailed:
       "La règle a été enregistrée, mais une ou plusieurs périodes de paie ouvertes n’ont pas pu être recalculées. Recalculez-les avant approbation.",
+    scheduleAttendanceRecalculationFailed:
+      "Le shift a été enregistré, mais la présence d’une ou plusieurs périodes de paie ouvertes n’a pas pu être recalculée. Recalculez-les avant approbation.",
     personalPayrollOnly: "La paie personnelle est disponible pour une identité employé uniquement.",
     overtimeLineLabel: "Heures supplémentaires",
     timeMultiplierPremiumLineLabel: "Prime de multiplicateur horaire",
@@ -447,6 +453,8 @@ const messages = {
     payrollFinalizedImmutable: "Eine genehmigte, abgeschlossene oder gesperrte Lohnabrechnung kann nicht geändert werden.",
     attendanceRulePayrollRecalculationFailed:
       "Die Regel wurde gespeichert, aber mindestens ein offener Abrechnungszeitraum konnte nicht neu berechnet werden. Berechnen Sie ihn vor der Genehmigung erneut.",
+    scheduleAttendanceRecalculationFailed:
+      "Die Schicht wurde gespeichert, aber die Anwesenheit in mindestens einem offenen Abrechnungszeitraum konnte nicht neu berechnet werden. Berechnen Sie diese Zeiträume vor der Genehmigung erneut.",
     personalPayrollOnly: "Die persönliche Lohnabrechnung ist nur für eine Mitarbeiteridentität verfügbar.",
     overtimeLineLabel: "Überstunden",
     timeMultiplierPremiumLineLabel: "Stundenmultiplikator-Zuschlag",

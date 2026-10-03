@@ -11297,6 +11297,27 @@ function EmployeeProfilePage() {
       toast.error(t("couldNotSaveRecord"));
       return;
     }
+    const finishEmployeeSave = () => {
+      toast.success(t("employeeSaved"));
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+      qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
+      qc.invalidateQueries({
+        queryKey: getGetEmployeeQueryKey(employeeId),
+      });
+      qc.invalidateQueries({
+        queryKey: getGetEmployeeScheduleQueryKey(employeeId),
+      });
+      qc.invalidateQueries({ queryKey: getGetReportQueryKey() });
+      qc.invalidateQueries({
+        predicate: (query) =>
+          typeof query.queryKey[0] === "string" &&
+          query.queryKey[0].startsWith("/api/payroll/"),
+      });
+      qc.invalidateQueries({
+        queryKey: getGetEmployeePayrollSummaryQueryKey(),
+      });
+    };
     update.mutate(
       {
         employeeId,
@@ -11323,6 +11344,13 @@ function EmployeeProfilePage() {
       },
       {
         onSuccess: () => {
+          if (
+            employeeSchedule.data?.assignment?.scheduleId ===
+            editForm.scheduleId
+          ) {
+            finishEmployeeSave();
+            return;
+          }
           const effectiveFrom =
             employeeSchedule.data?.assignment?.effectiveFrom ||
             editForm.joinedOn;
@@ -11337,20 +11365,7 @@ function EmployeeProfilePage() {
               },
             },
             {
-              onSuccess: () => {
-                toast.success(t("employeeSaved"));
-                setEditing(false);
-                qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-                qc.invalidateQueries({
-                  queryKey: getListLeaveBalancesQueryKey(),
-                });
-                qc.invalidateQueries({
-                  queryKey: getGetEmployeeQueryKey(employeeId),
-                });
-                qc.invalidateQueries({
-                  queryKey: getGetEmployeeScheduleQueryKey(employeeId),
-                });
-              },
+              onSuccess: finishEmployeeSave,
               onError: (error: unknown) =>
                 toast.error(
                   apiErrorMessage(error, t("scheduleAssignmentFailed")),
@@ -17717,6 +17732,17 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     },
   });
   const bulkAssign = useBulkAssignEmployeeSchedules();
+  const invalidateAttendanceCalculations = () => {
+    qc.invalidateQueries({ queryKey: getGetReportQueryKey() });
+    qc.invalidateQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" &&
+        query.queryKey[0].startsWith("/api/payroll/"),
+    });
+    qc.invalidateQueries({
+      queryKey: getGetEmployeePayrollSummaryQueryKey(),
+    });
+  };
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({
@@ -17800,6 +17826,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         toast.success(t(editing ? "scheduleUpdated" : "scheduleCreated"));
         setShowEditor(false);
         qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
+        if (editing) invalidateAttendanceCalculations();
       },
       onError: (error: unknown) =>
         toast.error(apiErrorMessage(error, t("scheduleSaveFailed"))),
@@ -17830,6 +17857,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
           qc.invalidateQueries({
             queryKey: getGetEmployeeScheduleQueryKey(activeEmployeeId),
           });
+          invalidateAttendanceCalculations();
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("scheduleAssignmentFailed"))),
@@ -17882,6 +17910,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             queryKey: getListScheduleAssignmentsQueryKey(),
           });
           qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
+          invalidateAttendanceCalculations();
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("scheduleAssignmentFailed"))),

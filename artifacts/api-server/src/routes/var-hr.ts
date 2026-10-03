@@ -2146,6 +2146,131 @@ async function recalculateOpenPayrollPeriodsForRuleChange(
   return !failed;
 }
 
+type ScheduleAttendanceRefreshScope = {
+  employeeId: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
+async function recalculateAttendanceForScheduleChanges(
+  context: TenantContext,
+  req: Request,
+  scopes: ScheduleAttendanceRefreshScope[],
+): Promise<boolean> {
+  const activeScopes = scopes.filter(
+    (scope) =>
+      scope.effectiveFrom <= TODAY &&
+      (scope.effectiveTo === null || scope.effectiveTo >= scope.effectiveFrom),
+  );
+  if (!activeScopes.length) return true;
+
+  const periods = await db
+    .select()
+    .from(payrollPeriodsTable)
+    .where(eq(payrollPeriodsTable.companyId, context.companyId));
+  if (!periods.some((period) => !isPayrollPeriodImmutableStatus(period.status))) {
+    return true;
+  }
+
+  const earliestDate = activeScopes.reduce(
+    (earliest, scope) =>
+      scope.effectiveFrom < earliest ? scope.effectiveFrom : earliest,
+    activeScopes[0].effectiveFrom,
+  );
+  const employeeIds = [...new Set(activeScopes.map((scope) => scope.employeeId))];
+  const attendanceRows = await db
+    .select()
+    .from(attendanceTable)
+    .where(
+      and(
+        eq(attendanceTable.companyId, context.companyId),
+        inArray(attendanceTable.employeeId, employeeIds),
+        gte(attendanceTable.date, earliestDate),
+        lte(attendanceTable.date, TODAY),
+      ),
+    )
+    .orderBy(asc(attendanceTable.date));
+
+  const calculatedPeriodIds = new Set<string>();
+  let failed = false;
+  for (const attendance of attendanceRows) {
+    const scopeApplies = activeScopes.some(
+      (scope) =>
+        scope.employeeId === attendance.employeeId &&
+        scope.effectiveFrom <= attendance.date &&
+        (scope.effectiveTo === null || scope.effectiveTo >= attendance.date),
+    );
+    if (!scopeApplies) continue;
+
+    const coveringPeriods = periods.filter(
+      (period) => period.from <= attendance.date && period.to >= attendance.date,
+    );
+    if (
+      !coveringPeriods.length ||
+      coveringPeriods.some((period) =>
+        isPayrollPeriodImmutableStatus(period.status),
+      )
+    ) {
+      continue;
+    }
+
+    try {
+      const rules = await attendanceRulesFor(
+        context.companyId,
+        attendance.date,
+      );
+      const schedule = await effectiveScheduleFor(
+        context.companyId,
+        attendance.employeeId,
+        attendance.date,
+        rules,
+      );
+      const [updated] = await db
+        .update(attendanceTable)
+        .set({
+          scheduledStart: schedule.startTime,
+          scheduledEnd: schedule.endTime,
+          requiredHours: schedule.requiredHours,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(attendanceTable.id, attendance.id),
+            eq(attendanceTable.companyId, context.companyId),
+          ),
+        )
+        .returning();
+      if (!updated) continue;
+      await attendanceCalculationFor(context, updated, true);
+      for (const period of coveringPeriods) {
+        if (period.status === "calculated") calculatedPeriodIds.add(period.id);
+      }
+    } catch (err) {
+      failed = true;
+      req.log.error(
+        { err, employeeId: attendance.employeeId, attendanceId: attendance.id },
+        "Could not refresh attendance after an employee schedule changed",
+      );
+    }
+  }
+
+  for (const period of periods) {
+    if (!calculatedPeriodIds.has(period.id)) continue;
+    try {
+      const calculation = await calculatePayrollPeriod(context, req, period);
+      if (!calculation) throw new Error("No payroll calculation was returned.");
+    } catch (err) {
+      failed = true;
+      req.log.error(
+        { err, payrollPeriodId: period.id },
+        "Could not recalculate an open payroll period after a schedule changed",
+      );
+    }
+  }
+
+  return !failed;
+}
+
 type SyncHistoryStatus =
   "queued" | "running" | "completed" | "failed" | "unavailable";
 type SyncOperation = "employee_sync" | "attendance_sync" | "full_sync";
@@ -8506,6 +8631,48 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     schedule,
     existing,
   );
+  const attendanceScheduleFields = [
+    "startTime",
+    "endTime",
+    "overnight",
+    "requiredHours",
+    "breakDurationMinutes",
+    "breakPaid",
+    "graceMinutes",
+    "earlyCheckoutGraceMinutes",
+    "overtimeAfterMinutes",
+    "overtimeEligible",
+    "active",
+  ] as const;
+  const calculationScheduleChanged = attendanceScheduleFields.some(
+    (field) => existing[field] !== schedule[field],
+  );
+  if (calculationScheduleChanged) {
+    const scheduleAssignments = await db
+      .select({
+        employeeId: employeeScheduleAssignmentsTable.employeeId,
+        effectiveFrom: employeeScheduleAssignmentsTable.effectiveFrom,
+        effectiveTo: employeeScheduleAssignmentsTable.effectiveTo,
+      })
+      .from(employeeScheduleAssignmentsTable)
+      .where(
+        and(
+          eq(employeeScheduleAssignmentsTable.companyId, context.companyId),
+          eq(employeeScheduleAssignmentsTable.scheduleId, schedule.id),
+        ),
+      );
+    const attendanceRefreshed = await recalculateAttendanceForScheduleChanges(
+      context,
+      req,
+      scheduleAssignments,
+    );
+    if (!attendanceRefreshed) {
+      res.status(500).json({
+        error: message(req, "scheduleAttendanceRecalculationFailed"),
+      });
+      return;
+    }
+  }
   res.json(UpdateWorkScheduleResponse.parse(mapWorkSchedule(schedule)));
 });
 
@@ -8647,6 +8814,7 @@ router.post("/schedule-assignments", async (req, res): Promise<void> => {
     return;
   }
   const created = [];
+  const refreshScopes: ScheduleAttendanceRefreshScope[] = [];
   for (const employee of employees) {
     const existing = await db
       .select()
@@ -8695,6 +8863,11 @@ router.post("/schedule-assignments", async (req, res): Promise<void> => {
             .returning()
         )[0];
     created.push(historyRow(assignment, employee, schedule));
+    refreshScopes.push({
+      employeeId: employee.id,
+      effectiveFrom: assignment.effectiveFrom,
+      effectiveTo: assignment.effectiveTo,
+    });
     await recordAudit(
       context.companyId,
       sameStart ? "updated" : "created",
@@ -8702,6 +8875,17 @@ router.post("/schedule-assignments", async (req, res): Promise<void> => {
       assignment.id,
       assignment,
     );
+  }
+  const attendanceRefreshed = await recalculateAttendanceForScheduleChanges(
+    context,
+    req,
+    refreshScopes,
+  );
+  if (!attendanceRefreshed) {
+    res.status(500).json({
+      error: message(req, "scheduleAttendanceRecalculationFailed"),
+    });
+    return;
   }
   res.status(201).json(
     BulkAssignEmployeeSchedulesResponse.parse({
@@ -8905,6 +9089,23 @@ router.put(
       assignment.id,
       assignment,
     );
+    const attendanceRefreshed = await recalculateAttendanceForScheduleChanges(
+      context,
+      req,
+      [
+        {
+          employeeId: employee.id,
+          effectiveFrom: assignment.effectiveFrom,
+          effectiveTo: assignment.effectiveTo,
+        },
+      ],
+    );
+    if (!attendanceRefreshed) {
+      res.status(500).json({
+        error: message(req, "scheduleAttendanceRecalculationFailed"),
+      });
+      return;
+    }
     res.json(
       AssignEmployeeScheduleResponse.parse(
         effectiveScheduleResponse(employee.id, schedule, assignment),

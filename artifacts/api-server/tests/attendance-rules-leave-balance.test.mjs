@@ -143,6 +143,55 @@ test("attendance calculations keep the schedule stored on the attendance record"
   );
 });
 
+test("schedule changes rebase movement records only in editable payroll periods", () => {
+  const refreshStart = route.indexOf(
+    "async function recalculateAttendanceForScheduleChanges",
+  );
+  const refreshEnd = route.indexOf("type SyncHistoryStatus", refreshStart);
+  const refresh = route.slice(refreshStart, refreshEnd);
+  assert.notEqual(refreshStart, -1);
+  assert.match(
+    refresh,
+    /coveringPeriods\.some\(\(period\) =>\s*isPayrollPeriodImmutableStatus\(period\.status\)/,
+  );
+  assert.match(refresh, /scheduledStart: schedule\.startTime/);
+  assert.match(refresh, /scheduledEnd: schedule\.endTime/);
+  assert.match(refresh, /requiredHours: schedule\.requiredHours/);
+  assert.match(refresh, /attendanceCalculationFor\(context, updated, true\)/);
+  assert.match(
+    refresh,
+    /period\.status === "calculated"[\s\S]*calculatePayrollPeriod\(context, req, period\)/,
+  );
+
+  const assignmentRouteStart = route.indexOf(
+    'router.put(\n  "/employees/:employeeId/schedule"',
+  );
+  const assignmentRouteEnd = route.indexOf('router.get("/holidays"', assignmentRouteStart);
+  assert.match(
+    route.slice(assignmentRouteStart, assignmentRouteEnd),
+    /recalculateAttendanceForScheduleChanges/,
+  );
+  assert.match(
+    route.slice(
+      route.indexOf('router.patch("/schedules/:scheduleId"'),
+      route.indexOf('router.put(\n  "/schedules/:scheduleId/default"'),
+    ),
+    /recalculateAttendanceForScheduleChanges/,
+  );
+  assert.match(
+    route.slice(
+      route.indexOf('router.post("/schedule-assignments"'),
+      route.indexOf('router.get(\n  "/employees/:employeeId/schedule"'),
+    ),
+    /recalculateAttendanceForScheduleChanges/,
+  );
+  assert.match(
+    app,
+    /employeeSchedule\.data\?\.assignment\?\.scheduleId ===\s*editForm\.scheduleId/,
+  );
+  assert.match(app, /query\.queryKey\[0\]\.startsWith\("\/api\/payroll\/"\)/);
+});
+
 test("absence-to-annual-leave deduction follows the explicit attendance rule", () => {
   assert.match(route, /absenceDeductsAnnualLeave/);
   assert.match(route, /absenceLeaveDeductionDays/);
