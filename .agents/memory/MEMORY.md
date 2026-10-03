@@ -4,7 +4,7 @@
 - [Biometric out-of-order metrics](biometric-out-of-order-metrics.md) — recalculate all derived attendance values when an earlier movement arrives after a later one.
 - [Attendance calculation schedule](attendance-calculation-schedule.md) — preserve punch-row schedules; refresh payroll-generated absences from the effective employee, department, or company shift.
 - [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
-- [Backup restore compatibility](backup-restore-compatibility.md) — normalize newly added required columns because jsonb_populate_record turns omitted fields into NULL.
+- [Backup restore compatibility](backup-restore-compatibility.md) — normalize legacy rows and clear missing optional audit actors so valid restores are not rolled back.
 - [Company workday authority](company-workday-authority.md) — use attendance rules workingDays as the company-wide source for day/hour rate displays.
 - [ADMS timestamp normalization](adms-timezone-normalization.md) — interpret offset-free device timestamps in the company timezone before assigning attendance dates.
 - [Payroll cycle proration](payroll-cycle-proration.md) — prorate monthly salary against the full assigned cycle, while capping attendance and absence at the requested through-date.

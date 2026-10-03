@@ -29,3 +29,15 @@ device commands are active state rather than disposable history.
 **How to apply:** Add sequence reconciliation to restores that include serial
 columns, and keep device event ingestion deduplicated when command state is
 restored.
+
+Company backups may contain authentication audit events whose actor account is
+not present in the target database, especially when a backup moves between
+environments. Since the actor reference is optional, retain the audit event and
+clear only that missing account reference rather than aborting the restore.
+
+**Why:** An absent actor account caused a foreign-key violation that rolled back
+an otherwise valid company restore.
+
+**How to apply:** After restoring user accounts and before inserting
+authentication audit events, compare actor IDs with the accounts present in the
+target. Keep valid IDs and set missing optional IDs to null on the row copy.

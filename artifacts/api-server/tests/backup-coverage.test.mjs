@@ -92,3 +92,14 @@ test("tenant-owned additions are scoped and legacy backups may omit new tables",
   assert.match(backups, /async function synchronizeBiometricCommandSequence/);
   assert.match(backups, /await synchronizeBiometricCommandSequence\(client\)/);
 });
+
+test("restore preserves audit events when their optional actor account is missing", () => {
+  assert.match(
+    backups,
+    /if \(table === "var_hr_auth_audit_events"\) \{[\s\S]*SELECT id::text AS id FROM "\$\{companyUserTable\}"[\s\S]*knownAccountIds = new Set/,
+  );
+  assert.match(
+    backups,
+    /table === "var_hr_auth_audit_events"[\s\S]*typeof restoreRow\.account_id === "string"[\s\S]*!knownAccountIds\?\.has\(restoreRow\.account_id\)[\s\S]*restoreRow\.account_id = null/,
+  );
+});

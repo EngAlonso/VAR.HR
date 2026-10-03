@@ -743,10 +743,21 @@ async function insertScope(
   companyId: string | null,
   data: Record<string, JsonRecord[]>,
 ): Promise<void> {
+  let knownAccountIds: Set<string> | null = null;
   for (const table of insertOrder) {
     if (scope === "company" && table === "var_hr_permissions") continue;
     if (scope === "company" && table === "var_hr_plans") continue;
     if (scope === "company" && platformOnlyTables.has(table)) continue;
+    if (table === "var_hr_auth_audit_events") {
+      const accounts = await client.query(
+        `SELECT id::text AS id FROM "${companyUserTable}"`,
+      );
+      knownAccountIds = new Set(
+        accounts.rows
+          .map((row: { id?: unknown }) => row.id)
+          .filter((id: unknown): id is string => typeof id === "string"),
+      );
+    }
     for (const row of data[table] ?? []) {
       if (scope === "company" && table === companyUserTable && row.company_id !== companyId) {
         throw new Error("Backup contains an account outside its company.");
@@ -766,6 +777,16 @@ async function insertScope(
         throw new Error("Backup contains a company outside the restore scope.");
       }
       const restoreRow = normalizeRestoreRow(table, row);
+      // Audit history can outlive or move away from the account that created
+      // it. Keep the event, but clear a stale optional actor reference rather
+      // than aborting the entire restore on its foreign-key constraint.
+      if (
+        table === "var_hr_auth_audit_events" &&
+        typeof restoreRow.account_id === "string" &&
+        !knownAccountIds?.has(restoreRow.account_id)
+      ) {
+        restoreRow.account_id = null;
+      }
       const json = JSON.stringify(restoreRow);
       await client.query(
         `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM jsonb_populate_record(NULL::${quoteIdentifier(table)}, $1::jsonb) ON CONFLICT DO NOTHING`,
