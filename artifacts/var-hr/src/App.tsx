@@ -11344,13 +11344,6 @@ function EmployeeProfilePage() {
       },
       {
         onSuccess: () => {
-          if (
-            employeeSchedule.data?.assignment?.scheduleId ===
-            editForm.scheduleId
-          ) {
-            finishEmployeeSave();
-            return;
-          }
           const effectiveFrom =
             employeeSchedule.data?.assignment?.effectiveFrom ||
             editForm.joinedOn;

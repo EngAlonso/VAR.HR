@@ -158,6 +158,8 @@ test("schedule changes rebase movement records only in editable payroll periods"
   assert.match(refresh, /scheduledEnd: schedule\.endTime/);
   assert.match(refresh, /requiredHours: schedule\.requiredHours/);
   assert.match(refresh, /attendanceCalculationFor\(context, updated, true\)/);
+  assert.doesNotMatch(refresh, /if\s*\(!periods\.some/);
+  assert.doesNotMatch(refresh, /!coveringPeriods\.length/);
   assert.match(
     refresh,
     /period\.status === "calculated"[\s\S]*calculatePayrollPeriod\(context, req, period\)/,
@@ -185,10 +187,11 @@ test("schedule changes rebase movement records only in editable payroll periods"
     ),
     /recalculateAttendanceForScheduleChanges/,
   );
-  assert.match(
+  assert.doesNotMatch(
     app,
     /employeeSchedule\.data\?\.assignment\?\.scheduleId ===\s*editForm\.scheduleId/,
   );
+  assert.match(app, /assignSchedule\.mutate\(/);
   assert.match(app, /query\.queryKey\[0\]\.startsWith\("\/api\/payroll\/"\)/);
 });
 

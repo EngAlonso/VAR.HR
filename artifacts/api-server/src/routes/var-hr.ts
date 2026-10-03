@@ -2168,9 +2168,6 @@ async function recalculateAttendanceForScheduleChanges(
     .select()
     .from(payrollPeriodsTable)
     .where(eq(payrollPeriodsTable.companyId, context.companyId));
-  if (!periods.some((period) => !isPayrollPeriodImmutableStatus(period.status))) {
-    return true;
-  }
 
   const earliestDate = activeScopes.reduce(
     (earliest, scope) =>
@@ -2206,7 +2203,6 @@ async function recalculateAttendanceForScheduleChanges(
       (period) => period.from <= attendance.date && period.to >= attendance.date,
     );
     if (
-      !coveringPeriods.length ||
       coveringPeriods.some((period) =>
         isPayrollPeriodImmutableStatus(period.status),
       )
