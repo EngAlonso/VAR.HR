@@ -66,7 +66,9 @@ const messages = {
     payrollMustCalculateFirst: "A payroll period must be calculated before it can be finalized.",
     payrollAdjustmentAccess: "Payroll additions and deductions require a company owner or platform owner.",
     payrollAdjustmentTargetMissing: "The payroll adjustment target was not found.",
-    payrollFinalizedImmutable: "Finalized payroll cannot be changed.",
+    payrollFinalizedImmutable: "Approved, finalized, or locked payroll cannot be changed.",
+    attendanceRulePayrollRecalculationFailed:
+      "The rule was saved, but one or more open payroll periods could not be recalculated. Recalculate them before approval.",
     personalPayrollOnly: "Personal payroll is available only to an employee identity.",
     overtimeLineLabel: "Overtime",
     timeMultiplierPremiumLineLabel: "Time multiplier premium",
@@ -117,7 +119,8 @@ const messages = {
     basicSalary: "Basic salary",
     compensationProfile: "Employee compensation profile.",
     overtimeExplanation: "{hours} hours × hourly rate × the company-configured overtime multiplier.",
-    attendanceDeductionExplanation: "{minutes} late minutes × hourly rate × configured penalty factor.",
+    attendanceDeductionExplanation:
+      "{minutes} penalty-adjusted late minutes converted using the selected deduction method.",
     payrollFoundationExplanation: "This general payroll foundation intentionally excludes country-specific tax, insurance, and statutory calculations.",
     hardwareConnectorNote: "Hardware connector is not configured. No attendance sync is being simulated.",
     noManufacturerAdapter: "No manufacturer adapter is configured for this device yet. No synchronization was attempted.",
@@ -189,7 +192,9 @@ const messages = {
     payrollMustCalculateFirst: "يجب حساب فترة الرواتب قبل اعتمادها نهائياً.",
     payrollAdjustmentAccess: "تتطلب إضافات وخصومات الرواتب دور مالك الشركة أو مالك المنصة.",
     payrollAdjustmentTargetMissing: "لم يتم العثور على هدف تعديل الرواتب.",
-    payrollFinalizedImmutable: "لا يمكن تغيير الرواتب المعتمدة نهائياً.",
+    payrollFinalizedImmutable: "لا يمكن تغيير الرواتب المعتمدة أو النهائية أو المقفلة.",
+    attendanceRulePayrollRecalculationFailed:
+      "تم حفظ القاعدة، لكن تعذر إعادة حساب فترة رواتب مفتوحة واحدة أو أكثر. أعد حسابها قبل الاعتماد.",
     personalPayrollOnly: "الرواتب الشخصية متاحة فقط لهوية موظف.",
     overtimeLineLabel: "العمل الإضافي",
     timeMultiplierPremiumLineLabel: "بدل مضاعفة الساعات",
@@ -240,7 +245,8 @@ const messages = {
     basicSalary: "الراتب الأساسي",
     compensationProfile: "ملف تعويضات الموظف.",
     overtimeExplanation: "{hours} ساعة × سعر الساعة × معامل العمل الإضافي الذي حددته الشركة.",
-    attendanceDeductionExplanation: "{minutes} دقيقة تأخير × سعر الساعة × معامل العقوبة المُعد.",
+    attendanceDeductionExplanation:
+      "{minutes} دقيقة تأخير بعد تطبيق معامل العقوبة، وتُحسب حسب طريقة الخصم المحددة.",
     payrollFoundationExplanation: "تستبعد قاعدة الرواتب العامة هذه الضرائب والتأمين والحسابات النظامية الخاصة بكل دولة.",
     hardwareConnectorNote: "لم يتم إعداد موصل الأجهزة. لا تتم محاكاة مزامنة الحضور.",
     noManufacturerAdapter: "لم يتم إعداد موصل الشركة المصنعة لهذا الجهاز بعد. لم تتم محاولة المزامنة.",
@@ -312,7 +318,9 @@ const messages = {
     payrollMustCalculateFirst: "La période doit être calculée avant sa finalisation.",
     payrollAdjustmentAccess: "Les compléments et retenues requièrent un propriétaire d’entreprise ou de plateforme.",
     payrollAdjustmentTargetMissing: "La cible de l’ajustement de paie est introuvable.",
-    payrollFinalizedImmutable: "Une paie finalisée ne peut plus être modifiée.",
+    payrollFinalizedImmutable: "Une paie approuvée, finalisée ou verrouillée ne peut plus être modifiée.",
+    attendanceRulePayrollRecalculationFailed:
+      "La règle a été enregistrée, mais une ou plusieurs périodes de paie ouvertes n’ont pas pu être recalculées. Recalculez-les avant approbation.",
     personalPayrollOnly: "La paie personnelle est disponible pour une identité employé uniquement.",
     overtimeLineLabel: "Heures supplémentaires",
     timeMultiplierPremiumLineLabel: "Prime de multiplicateur horaire",
@@ -363,7 +371,8 @@ const messages = {
     basicSalary: "Salaire de base",
     compensationProfile: "Profil de rémunération de l’employé.",
     overtimeExplanation: "{hours} heures × taux horaire × le multiplicateur d’heures supplémentaires configuré par l’entreprise.",
-    attendanceDeductionExplanation: "{minutes} minutes de retard × taux horaire × facteur général de retenue 0,5.",
+    attendanceDeductionExplanation:
+      "{minutes} minutes de retard après application du multiplicateur de pénalité, converties selon la méthode de retenue choisie.",
     payrollFoundationExplanation: "Cette base de paie générale exclut les calculs fiscaux, d’assurance et réglementaires propres à chaque pays.",
     hardwareConnectorNote: "Le connecteur matériel n’est pas configuré. Aucune synchronisation de présence n’est simulée.",
     noManufacturerAdapter: "Aucun adaptateur fabricant n’est encore configuré pour cet appareil. Aucune synchronisation n’a été tentée.",
@@ -435,7 +444,9 @@ const messages = {
     payrollMustCalculateFirst: "Ein Abrechnungszeitraum muss vor der Finalisierung berechnet werden.",
     payrollAdjustmentAccess: "Zuschläge und Abzüge erfordern einen Unternehmens- oder Plattforminhaber.",
     payrollAdjustmentTargetMissing: "Das Ziel der Lohnanpassung wurde nicht gefunden.",
-    payrollFinalizedImmutable: "Eine finalisierte Lohnabrechnung kann nicht geändert werden.",
+    payrollFinalizedImmutable: "Eine genehmigte, abgeschlossene oder gesperrte Lohnabrechnung kann nicht geändert werden.",
+    attendanceRulePayrollRecalculationFailed:
+      "Die Regel wurde gespeichert, aber mindestens ein offener Abrechnungszeitraum konnte nicht neu berechnet werden. Berechnen Sie ihn vor der Genehmigung erneut.",
     personalPayrollOnly: "Die persönliche Lohnabrechnung ist nur für eine Mitarbeiteridentität verfügbar.",
     overtimeLineLabel: "Überstunden",
     timeMultiplierPremiumLineLabel: "Stundenmultiplikator-Zuschlag",
@@ -486,7 +497,8 @@ const messages = {
     basicSalary: "Grundgehalt",
     compensationProfile: "Vergütungsprofil des Mitarbeitenden.",
     overtimeExplanation: "{hours} Stunden × Stundensatz × den vom Unternehmen festgelegten Überstundenmultiplikator.",
-    attendanceDeductionExplanation: "{minutes} verspätete Minuten × Stundensatz × allgemeiner Abzugsfaktor 0,5.",
+    attendanceDeductionExplanation:
+      "{minutes} verspätete Minuten nach Anwendung des Strafmultiplikators, umgerechnet nach der gewählten Abzugsmethode.",
     payrollFoundationExplanation: "Diese allgemeine Abrechnungsgrundlage schließt länderspezifische Steuer-, Versicherungs- und gesetzliche Berechnungen aus.",
     hardwareConnectorNote: "Der Hardware-Connector ist nicht konfiguriert. Es wird keine Anwesenheitssynchronisierung simuliert.",
     noManufacturerAdapter: "Für dieses Gerät ist noch kein Herstelleradapter konfiguriert. Es wurde keine Synchronisierung versucht.",

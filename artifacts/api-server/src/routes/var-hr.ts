@@ -2096,6 +2096,48 @@ async function recalculateCurrentAttendanceForRuleChange(
   }
 }
 
+async function recalculateOpenPayrollPeriodsForRuleChange(
+  context: TenantContext,
+  req: Request,
+  effectiveFromMonth: string,
+): Promise<boolean> {
+  const periods = await db
+    .select()
+    .from(payrollPeriodsTable)
+    .where(
+      and(
+        eq(payrollPeriodsTable.companyId, context.companyId),
+        gte(payrollPeriodsTable.to, effectiveFromMonth),
+        lte(payrollPeriodsTable.from, TODAY),
+      ),
+    )
+    .orderBy(asc(payrollPeriodsTable.from));
+  let failed = false;
+
+  for (const period of periods) {
+    // Drafts have no saved payroll snapshot yet. Their first calculation will
+    // use the new rule; only refresh already-calculated open periods here.
+    if (
+      period.status !== "calculated" ||
+      isPayrollPeriodImmutableStatus(period.status)
+    ) {
+      continue;
+    }
+    try {
+      const calculation = await calculatePayrollPeriod(context, req, period);
+      if (!calculation) throw new Error("No payroll calculation was returned.");
+    } catch (err) {
+      failed = true;
+      req.log.error(
+        { err, payrollPeriodId: period.id },
+        "Could not recalculate an open payroll period after attendance rules changed",
+      );
+    }
+  }
+
+  return !failed;
+}
+
 type SyncHistoryStatus =
   "queued" | "running" | "completed" | "failed" | "unavailable";
 type SyncOperation = "employee_sync" | "attendance_sync" | "full_sync";
@@ -2329,6 +2371,12 @@ function payrollPeriodResponse(
     finalizedAt: period.finalizedAt ? period.finalizedAt.toISOString() : null,
     finalizedBy: period.finalizedBy,
   };
+}
+
+function isPayrollPeriodImmutableStatus(
+  status: string | null | undefined,
+): boolean {
+  return status === "finalized" || status === "approved" || status === "locked";
 }
 
 function payrollCycleResponse(
@@ -8290,6 +8338,30 @@ router.put("/rules", async (req, res): Promise<void> => {
   });
   if (changedEntries.length > 0) {
     await recalculateCurrentAttendanceForRuleChange(context);
+    const payrollRelevantChange = changedEntries.some(
+      ([field]) => field !== "gpsPolicy" && field !== "locationRadiusMeters",
+    );
+    if (payrollRelevantChange) {
+      let periodsRecalculated = false;
+      try {
+        periodsRecalculated = await recalculateOpenPayrollPeriodsForRuleChange(
+          context,
+          req,
+          appliesFromMonth,
+        );
+      } catch (err) {
+        req.log.error(
+          { err },
+          "Attendance rules were saved, but open payroll periods could not be refreshed",
+        );
+      }
+      if (!periodsRecalculated) {
+        res.status(500).json({
+          error: message(req, "attendanceRulePayrollRecalculationFailed"),
+        });
+        return;
+      }
+    }
   }
   res.json(
     UpdateAttendanceRulesResponse.parse(
@@ -10163,6 +10235,7 @@ router.post(
           gte(payrollPeriodsTable.to, effectiveFrom),
           or(
             eq(payrollPeriodsTable.status, "finalized"),
+            eq(payrollPeriodsTable.status, "approved"),
             eq(payrollPeriodsTable.status, "locked"),
           ),
         ),
@@ -10368,6 +10441,7 @@ router.delete("/payroll/cycles/:cycleId", async (req, res): Promise<void> => {
         eq(payrollPeriodsTable.cycleId, cycle.id),
         or(
           eq(payrollPeriodsTable.status, "finalized"),
+          eq(payrollPeriodsTable.status, "approved"),
           eq(payrollPeriodsTable.status, "locked"),
         ),
       ),
@@ -10533,7 +10607,7 @@ router.delete(
       res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
       return;
     }
-    if (period.status === "finalized" || period.status === "locked") {
+    if (isPayrollPeriodImmutableStatus(period.status)) {
       res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
       return;
     }
@@ -10875,7 +10949,7 @@ async function calculatePayrollPeriod(
   const existing = persist
     ? await storedPayrollCalculation(context, req, period)
     : null;
-  if (persist && (period.status === "finalized" || period.status === "locked"))
+  if (persist && isPayrollPeriodImmutableStatus(period.status))
     return existing;
   await ensureLeaveAccruals(context.companyId);
   let rows = (await employeeRows(context)).filter(
@@ -11198,16 +11272,14 @@ async function calculatePayrollPeriod(
       (total, calculation) => total + calculation.earlyDeparturePenaltyMinutes,
       0,
     );
+    // latePenaltyMinutes already includes the configured penalty multiplier.
+    // Applying it again here would turn a 2× rule into a 4× payroll deduction.
     const lateDeduction =
       (rules.lateDeductionMethod as string) === "none"
         ? 0
         : (rules.lateDeductionMethod as string) === "fixed_per_minute"
-          ? moneyValue(latePenaltyMinutes * rules.latePenaltyMultiplier)
-          : moneyValue(
-              (latePenaltyMinutes / 60) *
-                hourlyRate *
-                rules.latePenaltyMultiplier,
-            );
+          ? moneyValue(latePenaltyMinutes)
+          : moneyValue((latePenaltyMinutes / 60) * hourlyRate);
     const earlyDeduction = moneyValue(
       (earlyPenaltyMinutes / 60) *
         hourlyRate *
@@ -11598,7 +11670,7 @@ router.post(
       res.status(404).json({ error: message(req, "payrollPeriodNotFound") });
       return;
     }
-    if (period.status === "finalized" || period.status === "locked") {
+    if (isPayrollPeriodImmutableStatus(period.status)) {
       res.json(FinalizePayrollResponse.parse(payrollPeriodResponse(period)));
       return;
     }
@@ -11735,7 +11807,7 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
       .json({ error: message(req, "payrollAdjustmentTargetMissing") });
     return;
   }
-  if (period.status === "finalized" || period.status === "locked") {
+  if (isPayrollPeriodImmutableStatus(period.status)) {
     res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
     return;
   }
@@ -11812,7 +11884,7 @@ router.delete(
         ),
       )
       .limit(1);
-    if (period?.status === "finalized" || period?.status === "locked") {
+    if (isPayrollPeriodImmutableStatus(period?.status)) {
       res
         .status(409)
         .json({ error: message(req, "payrollFinalizedImmutable") });
@@ -11963,6 +12035,7 @@ router.get("/payroll/my", async (req, res): Promise<void> => {
               or(
                 eq(payrollPeriodsTable.status, "calculated"),
                 eq(payrollPeriodsTable.status, "finalized"),
+                eq(payrollPeriodsTable.status, "approved"),
               ),
             ),
           )

@@ -68,6 +68,43 @@ test("grace minutes exempt the full delay instead of reducing it", () => {
   );
 });
 
+test("late penalty multipliers are applied once in payroll deductions", () => {
+  const start = route.indexOf("const lateDeduction =");
+  const end = route.indexOf("const earlyDeduction =", start);
+  assert.ok(start >= 0 && end > start);
+  const lateDeduction = route.slice(start, end);
+  assert.match(
+    lateDeduction,
+    /moneyValue\(\(latePenaltyMinutes \/ 60\) \* hourlyRate\)/,
+  );
+  assert.match(
+    lateDeduction,
+    /fixed_per_minute[\s\S]*?moneyValue\(latePenaltyMinutes\)/,
+  );
+  assert.doesNotMatch(lateDeduction, /latePenaltyMultiplier/);
+});
+
+test("attendance rule changes refresh calculated open payroll without touching approvals", () => {
+  assert.match(route, /async function recalculateOpenPayrollPeriodsForRuleChange/);
+  assert.match(
+    route,
+    /gte\(payrollPeriodsTable\.to, effectiveFromMonth\)[\s\S]*lte\(payrollPeriodsTable\.from, TODAY\)/,
+  );
+  assert.match(
+    route,
+    /period\.status !== "calculated"[\s\S]*isPayrollPeriodImmutableStatus\(period\.status\)/,
+  );
+  assert.match(
+    route,
+    /return status === "finalized" \|\| status === "approved" \|\| status === "locked"/,
+  );
+  assert.match(
+    route,
+    /recalculateOpenPayrollPeriodsForRuleChange\(\s*context,\s*req,\s*appliesFromMonth,?\s*\)/,
+  );
+  assert.match(app, /root\.startsWith\("\/api\/payroll\/"\)/);
+});
+
 test("attendance calculations keep the schedule stored on the attendance record", () => {
   assert.match(route, /function scheduleForAttendanceCalculation/);
   assert.match(

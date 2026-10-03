@@ -233,6 +233,10 @@ import {
 
 const queryClient = new QueryClient();
 
+function isPayrollPeriodImmutableStatus(status: string): boolean {
+  return status === "finalized" || status === "approved" || status === "locked";
+}
+
 function invalidateAttendanceRuleDependents(qc: QueryClient) {
   const queryKeys = [
     getGetAttendanceRulesQueryKey(),
@@ -261,7 +265,7 @@ function invalidateAttendanceRuleDependents(qc: QueryClient) {
         return (
           typeof root === "string" &&
           (root.startsWith("/api/attendance/") ||
-            root.startsWith("/api/payroll/periods/"))
+            root.startsWith("/api/payroll/"))
         );
       },
     }),
@@ -1218,7 +1222,7 @@ const copy = {
     saveAttendancePolicy: "Save attendance policy",
     attendancePolicyUpdated: "Attendance policy updated",
     attendancePolicyRecalculateHint:
-      "Policy saved. Recalculate any non-finalized payroll period to apply the change.",
+      "Policy saved. Calculated, unapproved payroll periods were refreshed; draft periods will use it when first calculated.",
     savingPolicy: "Saving policy…",
     evidenceAnalysis: "Evidence & analysis",
     attendanceReports: "Attendance reports",
@@ -1420,7 +1424,7 @@ const copy = {
     annualLeave: "إجازة سنوية",
     attendancePolicyUpdated: "تم تحديث سياسة الحضور",
     attendancePolicyRecalculateHint:
-      "تم حفظ القاعدة. أعد حساب أي فترة راتب غير نهائية لتطبيق التغيير.",
+      "تم حفظ القاعدة وإعادة حساب الفترات المحسوبة وغير المعتمدة. ستُطبّق القاعدة عند حساب الفترات المسودة.",
     biometricDevices: "أجهزة البصمة",
     branch: "الفرع",
     branchCreated: "تم إنشاء الفرع",
@@ -3202,7 +3206,7 @@ const pageCopy = {
     savingPolicy: "Enregistrement de la politique…",
     attendancePolicyUpdated: "Politique de présence mise à jour",
     attendancePolicyRecalculateHint:
-      "Règle enregistrée. Recalculez toute période de paie non finalisée pour appliquer la modification.",
+      "Règle enregistrée. Les périodes calculées non approuvées ont été mises à jour ; les brouillons utiliseront la règle lors de leur premier calcul.",
     attendanceRulesChangeHistory: "Historique des modifications des règles de présence",
     attendanceRulesChangeHistoryDetail:
       "Consultez l’auteur, les changements et leur date d’application pour chaque règle.",
@@ -3609,7 +3613,7 @@ const pageCopy = {
     savingPolicy: "Richtlinie wird gespeichert…",
     attendancePolicyUpdated: "Anwesenheitsrichtlinie aktualisiert",
     attendancePolicyRecalculateHint:
-      "Regel gespeichert. Berechnen Sie nicht abgeschlossene Lohnzeiträume neu, um die Änderung anzuwenden.",
+      "Regel gespeichert. Berechnete, noch nicht genehmigte Zeiträume wurden aktualisiert; Entwürfe verwenden die Regel bei der ersten Berechnung.",
     attendanceRulesChangeHistory: "Änderungsverlauf der Anwesenheitsregeln",
     attendanceRulesChangeHistoryDetail:
       "Prüfen Sie für jede Anwesenheitsregel den Bearbeiter, die Änderung und den Beginn der Anwendung.",
@@ -9158,9 +9162,7 @@ function EmployeeAttendanceMovement({
     },
   });
   const openPayrollPeriods = (payrollPeriods.data ?? []).filter(
-    (period: any) =>
-      period.status !== "finalized" &&
-      period.status !== "locked",
+    (period: any) => !isPayrollPeriodImmutableStatus(period.status),
   );
   const openPayrollPeriod =
     openPayrollPeriods.find(
@@ -14841,8 +14843,11 @@ function Rules() {
           toast.success(t("attendancePolicyRecalculateHint"));
           void invalidateAttendanceRuleDependents(qc);
         },
-        onError: (error) =>
-          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
+        onError: (error) => {
+          // A payroll refresh can fail after the rule itself was saved.
+          void invalidateAttendanceRuleDependents(qc);
+          toast.error(apiErrorMessage(error, t("couldNotSaveRecord")));
+        },
       },
     );
   }
@@ -17014,7 +17019,7 @@ function Payroll() {
                     >
                       {t("viewPeriod")}
                     </Button>
-                    {p.status !== "finalized" && p.status !== "locked" && (
+                    {!isPayrollPeriodImmutableStatus(p.status) && (
                       <Button
                         type="button"
                         variant="outline"
@@ -17029,7 +17034,7 @@ function Payroll() {
                             : t("calculate")}
                       </Button>
                     )}
-                    {p.status !== "finalized" && p.status !== "locked" && (
+                    {!isPayrollPeriodImmutableStatus(p.status) && (
                       <Button
                         type="button"
                         variant="danger"
@@ -17140,10 +17145,9 @@ function Payroll() {
                   <Button
                     variant="outline"
                     onClick={() => setShowAdjustment(true)}
-                    disabled={
-                      calculation.data.period.status === "finalized" ||
-                      calculation.data.period.status === "locked"
-                    }
+                    disabled={isPayrollPeriodImmutableStatus(
+                      calculation.data.period.status,
+                    )}
                   >
                     <Plus size={15} />
                     {t("addAdjustment")}
@@ -17352,8 +17356,9 @@ function Payroll() {
                                 : item.amount,
                             )}
                           </span>
-                          {calculation.data.period.status !== "finalized" &&
-                            calculation.data.period.status !== "locked" && (
+                          {!isPayrollPeriodImmutableStatus(
+                            calculation.data.period.status,
+                          ) && (
                               <Button
                                 variant="danger"
                                 className="px-2 py-1 text-xs"
