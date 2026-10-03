@@ -3,10 +3,10 @@ name: Attendance-rule payroll refresh
 description: Product behavior for applying updated attendance rules to payroll periods.
 ---
 
-Attendance-rule changes take effect from the current month. Recalculate existing calculated payroll periods that overlap that effective month and have not been approved, finalized, or locked. Preserve periods before the effective month.
+After an attendance-rule change, apply the latest rules retroactively to every editable payroll period up to today. Recalculate existing calculated periods automatically; draft periods remain drafts and use the latest rules when first calculated. Approved, finalized, and locked periods stay unchanged.
 
-Leave draft periods as drafts; their first calculation will use the effective rules. Do not create a payroll snapshot merely because a rule changed.
+Historical attendance and payroll calculations in editable periods must use the current rule configuration, not the older date-effective configuration. Keep date-effective historical rules for attendance views and immutable payroll snapshots.
 
-**Why:** The user wants updated attendance rules reflected in payroll until a period is actually approved. Drafts have no saved calculation to refresh, and calculating them during a rule save could create premature absence deductions.
+**Why:** The user wants updated attendance rules reflected in old payroll months until the payroll period is approved.
 
-**How to apply:** After saving a payroll-relevant attendance rule, refresh current-month attendance calculations and recalculate overlapping open payroll snapshots. Keep approved, finalized, and locked periods unchanged, and invalidate payroll list, detail, and employee-summary queries.
+**How to apply:** After saving a payroll-relevant rule, recalculate all calculated editable periods whose start is no later than today. Do not create snapshots for drafts on rule save; ensure their first calculation uses current rules. Never mutate approved, finalized, or locked payroll snapshots.

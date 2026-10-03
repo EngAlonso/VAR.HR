@@ -1052,18 +1052,21 @@ async function ensureAttendanceRules(companyId: string) {
 async function attendanceRulesFor(
   companyId: string,
   attendanceDate = TODAY,
+  useCurrentConfiguration = false,
 ): Promise<ResolvedAttendanceRules> {
   const selected = await ensureAttendanceRules(companyId);
   const configuration = rulesConfiguration(selected) as Record<string, unknown>;
   const monthStart = monthBounds(attendanceDate).from;
-  const changes = await db
-    .select()
-    .from(attendanceRuleChangesTable)
-    .where(eq(attendanceRuleChangesTable.companyId, companyId))
-    .orderBy(desc(attendanceRuleChangesTable.createdAt));
-  for (const change of changes) {
-    if (change.appliesFromMonth > monthStart && change.fieldName in configuration) {
-      configuration[change.fieldName] = change.oldValue;
+  if (!useCurrentConfiguration) {
+    const changes = await db
+      .select()
+      .from(attendanceRuleChangesTable)
+      .where(eq(attendanceRuleChangesTable.companyId, companyId))
+      .orderBy(desc(attendanceRuleChangesTable.createdAt));
+    for (const change of changes) {
+      if (change.appliesFromMonth > monthStart && change.fieldName in configuration) {
+        configuration[change.fieldName] = change.oldValue;
+      }
     }
   }
   // Historical rule changes may contain the legacy factor fields. Re-derive
@@ -1672,8 +1675,13 @@ async function attendanceCalculationFor(
   context: TenantContext,
   attendance: typeof attendanceTable.$inferSelect,
   persist: boolean,
+  useCurrentRules = false,
 ) {
-  const rules = await attendanceRulesFor(context.companyId, attendance.date);
+  const rules = await attendanceRulesFor(
+    context.companyId,
+    attendance.date,
+    useCurrentRules,
+  );
   const resolvedSchedule = await effectiveScheduleFor(
     context.companyId,
     attendance.employeeId,
@@ -1980,7 +1988,9 @@ async function attendanceCalculationFor(
     totalPenaltyMinutes - manualPermissionMinutes,
   );
   const explanation = [
-    `Attendance rules applied from ${monthBounds(TODAY).from}.`,
+    useCurrentRules
+      ? "Current attendance rules applied to this editable payroll period."
+      : `Attendance rules applied from ${monthBounds(TODAY).from}.`,
     `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
     `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
     `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
@@ -2089,8 +2099,8 @@ async function recalculateCurrentAttendanceForRuleChange(
     )
     .orderBy(asc(attendanceTable.date));
 
-  // Recalculate the whole current month. Past months remain immutable
-  // historical results even when the current policy changes.
+  // Refresh current-month rows here; older rows in editable payroll periods
+  // are refreshed as part of those periods' recalculations below.
   for (const row of rows) {
     await attendanceCalculationFor(context, row, true);
   }
@@ -2099,7 +2109,6 @@ async function recalculateCurrentAttendanceForRuleChange(
 async function recalculateOpenPayrollPeriodsForRuleChange(
   context: TenantContext,
   req: Request,
-  effectiveFromMonth: string,
 ): Promise<boolean> {
   const periods = await db
     .select()
@@ -2107,7 +2116,6 @@ async function recalculateOpenPayrollPeriodsForRuleChange(
     .where(
       and(
         eq(payrollPeriodsTable.companyId, context.companyId),
-        gte(payrollPeriodsTable.to, effectiveFromMonth),
         lte(payrollPeriodsTable.from, TODAY),
       ),
     )
@@ -8347,7 +8355,6 @@ router.put("/rules", async (req, res): Promise<void> => {
         periodsRecalculated = await recalculateOpenPayrollPeriodsForRuleChange(
           context,
           req,
-          appliesFromMonth,
         );
       } catch (err) {
         req.log.error(
@@ -10755,6 +10762,7 @@ async function synchronizePayrollAttendance(
   employees: Awaited<ReturnType<typeof employeeRows>>,
   from: string,
   to: string,
+  useCurrentRules: boolean,
 ) {
   const through = to < TODAY ? to : TODAY;
   if (from > through) return;
@@ -10804,7 +10812,7 @@ async function synchronizePayrollAttendance(
     await Promise.all(
       dates.map(async (date) => [
         date,
-        await attendanceRulesFor(context.companyId, date),
+        await attendanceRulesFor(context.companyId, date, useCurrentRules),
       ] as const),
     ),
   );
@@ -10866,7 +10874,12 @@ async function synchronizePayrollAttendance(
             scheduledEnd: schedule.endTime,
             requiredHours: schedule.requiredHours,
           });
-          await attendanceCalculationFor(context, existingAttendance, true);
+          await attendanceCalculationFor(
+            context,
+            existingAttendance,
+            true,
+            useCurrentRules,
+          );
           recalculatedExistingKeys.add(key);
         }
         continue;
@@ -10904,7 +10917,7 @@ async function synchronizePayrollAttendance(
         .returning();
       if (absent) {
         existingByKey.set(key, absent);
-        await attendanceCalculationFor(context, absent, true);
+        await attendanceCalculationFor(context, absent, true, useCurrentRules);
         recalculatedExistingKeys.add(key);
       }
     }
@@ -10921,7 +10934,12 @@ async function synchronizePayrollAttendance(
         `${attendance.employeeId}:${attendance.date}`,
       )
     ) {
-      await attendanceCalculationFor(context, attendance, true);
+      await attendanceCalculationFor(
+        context,
+        attendance,
+        true,
+        useCurrentRules,
+      );
     }
   }
 }
@@ -10951,6 +10969,7 @@ async function calculatePayrollPeriod(
     : null;
   if (persist && isPayrollPeriodImmutableStatus(period.status))
     return existing;
+  const useCurrentRules = !isPayrollPeriodImmutableStatus(period.status);
   await ensureLeaveAccruals(context.companyId);
   let rows = (await employeeRows(context)).filter(
     (row) => row.employee.status === "active",
@@ -10981,6 +11000,7 @@ async function calculatePayrollPeriod(
     rows,
     calculationPeriod.from,
     calculationPeriod.to,
+    useCurrentRules,
   );
   const attendance = await getAttendanceRows(
     context,
@@ -10992,7 +11012,12 @@ async function calculatePayrollPeriod(
   // distinction between actual and payable overtime.
   const allAttendanceCalculations = await Promise.all(
     attendance.map((item) =>
-      attendanceCalculationFor(context, item.attendance, false),
+      attendanceCalculationFor(
+        context,
+        item.attendance,
+        false,
+        useCurrentRules,
+      ),
     ),
   );
   const calculationsByEmployee = new Map<
@@ -11028,13 +11053,14 @@ async function calculatePayrollPeriod(
   const periodRules = await attendanceRulesFor(
     context.companyId,
     calculationPeriod.from,
+    useCurrentRules,
   );
   const rulesDates = [...new Set([...dates, ...fullPeriodDates])];
   const rulesByDate = new Map<string, ResolvedAttendanceRules>(
     await Promise.all(
       rulesDates.map(async (date) => [
         date,
-        await attendanceRulesFor(context.companyId, date),
+        await attendanceRulesFor(context.companyId, date, useCurrentRules),
       ] as const),
     ),
   );

@@ -84,11 +84,18 @@ test("late penalty multipliers are applied once in payroll deductions", () => {
   assert.doesNotMatch(lateDeduction, /latePenaltyMultiplier/);
 });
 
-test("attendance rule changes refresh calculated open payroll without touching approvals", () => {
+test("attendance rule changes refresh historical editable payroll with current rules, without touching approvals", () => {
   assert.match(route, /async function recalculateOpenPayrollPeriodsForRuleChange/);
   assert.match(
     route,
-    /gte\(payrollPeriodsTable\.to, effectiveFromMonth\)[\s\S]*lte\(payrollPeriodsTable\.from, TODAY\)/,
+    /eq\(payrollPeriodsTable\.companyId, context\.companyId\),\s*lte\(payrollPeriodsTable\.from, TODAY\)/,
+  );
+  assert.doesNotMatch(
+    route.slice(
+      route.indexOf("async function recalculateOpenPayrollPeriodsForRuleChange"),
+      route.indexOf("type SyncHistoryStatus"),
+    ),
+    /gte\(payrollPeriodsTable\.to/,
   );
   assert.match(
     route,
@@ -100,8 +107,18 @@ test("attendance rule changes refresh calculated open payroll without touching a
   );
   assert.match(
     route,
-    /recalculateOpenPayrollPeriodsForRuleChange\(\s*context,\s*req,\s*appliesFromMonth,?\s*\)/,
+    /recalculateOpenPayrollPeriodsForRuleChange\(\s*context,\s*req,?\s*\)/,
   );
+  assert.match(route, /const useCurrentRules = !isPayrollPeriodImmutableStatus\(period\.status\)/);
+  assert.match(
+    route,
+    /attendanceRulesFor\(context\.companyId, date, useCurrentRules\)/,
+  );
+  assert.match(
+    route,
+    /attendanceCalculationFor\(\s*context,\s*item\.attendance,\s*false,\s*useCurrentRules/,
+  );
+  assert.match(route, /Current attendance rules applied to this editable payroll period/);
   assert.match(app, /root\.startsWith\("\/api\/payroll\/"\)/);
 });
 
@@ -382,7 +399,7 @@ test("actual overtime minutes stay visible while payable overtime remains gated"
   );
   assert.match(
     route,
-    /const allAttendanceCalculations = await Promise\.all\(\s*attendance\.map\(\(item\) =>\s*attendanceCalculationFor\(context, item\.attendance, false\)/,
+    /const allAttendanceCalculations = await Promise\.all\(\s*attendance\.map\(\(item\) =>\s*attendanceCalculationFor\(\s*context,\s*item\.attendance,\s*false,\s*useCurrentRules/,
   );
 });
 
