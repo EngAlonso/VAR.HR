@@ -119,6 +119,9 @@ const messages = {
     personalPayroll: "Personal payroll",
     noPeriodConfigured: "No period configured",
     basicSalary: "Basic salary",
+    hourlyWages: "Hourly wages",
+    hourlyWagesExplanation:
+      "{hours} recorded hours × {rate} per hour, based on the employee's reference monthly salary, workdays, and daily hours.",
     compensationProfile: "Employee compensation profile.",
     overtimeExplanation: "{hours} hours × hourly rate × the company-configured overtime multiplier.",
     attendanceDeductionExplanation:
@@ -247,6 +250,9 @@ const messages = {
     personalPayroll: "رواتب شخصية",
     noPeriodConfigured: "لم يتم إعداد فترة",
     basicSalary: "الراتب الأساسي",
+    hourlyWages: "أجر الساعات",
+    hourlyWagesExplanation:
+      "{hours} ساعة مسجلة × {rate} لكل ساعة وفق الراتب والأيام والساعات المرجعية للموظف.",
     compensationProfile: "ملف تعويضات الموظف.",
     overtimeExplanation: "{hours} ساعة × سعر الساعة × معامل العمل الإضافي الذي حددته الشركة.",
     attendanceDeductionExplanation:
@@ -375,6 +381,9 @@ const messages = {
     personalPayroll: "Paie personnelle",
     noPeriodConfigured: "Aucune période configurée",
     basicSalary: "Salaire de base",
+    hourlyWages: "Rémunération horaire",
+    hourlyWagesExplanation:
+      "{hours} heures enregistrées × {rate} par heure, selon le salaire mensuel, les jours et les heures de référence de l’employé.",
     compensationProfile: "Profil de rémunération de l’employé.",
     overtimeExplanation: "{hours} heures × taux horaire × le multiplicateur d’heures supplémentaires configuré par l’entreprise.",
     attendanceDeductionExplanation:
@@ -503,6 +512,9 @@ const messages = {
     personalPayroll: "Persönliche Lohnabrechnung",
     noPeriodConfigured: "Kein Zeitraum konfiguriert",
     basicSalary: "Grundgehalt",
+    hourlyWages: "Stundenlohn",
+    hourlyWagesExplanation:
+      "{hours} erfasste Stunden × {rate} pro Stunde, berechnet anhand des Referenzgehalts sowie der Referenz-Arbeitstage und -stunden des Mitarbeitenden.",
     compensationProfile: "Vergütungsprofil des Mitarbeitenden.",
     overtimeExplanation: "{hours} Stunden × Stundensatz × den vom Unternehmen festgelegten Überstundenmultiplikator.",
     attendanceDeductionExplanation:

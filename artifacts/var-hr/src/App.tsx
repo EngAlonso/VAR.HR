@@ -9169,6 +9169,7 @@ function EmployeeHrProfile({
 function EmployeeAttendanceMovement({
   employeeId,
   employeeName,
+  payBasis,
   biometricCode,
   canPrint,
   canManualPunch = false,
@@ -9177,6 +9178,7 @@ function EmployeeAttendanceMovement({
 }: {
   employeeId: string;
   employeeName: string;
+  payBasis: "monthly" | "hourly";
   biometricCode?: string | null;
   canPrint: boolean;
   canManualPunch?: boolean;
@@ -9268,9 +9270,14 @@ function EmployeeAttendanceMovement({
     },
   });
 
-  const rows = [...(report.data?.rows ?? [])].sort((a, b) =>
-    (a.date ?? "").localeCompare(b.date ?? ""),
-  );
+  const hourlyEmployee = payBasis === "hourly";
+  const rows = [...(report.data?.rows ?? [])]
+    .map((row) =>
+      hourlyEmployee
+        ? { ...row, scheduledStart: "", scheduledEnd: "" }
+        : row,
+    )
+    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
   const absenceRows = rows.filter(
     (row) => row.attendanceStatus === "absent" && row.attendanceId,
   );
@@ -26820,6 +26827,7 @@ function EmployeeMovementPage() {
       <EmployeeAttendanceMovement
         employeeId={employee.data.id}
         employeeName={employeeDisplayName(locale, employee.data)}
+        payBasis={employee.data.payBasis ?? "monthly"}
         biometricCode={employee.data.biometricCode}
         canPrint={canPrint}
         canManualPunch={canManualPunch}

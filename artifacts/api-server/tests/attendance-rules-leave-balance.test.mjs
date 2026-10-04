@@ -22,6 +22,10 @@ const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
 );
+const apiMessages = readFileSync(
+  new URL("../src/lib/i18n.ts", import.meta.url),
+  "utf8",
+);
 const leaveBalanceLogic = readFileSync(
   new URL("../src/lib/annual-leave-balance.mjs", import.meta.url),
   "utf8",
@@ -468,10 +472,33 @@ test("hourly reference hours accept whole hours and still reject zero on save", 
   );
 });
 
+test("hourly payroll translations include all parameters in every API locale", () => {
+  for (const locale of ["en", "ar", "fr", "de"]) {
+    const localeBlock =
+      apiMessages.match(
+        new RegExp(`\\n  ${locale}: \\{([\\s\\S]*?)\\n  \\},`),
+      )?.[1] ?? "";
+    assert.match(localeBlock, /hourlyWages:\s*"[^"]+"/);
+    assert.match(
+      localeBlock,
+      /hourlyWagesExplanation:\s*"[^"]*\{hours\}[^"]*\{rate\}[^"]*"/,
+    );
+  }
+});
+
+test("hourly employee movement clears irrelevant fixed schedule times", () => {
+  assert.match(app, /hourlyEmployee\s*\?\s*\{/);
+  assert.match(app, /scheduledStart: "",\s*scheduledEnd: ""/);
+  assert.match(
+    app,
+    /payBasis=\{employee\.data\.payBasis \?\? "monthly"\}/,
+  );
+});
+
 test("employee attendance movement starts with the first day of the month", () => {
   assert.match(
     app,
-    /const rows = \[\.\.\.\(report\.data\?\.rows \?\? \[\]\)\]\.sort\(\(a, b\) =>[\s\S]*\(a\.date \?\? ""\)\.localeCompare\(b\.date \?\? ""\)/,
+    /const rows = \[\.\.\.\(report\.data\?\.rows \?\? \[\]\)\][\s\S]*?\.sort\(\(a, b\) =>[\s\S]*\(a\.date \?\? ""\)\.localeCompare\(b\.date \?\? ""\)/,
   );
 });
 
