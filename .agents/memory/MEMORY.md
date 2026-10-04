@@ -8,6 +8,7 @@
 - [Company workday authority](company-workday-authority.md) — use attendance rules workingDays as the company-wide source for day/hour rate displays.
 - [ADMS timestamp normalization](adms-timezone-normalization.md) — interpret offset-free device timestamps in the company timezone before assigning attendance dates.
 - [Payroll cycle proration](payroll-cycle-proration.md) — prorate monthly salary against the full assigned cycle, while capping attendance and absence at the requested through-date.
+- [Hourly employee pay](hourly-employee-payroll.md) — derive each hourly employee's rate from reference salary, workdays, and daily hours; do not apply overtime multipliers.
 - [Attendance-rule payroll refresh](attendance-rule-payroll-refresh.md) — recalculate open payroll snapshots after policy changes; keep approved periods immutable and drafts uncalculated.
 - [Actual vs payable overtime](actual-vs-payable-overtime.md) — movement history shows extra worked minutes; payroll uses only eligible final overtime.
 - [Regular hours vs actual attendance](regular-hours-vs-actual-attendance.md) — basic hours must be clipped to the assigned schedule; raw check-in/out duration remains separate.
