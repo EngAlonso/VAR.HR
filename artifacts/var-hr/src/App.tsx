@@ -12286,7 +12286,7 @@ function EmployeeProfilePage() {
                     : t("workingHours")
                 }
                 type="number"
-                min={editForm.payBasis === "hourly" ? 0.01 : 0}
+                min={0}
                 max={24}
                 step={0.25}
                 value={editForm.workingHours}

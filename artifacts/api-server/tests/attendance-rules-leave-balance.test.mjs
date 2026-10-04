@@ -460,6 +460,14 @@ test("actual overtime minutes stay visible while payable overtime remains gated"
   );
 });
 
+test("hourly reference hours accept whole hours and still reject zero on save", () => {
+  assert.match(app, /min=\{0\}\s*max=\{24\}\s*step=\{0\.25\}/);
+  assert.match(
+    app,
+    /editForm\.payBasis === "hourly" &&\s*\(\s*Number\(editForm\.workingHours\) <= 0/,
+  );
+});
+
 test("employee attendance movement starts with the first day of the month", () => {
   assert.match(
     app,
