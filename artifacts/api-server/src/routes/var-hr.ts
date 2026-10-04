@@ -9665,12 +9665,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
         query.data.departmentId,
       )
     )
-      .filter((row) => reportEmployeeMatches(row.employee, filters))
-      .filter(
-        (row) =>
-          !filters.attendanceStatus ||
-          row.attendance.status === filters.attendanceStatus,
-      );
+      .filter((row) => reportEmployeeMatches(row.employee, filters));
     const [movementRules, movementHolidays] = await Promise.all([
       attendanceRulesFor(context.companyId, from),
       holidaysForCompany(context.companyId),
@@ -9683,16 +9678,23 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           !isHolidayDate(dateValue, movementRules, movementHolidays),
       ).length,
     );
-    response.rows = await Promise.all(
+    const calculatedRows = await Promise.all(
       rows.map(async (row) => {
         // Recalculate instead of trusting a historical snapshot. This keeps
-        // movement history's actual overtime minutes correct after the
-        // automatic-pay eligibility policy changes.
+        // movement history aligned with the effective schedule and current
+        // overtime eligibility instead of stale attendance-row metrics.
         const calculation = await attendanceCalculationFor(
           context,
           row.attendance,
           false,
         );
+        const attendanceStatus =
+          row.attendance.status === "present" ||
+          row.attendance.status === "late"
+            ? calculation.effectiveLateMinutes > 0
+              ? "late"
+              : "present"
+            : row.attendance.status;
         const employeeWorkingHours = Math.max(
           0.01,
           Number(row.employee.workingHours ?? movementRules.requiredHours ?? 8),
@@ -9712,7 +9714,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           employee: employeeReference(row.employee, row.department.name),
           attendanceId: row.attendance.id,
           date: row.attendance.date,
-          attendanceStatus: row.attendance.status,
+          attendanceStatus,
           attendanceState: calculation.attendanceState,
           scheduledStart: row.attendance.scheduledStart,
           scheduledEnd: row.attendance.scheduledEnd,
@@ -9727,8 +9729,8 @@ router.get("/reports/data", async (req, res): Promise<void> => {
             (calculation.finalOvertimeMinutes / 60).toFixed(2),
           ),
           overtimeMinutes: calculation.originalOvertimeMinutes,
-          lateMinutes: row.attendance.lateMinutes,
-          earlyCheckoutMinutes: row.attendance.earlyCheckoutMinutes,
+          lateMinutes: calculation.effectiveLateMinutes,
+          earlyCheckoutMinutes: calculation.effectiveEarlyDepartureMinutes,
           deductedMinutes: calculation.finalPenaltyMinutes,
           overtimeMultiplier: calculation.appliedOvertimeMultiplier,
           multiplierSource: calculation.multiplierSource,
@@ -9742,23 +9744,28 @@ router.get("/reports/data", async (req, res): Promise<void> => {
         };
       }),
     );
-    response.totals.records = rows.length;
-    response.totals.workedHours = rows.reduce(
-      (t, r) => t + r.attendance.workedHours,
+    response.rows = calculatedRows.filter(
+      (row) =>
+        !filters.attendanceStatus ||
+        row.attendanceStatus === filters.attendanceStatus,
+    );
+    response.totals.records = response.rows.length;
+    response.totals.workedHours = response.rows.reduce(
+      (total, row) => total + Number(row.workedHours ?? 0),
       0,
     );
     response.totals.overtimeHours = response.rows.reduce(
       (t, r) => t + Number(r.overtimeMinutes ?? 0) / 60,
       0,
     );
-    response.totals.presentDays = rows.filter(
-      (r) => r.attendance.status === "present",
+    response.totals.presentDays = response.rows.filter(
+      (row) => row.attendanceStatus === "present",
     ).length;
-    response.totals.lateDays = rows.filter(
-      (r) => r.attendance.status === "late",
+    response.totals.lateDays = response.rows.filter(
+      (row) => row.attendanceStatus === "late",
     ).length;
-    response.totals.absentDays = rows.filter(
-      (r) => r.attendance.status === "absent",
+    response.totals.absentDays = response.rows.filter(
+      (row) => row.attendanceStatus === "absent",
     ).length;
   } else if (query.data.type === "leave" || query.data.type === "permission") {
     const rows =

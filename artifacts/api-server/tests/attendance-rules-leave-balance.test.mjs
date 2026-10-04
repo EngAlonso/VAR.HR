@@ -415,6 +415,10 @@ test("employee movement records expose monthly calculated attendance details", (
   assert.match(route, /canUseCapability\(context, "attendance\.view"\)/);
   assert.match(route, /canUseCapability\(context, "employees\.view"\)/);
   assert.match(route, /context\.role === "employee"[\s\S]*query\.data\.type === "attendance"/);
+  assert.match(route, /lateMinutes: calculation\.effectiveLateMinutes/);
+  assert.match(route, /earlyCheckoutMinutes: calculation\.effectiveEarlyDepartureMinutes/);
+  assert.match(route, /const attendanceStatus =[\s\S]*calculation\.effectiveLateMinutes > 0/);
+  assert.match(route, /!filters\.attendanceStatus \|\|\s*row\.attendanceStatus === filters\.attendanceStatus/);
   assert.match(route, /deductedMinutes: calculation\.finalPenaltyMinutes/);
   assert.match(route, /doublePay: calculation\.appliedOvertimeMultiplier >= 2/);
   assert.match(spec, /scheduledStart: \{ type: string \}/);
