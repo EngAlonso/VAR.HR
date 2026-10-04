@@ -442,8 +442,9 @@ test("actual overtime minutes stay visible while payable overtime remains gated"
   );
   assert.match(
     route,
-    /const rawAutomaticOvertimeMinutes = holiday[\s\S]*overtimeMinutesAfterScheduleEnd[\s\S]*const automaticOvertimeMinutes =\s*calculationSchedule\.overtimeEligible[\s\S]*rawAutomaticOvertimeMinutes >= calculationSchedule\.overtimeAfterMinutes/,
+    /const rawAutomaticOvertimeMinutes = hourlyEmployee\s*\?\s*0\s*:\s*holiday[\s\S]*overtimeMinutesAfterScheduleEnd[\s\S]*const automaticOvertimeMinutes =\s*calculationSchedule\.overtimeEligible[\s\S]*rawAutomaticOvertimeMinutes >= calculationSchedule\.overtimeAfterMinutes/,
   );
+  assert.match(route, /const finalOvertimeMinutes = hourlyEmployee\s*\?\s*0/);
   assert.match(
     route,
     /overtimeHours: Number\(\(finalOvertimeMinutes \/ 60\)\.toFixed\(2\)\)/,

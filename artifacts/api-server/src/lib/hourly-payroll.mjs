@@ -36,7 +36,7 @@ export function calculateHourlyPayroll(workedMinutes, hourlyRate) {
   return {
     workedMinutes,
     workedHours: roundMoney(workedHours),
-    basicPay: roundMoney(workedHours * hourlyRate),
+    basicPay: roundMoney((workedMinutes * hourlyRate) / 60),
   };
 }
 

@@ -10719,6 +10719,7 @@ function AddEmployeePage() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
+  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const depts = useListDepartments();
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
@@ -11323,12 +11324,18 @@ function EmployeeProfilePage() {
   const scheduledDayCount = scheduledWorkingDaysInCurrentMonth(
     attendanceRules.data?.workingDays,
   );
+  const payBasis = employee.data?.payBasis ?? "monthly";
   const monthlySalary = Number(employee.data?.salary ?? 0);
   const workingHours = Number(employee.data?.workingHours ?? 0);
+  const referenceWorkdays = Number(employee.data?.workDaysPerMonth ?? 0);
   const dailyRate =
-    scheduledDayCount && Number.isFinite(monthlySalary)
-      ? monthlySalary / scheduledDayCount
-      : null;
+    payBasis === "hourly"
+      ? referenceWorkdays > 0
+        ? monthlySalary / referenceWorkdays
+        : null
+      : scheduledDayCount && Number.isFinite(monthlySalary)
+        ? monthlySalary / scheduledDayCount
+        : null;
   const hourlyRate =
     dailyRate != null && workingHours > 0 ? dailyRate / workingHours : null;
   const leaveBalances = useListLeaveBalances({
@@ -11378,6 +11385,8 @@ function EmployeeProfilePage() {
     nationalId: "",
     biometricCode: "",
     workingHours: "8",
+    payBasis: "monthly" as "monthly" | "hourly",
+    workDaysPerMonth: "26",
     salary: "0",
     joinedOn: "",
     scheduleId: "",
@@ -11388,6 +11397,16 @@ function EmployeeProfilePage() {
     locationAttendanceEnabled: false,
     automaticAnnualLeaveEligible: false,
   });
+  const editHourlyRate =
+    Number.isFinite(Number(editForm.salary)) &&
+    Number(editForm.salary) >= 0 &&
+    Number.isInteger(Number(editForm.workDaysPerMonth)) &&
+    Number(editForm.workDaysPerMonth) > 0 &&
+    Number.isFinite(Number(editForm.workingHours)) &&
+    Number(editForm.workingHours) > 0
+      ? Number(editForm.salary) /
+        (Number(editForm.workDaysPerMonth) * Number(editForm.workingHours))
+      : null;
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
       setCycleForm((current) => ({
@@ -11418,6 +11437,8 @@ function EmployeeProfilePage() {
       nationalId: employee.data.nationalId ?? "",
       biometricCode: employee.data.biometricCode ?? "",
       workingHours: String(employee.data.workingHours ?? 8),
+      payBasis: employee.data.payBasis ?? "monthly",
+      workDaysPerMonth: String(employee.data.workDaysPerMonth ?? 26),
       salary: String(employee.data.salary ?? 0),
       joinedOn: employee.data.joinedOn,
       scheduleId:
@@ -11445,8 +11466,17 @@ function EmployeeProfilePage() {
       !employeeNumber.match(/^[1-9][0-9]*$/) ||
       !arabicName ||
       !editForm.joinedOn ||
-      !editForm.scheduleId ||
-      !editForm.branchId
+      !editForm.branchId ||
+      (editForm.payBasis === "monthly" && !editForm.scheduleId) ||
+      !Number.isFinite(Number(editForm.salary)) ||
+      Number(editForm.salary) < 0 ||
+      !Number.isFinite(Number(editForm.workingHours)) ||
+      Number(editForm.workingHours) > 24 ||
+      (editForm.payBasis === "hourly" &&
+        (Number(editForm.workingHours) <= 0 ||
+          !Number.isInteger(Number(editForm.workDaysPerMonth)) ||
+          Number(editForm.workDaysPerMonth) < 1 ||
+          Number(editForm.workDaysPerMonth) > 31))
     ) {
       toast.error(t("couldNotSaveRecord"));
       return;
@@ -11485,6 +11515,10 @@ function EmployeeProfilePage() {
           nationalId: editForm.nationalId.trim(),
           biometricCode: editForm.biometricCode.trim(),
           workingHours: Number(editForm.workingHours),
+          payBasis: editForm.payBasis,
+          ...(editForm.payBasis === "hourly"
+            ? { workDaysPerMonth: Number(editForm.workDaysPerMonth) }
+            : {}),
           salary: Number(editForm.salary),
           joinedOn: editForm.joinedOn,
           departmentId: editForm.departmentId || null,
@@ -11498,9 +11532,15 @@ function EmployeeProfilePage() {
       },
       {
         onSuccess: () => {
+          if (editForm.payBasis === "hourly") {
+            finishEmployeeSave();
+            return;
+          }
           const effectiveFrom =
             employeeSchedule.data?.assignment?.effectiveFrom ||
-            editForm.joinedOn;
+            (employee.data?.payBasis === "hourly"
+              ? new Date().toISOString().slice(0, 10)
+              : editForm.joinedOn);
           assignSchedule.mutate(
             {
               employeeId,
@@ -11799,21 +11839,25 @@ function EmployeeProfilePage() {
               <Info
                 label={t("shift")}
                 value={
-                  employeeSchedule.data?.schedule?.name ||
-                  t("notAvailable")
+                  payBasis === "hourly"
+                    ? t("noFixedSchedule")
+                    : employeeSchedule.data?.schedule?.name ||
+                      t("notAvailable")
                 }
                 testId={`text-profile-shift-${employee.data.id}`}
               />
-              <Info
-                label={t("effectiveFrom")}
-                value={
-                  employeeSchedule.data?.assignment?.effectiveFrom
-                    ? date(employeeSchedule.data.assignment.effectiveFrom)
-                    : t("notAvailable")
-                }
-                testId={`text-profile-shift-effective-${employee.data.id}`}
-              />
-              {employeeSchedule.data?.schedule && (
+              {payBasis === "monthly" && (
+                <Info
+                  label={t("effectiveFrom")}
+                  value={
+                    employeeSchedule.data?.assignment?.effectiveFrom
+                      ? date(employeeSchedule.data.assignment.effectiveFrom)
+                      : t("notAvailable")
+                  }
+                  testId={`text-profile-shift-effective-${employee.data.id}`}
+                />
+              )}
+              {payBasis === "monthly" && employeeSchedule.data?.schedule && (
                 <div
                   className="rounded-lg bg-muted/60 p-3 sm:col-span-2"
                   data-testid={`text-profile-shift-hours-${employee.data.id}`}
@@ -11918,16 +11962,42 @@ function EmployeeProfilePage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <EmployeeProfileSection
-              title={t("monthlySalary")}
-              detail={t("salaryHint")}
+              title={t(
+                payBasis === "hourly" ? "hourlyPayBasis" : "monthlySalary",
+              )}
+              detail={t(
+                payBasis === "hourly"
+                  ? "hourlyPayReferenceSalaryHint"
+                  : "salaryHint",
+              )}
               icon={<Coins size={17} />}
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <Info
-                  label={t("monthlySalary")}
+                  label={t("payBasis")}
+                  value={t(
+                    payBasis === "hourly" ? "hourlyPayBasis" : "monthlyPayBasis",
+                  )}
+                  testId={`text-profile-pay-basis-${employee.data.id}`}
+                />
+                <Info
+                  label={t(
+                    payBasis === "hourly"
+                      ? "referenceMonthlySalary"
+                      : "monthlySalary",
+                  )}
                   value={money(employee.data.salary, currency)}
                   testId={`text-profile-salary-${employee.data.id}`}
                 />
+                {payBasis === "hourly" && (
+                  <Info
+                    label={t("referenceWorkdaysPerMonth")}
+                    value={
+                      employee.data.workDaysPerMonth ?? t("notAvailable")
+                    }
+                    testId={`text-profile-reference-workdays-${employee.data.id}`}
+                  />
+                )}
                 <Info
                   label={t("dailyRate")}
                   value={
@@ -11947,7 +12017,11 @@ function EmployeeProfilePage() {
                   testId={`text-profile-hourly-rate-${employee.data.id}`}
                 />
                 <Info
-                  label={t("workingHours")}
+                  label={t(
+                    payBasis === "hourly"
+                      ? "referenceHoursPerDay"
+                      : "workingHours",
+                  )}
                   value={
                     employee.data.workingHours != null
                       ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
@@ -11957,7 +12031,9 @@ function EmployeeProfilePage() {
                 />
               </div>
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                {t("salaryRatesHint")}
+                {payBasis === "hourly"
+                  ? `${t("hourlyRateDerivationHint")} ${t("hourlyPayAttendanceHint")}`
+                  : t("salaryRatesHint")}
               </p>
             </EmployeeProfileSection>
 
@@ -12187,23 +12263,76 @@ function EmployeeProfilePage() {
                 value={editForm.biometricCode}
                 onChange={(value) => setEditForm({ ...editForm, biometricCode: value })}
               />
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block">{t("payBasis")}</span>
+                <select
+                  value={editForm.payBasis}
+                  onChange={(event) =>
+                    setEditForm({
+                      ...editForm,
+                      payBasis: event.target.value as "monthly" | "hourly",
+                    })
+                  }
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="monthly">{t("monthlyPayBasis")}</option>
+                  <option value="hourly">{t("hourlyPayBasis")}</option>
+                </select>
+              </label>
               <Field
-                label={t("workingHours")}
+                label={
+                  editForm.payBasis === "hourly"
+                    ? t("referenceHoursPerDay")
+                    : t("workingHours")
+                }
                 type="number"
-                min={0}
+                min={editForm.payBasis === "hourly" ? 0.01 : 0}
                 max={24}
                 step={0.25}
                 value={editForm.workingHours}
                 onChange={(value) => setEditForm({ ...editForm, workingHours: value })}
               />
               <Field
-                label={t("salary")}
+                label={
+                  editForm.payBasis === "hourly"
+                    ? t("referenceMonthlySalary")
+                    : t("monthlySalary")
+                }
                 type="number"
                 min={0}
                 step={0.01}
                 value={editForm.salary}
                 onChange={(value) => setEditForm({ ...editForm, salary: value })}
               />
+              {editForm.payBasis === "hourly" && (
+                <>
+                  <Field
+                    label={t("referenceWorkdaysPerMonth")}
+                    type="number"
+                    min={1}
+                    max={31}
+                    step={1}
+                    value={editForm.workDaysPerMonth}
+                    onChange={(value) =>
+                      setEditForm({ ...editForm, workDaysPerMonth: value })
+                    }
+                  />
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("calculatedHourlyRate")}
+                    </div>
+                    <div className="mt-1 text-xl font-bold text-primary">
+                      {editHourlyRate !== null
+                        ? `${money(editHourlyRate, currency)} / ${t("perHour")}`
+                        : t("notAvailable")}
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {t("hourlyRateDerivationHint")}{" "}
+                      {t("hourlyPayAttendanceHint")}
+                    </p>
+                  </div>
+                </>
+              )}
               <Field
                 label={t("employmentStartDate")}
                 type="date"
@@ -12211,32 +12340,41 @@ function EmployeeProfilePage() {
                 required
                 onChange={(value) => setEditForm({ ...editForm, joinedOn: value })}
               />
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("shift")}</span>
-                <select
-                  value={editForm.scheduleId}
-                  required
-                  disabled={schedules.isLoading || !schedules.data?.length}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, scheduleId: event.target.value })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="">
-                    {schedules.isLoading
-                      ? t("loading")
-                      : schedules.data?.length
-                        ? t("selectSchedule")
-                        : t("noShifts")}
-                  </option>
-                  {schedules.data?.map((schedule: any) => (
-                    <option key={schedule.id} value={schedule.id}>
-                      {localizedName(locale, schedule.nameAr || schedule.name, schedule.nameEn || schedule.name)}{" "}
-                      · {schedule.startTime}–{schedule.endTime}
+              {editForm.payBasis === "monthly" && (
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("shift")}</span>
+                  <select
+                    value={editForm.scheduleId}
+                    required
+                    disabled={schedules.isLoading || !schedules.data?.length}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        scheduleId: event.target.value,
+                      })
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="">
+                      {schedules.isLoading
+                        ? t("loading")
+                        : schedules.data?.length
+                          ? t("selectSchedule")
+                          : t("noShifts")}
                     </option>
-                  ))}
-                </select>
-              </label>
+                    {schedules.data?.map((schedule: any) => (
+                      <option key={schedule.id} value={schedule.id}>
+                        {localizedName(
+                          locale,
+                          schedule.nameAr || schedule.name,
+                          schedule.nameEn || schedule.name,
+                        )}{" "}
+                        · {schedule.startTime}–{schedule.endTime}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="block text-sm font-semibold">
                 <span className="mb-2 block">{t("department")}</span>
                 <select

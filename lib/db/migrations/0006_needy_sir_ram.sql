@@ -1,0 +1,5 @@
+ALTER TABLE "var_hr_employees" ADD COLUMN "pay_basis" text DEFAULT 'monthly' NOT NULL;--> statement-breakpoint
+ALTER TABLE "var_hr_employees" ADD COLUMN "work_days_per_month" integer;--> statement-breakpoint
+ALTER TABLE "var_hr_employees" ADD CONSTRAINT "var_hr_employees_pay_basis_chk" CHECK ("var_hr_employees"."pay_basis" IN ('monthly', 'hourly'));--> statement-breakpoint
+ALTER TABLE "var_hr_employees" ADD CONSTRAINT "var_hr_employees_work_days_per_month_chk" CHECK ("var_hr_employees"."work_days_per_month" IS NULL OR "var_hr_employees"."work_days_per_month" BETWEEN 1 AND 31);--> statement-breakpoint
+ALTER TABLE "var_hr_employees" ADD CONSTRAINT "var_hr_employees_hourly_rate_basis_chk" CHECK ("var_hr_employees"."pay_basis" <> 'hourly' OR ("var_hr_employees"."work_days_per_month" IS NOT NULL AND "var_hr_employees"."working_hours" > 0));
