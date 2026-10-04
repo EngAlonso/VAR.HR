@@ -5,6 +5,7 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { EmployeeInputPayBasis } from './employeeInputPayBasis';
 import type { EmployeeInputRole } from './employeeInputRole';
 
 export interface EmployeeInput {
@@ -28,13 +29,19 @@ export interface EmployeeInput {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis?: EmployeeInputPayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  workDaysPerMonth?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId: string;
   joinedOn: string;
   /** @minimum 0 */
   salary: number;
-  scheduleId: string;
+  scheduleId?: string;
   /** @nullable */
   payrollCycleId?: string | null;
   role?: EmployeeInputRole;

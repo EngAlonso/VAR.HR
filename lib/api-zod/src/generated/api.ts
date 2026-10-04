@@ -768,6 +768,8 @@ export const ListEmployeesQueryParams = zod.object({
 export const listEmployeesResponseWorkingHoursMin = 0;
 export const listEmployeesResponseWorkingHoursMax = 24;
 
+export const listEmployeesResponseWorkDaysPerMonthMax = 31;
+
 
 
 export const ListEmployeesResponseItem = zod.object({
@@ -784,6 +786,8 @@ export const ListEmployeesResponseItem = zod.object({
   "locationAttendanceEnabled": zod.boolean().optional(),
   "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(listEmployeesResponseWorkingHoursMin).max(listEmployeesResponseWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "workDaysPerMonth": zod.int().min(1).max(listEmployeesResponseWorkDaysPerMonthMax).nullable(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -833,6 +837,9 @@ export const createEmployeeBodyAutomaticAnnualLeaveEligibleDefault = false;
 export const createEmployeeBodyWorkingHoursMin = 0;
 export const createEmployeeBodyWorkingHoursMax = 24;
 
+export const createEmployeeBodyPayBasisDefault = `monthly`;
+export const createEmployeeBodyWorkDaysPerMonthMax = 31;
+
 export const createEmployeeBodySalaryMin = 0;
 
 
@@ -849,17 +856,21 @@ export const CreateEmployeeBody = zod.object({
   "locationAttendanceEnabled": zod.boolean().default(createEmployeeBodyLocationAttendanceEnabledDefault),
   "automaticAnnualLeaveEligible": zod.boolean().default(createEmployeeBodyAutomaticAnnualLeaveEligibleDefault),
   "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']).default(createEmployeeBodyPayBasisDefault),
+  "workDaysPerMonth": zod.int().min(1).max(createEmployeeBodyWorkDaysPerMonthMax).optional(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
   "joinedOn": zod.iso.date(),
   "salary": zod.number().min(createEmployeeBodySalaryMin),
-  "scheduleId": zod.string(),
+  "scheduleId": zod.string().optional(),
   "payrollCycleId": zod.string().nullish(),
   "role": zod.enum(['employee', 'manager']).optional()
 })
 
 export const createEmployeeResponseWorkingHoursMin = 0;
 export const createEmployeeResponseWorkingHoursMax = 24;
+
+export const createEmployeeResponseWorkDaysPerMonthMax = 31;
 
 
 
@@ -877,6 +888,8 @@ export const CreateEmployeeResponse = zod.object({
   "locationAttendanceEnabled": zod.boolean().optional(),
   "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(createEmployeeResponseWorkingHoursMin).max(createEmployeeResponseWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "workDaysPerMonth": zod.int().min(1).max(createEmployeeResponseWorkDaysPerMonthMax).nullable(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -923,6 +936,8 @@ export const GetEmployeeParams = zod.object({
 export const getEmployeeResponseWorkingHoursMin = 0;
 export const getEmployeeResponseWorkingHoursMax = 24;
 
+export const getEmployeeResponseWorkDaysPerMonthMax = 31;
+
 
 
 export const GetEmployeeResponse = zod.object({
@@ -939,6 +954,8 @@ export const GetEmployeeResponse = zod.object({
   "locationAttendanceEnabled": zod.boolean().optional(),
   "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(getEmployeeResponseWorkingHoursMin).max(getEmployeeResponseWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "workDaysPerMonth": zod.int().min(1).max(getEmployeeResponseWorkDaysPerMonthMax).nullable(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -990,6 +1007,8 @@ export const updateEmployeeBodyEmployeeNumberRegExp = new RegExp('^[1-9][0-9]*$'
 export const updateEmployeeBodyWorkingHoursMin = 0;
 export const updateEmployeeBodyWorkingHoursMax = 24;
 
+export const updateEmployeeBodyWorkDaysPerMonthMax = 31;
+
 export const updateEmployeeBodySalaryMin = 0;
 
 
@@ -1006,6 +1025,8 @@ export const UpdateEmployeeBody = zod.object({
   "locationAttendanceEnabled": zod.boolean().optional(),
   "automaticAnnualLeaveEligible": zod.boolean().optional(),
   "workingHours": zod.number().min(updateEmployeeBodyWorkingHoursMin).max(updateEmployeeBodyWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']).optional(),
+  "workDaysPerMonth": zod.int().min(1).max(updateEmployeeBodyWorkDaysPerMonthMax).nullish(),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string().optional(),
   "joinedOn": zod.iso.date().optional(),
@@ -1017,6 +1038,8 @@ export const UpdateEmployeeBody = zod.object({
 
 export const updateEmployeeResponseWorkingHoursMin = 0;
 export const updateEmployeeResponseWorkingHoursMax = 24;
+
+export const updateEmployeeResponseWorkDaysPerMonthMax = 31;
 
 
 
@@ -1034,6 +1057,8 @@ export const UpdateEmployeeResponse = zod.object({
   "locationAttendanceEnabled": zod.boolean().optional(),
   "automaticAnnualLeaveEligible": zod.boolean(),
   "workingHours": zod.number().min(updateEmployeeResponseWorkingHoursMin).max(updateEmployeeResponseWorkingHoursMax).optional(),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "workDaysPerMonth": zod.int().min(1).max(updateEmployeeResponseWorkDaysPerMonthMax).nullable(),
   "department": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3526,6 +3551,8 @@ export const CalculatePayrollParams = zod.object({
   "periodId": zod.coerce.string()
 })
 
+export const calculatePayrollResponseItemsItemHourlyRateMin = 0;
+
 export const calculatePayrollResponseItemsItemLeaveDaysMin = 0;
 
 
@@ -3553,6 +3580,8 @@ export const CalculatePayrollResponse = zod.object({
   "initials": zod.string(),
   "department": zod.string()
 }),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "hourlyRate": zod.number().min(calculatePayrollResponseItemsItemHourlyRateMin).optional(),
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
@@ -3612,6 +3641,8 @@ export const GetPayrollCalculationParams = zod.object({
   "periodId": zod.coerce.string()
 })
 
+export const getPayrollCalculationResponseItemsItemHourlyRateMin = 0;
+
 export const getPayrollCalculationResponseItemsItemLeaveDaysMin = 0;
 
 
@@ -3639,6 +3670,8 @@ export const GetPayrollCalculationResponse = zod.object({
   "initials": zod.string(),
   "department": zod.string()
 }),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "hourlyRate": zod.number().min(getPayrollCalculationResponseItemsItemHourlyRateMin).optional(),
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),
@@ -3850,6 +3883,8 @@ export const GetMyPayrollQueryParams = zod.object({
   "periodId": zod.coerce.string().optional()
 })
 
+export const getMyPayrollResponseItemsItemHourlyRateMin = 0;
+
 export const getMyPayrollResponseItemsItemLeaveDaysMin = 0;
 
 
@@ -3877,6 +3912,8 @@ export const GetMyPayrollResponse = zod.object({
   "initials": zod.string(),
   "department": zod.string()
 }),
+  "payBasis": zod.enum(['monthly', 'hourly']),
+  "hourlyRate": zod.number().min(getMyPayrollResponseItemsItemHourlyRateMin).optional(),
   "basicSalary": zod.number(),
   "additions": zod.number(),
   "overtime": zod.number(),

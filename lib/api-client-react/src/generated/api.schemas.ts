@@ -463,6 +463,14 @@ export interface BranchUpdate {
   active?: boolean;
 }
 
+export type EmployeePayBasis = typeof EmployeePayBasis[keyof typeof EmployeePayBasis];
+
+
+export const EmployeePayBasis = {
+  monthly: 'monthly',
+  hourly: 'hourly',
+} as const;
+
 export type EmployeeStatus = typeof EmployeeStatus[keyof typeof EmployeeStatus];
 
 
@@ -520,6 +528,13 @@ export interface Employee {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis: EmployeePayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     * @nullable
+     */
+  workDaysPerMonth: number | null;
   department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;
@@ -531,6 +546,14 @@ export interface Employee {
   avatarInitials?: string;
   payrollCycle?: EmployeePayrollCycleSummary | null;
 }
+
+export type EmployeeInputPayBasis = typeof EmployeeInputPayBasis[keyof typeof EmployeeInputPayBasis];
+
+
+export const EmployeeInputPayBasis = {
+  monthly: 'monthly',
+  hourly: 'hourly',
+} as const;
 
 export type EmployeeInputRole = typeof EmployeeInputRole[keyof typeof EmployeeInputRole];
 
@@ -561,17 +584,31 @@ export interface EmployeeInput {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis?: EmployeeInputPayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     */
+  workDaysPerMonth?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId: string;
   joinedOn: string;
   /** @minimum 0 */
   salary: number;
-  scheduleId: string;
+  scheduleId?: string;
   /** @nullable */
   payrollCycleId?: string | null;
   role?: EmployeeInputRole;
 }
+
+export type EmployeeUpdatePayBasis = typeof EmployeeUpdatePayBasis[keyof typeof EmployeeUpdatePayBasis];
+
+
+export const EmployeeUpdatePayBasis = {
+  monthly: 'monthly',
+  hourly: 'hourly',
+} as const;
 
 export type EmployeeUpdateStatus = typeof EmployeeUpdateStatus[keyof typeof EmployeeUpdateStatus];
 
@@ -619,6 +656,13 @@ export interface EmployeeUpdate {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis?: EmployeeUpdatePayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     * @nullable
+     */
+  workDaysPerMonth?: number | null;
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;
@@ -2010,6 +2054,14 @@ export interface EmployeePayrollCycleAssignmentInput {
   effectiveFrom: string;
 }
 
+export type PayrollEmployeePayBasis = typeof PayrollEmployeePayBasis[keyof typeof PayrollEmployeePayBasis];
+
+
+export const PayrollEmployeePayBasis = {
+  monthly: 'monthly',
+  hourly: 'hourly',
+} as const;
+
 export type PayrollEmployeeLeaveBalancesItem = {
   type: string;
   allocated: number;
@@ -2021,6 +2073,9 @@ export type PayrollEmployeeLeaveBalancesItem = {
 
 export interface PayrollEmployee {
   employee: EmployeeReference;
+  payBasis: PayrollEmployeePayBasis;
+  /** @minimum 0 */
+  hourlyRate?: number;
   basicSalary: number;
   additions: number;
   overtime: number;

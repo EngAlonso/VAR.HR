@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EmployeeUpdateAutomaticOvertime } from './employeeUpdateAutomaticOvertime';
+import type { EmployeeUpdatePayBasis } from './employeeUpdatePayBasis';
 import type { EmployeeUpdateRole } from './employeeUpdateRole';
 import type { EmployeeUpdateStatus } from './employeeUpdateStatus';
 
@@ -30,6 +31,13 @@ export interface EmployeeUpdate {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis?: EmployeeUpdatePayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     * @nullable
+     */
+  workDaysPerMonth?: number | null;
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;

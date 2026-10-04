@@ -2,6 +2,7 @@ import { createInsertSchema } from "drizzle-zod";
 import {
   boolean,
   date,
+  integer,
   numeric,
   pgTable,
   check,
@@ -79,6 +80,8 @@ export const employeesTable = pgTable(
     workingHours: numeric("working_hours", { precision: 4, scale: 2, mode: "number" })
       .notNull()
       .default(8),
+    payBasis: text("pay_basis").notNull().default("monthly"),
+    workDaysPerMonth: integer("work_days_per_month"),
     departmentId: uuid("department_id").references(() => departmentsTable.id),
     branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
     status: text("status").notNull().default("active"),
@@ -102,6 +105,18 @@ export const employeesTable = pgTable(
     employeeNumberFormat: check(
       "var_hr_employees_employee_number_format_chk",
       sql`${table.employeeNumber} ~ '^[1-9][0-9]*$' OR ${table.employeeNumber} ~ '^EMP-[0-9]+$'`,
+    ),
+    employeePayBasis: check(
+      "var_hr_employees_pay_basis_chk",
+      sql`${table.payBasis} IN ('monthly', 'hourly')`,
+    ),
+    employeeWorkDaysPerMonth: check(
+      "var_hr_employees_work_days_per_month_chk",
+      sql`${table.workDaysPerMonth} IS NULL OR ${table.workDaysPerMonth} BETWEEN 1 AND 31`,
+    ),
+    employeeHourlyRateBasis: check(
+      "var_hr_employees_hourly_rate_basis_chk",
+      sql`${table.payBasis} <> 'hourly' OR (${table.workDaysPerMonth} IS NOT NULL AND ${table.workingHours} > 0)`,
     ),
   }),
 );

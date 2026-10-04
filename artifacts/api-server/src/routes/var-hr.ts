@@ -19,6 +19,10 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import {
+  calculateHourlyPayroll,
+  deriveHourlyRate,
+} from "../lib/hourly-payroll.mjs";
+import {
   ApiError,
   AttendanceReport,
   CalculatePayrollParams,
@@ -1690,7 +1694,10 @@ async function attendanceCalculationFor(
   );
   const schedule = scheduleForAttendanceCalculation(attendance, resolvedSchedule);
   const [employee] = await db
-    .select({ automaticOvertime: employeesTable.automaticOvertime })
+    .select({
+      automaticOvertime: employeesTable.automaticOvertime,
+      payBasis: employeesTable.payBasis,
+    })
     .from(employeesTable)
     .where(
       and(
@@ -1699,6 +1706,7 @@ async function attendanceCalculationFor(
       ),
     )
     .limit(1);
+  const hourlyEmployee = employee?.payBasis === "hourly";
   const overtimeEligible =
     employee?.automaticOvertime === "enabled"
       ? true
@@ -1788,17 +1796,21 @@ async function attendanceCalculationFor(
     .reduce((total, adjustment) => total + Math.max(0, adjustment.minutes), 0);
   const finalWorkedMinutes = Math.max(
     0,
-    metrics.netWorkedMinutes + manualMinutes,
+    (hourlyEmployee ? metrics.workedMinutes : metrics.netWorkedMinutes) +
+      manualMinutes +
+      (hourlyEmployee ? manualOvertimeMinutes : 0),
   );
-  const timeMultiplier = timeMultiplierPremiumMinutes({
-    checkIn: attendance.checkIn,
-    checkOut: attendance.checkOut,
-    attendanceDate: attendance.date,
-    scheduleStart: schedule.startTime,
-    timeZone: context.company.timezone,
-    netWorkedMinutes: metrics.netWorkedMinutes,
-    rules: rules.timeMultipliers as TimeMultiplierRule[],
-  });
+  const timeMultiplier = hourlyEmployee
+    ? { applied: [], premiumMinutes: 0 }
+    : timeMultiplierPremiumMinutes({
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        attendanceDate: attendance.date,
+        scheduleStart: schedule.startTime,
+        timeZone: context.company.timezone,
+        netWorkedMinutes: metrics.netWorkedMinutes,
+        rules: rules.timeMultipliers as TimeMultiplierRule[],
+      });
   const scheduledMinutes = scheduleDurationMinutes(
     schedule.startTime,
     schedule.endTime,
@@ -1844,19 +1856,26 @@ async function attendanceCalculationFor(
   );
   const attendanceState = holiday
     ? "holiday"
-    : !metrics.workingDay
-      ? "scheduled_day_off"
-      : approvedLeave
+    : hourlyEmployee
+      ? approvedLeave
         ? "approved_leave"
-        : fullDayPermission
-          ? "approved_permission"
-          : attendance.status === "absent"
-            ? "unexcused_absence"
-            : !attendance.checkIn
-              ? "missing_attendance"
-              : "present";
+        : attendance.checkIn || attendance.checkOut
+          ? "present"
+          : "scheduled_day_off"
+      : !metrics.workingDay
+        ? "scheduled_day_off"
+        : approvedLeave
+          ? "approved_leave"
+          : fullDayPermission
+            ? "approved_permission"
+            : attendance.status === "absent"
+              ? "unexcused_absence"
+              : !attendance.checkIn
+                ? "missing_attendance"
+                : "present";
   const automaticallyDeductAbsence =
     persist &&
+    !hourlyEmployee &&
     rules.absenceDeductsAnnualLeave &&
     (attendanceState === "unexcused_absence" ||
       (rules.absenceLeaveDeductionTrigger === "any_absence" &&
@@ -1946,28 +1965,34 @@ async function attendanceCalculationFor(
       );
     }
   }
-  const latePenaltyMinutes =
-    uncoveredLateMinutes * rules.latePenaltyMultiplier +
-    permissionCoveredLateMinutes *
-      (fullDayPermission
-        ? rules.fullDayPermissionMultiplier
-        : rules.permissionCoveredMinutesMultiplier);
-  const earlyDeparturePenaltyMinutes =
-    uncoveredEarlyMinutes * rules.earlyDeparturePenaltyMultiplier +
-    permissionCoveredEarlyMinutes *
-      (fullDayPermission
-        ? rules.fullDayPermissionMultiplier
-        : rules.permissionCoveredMinutesMultiplier);
-  const absencePenaltyMinutes = calculateAbsencePenaltyMinutes({
-    attendanceState,
-    scheduledMinutes,
-    absencePenaltyMultiplier: rules.absencePenaltyMultiplier,
-  });
+  const latePenaltyMinutes = hourlyEmployee
+    ? 0
+    : uncoveredLateMinutes * rules.latePenaltyMultiplier +
+      permissionCoveredLateMinutes *
+        (fullDayPermission
+          ? rules.fullDayPermissionMultiplier
+          : rules.permissionCoveredMinutesMultiplier);
+  const earlyDeparturePenaltyMinutes = hourlyEmployee
+    ? 0
+    : uncoveredEarlyMinutes * rules.earlyDeparturePenaltyMultiplier +
+      permissionCoveredEarlyMinutes *
+        (fullDayPermission
+          ? rules.fullDayPermissionMultiplier
+          : rules.permissionCoveredMinutesMultiplier);
+  const absencePenaltyMinutes = hourlyEmployee
+    ? 0
+    : calculateAbsencePenaltyMinutes({
+        attendanceState,
+        scheduledMinutes,
+        absencePenaltyMultiplier: rules.absencePenaltyMultiplier,
+      });
   const totalPenaltyMinutes =
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
-  const rawAutomaticOvertimeMinutes = holiday
-    ? finalWorkedMinutes
-    : overtimeMinutesAfterScheduleEnd({
+  const rawAutomaticOvertimeMinutes = hourlyEmployee
+    ? 0
+    : holiday
+      ? finalWorkedMinutes
+      : overtimeMinutesAfterScheduleEnd({
         checkIn: attendance.checkIn,
         checkOut: attendance.checkOut,
         attendanceDate: attendance.date,
@@ -1979,49 +2004,56 @@ async function attendanceCalculationFor(
     rawAutomaticOvertimeMinutes >= calculationSchedule.overtimeAfterMinutes
       ? rawAutomaticOvertimeMinutes
       : 0;
-  const finalOvertimeMinutes = Math.max(
-    0,
-    automaticOvertimeMinutes + manualOvertimeMinutes,
-  );
-  const finalPenaltyMinutes = Math.max(
-    0,
-    totalPenaltyMinutes - manualPermissionMinutes,
-  );
-  const explanation = [
-    useCurrentRules
-      ? "Current attendance rules applied to this editable payroll period."
-      : `Attendance rules applied from ${monthBounds(TODAY).from}.`,
-    `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
-    `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
-    `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
-    `Late: raw ${metrics.rawLateMinutes} minutes; grace ${metrics.lateGraceMinutes} minutes is an exemption threshold, so effective delay is ${metrics.lateMinutes} minutes.`,
-    `Early departure: raw ${metrics.rawEarlyDepartureMinutes} minutes; grace ${metrics.earlyDepartureGraceMinutes} minutes is an exemption threshold, so effective early departure is ${metrics.earlyCheckoutMinutes} minutes.`,
-    `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
-    `Scheduled end: ${calculationSchedule.endTime}; raw extra time after scheduled end: ${metrics.rawOvertimeMinutes} minutes; overtime qualification threshold: ${calculationSchedule.overtimeAfterMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
-    `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
-    `Time multipliers: ${timeMultiplier.applied.length ? timeMultiplier.applied.join(", ") : "none"}; premium equivalent ${timeMultiplier.premiumMinutes.toFixed(3)} minutes.`,
-    `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
-    `Permission coverage uses merged approved windows (overlaps counted once): ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes${fullDayPermission ? "; full-day policy applies" : ""}.`,
-    `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
-  ];
+  const finalOvertimeMinutes = hourlyEmployee
+    ? 0
+    : Math.max(0, automaticOvertimeMinutes + manualOvertimeMinutes);
+  const finalPenaltyMinutes = hourlyEmployee
+    ? 0
+    : Math.max(0, totalPenaltyMinutes - manualPermissionMinutes);
+  const explanation = hourlyEmployee
+    ? [
+        `Hourly pay uses ${finalWorkedMinutes} recorded and approved minutes, including the full check-in/out interval and approved time corrections.`,
+        "No schedule, workday, break, leave, late, absence, overtime, or time-multiplier rule changes the hourly amount.",
+      ]
+    : [
+        useCurrentRules
+          ? "Current attendance rules applied to this editable payroll period."
+          : `Attendance rules applied from ${monthBounds(TODAY).from}.`,
+        `Schedule source: ${calculationSchedule.source}; ${calculationSchedule.startTime}–${calculationSchedule.endTime}${calculationSchedule.overnight ? " (overnight)" : ""}.`,
+        `Automatic overtime: ${calculationSchedule.overtimeEligible ? "enabled" : "disabled"}; employee setting: ${employee?.automaticOvertime ?? "default"}.`,
+        `Working day: ${metrics.workingDay ? "yes" : "no"}; holiday: ${metrics.holiday ? "yes" : "no"}.`,
+        `Late: raw ${metrics.rawLateMinutes} minutes; grace ${metrics.lateGraceMinutes} minutes is an exemption threshold, so effective delay is ${metrics.lateMinutes} minutes.`,
+        `Early departure: raw ${metrics.rawEarlyDepartureMinutes} minutes; grace ${metrics.earlyDepartureGraceMinutes} minutes is an exemption threshold, so effective early departure is ${metrics.earlyCheckoutMinutes} minutes.`,
+        `Worked: ${metrics.workedMinutes} elapsed minutes − ${metrics.unpaidBreakMinutes} unpaid break minutes = ${metrics.netWorkedMinutes} net minutes (${metrics.breakMinutes} total scheduled break minutes; ${schedule.breakPaid ? "paid" : "unpaid"}).`,
+        `Scheduled end: ${calculationSchedule.endTime}; raw extra time after scheduled end: ${metrics.rawOvertimeMinutes} minutes; overtime qualification threshold: ${calculationSchedule.overtimeAfterMinutes} minutes; overtime: ${metrics.overtimeMinutes} minutes.`,
+        `Extra-pay multiplier: ${overtimeRate.multiplier}× (${overtimeRate.source}); only the highest applicable holiday/weekly multiplier is used.`,
+        `Time multipliers: ${timeMultiplier.applied.length ? timeMultiplier.applied.join(", ") : "none"}; premium equivalent ${timeMultiplier.premiumMinutes.toFixed(3)} minutes.`,
+        `Attendance state: ${attendanceState}. Approved leave: ${approvedLeave ? "yes" : "no"}; permissions: ${approvedPermissions.length} approved, ${pendingPermissionCount} pending, ${rejectedPermissionCount} rejected.`,
+        `Permission coverage uses merged approved windows (overlaps counted once): ${approvedPermissionMinutes} minutes total, ${permissionCoveredLateMinutes} late minutes, ${permissionCoveredEarlyMinutes} early-departure minutes${fullDayPermission ? "; full-day policy applies" : ""}.`,
+        `Penalties: late ${uncoveredLateMinutes} × ${rules.latePenaltyMultiplier} + covered ${permissionCoveredLateMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; early ${uncoveredEarlyMinutes} × ${rules.earlyDeparturePenaltyMultiplier} + covered ${permissionCoveredEarlyMinutes} × ${fullDayPermission ? rules.fullDayPermissionMultiplier : rules.permissionCoveredMinutesMultiplier}; absence ${absencePenaltyMinutes} minutes; total ${totalPenaltyMinutes} minutes.`,
+      ];
   const values = {
     companyId: context.companyId,
     attendanceId: attendance.id,
     employeeId: attendance.employeeId,
     attendanceDate: attendance.date,
     scheduleSource: schedule.source,
-    rawLateMinutes: metrics.rawLateMinutes,
+    rawLateMinutes: hourlyEmployee ? 0 : metrics.rawLateMinutes,
     lateGraceMinutes: metrics.lateGraceMinutes,
-    effectiveLateMinutes: metrics.lateMinutes,
-    rawEarlyDepartureMinutes: metrics.rawEarlyDepartureMinutes,
+    effectiveLateMinutes: hourlyEmployee ? 0 : metrics.lateMinutes,
+    rawEarlyDepartureMinutes: hourlyEmployee ? 0 : metrics.rawEarlyDepartureMinutes,
     earlyDepartureGraceMinutes: metrics.earlyDepartureGraceMinutes,
-    effectiveEarlyDepartureMinutes: metrics.earlyCheckoutMinutes,
+    effectiveEarlyDepartureMinutes: hourlyEmployee ? 0 : metrics.earlyCheckoutMinutes,
     workedMinutes: metrics.workedMinutes,
     breakMinutes: metrics.breakMinutes,
-    paidBreak: schedule.breakPaid,
-    normalWorkedMinutes: metrics.normalWorkedMinutes,
-    overtimeMinutes: metrics.overtimeMinutes,
-    workingDay: metrics.workingDay,
+    paidBreak: hourlyEmployee || schedule.breakPaid,
+    normalWorkedMinutes: hourlyEmployee
+      ? finalWorkedMinutes
+      : metrics.normalWorkedMinutes,
+    overtimeMinutes: hourlyEmployee ? 0 : metrics.overtimeMinutes,
+    workingDay: hourlyEmployee
+      ? Boolean(attendance.checkIn || attendance.checkOut)
+      : metrics.workingDay,
     holiday: metrics.holiday,
     attendanceState,
     approvedPermissionMinutes,
@@ -2031,8 +2063,10 @@ async function attendanceCalculationFor(
     earlyDeparturePenaltyMinutes,
     absencePenaltyMinutes,
     totalPenaltyMinutes,
-    originalWorkedMinutes: metrics.netWorkedMinutes,
-    originalOvertimeMinutes: metrics.overtimeMinutes,
+    originalWorkedMinutes: hourlyEmployee
+      ? metrics.workedMinutes
+      : metrics.netWorkedMinutes,
+    originalOvertimeMinutes: hourlyEmployee ? 0 : metrics.overtimeMinutes,
     manualMinutes,
     manualOvertimeMinutes,
     manualPermissionMinutes,
@@ -2760,6 +2794,8 @@ function employeeResponse(
     automaticAnnualLeaveEligible:
       row.employee.automaticAnnualLeaveEligible,
     workingHours: row.employee.workingHours,
+    payBasis: row.employee.payBasis as "monthly" | "hourly",
+    workDaysPerMonth: row.employee.workDaysPerMonth,
     department: row.department
       ? {
           id: row.department.id,
@@ -4011,24 +4047,39 @@ router.post("/employees", async (req, res): Promise<void> => {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  if (!isUuid(parsed.data.scheduleId)) {
+  const payBasis = parsed.data.payBasis ?? "monthly";
+  const workDaysPerMonth = parsed.data.workDaysPerMonth ?? null;
+  const workingHours = parsed.data.workingHours ?? 8;
+  if (
+    payBasis === "hourly" &&
+    (workDaysPerMonth === null ||
+      workDaysPerMonth < 1 ||
+      workingHours <= 0)
+  ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const [schedule] = await db
-    .select()
-    .from(workSchedulesTable)
-    .where(
-      and(
-        eq(workSchedulesTable.id, parsed.data.scheduleId),
-        eq(workSchedulesTable.companyId, context.companyId),
-        eq(workSchedulesTable.active, true),
-      ),
-    )
-    .limit(1);
-  if (!schedule) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
+  let schedule: typeof workSchedulesTable.$inferSelect | undefined;
+  if (payBasis === "monthly") {
+    if (!parsed.data.scheduleId || !isUuid(parsed.data.scheduleId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    [schedule] = await db
+      .select()
+      .from(workSchedulesTable)
+      .where(
+        and(
+          eq(workSchedulesTable.id, parsed.data.scheduleId),
+          eq(workSchedulesTable.companyId, context.companyId),
+          eq(workSchedulesTable.active, true),
+        ),
+      )
+      .limit(1);
+    if (!schedule) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
   }
   const [nationalIdMatch, phoneMatch] = await Promise.all([
     parsed.data.nationalId
@@ -4155,7 +4206,9 @@ router.post("/employees", async (req, res): Promise<void> => {
             parsed.data.automaticAnnualLeaveEligible === true
               ? new Date()
               : null,
-          workingHours: parsed.data.workingHours ?? 8,
+          workingHours,
+          payBasis,
+          workDaysPerMonth,
           departmentId: parsed.data.departmentId,
           branchId: parsed.data.branchId,
           status: "active",
@@ -4185,18 +4238,20 @@ router.post("/employees", async (req, res): Promise<void> => {
       if (!employeeAccount) {
         throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
       }
-      [assignment] = await tx
-        .insert(employeeScheduleAssignmentsTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: employee.id,
-          scheduleId: schedule.id,
-          effectiveFrom: calendarDate(parsed.data.joinedOn)!,
-          effectiveTo: null,
-        })
-        .returning();
-      if (!assignment) {
-        throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+      if (schedule) {
+        [assignment] = await tx
+          .insert(employeeScheduleAssignmentsTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: employee.id,
+            scheduleId: schedule.id,
+            effectiveFrom: calendarDate(parsed.data.joinedOn)!,
+            effectiveTo: null,
+          })
+          .returning();
+        if (!assignment) {
+          throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
+        }
       }
       if (initialPayrollCycle) {
         await tx.insert(employeePayrollCycleAssignmentsTable).values({
@@ -4247,9 +4302,6 @@ router.post("/employees", async (req, res): Promise<void> => {
   if (!employee) {
     throw new Error("EMPLOYEE_CREATE_FAILED");
   }
-  if (!assignment) {
-    throw new Error("EMPLOYEE_SCHEDULE_ASSIGNMENT_CREATE_FAILED");
-  }
   if (!employeeAccount || !temporaryPassword) {
     throw new Error("EMPLOYEE_ACCOUNT_CREATE_FAILED");
   }
@@ -4265,13 +4317,15 @@ router.post("/employees", async (req, res): Promise<void> => {
     createdEmployee.id,
     createdEmployee,
   );
-  await recordAudit(
-    context.companyId,
-    "created",
-    "employee_schedule_assignment",
-    assignment.id,
-    assignment,
-  );
+  if (assignment) {
+    await recordAudit(
+      context.companyId,
+      "created",
+      "employee_schedule_assignment",
+      assignment.id,
+      assignment,
+    );
+  }
   res.status(201).json(
     CreateEmployeeResponse.parse({
       ...employeeResponse(row),
@@ -4468,6 +4522,22 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     .limit(1);
   if (!before) {
     res.status(404).json({ error: message(req, "employeeNotFound") });
+    return;
+  }
+  const nextPayBasis = parsed.data.payBasis ?? before.payBasis;
+  const nextWorkDaysPerMonth =
+    parsed.data.workDaysPerMonth !== undefined
+      ? parsed.data.workDaysPerMonth
+      : before.workDaysPerMonth;
+  const nextWorkingHours =
+    parsed.data.workingHours ?? before.workingHours;
+  if (
+    nextPayBasis === "hourly" &&
+    (nextWorkDaysPerMonth === null ||
+      nextWorkDaysPerMonth < 1 ||
+      nextWorkingHours <= 0)
+  ) {
+    res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
   const employeeScope = employeeScopeCondition(context);
@@ -10895,6 +10965,7 @@ async function storedPayrollCalculation(
   const items = [...latest.values()].map((row) => {
     const snapshot = row.calculation.inputsSnapshot as {
       attendance?: { absentDays?: number };
+      compensation?: { payBasis?: string; hourlyRate?: number };
       leaveDays?: number;
       leaveBalances?: Array<{
         type: string;
@@ -10906,6 +10977,11 @@ async function storedPayrollCalculation(
     };
     return {
       employee: employeeReference(row.employee, row.department.name),
+      payBasis:
+        snapshot.compensation?.payBasis === "hourly" ? "hourly" : "monthly",
+      ...(typeof snapshot.compensation?.hourlyRate === "number"
+        ? { hourlyRate: snapshot.compensation.hourlyRate }
+        : {}),
       basicSalary: row.calculation.basicSalary,
       additions: row.calculation.additions,
       overtime: row.calculation.overtime,
@@ -11086,6 +11162,9 @@ async function synchronizePayrollAttendance(
           );
           recalculatedExistingKeys.add(key);
         }
+        continue;
+      }
+      if (row.employee.payBasis === "hourly") {
         continue;
       }
       if (
@@ -11426,7 +11505,8 @@ async function calculatePayrollPeriod(
         !leaveDates.has(dateValue) &&
         !permissionDates.has(dateValue),
     ).length;
-    const regularHours = moneyValue(
+    const hourlyEmployee = row.employee.payBasis === "hourly";
+    let regularHours = moneyValue(
       employeeCalculations.reduce(
         (total, calculation) =>
           total +
@@ -11438,29 +11518,31 @@ async function calculatePayrollPeriod(
         0,
       ),
     );
-    const overtimeHours = moneyValue(
+    let overtimeHours = moneyValue(
       employeeCalculations.reduce(
         (total, calculation) => total + calculation.finalOvertimeMinutes / 60,
         0,
       ),
     );
-    const overtimeMinutes = employeeCalculations.reduce(
+    let overtimeMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.finalOvertimeMinutes,
       0,
     );
-    const lateMinutes = employeeCalculations.reduce(
+    let lateMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.effectiveLateMinutes,
       0,
     );
-    const earlyCheckoutMinutes = employeeCalculations.reduce(
+    let earlyCheckoutMinutes = employeeCalculations.reduce(
       (total, calculation) =>
         total + calculation.effectiveEarlyDepartureMinutes,
       0,
     );
-    const missingHours = employeeAttendance.reduce(
-      (total, item) => total + item.attendance.missingMinutes / 60,
-      0,
-    );
+    let missingHours = hourlyEmployee
+      ? 0
+      : employeeAttendance.reduce(
+          (total, item) => total + item.attendance.missingMinutes / 60,
+          0,
+        );
     const rules = employeeCalculations[0]
       ? await attendanceRulesFor(
           context.companyId,
@@ -11471,29 +11553,62 @@ async function calculatePayrollPeriod(
       0.01,
       Number(row.employee.workingHours ?? rules.requiredHours ?? 8),
     );
-    const hourlyRate =
-      row.employee.salary / scheduledDayCount / employeeWorkingHours;
-    const overtime = moneyValue(
-      employeeCalculations.reduce(
-        (total, calculation) =>
-          total +
-          (calculation.finalOvertimeMinutes / 60) *
-            hourlyRate *
-            (rules.overtimeMethod === "multiplier"
-              ? calculation.appliedOvertimeMultiplier
-              : 1),
-        0,
-      ),
-    );
-    const timeMultiplierPremium = moneyValue(
-      (employeeCalculations.reduce(
-        (total, calculation) =>
-          total + Number(calculation.timeMultiplierPremiumMinutes ?? 0),
-        0,
-      ) /
-        60) *
-        hourlyRate,
-    );
+    let hourlyRate: number;
+    if (hourlyEmployee) {
+      if (row.employee.workDaysPerMonth === null) {
+        throw new Error("HOURLY_EMPLOYEE_MISSING_REFERENCE_WORKDAYS");
+      }
+      hourlyRate = deriveHourlyRate(
+        row.employee.salary,
+        row.employee.workDaysPerMonth,
+        row.employee.workingHours,
+      );
+    } else {
+      hourlyRate =
+        row.employee.salary / scheduledDayCount / employeeWorkingHours;
+    }
+    const hourlyPayroll = hourlyEmployee
+      ? calculateHourlyPayroll(
+          employeeCalculations.reduce(
+            (total, calculation) => total + calculation.finalWorkedMinutes,
+            0,
+          ),
+          hourlyRate,
+        )
+      : null;
+    if (hourlyPayroll) {
+      regularHours = hourlyPayroll.workedHours;
+      overtimeHours = 0;
+      overtimeMinutes = 0;
+      lateMinutes = 0;
+      earlyCheckoutMinutes = 0;
+      missingHours = 0;
+    }
+    const overtime = hourlyEmployee
+      ? 0
+      : moneyValue(
+          employeeCalculations.reduce(
+            (total, calculation) =>
+              total +
+              (calculation.finalOvertimeMinutes / 60) *
+                hourlyRate *
+                (rules.overtimeMethod === "multiplier"
+                  ? calculation.appliedOvertimeMultiplier
+                  : 1),
+            0,
+          ),
+        );
+    const timeMultiplierPremium = hourlyEmployee
+      ? 0
+      : moneyValue(
+          (employeeCalculations.reduce(
+            (total, calculation) =>
+              total + Number(calculation.timeMultiplierPremiumMinutes ?? 0),
+            0,
+          ) /
+            60) *
+            hourlyRate,
+        );
     const latePenaltyMinutes = employeeCalculations.reduce(
       (total, calculation) => total + calculation.latePenaltyMinutes,
       0,
@@ -11504,28 +11619,34 @@ async function calculatePayrollPeriod(
     );
     // latePenaltyMinutes already includes the configured penalty multiplier.
     // Applying it again here would turn a 2× rule into a 4× payroll deduction.
-    const lateDeduction =
-      (rules.lateDeductionMethod as string) === "none"
+    const lateDeduction = hourlyEmployee
+      ? 0
+      : (rules.lateDeductionMethod as string) === "none"
         ? 0
         : (rules.lateDeductionMethod as string) === "fixed_per_minute"
           ? moneyValue(latePenaltyMinutes)
           : moneyValue((latePenaltyMinutes / 60) * hourlyRate);
-    const earlyDeduction = moneyValue(
-      (earlyPenaltyMinutes / 60) *
-        hourlyRate *
-        rules.earlyDeparturePenaltyMultiplier,
-    );
-    const calculatedAbsenceDays = Math.max(
-      scheduledAttendanceCalculations.filter(
-        (calculation) =>
-          calculation.attendanceState === "unexcused_absence" ||
-          calculation.attendanceState === "missing_attendance",
-      ).length,
-      absentDays,
-    );
+    const earlyDeduction = hourlyEmployee
+      ? 0
+      : moneyValue(
+          (earlyPenaltyMinutes / 60) *
+            hourlyRate *
+            rules.earlyDeparturePenaltyMultiplier,
+        );
+    const calculatedAbsenceDays = hourlyEmployee
+      ? 0
+      : Math.max(
+          scheduledAttendanceCalculations.filter(
+            (calculation) =>
+              calculation.attendanceState === "unexcused_absence" ||
+              calculation.attendanceState === "missing_attendance",
+          ).length,
+          absentDays,
+        );
     const dailyRate = row.employee.salary / scheduledDayCount;
-    const absenceDeduction =
-      (rules.absenceDeductionMethod as string) === "none"
+    const absenceDeduction = hourlyEmployee
+      ? 0
+      : (rules.absenceDeductionMethod as string) === "none"
         ? 0
         : (rules.absenceDeductionMethod as string) === "fixed_per_day"
           ? moneyValue(
@@ -11549,16 +11670,19 @@ async function calculatePayrollPeriod(
         .filter((item) => item.type === "deduction")
         .reduce((total, item) => total + item.amount, 0),
     );
-    const attendanceDeductions = moneyValue(
-      lateDeduction + earlyDeduction + absenceDeduction,
-    );
+    const attendanceDeductions = hourlyEmployee
+      ? 0
+      : moneyValue(lateDeduction + earlyDeduction + absenceDeduction);
     const otherDeductions = adjustmentDeductions;
-    const basicSalary = options.persist
-      ? row.employee.salary
-      : moneyValue(
-          row.employee.salary *
-            (scheduledDates.length / Math.max(1, fullPeriodScheduledDates.length)),
-        );
+    const basicSalary = hourlyEmployee
+      ? hourlyPayroll!.basicPay
+      : options.persist
+        ? row.employee.salary
+        : moneyValue(
+            row.employee.salary *
+              (scheduledDates.length /
+                Math.max(1, fullPeriodScheduledDates.length)),
+          );
     const netSalary = moneyValue(
       basicSalary +
         additions +
@@ -11570,10 +11694,15 @@ async function calculatePayrollPeriod(
     totalNet += netSalary;
     const lineItems: PayrollLineItem[] = [
       {
-        label: message(req, "basicSalary"),
+        label: message(req, hourlyEmployee ? "hourlyWages" : "basicSalary"),
         amount: basicSalary,
         type: "basic",
-        explanation: message(req, "compensationProfile"),
+        explanation: hourlyEmployee
+          ? translateApiMessage(requestedLocale(req), "hourlyWagesExplanation", {
+              hours: hourlyPayroll!.workedHours.toFixed(2),
+              rate: moneyValue(hourlyRate).toFixed(2),
+            })
+          : message(req, "compensationProfile"),
       },
       ...(overtime > 0
         ? [
@@ -11665,6 +11794,8 @@ async function calculatePayrollPeriod(
     ];
     const calculatedItem = {
       employee: employeeReference(row.employee, row.department.name),
+      payBasis: row.employee.payBasis as "monthly" | "hourly",
+      hourlyRate: moneyValue(hourlyRate),
       basicSalary,
       additions,
       overtime,
@@ -11706,6 +11837,14 @@ async function calculatePayrollPeriod(
       inputsSnapshot: {
         rules,
         period: { from: calculationPeriod.from, to: calculationPeriod.to },
+        compensation: {
+          payBasis: row.employee.payBasis,
+          referenceMonthlySalary: row.employee.salary,
+          workDaysPerMonth: row.employee.workDaysPerMonth,
+          referenceHoursPerDay: row.employee.workingHours,
+          hourlyRate: moneyValue(hourlyRate),
+          payableWorkedMinutes: hourlyPayroll?.workedMinutes ?? null,
+        },
         attendance: {
           regularHours,
           overtimeHours,

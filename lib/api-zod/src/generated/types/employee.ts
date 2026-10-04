@@ -8,6 +8,7 @@
 import type { Branch } from './branch';
 import type { DepartmentSummary } from './departmentSummary';
 import type { EmployeeAutomaticOvertime } from './employeeAutomaticOvertime';
+import type { EmployeePayBasis } from './employeePayBasis';
 import type { EmployeePayrollCycleSummary } from './employeePayrollCycleSummary';
 import type { EmployeeRole } from './employeeRole';
 import type { EmployeeStatus } from './employeeStatus';
@@ -33,6 +34,13 @@ export interface Employee {
      * @maximum 24
      */
   workingHours?: number;
+  payBasis: EmployeePayBasis;
+  /**
+     * @minimum 1
+     * @maximum 31
+     * @nullable
+     */
+  workDaysPerMonth: number | null;
   department: DepartmentSummary | null;
   branch: Branch;
   status: EmployeeStatus;

@@ -1044,6 +1044,23 @@ const copy = {
     lastName: "Last name",
     email: "Email",
     monthlySalary: "Monthly salary",
+    compensation: "Compensation",
+    payBasis: "Pay basis",
+    monthlyPayBasis: "Monthly pay",
+    hourlyPayBasis: "Hourly pay",
+    referenceMonthlySalary: "Reference monthly salary",
+    referenceWorkdaysPerMonth: "Reference workdays per month",
+    referenceHoursPerDay: "Reference hours per day",
+    calculatedHourlyRate: "Calculated hourly rate",
+    hourlyRateDerivationHint:
+      "Hourly rate = reference monthly salary ÷ (reference workdays × reference hours per day).",
+    hourlyPayReferenceSalaryHint:
+      "This monthly salary is used only to calculate the hourly rate.",
+    hourlyPayAttendanceHint:
+      "Pay uses the full biometric check-in/out interval after approved corrections, including breaks. No fixed schedule, leave, late or absence deductions, or overtime multiplier applies.",
+    hourlyWages: "Hourly wages",
+    noFixedSchedule: "No fixed schedule",
+    perHour: "per hour",
     dailyRate: "Daily rate",
     hourlyRate: "Hourly rate",
     salaryRatesHint:
@@ -2764,6 +2781,23 @@ const pageCopy = {
     firstName: "الاسم الأول",
     lastName: "اسم العائلة",
     monthlySalary: "الراتب الشهري",
+    compensation: "التعويضات",
+    payBasis: "نظام الأجر",
+    monthlyPayBasis: "راتب شهري",
+    hourlyPayBasis: "بالساعة",
+    referenceMonthlySalary: "الراتب الشهري المرجعي",
+    referenceWorkdaysPerMonth: "أيام العمل المرجعية بالشهر",
+    referenceHoursPerDay: "ساعات العمل المرجعية باليوم",
+    calculatedHourlyRate: "سعر الساعة المحسوب",
+    hourlyRateDerivationHint:
+      "سعر الساعة = الراتب الشهري المرجعي ÷ (أيام العمل المرجعية × ساعات العمل المرجعية يومياً).",
+    hourlyPayReferenceSalaryHint:
+      "يُستخدم هذا الراتب الشهري لحساب سعر الساعة فقط.",
+    hourlyPayAttendanceHint:
+      "يُحسب الأجر من كامل المدة بين بصمتي الحضور والانصراف بعد التصحيحات المعتمدة، بما فيها الاستراحات. لا يوجد جدول ثابت أو إجازة مدفوعة أو خصم تأخير/غياب أو مضاعف إضافي.",
+    hourlyWages: "أجر الساعات",
+    noFixedSchedule: "بدون جدول ثابت",
+    perHour: "للساعة",
     dailyRate: "سعر اليوم",
     hourlyRate: "سعر الساعة",
     salaryRatesHint:
@@ -3025,6 +3059,24 @@ const pageCopy = {
     automaticAnnualLeaveEligible: "Éligible au congé annuel automatique",
     automaticAnnualLeaveEligibleHint:
       "Désactivé, le congé annuel n’est ni ajouté ni déduit automatiquement. Les soldes attribués manuellement et la conversion manuelle des absences restent possibles.",
+    monthlySalary: "Salaire mensuel",
+    compensation: "Rémunération",
+    payBasis: "Mode de rémunération",
+    monthlyPayBasis: "Salaire mensuel",
+    hourlyPayBasis: "À l’heure",
+    referenceMonthlySalary: "Salaire mensuel de référence",
+    referenceWorkdaysPerMonth: "Jours ouvrés de référence par mois",
+    referenceHoursPerDay: "Heures de référence par jour",
+    calculatedHourlyRate: "Taux horaire calculé",
+    hourlyRateDerivationHint:
+      "Taux horaire = salaire mensuel de référence ÷ (jours ouvrés de référence × heures de référence par jour).",
+    hourlyPayReferenceSalaryHint:
+      "Ce salaire mensuel sert uniquement à calculer le taux horaire.",
+    hourlyPayAttendanceHint:
+      "La paie utilise tout l’intervalle biométrique entre l’arrivée et le départ après corrections approuvées, pauses incluses. Aucun horaire fixe, congé payé, retenue de retard ou d’absence, ni majoration d’heures supplémentaires ne s’applique.",
+    hourlyWages: "Rémunération horaire",
+    noFixedSchedule: "Aucun horaire fixe",
+    perHour: "par heure",
     workingHours: "Heures de travail",
     workingHoursHint: "Heures par jour travaillé.",
     employmentStartDate: "Date de début d’emploi",
@@ -3432,6 +3484,24 @@ const pageCopy = {
     automaticAnnualLeaveEligible: "Für automatischen Jahresurlaub berechtigt",
     automaticAnnualLeaveEligibleHint:
       "Ist die Option aus, wird Jahresurlaub weder automatisch gutgeschrieben noch abgezogen. Manuell zugewiesene Salden und manuelle Abwesenheitsumwandlungen bleiben möglich.",
+    monthlySalary: "Monatsgehalt",
+    compensation: "Vergütung",
+    payBasis: "Vergütungsart",
+    monthlyPayBasis: "Monatsgehalt",
+    hourlyPayBasis: "Stundenlohn",
+    referenceMonthlySalary: "Monatliches Referenzgehalt",
+    referenceWorkdaysPerMonth: "Referenz-Arbeitstage pro Monat",
+    referenceHoursPerDay: "Referenzstunden pro Tag",
+    calculatedHourlyRate: "Berechneter Stundenlohn",
+    hourlyRateDerivationHint:
+      "Stundenlohn = monatliches Referenzgehalt ÷ (Referenz-Arbeitstage × Referenzstunden pro Tag).",
+    hourlyPayReferenceSalaryHint:
+      "Dieses Monatsgehalt dient nur zur Berechnung des Stundenlohns.",
+    hourlyPayAttendanceHint:
+      "Die Vergütung basiert auf dem gesamten biometrischen Zeitraum zwischen Ein- und Ausstempeln nach genehmigten Korrekturen, einschließlich Pausen. Es gelten weder ein fester Zeitplan noch bezahlter Urlaub, Verspätungs-/Abwesenheitsabzüge oder Überstundenzuschläge.",
+    hourlyWages: "Stundenvergütung",
+    noFixedSchedule: "Kein fester Zeitplan",
+    perHour: "pro Stunde",
     workingHours: "Arbeitsstunden",
     workingHoursHint: "Stunden pro Arbeitstag.",
     employmentStartDate: "Beschäftigungsbeginn",
@@ -7486,6 +7556,7 @@ function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
   const workspaceQuery = useGetWorkspace();
+  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const summaryQuery = useGetDashboardSummary({
     query: {
       queryKey: getGetDashboardSummaryQueryKey(),
@@ -10671,6 +10742,8 @@ function AddEmployeePage() {
     phone: "",
     biometricCode: "",
     workingHours: "8",
+    payBasis: "monthly" as "monthly" | "hourly",
+    workDaysPerMonth: "26",
     departmentId: "",
     branchId: "",
     joinedOn: new Date().toISOString().slice(0, 10),
@@ -10681,6 +10754,16 @@ function AddEmployeePage() {
     locationAttendanceEnabled: false,
     automaticAnnualLeaveEligible: false,
   });
+  const liveHourlyRate =
+    Number.isFinite(Number(form.salary)) &&
+    Number(form.salary) >= 0 &&
+    Number.isInteger(Number(form.workDaysPerMonth)) &&
+    Number(form.workDaysPerMonth) > 0 &&
+    Number.isFinite(Number(form.workingHours)) &&
+    Number(form.workingHours) > 0
+      ? Number(form.salary) /
+        (Number(form.workDaysPerMonth) * Number(form.workingHours))
+      : null;
 
   useEffect(() => {
     if (workspaceQuery.data && !canCreateEmployees) {
@@ -10701,13 +10784,17 @@ function AddEmployeePage() {
       !form.biometricCode.trim() ||
       !form.departmentId ||
       !form.branchId ||
-      !form.scheduleId ||
+      (form.payBasis === "monthly" && !form.scheduleId) ||
       !form.joinedOn ||
       !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
-      Number(form.workingHours) < 0 ||
-      Number(form.workingHours) > 24
+      Number(form.workingHours) < (form.payBasis === "hourly" ? 0.01 : 0) ||
+      Number(form.workingHours) > 24 ||
+      (form.payBasis === "hourly" &&
+        (!Number.isInteger(Number(form.workDaysPerMonth)) ||
+          Number(form.workDaysPerMonth) < 1 ||
+          Number(form.workDaysPerMonth) > 31))
     ) {
       toast.error(t("required"));
       return;
@@ -10727,11 +10814,17 @@ function AddEmployeePage() {
           nationalId: form.nationalId.trim(),
           biometricCode: form.biometricCode.trim(),
           workingHours: Number(form.workingHours),
+          payBasis: form.payBasis,
+          ...(form.payBasis === "hourly"
+            ? { workDaysPerMonth: Number(form.workDaysPerMonth) }
+            : {}),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
           joinedOn: form.joinedOn,
-          scheduleId: form.scheduleId,
+          ...(form.payBasis === "monthly"
+            ? { scheduleId: form.scheduleId }
+            : {}),
           payrollCycleId: form.payrollCycleId || null,
           role: form.role as "employee" | "manager",
           locationAttendanceEnabled: form.locationAttendanceEnabled,
@@ -10884,9 +10977,30 @@ function AddEmployeePage() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("payBasis")}</span>
+              <select
+                name="payBasis"
+                value={form.payBasis}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    payBasis: event.target.value as "monthly" | "hourly",
+                  })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
+              >
+                <option value="monthly">{t("monthlyPayBasis")}</option>
+                <option value="hourly">{t("hourlyPayBasis")}</option>
+              </select>
+            </label>
             <div>
               <Field
-                label={t("monthlySalary")}
+                label={
+                  form.payBasis === "hourly"
+                    ? t("referenceMonthlySalary")
+                    : t("monthlySalary")
+                }
                 name="salary"
                 required
                 type="number"
@@ -10897,12 +11011,18 @@ function AddEmployeePage() {
                 onChange={(value) => setForm({ ...form, salary: value })}
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                {t("salaryHint")}
+                {form.payBasis === "hourly"
+                  ? t("hourlyPayReferenceSalaryHint")
+                  : t("salaryHint")}
               </p>
             </div>
             <div>
               <Field
-                label={t("workingHours")}
+                label={
+                  form.payBasis === "hourly"
+                    ? t("referenceHoursPerDay")
+                    : t("workingHours")
+                }
                 name="workingHours"
                 required
                 type="number"
@@ -10919,6 +11039,38 @@ function AddEmployeePage() {
                 {t("workingHoursHint")}
               </p>
             </div>
+            {form.payBasis === "hourly" && (
+              <>
+                <Field
+                  label={t("referenceWorkdaysPerMonth")}
+                  name="workDaysPerMonth"
+                  required
+                  type="number"
+                  min="1"
+                  max="31"
+                  step="1"
+                  inputMode="numeric"
+                  value={form.workDaysPerMonth}
+                  onChange={(value) =>
+                    setForm({ ...form, workDaysPerMonth: value })
+                  }
+                />
+                <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("calculatedHourlyRate")}
+                  </div>
+                  <div className="mt-1 text-xl font-bold text-primary">
+                    {liveHourlyRate !== null
+                      ? `${money(liveHourlyRate, currency)} / ${t("perHour")}`
+                      : t("notAvailable")}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    {t("hourlyRateDerivationHint")}{" "}
+                    {t("hourlyPayAttendanceHint")}
+                  </p>
+                </div>
+              </>
+            )}
             <Field
               label={t("employmentStartDate")}
               name="joinedOn"
@@ -10927,42 +11079,44 @@ function AddEmployeePage() {
               value={form.joinedOn}
               onChange={(value) => setForm({ ...form, joinedOn: value })}
             />
-            <label className="block text-sm font-semibold">
-              <span className="block">{t("shift")}</span>
-              <select
-                required
-                name="scheduleId"
-                data-testid="select-employee-shift"
-                value={form.scheduleId}
-                disabled={schedules.isLoading || !schedules.data?.length}
-                onChange={(e) =>
-                  setForm({ ...form, scheduleId: e.target.value })
-                }
-                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option value="">
-                  {schedules.isLoading
-                    ? t("loading")
-                    : schedules.data?.length
-                      ? t("selectOption")
-                      : t("noShifts")}
-                </option>
-                {schedules.data?.map((schedule: any) => (
-                  <option
-                    key={schedule.id}
-                    value={schedule.id}
-                    data-testid={`option-employee-shift-${schedule.id}`}
-                  >
-                    {localizedName(locale, schedule.name, schedule.nameEn)} · {schedule.startTime}–{schedule.endTime}
+            {form.payBasis === "monthly" && (
+              <label className="block text-sm font-semibold">
+                <span className="block">{t("shift")}</span>
+                <select
+                  required
+                  name="scheduleId"
+                  data-testid="select-employee-shift"
+                  value={form.scheduleId}
+                  disabled={schedules.isLoading || !schedules.data?.length}
+                  onChange={(e) =>
+                    setForm({ ...form, scheduleId: e.target.value })
+                  }
+                  className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="">
+                    {schedules.isLoading
+                      ? t("loading")
+                      : schedules.data?.length
+                        ? t("selectOption")
+                        : t("noShifts")}
                   </option>
-                ))}
-              </select>
-              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                {schedules.isError
-                  ? t("shiftsLoadFailed")
-                  : t("selectShiftHint")}
-              </p>
-            </label>
+                  {schedules.data?.map((schedule: any) => (
+                    <option
+                      key={schedule.id}
+                      value={schedule.id}
+                      data-testid={`option-employee-shift-${schedule.id}`}
+                    >
+                      {localizedName(locale, schedule.name, schedule.nameEn)} · {schedule.startTime}–{schedule.endTime}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                  {schedules.isError
+                    ? t("shiftsLoadFailed")
+                    : t("selectShiftHint")}
+                </p>
+              </label>
+            )}
             <label className="block text-sm font-semibold sm:col-span-2">
               <span className="block">{t("payrollCycle")}</span>
               <select

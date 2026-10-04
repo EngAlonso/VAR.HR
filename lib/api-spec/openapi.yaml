@@ -2837,6 +2837,8 @@ components:
           role,
           joinedOn,
           salary,
+           payBasis,
+           workDaysPerMonth,
           automaticAnnualLeaveEligible,
         ]
       properties:
@@ -2853,6 +2855,10 @@ components:
         locationAttendanceEnabled: { type: boolean }
         automaticAnnualLeaveEligible: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
+        payBasis:
+          type: string
+          enum: [monthly, hourly]
+        workDaysPerMonth: { type: ["integer", "null"], minimum: 1, maximum: 31 }
         department:
           oneOf:
             - $ref: "#/components/schemas/DepartmentSummary"
@@ -2878,7 +2884,7 @@ components:
     EmployeeInput:
       type: object
       required:
-        [firstName, lastName, phone, branchId, joinedOn, salary, scheduleId]
+        [firstName, lastName, phone, branchId, joinedOn, salary]
       properties:
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
@@ -2891,6 +2897,11 @@ components:
         locationAttendanceEnabled: { type: boolean, default: false }
         automaticAnnualLeaveEligible: { type: boolean, default: false }
         workingHours: { type: number, minimum: 0, maximum: 24 }
+        payBasis:
+          type: string
+          enum: [monthly, hourly]
+          default: monthly
+        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }
@@ -2916,6 +2927,10 @@ components:
         locationAttendanceEnabled: { type: boolean }
         automaticAnnualLeaveEligible: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
+        payBasis:
+          type: string
+          enum: [monthly, hourly]
+        workDaysPerMonth: { type: ["integer", "null"], minimum: 1, maximum: 31 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }
@@ -3990,10 +4005,11 @@ components:
       required:
         [
           employee,
+          payBasis,
           basicSalary,
           additions,
           overtime,
-           timeMultiplierPremium,
+          timeMultiplierPremium,
           attendanceDeductions,
           otherDeductions,
           netSalary,
@@ -4010,6 +4026,10 @@ components:
       properties:
         employee:
           $ref: "#/components/schemas/EmployeeReference"
+        payBasis:
+          type: string
+          enum: [monthly, hourly]
+        hourlyRate: { type: number, minimum: 0 }
         basicSalary: { type: number }
         additions: { type: number }
         overtime: { type: number }

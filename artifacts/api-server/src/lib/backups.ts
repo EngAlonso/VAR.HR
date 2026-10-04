@@ -695,6 +695,8 @@ function normalizeRestoreRow(
             ? new Date().toISOString()
             : null),
         working_hours: row.working_hours ?? 8,
+        pay_basis: row.pay_basis ?? "monthly",
+        work_days_per_month: row.work_days_per_month ?? null,
         department_id: row.department_id ?? null,
         status: row.status ?? "active",
         role: row.role ?? "employee",

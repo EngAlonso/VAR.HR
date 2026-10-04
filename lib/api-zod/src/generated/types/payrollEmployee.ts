@@ -7,10 +7,14 @@
  */
 import type { EmployeeReference } from './employeeReference';
 import type { PayrollEmployeeLeaveBalancesItem } from './payrollEmployeeLeaveBalancesItem';
+import type { PayrollEmployeePayBasis } from './payrollEmployeePayBasis';
 import type { PayrollLineItem } from './payrollLineItem';
 
 export interface PayrollEmployee {
   employee: EmployeeReference;
+  payBasis: PayrollEmployeePayBasis;
+  /** @minimum 0 */
+  hourlyRate?: number;
   basicSalary: number;
   additions: number;
   overtime: number;
