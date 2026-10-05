@@ -6,6 +6,7 @@
 - [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
 - [Backup restore compatibility](backup-restore-compatibility.md) — normalize legacy rows and clear missing optional audit actors so valid restores are not rolled back.
 - [Employee reference compensation rates](company-workday-authority.md) — employee reference workdays and hours determine daily/hourly rates across both pay bases.
+- [Platform-owner support policy](platform-owner-support-policy.md) — resolve company issues through curated, audited support tools; never guess employee workday values.
 - [ADMS timestamp normalization](adms-timezone-normalization.md) — interpret offset-free device timestamps in the company timezone before assigning attendance dates.
 - [Payroll cycle proration](payroll-cycle-proration.md) — prorate monthly salary against the full assigned cycle, while capping attendance and absence at the requested through-date.
 - [Hourly employee pay](hourly-employee-payroll.md) — preserve full corrected punch-duration pay; reference inputs determine rates without creating an hourly schedule.

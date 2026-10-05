@@ -20,6 +20,7 @@ import {
 } from "../lib/auth";
 import { requirePlatformOwner } from "../lib/tenant-context";
 import { z } from "zod";
+import { refreshPlatformSupportPayroll } from "./var-hr";
 
 type EntityConfig = {
   table: string;
@@ -111,6 +112,9 @@ const entities: Record<string, EntityConfig> = {
       "status",
       "role",
       "joined_on",
+      "pay_basis",
+      "work_days_per_month",
+      "working_hours",
       "salary",
       "created_at",
       "updated_at",
@@ -138,6 +142,7 @@ const entities: Record<string, EntityConfig> = {
       "branch_id",
       "status",
       "role",
+      "work_days_per_month",
     ],
     canArchive: true,
     hasUpdatedAt: true,
@@ -478,7 +483,13 @@ const selfAccountSchema = z.object({
   currentPassword: z.string().min(1).optional(),
   newPassword: z.string().min(6).max(256).optional(),
 });
-const supportValuesSchema = z.record(z.string(), z.unknown());
+const supportEditSchema = z
+  .object({
+    values: z.record(z.string(), z.unknown()),
+    companyId: idSchema,
+    reason: z.string().trim().min(10).max(500),
+  })
+  .strict();
 const supportFields: Record<string, string[]> = {
   employees: [
     "employee_number",
@@ -490,6 +501,7 @@ const supportFields: Record<string, string[]> = {
     "branch_id",
     "status",
     "role",
+    "work_days_per_month",
   ],
   departments: ["name", "name_ar", "description", "manager_id", "active"],
   branches: [
@@ -516,6 +528,7 @@ const databaseNumericFields = new Set([
   "worked_hours",
   "overtime_hours",
   "salary",
+  "work_days_per_month",
 ]);
 const safeHistoryValue = (value: unknown): unknown => {
   if (!value || typeof value !== "object") return value;
@@ -826,8 +839,16 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
     typeof req.query.search === "string" ? req.query.search.trim() : "";
   const companyId =
     typeof req.query.companyId === "string" ? req.query.companyId.trim() : "";
+  const missingReferenceWorkdays =
+    req.query.missingReferenceWorkdays === "true";
   if (companyId && !idSchema.safeParse(companyId).success) {
     res.status(400).json({ error: "A valid company filter is required." });
+    return;
+  }
+  if (missingReferenceWorkdays && req.params.entity !== "employees") {
+    res.status(400).json({
+      error: "The missing-workdays filter is only available for employees.",
+    });
     return;
   }
   const columns = config.columns.map(sqlIdentifier).join(", ");
@@ -836,6 +857,9 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
       ? [
           `${sqlIdentifier(config.companyColumn)} = ${sqlStringLiteral(companyId)}`,
         ]
+      : []),
+    ...(missingReferenceWorkdays
+      ? ['"work_days_per_month" IS NULL']
       : []),
     ...(search
       ? [
@@ -1020,6 +1044,12 @@ router.patch(
   async (req, res): Promise<void> => {
     const config = configFor(req.params.entity);
     const context = await requirePlatformOwner(req);
+    if (supportFields[req.params.entity]?.length) {
+      res.status(403).json({
+        error: "Use the restricted support editor for this entity.",
+      });
+      return;
+    }
     if (!config.editable.length) {
       res.status(403).json({ error: "This entity does not support platform editing." });
       return;
@@ -1028,19 +1058,21 @@ router.patch(
       res.status(400).json({ error: "A valid record id is required." });
       return;
     }
-    const parsed = supportValuesSchema.safeParse(req.body?.values);
-    if (!parsed.success || !Object.keys(parsed.data).length) {
-      res.status(400).json({ error: "Provide fields to update." });
+    const parsed = supportEditSchema.safeParse(req.body);
+    if (!parsed.success || !Object.keys(parsed.data.values).length) {
+      res.status(400).json({
+        error: "Provide fields, a company scope, and a support reason.",
+      });
       return;
     }
-    const keys = Object.keys(parsed.data);
+    const keys = Object.keys(parsed.data.values);
     if (keys.some((key) => !config.editable.includes(key))) {
       res.status(400).json({ error: "One or more fields are not allowed." });
       return;
     }
     const normalizedValues: Record<string, unknown> = {};
     for (const key of keys) {
-      const value = parsed.data[key];
+      const value = parsed.data.values[key];
       if (databaseBooleanFields.has(key)) {
         if (typeof value === "boolean") {
           normalizedValues[key] = value;
@@ -1084,21 +1116,28 @@ router.patch(
       res.status(404).json({ error: "Record not found." });
       return;
     }
+    if (
+      !config.companyColumn ||
+      String(before[config.companyColumn] ?? "") !== parsed.data.companyId
+    ) {
+      res.status(404).json({ error: "Record not found in the selected company." });
+      return;
+    }
     const setParts = keys.map(
       (key) =>
         sql`${sql.raw(sqlIdentifier(key))} = ${normalizedValues[key]}`,
     );
     if (config.hasUpdatedAt) setParts.push(sql`updated_at = now()`);
+    const companyColumn = sql.raw(sqlIdentifier(config.companyColumn));
     const result = await db.execute(
-      sql`UPDATE ${table} SET ${sql.join(setParts, sql`, `)} WHERE ${idColumn} = ${req.params.id} RETURNING ${sql.raw(config.columns.map(sqlIdentifier).join(", "))}`,
+      sql`UPDATE ${table} SET ${sql.join(setParts, sql`, `)} WHERE ${idColumn} = ${req.params.id} AND ${companyColumn} = ${parsed.data.companyId} RETURNING ${sql.raw(config.columns.map(sqlIdentifier).join(", "))}`,
     );
+    if (!result.rows[0]) {
+      res.status(404).json({ error: "Record not found in the selected company." });
+      return;
+    }
     const after = safeRow((result.rows[0] ?? {}) as Record<string, unknown>);
-    const companyId =
-      typeof before.company_id === "string"
-        ? before.company_id
-        : config.companyColumn === "id" && typeof before.id === "string"
-          ? before.id
-          : null;
+    const companyId = parsed.data.companyId;
     if (companyId) {
       await db.insert(auditLogsTable).values({
         companyId,
@@ -1117,7 +1156,11 @@ router.patch(
       action: "database_updated",
       entityType: `database:${req.params.entity}`,
       entityId: req.params.id,
-      metadata: { fields: keys, actorRole: "platform_owner" },
+      metadata: {
+        fields: keys,
+        reason: parsed.data.reason,
+        actorRole: "platform_owner",
+      },
     });
     res.json({ row: after });
   },
@@ -1136,22 +1179,29 @@ router.patch(
       res.status(400).json({ error: "A valid record id is required." });
       return;
     }
-    const parsed = supportValuesSchema.safeParse(req.body?.values);
+    const parsed = supportEditSchema.safeParse(req.body);
     const allowed = supportFields[req.params.entity];
-    if (!parsed.success || !allowed || !Object.keys(parsed.data).length) {
-      res.status(400).json({ error: "Provide supported fields to update." });
+    if (
+      !parsed.success ||
+      !allowed ||
+      !Object.keys(parsed.data.values).length
+    ) {
+      res.status(400).json({
+        error: "Provide supported fields, a company scope, and a support reason.",
+      });
       return;
     }
-    const keys = Object.keys(parsed.data);
+    const keys = Object.keys(parsed.data.values);
     if (keys.some((key) => !allowed.includes(key))) {
       res.status(400).json({ error: "One or more support fields are not allowed." });
       return;
     }
     for (const key of keys) {
-      const value = parsed.data[key];
+      const value = parsed.data.values[key];
       if (
         ["department_id", "branch_id", "manager_id"].includes(key) &&
         value !== null &&
+        value !== "" &&
         (!idSchema.safeParse(value).success)
       ) {
         res.status(400).json({ error: "Referenced records must use valid ids." });
@@ -1182,19 +1232,33 @@ router.patch(
       res.status(400).json({ error: "The record has no valid company scope." });
       return;
     }
-    if (req.params.entity === "employees") {
-      const departmentId = parsed.data.department_id ?? before.department_id;
-      const branchId = parsed.data.branch_id ?? before.branch_id;
+    if (companyId !== parsed.data.companyId) {
+      res.status(404).json({ error: "Record not found in the selected company." });
+      return;
+    }
+    if (
+      req.params.entity === "employees" &&
+      ("department_id" in parsed.data.values ||
+        "branch_id" in parsed.data.values)
+    ) {
+      const departmentId =
+        parsed.data.values.department_id === ""
+          ? null
+          : (parsed.data.values.department_id ?? before.department_id);
+      const branchId =
+        parsed.data.values.branch_id === ""
+          ? null
+          : (parsed.data.values.branch_id ?? before.branch_id);
       const references = await db
         .select({ id: departmentsTable.id })
         .from(departmentsTable)
-        .where(eq(employeesTable.companyId, companyId));
+        .where(eq(departmentsTable.companyId, companyId));
       const branches = await db
         .select({ id: branchesTable.id })
         .from(branchesTable)
         .where(eq(branchesTable.companyId, companyId));
       if (
-        !branches.some((row) => row.id === branchId) ||
+        (branchId !== null && !branches.some((row) => row.id === branchId)) ||
         (departmentId !== null &&
           !references.some((row) => row.id === departmentId))
       ) {
@@ -1202,13 +1266,19 @@ router.patch(
         return;
       }
     }
-    if (req.params.entity === "departments" && parsed.data.manager_id) {
+    if (
+      req.params.entity === "departments" &&
+      parsed.data.values.manager_id
+    ) {
       const [manager] = await db
         .select({ id: employeesTable.id })
         .from(employeesTable)
         .where(
           and(
-            eq(employeesTable.id, parsed.data.manager_id as string),
+            eq(
+              employeesTable.id,
+              parsed.data.values.manager_id as string,
+            ),
             eq(employeesTable.companyId, companyId),
           ),
         )
@@ -1220,14 +1290,20 @@ router.patch(
     }
     const normalizedValues = Object.fromEntries(
       keys.map((key) => {
-        const value = parsed.data[key];
-        if (key === "active" && typeof value === "string") {
-          return [key, value === "true"];
-        }
+        const value = parsed.data.values[key];
         if (
-          ["latitude", "longitude", "radius_meters"].includes(key) &&
-          typeof value === "string"
+          ["department_id", "branch_id", "manager_id"].includes(key) &&
+          value === ""
         ) {
+          return [key, null];
+        }
+        if (databaseBooleanFields.has(key)) {
+          if (typeof value === "boolean") return [key, value];
+          if (value === "true" || value === "false") {
+            return [key, value === "true"];
+          }
+        }
+        if (databaseNumericFields.has(key) && typeof value === "string") {
           return [key, value === "" ? null : Number(value)];
         }
         return [key, value];
@@ -1235,8 +1311,19 @@ router.patch(
     );
     if (
       Object.values(normalizedValues).some(
-        (value) => typeof value === "number" && Number.isNaN(value),
+        (value) => typeof value === "number" && !Number.isFinite(value),
       )
+      ||
+      keys.some(
+        (key) =>
+          databaseBooleanFields.has(key) &&
+          typeof normalizedValues[key] !== "boolean",
+      )
+      ||
+      ("work_days_per_month" in normalizedValues &&
+        (!Number.isInteger(normalizedValues.work_days_per_month) ||
+          Number(normalizedValues.work_days_per_month) < 1 ||
+          Number(normalizedValues.work_days_per_month) > 31))
     ) {
       res.status(400).json({ error: "Numeric support fields must be valid numbers." });
       return;
@@ -1248,7 +1335,20 @@ router.patch(
     const result = await db.execute(
       sql`UPDATE ${sql.raw(config.table)} SET ${sql.join(setParts, sql`, `)} WHERE id = ${req.params.id} AND company_id = ${companyId} RETURNING ${sql.raw(config.columns.join(", "))}`,
     );
+    if (!result.rows[0]) {
+      res.status(404).json({ error: "Record not found in the selected company." });
+      return;
+    }
     const after = safeRow((result.rows[0] ?? {}) as Record<string, unknown>);
+    let payrollRefreshWarning = false;
+    if (
+      req.params.entity === "employees" &&
+      "work_days_per_month" in parsed.data.values &&
+      Number(before.work_days_per_month) !==
+        Number(after.work_days_per_month)
+    ) {
+      payrollRefreshWarning = true;
+    }
     await db.insert(auditLogsTable).values({
       companyId,
       actorType: "platform_owner",
@@ -1265,9 +1365,27 @@ router.patch(
       action: "database_support_updated",
       entityType: `database:${req.params.entity}`,
       entityId: req.params.id,
-      metadata: { fields: keys, actorRole: "platform_owner" },
+      metadata: {
+        fields: keys,
+        reason: parsed.data.reason,
+        actorRole: "platform_owner",
+      },
     });
-    res.json({ row: after });
+    if (payrollRefreshWarning) {
+      try {
+        payrollRefreshWarning = !(await refreshPlatformSupportPayroll(
+          companyId,
+          context.accountId,
+          req,
+        ));
+      } catch (error) {
+        req.log?.error(
+          { err: error, companyId, employeeId: req.params.id },
+          "Reference workdays were updated, but open payroll periods could not be refreshed",
+        );
+      }
+    }
+    res.json({ row: after, payrollRefreshWarning });
   },
 );
 

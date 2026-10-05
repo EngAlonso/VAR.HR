@@ -783,7 +783,7 @@ const copy = {
     couldNotUpdateSiteBranding: "Could not update site branding.",
     platformOwnerOnly: "Platform Owner only",
     databaseAdminDetail:
-      "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
+      "Company-scoped support tools for reviewing and correcting approved records. Every edit needs a reason and is audited; credentials and backup payloads stay excluded.",
     databaseEntity: "Data entity",
     databaseCoreOrganization: "Core organization",
     databaseSchedulingAttendance: "Scheduling and attendance",
@@ -805,7 +805,21 @@ const copy = {
     recordDetails: "Record details",
     supportEdit: "Support edit",
     supportEditHint:
-      "Only approved operational fields are editable. Company ownership and authentication fields are locked.",
+      "Only approved support fields are editable. Company ownership and authentication fields are locked.",
+    supportScopeHint:
+      "Choose a company before editing. Each correction requires a reason and is recorded in the company history.",
+    supportSelectCompany:
+      "Select one company in Company context before editing a record.",
+    supportReasonLabel: "Reason for this support change",
+    supportReasonRequired:
+      "Enter a reason of at least 10 characters before saving.",
+    supportChangeSaved: "Support change saved and added to the audit history.",
+    supportPayrollRefreshHint:
+      "Changing reference workdays recalculates calculated, editable payroll periods. Drafts use the new value when first calculated; approved or locked periods stay unchanged.",
+    supportPayrollRefreshWarning:
+      "The employee value was saved, but at least one editable payroll period could not be refreshed. Review payroll for this company.",
+    missingReferenceWorkdays: "Missing reference workdays",
+    missingReferenceWorkdaysOnly: "Only show employees missing reference workdays",
     databaseEditHint:
       "Only fields approved for this data type are editable. Record IDs, company ownership, and authentication fields stay locked.",
     inspectionOnly:
@@ -2888,7 +2902,7 @@ const pageCopy = {
     couldNotUpdateSiteBranding: "تعذر تحديث اسم ولوجو الموقع.",
     platformOwnerOnly: "للمالك فقط",
     databaseAdminDetail:
-      "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
+      "أدوات دعم محددة بالشركة لمراجعة السجلات المسموح بها وتصحيحها. كل تعديل يتطلب سبباً ويُسجل في سجل التدقيق؛ وتظل بيانات الدخول والنسخ الاحتياطية مستبعدة.",
     databaseEntity: "كيان البيانات",
     databaseCoreOrganization: "الهيكل الأساسي",
     databaseSchedulingAttendance: "الجدولة والحضور",
@@ -2910,7 +2924,21 @@ const pageCopy = {
     recordDetails: "تفاصيل السجل",
     supportEdit: "تعديل الدعم",
     supportEditHint:
-      "يمكن تعديل الحقول التشغيلية المعتمدة فقط. ملكية الشركة وحقول المصادقة مقفلة.",
+      "يمكن تعديل الحقول المعتمدة للدعم فقط. ملكية الشركة وحقول المصادقة مقفلة.",
+    supportScopeHint:
+      "اختر شركة قبل التعديل. كل تصحيح يتطلب سبباً ويُسجل في سجل تغييرات الشركة.",
+    supportSelectCompany:
+      "اختر شركة واحدة من سياق الشركة قبل تعديل أي سجل.",
+    supportReasonLabel: "سبب تعديل الدعم",
+    supportReasonRequired:
+      "اكتب سبباً لا يقل عن 10 أحرف قبل الحفظ.",
+    supportChangeSaved: "تم حفظ تعديل الدعم وإضافته إلى سجل التدقيق.",
+    supportPayrollRefreshHint:
+      "تعديل أيام العمل المرجعية يعيد حساب فترات الرواتب المحسوبة والقابلة للتعديل. تستخدم المسودات القيمة الجديدة عند حسابها أول مرة، ولا تتغير الفترات المعتمدة أو المقفلة.",
+    supportPayrollRefreshWarning:
+      "تم حفظ قيمة الموظف، لكن تعذر تحديث فترة رواتب قابلة للتعديل على الأقل. راجع رواتب هذه الشركة.",
+    missingReferenceWorkdays: "أيام العمل المرجعية مفقودة",
+    missingReferenceWorkdaysOnly: "عرض الموظفين الذين تنقصهم أيام العمل المرجعية فقط",
     databaseEditHint:
       "يمكن تعديل الحقول المسموح بها لهذا النوع فقط. المعرّفات وملكية الشركة وحقول المصادقة مقفلة.",
     inspectionOnly:
@@ -20150,6 +20178,9 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   status: "databaseStatus",
   role: "databaseRole",
   joined_on: "databaseJoinedOn",
+  pay_basis: "payBasis",
+  work_days_per_month: "referenceWorkdaysPerMonth",
+  working_hours: "referenceHoursPerDay",
   city: "databaseCity",
   gps_enabled: "databaseGpsEnabled",
   latitude: "databaseLatitude",
@@ -20237,6 +20268,7 @@ function DatabaseAdministration() {
     return query.get("entity") ?? "";
   });
   const [companyFilter, setCompanyFilter] = useState("");
+  const [missingWorkdaysOnly, setMissingWorkdaysOnly] = useState(false);
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
   const [search, setSearch] = useState("");
@@ -20245,6 +20277,7 @@ function DatabaseAdministration() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
+  const [editReason, setEditReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
@@ -20276,7 +20309,7 @@ function DatabaseAdministration() {
         await (() => {
           const entityDefinition = entities.find((item) => item.key === entity);
           return authRequest<AdminDataResponse>(
-          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}`,
+          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}${entity === "employees" && missingWorkdaysOnly ? "&missingReferenceWorkdays=true" : ""}`,
           ).then((result) => ({
             ...result,
             key: result.key ?? result.entity ?? entity,
@@ -20302,7 +20335,7 @@ function DatabaseAdministration() {
   }, []);
   useEffect(() => {
     if (entity) void load();
-  }, [entity, companyFilter]);
+  }, [entity, companyFilter, missingWorkdaysOnly]);
   const usesSupportEditor =
     Boolean(data?.supportEditable?.length) &&
     supportedDatabaseActions.has(data?.key ?? "");
@@ -20334,6 +20367,12 @@ function DatabaseAdministration() {
     }
   };
   const openEdit = (row: Record<string, unknown>) => {
+    if (!companyFilter) {
+      setError(t("supportSelectCompany"));
+      return;
+    }
+    setError("");
+    setEditReason("");
     setEditing(row);
     setEditValues(
       Object.fromEntries(
@@ -20343,16 +20382,33 @@ function DatabaseAdministration() {
   };
   const saveEdit = async () => {
     if (!editing || !data) return;
+    if (!companyFilter) {
+      setError(t("supportSelectCompany"));
+      return;
+    }
+    if (editReason.trim().length < 10) {
+      setError(t("supportReasonRequired"));
+      return;
+    }
     setPending("save");
     try {
       const endpoint = usesSupportEditor
         ? `/api/platform/database/${data.key}/${editing.id}/support`
         : `/api/platform/database/${data.key}/${editing.id}`;
-      await authRequest(endpoint, {
+      const result = await authRequest<{ payrollRefreshWarning?: boolean }>(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({ values: editValues }),
+        body: JSON.stringify({
+          values: editValues,
+          companyId: companyFilter,
+          reason: editReason.trim(),
+        }),
       });
       setEditing(null);
+      if (result.payrollRefreshWarning) {
+        toast.warning(t("supportPayrollRefreshWarning"));
+      } else {
+        toast.success(t("supportChangeSaved"));
+      }
       await load();
     } catch (cause) {
       setError(
@@ -20430,6 +20486,16 @@ function DatabaseAdministration() {
     : false;
   const databaseValue = (key: string, value: unknown) => {
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
+    if (
+      key === "work_days_per_month" &&
+      (value === null || value === undefined || value === "")
+    ) {
+      return t("missingReferenceWorkdays");
+    }
+    if (key === "pay_basis" && typeof value === "string") {
+      if (value === "monthly") return t("monthlyPayBasis");
+      if (value === "hourly") return t("hourlyPayBasis");
+    }
     if (typeof value === "string" && databaseStatusTranslationKeys[value]) {
       return t(databaseStatusTranslationKeys[value]);
     }
@@ -20494,7 +20560,10 @@ function DatabaseAdministration() {
            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
              {t("dataExplorer")}
           </p>
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto] lg:items-end">
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("supportScopeHint")}
+          </p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto_auto] lg:items-end">
             <label className="text-sm font-semibold">
               {t("databaseEntity")}
               <select
@@ -20541,6 +20610,19 @@ function DatabaseAdministration() {
                 />
               </div>
             </label>
+            {entity === "employees" && (
+              <label className="flex items-center gap-2 pb-3 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={missingWorkdaysOnly}
+                  onChange={(event) =>
+                    setMissingWorkdaysOnly(event.target.checked)
+                  }
+                  className="size-4 accent-primary"
+                />
+                {t("missingReferenceWorkdaysOnly")}
+              </label>
+            )}
           <Button
             variant="outline"
             onClick={() => void load()}
@@ -20615,7 +20697,8 @@ function DatabaseAdministration() {
                           >
                            {String(row[column] ?? t("unknownCompany"))}
                           </button>
-                        ) : typeof row[column] === "object"
+                        ) : row[column] !== null &&
+                          typeof row[column] === "object"
                           ? JSON.stringify(row[column])
                           : databaseValue(column, row[column])}
                       </td>
@@ -20637,7 +20720,11 @@ function DatabaseAdministration() {
                              </>
                            ) : null}
                           {editFields.length ? (
-                            <Button variant="outline" onClick={() => openEdit(row)}>
+                            <Button
+                              variant="outline"
+                              disabled={pending !== "" || !companyFilter}
+                              onClick={() => openEdit(row)}
+                            >
                               {t("edit")}
                             </Button>
                           ) : null}
@@ -20690,11 +20777,31 @@ function DatabaseAdministration() {
                 key={key}
                  label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
                 value={String(editValues[key] ?? "")}
+                type={key === "work_days_per_month" ? "number" : "text"}
+                min={key === "work_days_per_month" ? 1 : undefined}
+                max={key === "work_days_per_month" ? 31 : undefined}
+                step={key === "work_days_per_month" ? 1 : undefined}
                 onChange={(value) =>
                   setEditValues((current) => ({ ...current, [key]: value }))
                 }
               />
             ))}
+            {data.key === "employees" && (
+              <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                {t("supportPayrollRefreshHint")}
+              </p>
+            )}
+            <label className="block text-sm font-semibold">
+              <span>{t("supportReasonLabel")}</span>
+              <textarea
+                className="mt-2 min-h-24 w-full rounded-xl border border-input bg-background px-3.5 py-3 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                value={editReason}
+                onChange={(event) => setEditReason(event.target.value)}
+                minLength={10}
+                maxLength={500}
+                required
+              />
+            </label>
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="quiet" onClick={() => setEditing(null)}>
@@ -20775,9 +20882,16 @@ function DatabaseAdministration() {
                   </div>
                 )}
                 {entry.metadata && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                     {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
-                  </p>
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
+                    </p>
+                    {entry.metadata.reason ? (
+                      <p>
+                        {t("supportReasonLabel")}: {String(entry.metadata.reason)}
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             )) : <Empty title={t("noHistoryFound")} detail={t("noHistoryDetail")} />}
@@ -23296,7 +23410,7 @@ function Platform() {
             </p>
           </div>
         </div>
-        <div className="grid gap-4 p-5 sm:grid-cols-3">
+        <div className="grid gap-4 p-5 sm:grid-cols-2">
           <Info
             label={text("Company Owner accounts", "حسابات مالكي الشركات")}
             value={summary!.companies.filter((company) => company.owner).length}
@@ -23310,6 +23424,13 @@ function Platform() {
             className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary"
           >
             {text("Open backup administration", "فتح إدارة النسخ الاحتياطية")}{" "}
+            <ArrowUpRight size={14} />
+          </Link>
+          <Link
+            href="/platform/database?entity=employees"
+            className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary"
+          >
+            {text("Open company support tools", "فتح أدوات دعم الشركات")}{" "}
             <ArrowUpRight size={14} />
           </Link>
         </div>

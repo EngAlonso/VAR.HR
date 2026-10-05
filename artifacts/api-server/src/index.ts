@@ -3,8 +3,6 @@ import "dotenv/config";
 import app from "./app";
 import { startAutomaticBackupScheduler } from "./lib/backup-scheduler";
 import { logger } from "./lib/logger";
-import { and, eq, isNull } from "drizzle-orm";
-import { db, employeesTable } from "@workspace/db";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -34,23 +32,6 @@ async function start(): Promise<void> {
   );
   if (stdout.trim()) logger.info({ output: stdout.trim() }, "Database schema check complete");
   if (stderr.trim()) logger.warn({ output: stderr.trim() }, "Database schema command reported diagnostics");
-
-  const backfilledEmployees = await db
-    .update(employeesTable)
-    .set({ workDaysPerMonth: 26, updatedAt: new Date() })
-    .where(
-      and(
-        eq(employeesTable.payBasis, "monthly"),
-        isNull(employeesTable.workDaysPerMonth),
-      ),
-    )
-    .returning({ id: employeesTable.id });
-  if (backfilledEmployees.length > 0) {
-    logger.info(
-      { count: backfilledEmployees.length },
-      "Backfilled reference workdays for monthly employees",
-    );
-  }
 
   app.listen(port, (err) => {
     if (err) {

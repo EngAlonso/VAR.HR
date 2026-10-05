@@ -397,7 +397,17 @@ test("platform database editing is restricted to configured fields and wired to 
   assert.match(platformAdminRoute, /action: "database_updated"/);
   assert.match(app, /const editFields = data/);
   assert.match(app, /const endpoint = usesSupportEditor/);
-  assert.match(app, /body: JSON\.stringify\(\{ values: editValues \}\)/);
+  assert.match(
+    app,
+    /values: editValues,\s*companyId: companyFilter,\s*reason: editReason\.trim\(\)/,
+  );
+  assert.match(platformAdminRoute, /reason: z\.string\(\)\.trim\(\)\.min\(10\)/);
+  assert.match(platformAdminRoute, /work_days_per_month/);
+  assert.match(app, /String\(entry\.metadata\.reason\)/);
+  assert.match(
+    route,
+    /export async function refreshPlatformSupportPayroll\([\s\S]*?return recalculateOpenPayrollPeriodsForRuleChange\(context, req, true\);/,
+  );
 });
 
 test("USB connector ingestion is device-key protected and idempotent", () => {
@@ -503,11 +513,11 @@ test("monthly and hourly compensation rates use employee reference workdays and 
   );
 });
 
-test("existing monthly employees receive the 26-day reference default before API startup", () => {
+test("startup preserves company-specific reference workdays for support correction", () => {
   assert.match(employeeSchema, /workDaysPerMonth: integer\("work_days_per_month"\)\.default\(26\)/);
-  assert.match(
+  assert.doesNotMatch(
     apiStart,
-    /\.set\(\{ workDaysPerMonth: 26, updatedAt: new Date\(\) \}\)[\s\S]*eq\(employeesTable\.payBasis, "monthly"\),\s*isNull\(employeesTable\.workDaysPerMonth\)/,
+    /Backfilled reference workdays|workDaysPerMonth: 26/,
   );
   assert.match(route, /parsed\.data\.workDaysPerMonth \?\? 26/);
 });
