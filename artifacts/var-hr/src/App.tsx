@@ -62,6 +62,7 @@ import {
   Menu,
   MoreHorizontal,
   Network,
+  Pencil,
   Plus,
   Printer,
   RefreshCw,
@@ -18192,8 +18193,8 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       )}
       {canAdminister || role === "manager" ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-          <Card>
-            <div className="border-b border-border p-5">
+          <section className="min-w-0">
+            <div className="mb-4">
               <h2 className="font-display text-lg font-semibold">
                 {t("schedules")}
               </h2>
@@ -18209,53 +18210,106 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             ) : schedules.isError ? (
               <ErrorState retry={() => schedules.refetch()} />
             ) : schedules.data?.length ? (
-              <div className="divide-y divide-border">
+              <div className="space-y-3">
                 {schedules.data.map((schedule: any) => (
-                  <div className="p-5" key={schedule.id}>
-                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                      <div>
-                        <div className="flex items-center gap-2 font-semibold">
-                          {localizedName(locale, schedule.name, schedule.nameEn)}
-                          {schedule.isDefault && (
-                            <Badge tone="accent">{t("defaultSchedule")}</Badge>
-                          )}
-                          <Badge tone={schedule.active ? "good" : "neutral"}>
-                            {schedule.active
-                              ? t("activeSchedule")
-                              : t("statusInactive")}
-                          </Badge>
+                  <Card
+                    key={schedule.id}
+                    className="rounded-2xl p-4 transition-colors hover:border-primary/40 sm:p-5"
+                    data-testid={`card-work-schedule-${schedule.id}`}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-dark"
+                        >
+                          <Clock3 size={19} />
+                        </span>
+                        <div className="min-w-0">
+                          <h3
+                            className="text-base font-bold leading-6"
+                            data-testid={`text-work-schedule-name-${schedule.id}`}
+                          >
+                            {localizedName(locale, schedule.name, schedule.nameEn)}
+                          </h3>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            {schedule.isDefault && (
+                              <Badge tone="accent">{t("defaultSchedule")}</Badge>
+                            )}
+                            <Badge tone={schedule.active ? "good" : "neutral"}>
+                              {schedule.active
+                                ? t("activeSchedule")
+                                : t("statusInactive")}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 sm:shrink-0">
                         {!schedule.isDefault && (
                           <Button
                             variant="outline"
+                            className="min-h-9 px-3 text-xs"
                             onClick={() => makeDefault(schedule.id)}
                             disabled={setDefault.isPending}
+                            data-testid={`button-set-default-schedule-${schedule.id}`}
                           >
                             {t("setDefaultSchedule")}
                           </Button>
                         )}
                         <Button
                           variant="outline"
+                          className="min-h-9 px-3 text-xs"
                           onClick={() => openEditor(schedule)}
+                          data-testid={`button-edit-schedule-${schedule.id}`}
                         >
+                          <Pencil size={14} />
                           {t("editSchedule")}
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <Info label={t("startTime")} value={schedule.startTime} />
-                      <Info
-                        label={t("endTime")}
-                        value={`${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`}
-                      />
-                      <Info
-                        label={t("requiredHours")}
-                        value={`${schedule.requiredHours}h`}
-                      />
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-4 sm:grid-cols-3 sm:gap-3">
+                      {[
+                        {
+                          id: "start",
+                          label: t("startTime"),
+                          value: schedule.startTime,
+                          Icon: Clock3,
+                          wide: false,
+                        },
+                        {
+                          id: "end",
+                          label: t("endTime"),
+                          value: `${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`,
+                          Icon: Clock3,
+                          wide: false,
+                        },
+                        {
+                          id: "hours",
+                          label: t("requiredHours"),
+                          value: `${schedule.requiredHours}h`,
+                          Icon: Activity,
+                          wide: true,
+                        },
+                      ].map(({ id, label, value, Icon, wide }) => (
+                        <div
+                          key={id}
+                          className={`rounded-xl border border-border/80 bg-muted/35 px-3.5 py-3 ${wide ? "col-span-2 sm:col-span-1" : ""}`}
+                          data-testid={`metric-work-schedule-${id}-${schedule.id}`}
+                        >
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Icon
+                              size={15}
+                              className="shrink-0 text-primary-dark"
+                            />
+                            <span>{label}</span>
+                          </div>
+                          <div className="mt-2 text-lg font-semibold tabular-nums">
+                            {value}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             ) : (
@@ -18270,7 +18324,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 }
               />
             )}
-          </Card>
+          </section>
           <Card>
             <div className="border-b border-border p-5">
               <h2 className="font-display text-lg font-semibold">

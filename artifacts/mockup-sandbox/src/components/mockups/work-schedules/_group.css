@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  --background: 210 33% 98%;
+  --foreground: 210 20% 13%;
+  --border: 210 22% 88%;
+  --input: 210 22% 88%;
+  --ring: 43 80% 42%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 20% 13%;
+  --primary: 43 80% 51%;
+  --primary-dark: 39 82% 39%;
+  --primary-foreground: 214 84% 10%;
+  --secondary: 214 84% 10%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 25% 95%;
+  --muted-foreground: 210 13% 40%;
+  --accent: 44 91% 62%;
+  --accent-foreground: 214 84% 10%;
+  --destructive: 2 64% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --sidebar: 214 84% 10%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-border: 214 50% 19%;
+  --sidebar-accent: 43 80% 51%;
+  --sidebar-accent-foreground: 214 84% 10%;
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-mono: 'Space Grotesk', monospace;
+  --radius: 0.85rem;
+  --shadow-sm: 0 1px 2px hsl(214 84% 10% / .05), 0 8px 20px hsl(214 84% 10% / .04);
+  --shadow-md: 0 12px 32px hsl(214 84% 10% / .08);
+}
+
+.dark {
+  --background: 214 50% 8%;
+  --foreground: 210 33% 98%;
+  --card: 214 40% 15%;
+  --card-foreground: 210 33% 98%;
+  --border: 214 30% 25%;
+  --muted: 214 30% 22%;
+  --muted-foreground: 210 15% 68%;
+  --input: 214 30% 28%;
+  --primary: 43 80% 51%;
+  --primary-dark: 39 82% 39%;
+  --primary-foreground: 214 84% 10%;
+  --accent: 44 91% 62%;
+  --accent-foreground: 214 84% 10%;
+  --sidebar: 214 84% 8%;
+  --sidebar-foreground: 210 33% 98%;
+  --sidebar-border: 214 50% 20%;
+  --sidebar-accent: 43 80% 51%;
+  --sidebar-accent-foreground: 214 84% 10%;
+}
+
+:lang(ar) {
+  font-family: 'Cairo', 'DM Sans', sans-serif;
+}
+
+:lang(ar) .font-display {
+  font-family: 'Cairo', 'DM Sans', sans-serif;
+}

@@ -535,6 +535,19 @@ test("hourly employee movement clears irrelevant fixed schedule times", () => {
   );
 });
 
+test("work schedules render as separated cards with grouped responsive details", () => {
+  const schedulesStart = app.indexOf("function Schedules(");
+  const schedulesEnd = app.indexOf("function SchedulesRoute", schedulesStart);
+  const schedulesView = app.slice(schedulesStart, schedulesEnd);
+  assert.notEqual(schedulesStart, -1);
+  assert.notEqual(schedulesEnd, -1);
+  assert.match(schedulesView, /<div className="space-y-3">/);
+  assert.match(schedulesView, /data-testid=\{`card-work-schedule-\$\{schedule\.id\}`\}/);
+  assert.match(schedulesView, /data-testid=\{`button-edit-schedule-\$\{schedule\.id\}`\}/);
+  assert.match(schedulesView, /grid-cols-2 gap-2 border-t border-border\/70 pt-4 sm:grid-cols-3/);
+  assert.doesNotMatch(schedulesView, /divide-y divide-border/);
+});
+
 test("employee attendance movement starts with the first day of the month", () => {
   assert.match(
     app,
