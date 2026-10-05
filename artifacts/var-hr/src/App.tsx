@@ -1064,7 +1064,7 @@ const copy = {
     dailyRate: "Daily rate",
     hourlyRate: "Hourly rate",
     salaryRatesHint:
-      "Calculated from this month's company working days and the employee's daily working hours.",
+      "Calculated from the employee's reference workdays and reference hours per day.",
     select: "Select",
     createDepartment: "Create department",
     departmentName: "Department name",
@@ -2801,7 +2801,7 @@ const pageCopy = {
     dailyRate: "سعر اليوم",
     hourlyRate: "سعر الساعة",
     salaryRatesHint:
-      "محسوب من أيام عمل الشركة هذا الشهر وساعات العمل اليومية للموظف.",
+      "محسوب من أيام العمل المرجعية وساعات العمل المرجعية اليومية للموظف.",
     select: "اختر",
     departmentName: "اسم القسم",
     createDepartment: "إنشاء قسم",
@@ -5578,25 +5578,6 @@ function money(value: number | undefined, currency = "EGP") {
     currency,
     maximumFractionDigits: 0,
   }).format(value || 0);
-}
-function scheduledWorkingDaysInCurrentMonth(workingDays: unknown): number | null {
-  if (!Array.isArray(workingDays) || workingDays.length === 0) return null;
-  const allowedDays = new Set(
-    workingDays.filter((day): day is string => typeof day === "string"),
-  );
-  if (allowedDays.size === 0) return null;
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  let count = 0;
-  for (let day = 1; day <= lastDay; day += 1) {
-    if (allowedDays.has(dayNames[new Date(year, month, day).getDay()])) {
-      count += 1;
-    }
-  }
-  return Math.max(1, count);
 }
 function date(value?: string) {
   if (!value) return "—";
@@ -10797,12 +10778,11 @@ function AddEmployeePage() {
       !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
-      Number(form.workingHours) < (form.payBasis === "hourly" ? 0.01 : 0) ||
+      Number(form.workingHours) <= 0 ||
       Number(form.workingHours) > 24 ||
-      (form.payBasis === "hourly" &&
-        (!Number.isInteger(Number(form.workDaysPerMonth)) ||
-          Number(form.workDaysPerMonth) < 1 ||
-          Number(form.workDaysPerMonth) > 31))
+      !Number.isInteger(Number(form.workDaysPerMonth)) ||
+      Number(form.workDaysPerMonth) < 1 ||
+      Number(form.workDaysPerMonth) > 31
     ) {
       toast.error(t("required"));
       return;
@@ -10823,9 +10803,7 @@ function AddEmployeePage() {
           biometricCode: form.biometricCode.trim(),
           workingHours: Number(form.workingHours),
           payBasis: form.payBasis,
-          ...(form.payBasis === "hourly"
-            ? { workDaysPerMonth: Number(form.workDaysPerMonth) }
-            : {}),
+          workDaysPerMonth: Number(form.workDaysPerMonth),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
@@ -11026,15 +11004,11 @@ function AddEmployeePage() {
             </div>
             <div>
               <Field
-                label={
-                  form.payBasis === "hourly"
-                    ? t("referenceHoursPerDay")
-                    : t("workingHours")
-                }
+                label={t("referenceHoursPerDay")}
                 name="workingHours"
                 required
                 type="number"
-                min="0"
+                min="0.01"
                 max="24"
                 step="0.5"
                 inputMode="decimal"
@@ -11047,38 +11021,34 @@ function AddEmployeePage() {
                 {t("workingHoursHint")}
               </p>
             </div>
-            {form.payBasis === "hourly" && (
-              <>
-                <Field
-                  label={t("referenceWorkdaysPerMonth")}
-                  name="workDaysPerMonth"
-                  required
-                  type="number"
-                  min="1"
-                  max="31"
-                  step="1"
-                  inputMode="numeric"
-                  value={form.workDaysPerMonth}
-                  onChange={(value) =>
-                    setForm({ ...form, workDaysPerMonth: value })
-                  }
-                />
-                <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t("calculatedHourlyRate")}
-                  </div>
-                  <div className="mt-1 text-xl font-bold text-primary">
-                    {liveHourlyRate !== null
-                      ? `${money(liveHourlyRate, currency)} / ${t("perHour")}`
-                      : t("notAvailable")}
-                  </div>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    {t("hourlyRateDerivationHint")}{" "}
-                    {t("hourlyPayAttendanceHint")}
-                  </p>
-                </div>
-              </>
-            )}
+            <Field
+              label={t("referenceWorkdaysPerMonth")}
+              name="workDaysPerMonth"
+              required
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              inputMode="numeric"
+              value={form.workDaysPerMonth}
+              onChange={(value) =>
+                setForm({ ...form, workDaysPerMonth: value })
+              }
+            />
+            <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("calculatedHourlyRate")}
+              </div>
+              <div className="mt-1 text-xl font-bold text-primary">
+                {liveHourlyRate !== null
+                  ? `${money(liveHourlyRate, currency)} / ${t("perHour")}`
+                  : t("notAvailable")}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {t("hourlyRateDerivationHint")}{" "}
+                {form.payBasis === "hourly" ? t("hourlyPayAttendanceHint") : ""}
+              </p>
+            </div>
             <Field
               label={t("employmentStartDate")}
               name="joinedOn"
@@ -11327,22 +11297,14 @@ function EmployeeProfilePage() {
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
-  const attendanceRules = useGetAttendanceRules();
-  const scheduledDayCount = scheduledWorkingDaysInCurrentMonth(
-    attendanceRules.data?.workingDays,
-  );
   const payBasis = employee.data?.payBasis ?? "monthly";
   const monthlySalary = Number(employee.data?.salary ?? 0);
   const workingHours = Number(employee.data?.workingHours ?? 0);
   const referenceWorkdays = Number(employee.data?.workDaysPerMonth ?? 0);
   const dailyRate =
-    payBasis === "hourly"
-      ? referenceWorkdays > 0
-        ? monthlySalary / referenceWorkdays
-        : null
-      : scheduledDayCount && Number.isFinite(monthlySalary)
-        ? monthlySalary / scheduledDayCount
-        : null;
+    referenceWorkdays > 0 && Number.isFinite(monthlySalary)
+      ? monthlySalary / referenceWorkdays
+      : null;
   const hourlyRate =
     dailyRate != null && workingHours > 0 ? dailyRate / workingHours : null;
   const leaveBalances = useListLeaveBalances({
@@ -11478,12 +11440,11 @@ function EmployeeProfilePage() {
       !Number.isFinite(Number(editForm.salary)) ||
       Number(editForm.salary) < 0 ||
       !Number.isFinite(Number(editForm.workingHours)) ||
+      Number(editForm.workingHours) <= 0 ||
       Number(editForm.workingHours) > 24 ||
-      (editForm.payBasis === "hourly" &&
-        (Number(editForm.workingHours) <= 0 ||
-          !Number.isInteger(Number(editForm.workDaysPerMonth)) ||
-          Number(editForm.workDaysPerMonth) < 1 ||
-          Number(editForm.workDaysPerMonth) > 31))
+      !Number.isInteger(Number(editForm.workDaysPerMonth)) ||
+      Number(editForm.workDaysPerMonth) < 1 ||
+      Number(editForm.workDaysPerMonth) > 31
     ) {
       toast.error(t("couldNotSaveRecord"));
       return;
@@ -11523,9 +11484,7 @@ function EmployeeProfilePage() {
           biometricCode: editForm.biometricCode.trim(),
           workingHours: Number(editForm.workingHours),
           payBasis: editForm.payBasis,
-          ...(editForm.payBasis === "hourly"
-            ? { workDaysPerMonth: Number(editForm.workDaysPerMonth) }
-            : {}),
+          workDaysPerMonth: Number(editForm.workDaysPerMonth),
           salary: Number(editForm.salary),
           joinedOn: editForm.joinedOn,
           departmentId: editForm.departmentId || null,
@@ -11996,15 +11955,13 @@ function EmployeeProfilePage() {
                   value={money(employee.data.salary, currency)}
                   testId={`text-profile-salary-${employee.data.id}`}
                 />
-                {payBasis === "hourly" && (
-                  <Info
-                    label={t("referenceWorkdaysPerMonth")}
-                    value={
-                      employee.data.workDaysPerMonth ?? t("notAvailable")
-                    }
-                    testId={`text-profile-reference-workdays-${employee.data.id}`}
-                  />
-                )}
+                <Info
+                  label={t("referenceWorkdaysPerMonth")}
+                  value={
+                    employee.data.workDaysPerMonth ?? t("notAvailable")
+                  }
+                  testId={`text-profile-reference-workdays-${employee.data.id}`}
+                />
                 <Info
                   label={t("dailyRate")}
                   value={
@@ -12024,11 +11981,7 @@ function EmployeeProfilePage() {
                   testId={`text-profile-hourly-rate-${employee.data.id}`}
                 />
                 <Info
-                  label={t(
-                    payBasis === "hourly"
-                      ? "referenceHoursPerDay"
-                      : "workingHours",
-                  )}
+                  label={t("referenceHoursPerDay")}
                   value={
                     employee.data.workingHours != null
                       ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
@@ -12287,13 +12240,9 @@ function EmployeeProfilePage() {
                 </select>
               </label>
               <Field
-                label={
-                  editForm.payBasis === "hourly"
-                    ? t("referenceHoursPerDay")
-                    : t("workingHours")
-                }
+                label={t("referenceHoursPerDay")}
                 type="number"
-                min={0}
+                min={0.01}
                 max={24}
                 step={0.25}
                 value={editForm.workingHours}
@@ -12311,35 +12260,33 @@ function EmployeeProfilePage() {
                 value={editForm.salary}
                 onChange={(value) => setEditForm({ ...editForm, salary: value })}
               />
-              {editForm.payBasis === "hourly" && (
-                <>
-                  <Field
-                    label={t("referenceWorkdaysPerMonth")}
-                    type="number"
-                    min={1}
-                    max={31}
-                    step={1}
-                    value={editForm.workDaysPerMonth}
-                    onChange={(value) =>
-                      setEditForm({ ...editForm, workDaysPerMonth: value })
-                    }
-                  />
-                  <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t("calculatedHourlyRate")}
-                    </div>
-                    <div className="mt-1 text-xl font-bold text-primary">
-                      {editHourlyRate !== null
-                        ? `${money(editHourlyRate, currency)} / ${t("perHour")}`
-                        : t("notAvailable")}
-                    </div>
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      {t("hourlyRateDerivationHint")}{" "}
-                      {t("hourlyPayAttendanceHint")}
-                    </p>
-                  </div>
-                </>
-              )}
+              <Field
+                label={t("referenceWorkdaysPerMonth")}
+                type="number"
+                min={1}
+                max={31}
+                step={1}
+                value={editForm.workDaysPerMonth}
+                onChange={(value) =>
+                  setEditForm({ ...editForm, workDaysPerMonth: value })
+                }
+              />
+              <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("calculatedHourlyRate")}
+                </div>
+                <div className="mt-1 text-xl font-bold text-primary">
+                  {editHourlyRate !== null
+                    ? `${money(editHourlyRate, currency)} / ${t("perHour")}`
+                    : t("notAvailable")}
+                </div>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {t("hourlyRateDerivationHint")}{" "}
+                  {editForm.payBasis === "hourly"
+                    ? t("hourlyPayAttendanceHint")
+                    : ""}
+                </p>
+              </div>
               <Field
                 label={t("employmentStartDate")}
                 type="date"

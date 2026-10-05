@@ -35,9 +35,8 @@ export interface EmployeeUpdate {
   /**
      * @minimum 1
      * @maximum 31
-     * @nullable
      */
-  workDaysPerMonth?: number | null;
+  workDaysPerMonth?: number;
   /** @nullable */
   departmentId?: string | null;
   branchId?: string;

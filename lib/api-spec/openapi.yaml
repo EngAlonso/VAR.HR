@@ -2858,7 +2858,7 @@ components:
         payBasis:
           type: string
           enum: [monthly, hourly]
-        workDaysPerMonth: { type: ["integer", "null"], minimum: 1, maximum: 31 }
+        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31 }
         department:
           oneOf:
             - $ref: "#/components/schemas/DepartmentSummary"
@@ -2896,12 +2896,12 @@ components:
         biometricCode: { type: string, minLength: 1 }
         locationAttendanceEnabled: { type: boolean, default: false }
         automaticAnnualLeaveEligible: { type: boolean, default: false }
-        workingHours: { type: number, minimum: 0, maximum: 24 }
+        workingHours: { type: number, minimum: 0, maximum: 24, default: 8 }
         payBasis:
           type: string
           enum: [monthly, hourly]
           default: monthly
-        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31 }
+        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31, default: 26 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }
@@ -2930,7 +2930,7 @@ components:
         payBasis:
           type: string
           enum: [monthly, hourly]
-        workDaysPerMonth: { type: ["integer", "null"], minimum: 1, maximum: 31 }
+        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }

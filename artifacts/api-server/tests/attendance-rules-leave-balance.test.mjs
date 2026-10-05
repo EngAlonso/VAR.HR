@@ -22,6 +22,14 @@ const app = readFileSync(
   new URL("../../var-hr/src/App.tsx", import.meta.url),
   "utf8",
 );
+const apiStart = readFileSync(
+  new URL("../src/index.ts", import.meta.url),
+  "utf8",
+);
+const employeeSchema = readFileSync(
+  new URL("../../../lib/db/src/schema/organization.ts", import.meta.url),
+  "utf8",
+);
 const apiMessages = readFileSync(
   new URL("../src/lib/i18n.ts", import.meta.url),
   "utf8",
@@ -92,7 +100,7 @@ test("attendance rule changes refresh historical editable payroll with current r
   assert.match(route, /async function recalculateOpenPayrollPeriodsForRuleChange/);
   assert.match(
     route,
-    /eq\(payrollPeriodsTable\.companyId, context\.companyId\),\s*lte\(payrollPeriodsTable\.from, TODAY\)/,
+    /includeFuturePeriods\s*\?\s*eq\(payrollPeriodsTable\.companyId, context\.companyId\)\s*:\s*and\(\s*eq\(payrollPeriodsTable\.companyId, context\.companyId\),\s*lte\(payrollPeriodsTable\.from, TODAY\)/,
   );
   assert.doesNotMatch(
     route.slice(
@@ -464,12 +472,44 @@ test("actual overtime minutes stay visible while payable overtime remains gated"
   );
 });
 
-test("hourly reference hours accept whole hours and still reject zero on save", () => {
-  assert.match(app, /min=\{0\}\s*max=\{24\}\s*step=\{0\.25\}/);
+test("employee reference hours are positive and bounded on create and edit", () => {
+  assert.match(app, /label=\{t\("referenceHoursPerDay"\)\}[\s\S]*min=\{0\.01\}[\s\S]*max=\{24\}/);
   assert.match(
     app,
-    /editForm\.payBasis === "hourly" &&\s*\(\s*Number\(editForm\.workingHours\) <= 0/,
+    /Number\(editForm\.workingHours\) <= 0/,
   );
+  assert.match(app, /Number\(form\.workingHours\) <= 0/);
+});
+
+test("monthly and hourly compensation rates use employee reference workdays and hours", () => {
+  assert.match(
+    route,
+    /hourlyRate = deriveHourlyRate\(\s*row\.employee\.salary,\s*referenceWorkdays,\s*row\.employee\.workingHours,/,
+  );
+  assert.match(
+    route,
+    /const dailyRate = row\.employee\.salary \/ referenceWorkdays;/,
+  );
+  assert.match(
+    route,
+    /const hourlyRate = deriveHourlyRate\(\s*row\.employee\.salary,\s*row\.employee\.workDaysPerMonth,\s*row\.employee\.workingHours,/,
+  );
+  assert.doesNotMatch(route, /movementScheduledDayCount/);
+  assert.match(app, /workDaysPerMonth: Number\(form\.workDaysPerMonth\)/);
+  assert.match(app, /workDaysPerMonth: Number\(editForm\.workDaysPerMonth\)/);
+  assert.match(
+    app,
+    /const dailyRate =\s*referenceWorkdays > 0[\s\S]*monthlySalary \/ referenceWorkdays/,
+  );
+});
+
+test("existing monthly employees receive the 26-day reference default before API startup", () => {
+  assert.match(employeeSchema, /workDaysPerMonth: integer\("work_days_per_month"\)\.default\(26\)/);
+  assert.match(
+    apiStart,
+    /\.set\(\{ workDaysPerMonth: 26, updatedAt: new Date\(\) \}\)[\s\S]*eq\(employeesTable\.payBasis, "monthly"\),\s*isNull\(employeesTable\.workDaysPerMonth\)/,
+  );
+  assert.match(route, /parsed\.data\.workDaysPerMonth \?\? 26/);
 });
 
 test("hourly payroll translations include all parameters in every API locale", () => {

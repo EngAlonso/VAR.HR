@@ -2143,16 +2143,18 @@ async function recalculateCurrentAttendanceForRuleChange(
 async function recalculateOpenPayrollPeriodsForRuleChange(
   context: TenantContext,
   req: Request,
+  includeFuturePeriods = false,
 ): Promise<boolean> {
+  const periodScope = includeFuturePeriods
+    ? eq(payrollPeriodsTable.companyId, context.companyId)
+    : and(
+        eq(payrollPeriodsTable.companyId, context.companyId),
+        lte(payrollPeriodsTable.from, TODAY),
+      );
   const periods = await db
     .select()
     .from(payrollPeriodsTable)
-    .where(
-      and(
-        eq(payrollPeriodsTable.companyId, context.companyId),
-        lte(payrollPeriodsTable.from, TODAY),
-      ),
-    )
+    .where(periodScope)
     .orderBy(asc(payrollPeriodsTable.from));
   let failed = false;
 
@@ -2779,6 +2781,9 @@ async function allocateEmployeeNumber(companyId: string): Promise<string> {
 function employeeResponse(
   row: Awaited<ReturnType<typeof employeeRows>>[number],
 ) {
+  if (row.employee.workDaysPerMonth === null) {
+    throw new Error("EMPLOYEE_MISSING_REFERENCE_WORKDAYS");
+  }
   return {
     id: row.employee.id,
     employeeNumber: row.employee.employeeNumber,
@@ -4048,13 +4053,12 @@ router.post("/employees", async (req, res): Promise<void> => {
     return;
   }
   const payBasis = parsed.data.payBasis ?? "monthly";
-  const workDaysPerMonth = parsed.data.workDaysPerMonth ?? null;
+  const workDaysPerMonth = parsed.data.workDaysPerMonth ?? 26;
   const workingHours = parsed.data.workingHours ?? 8;
   if (
-    payBasis === "hourly" &&
-    (workDaysPerMonth === null ||
-      workDaysPerMonth < 1 ||
-      workingHours <= 0)
+    workDaysPerMonth < 1 ||
+    workDaysPerMonth > 31 ||
+    workingHours <= 0
   ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
@@ -4524,18 +4528,16 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
   }
-  const nextPayBasis = parsed.data.payBasis ?? before.payBasis;
   const nextWorkDaysPerMonth =
     parsed.data.workDaysPerMonth !== undefined
       ? parsed.data.workDaysPerMonth
-      : before.workDaysPerMonth;
+      : (before.workDaysPerMonth ?? 26);
   const nextWorkingHours =
     parsed.data.workingHours ?? before.workingHours;
   if (
-    nextPayBasis === "hourly" &&
-    (nextWorkDaysPerMonth === null ||
-      nextWorkDaysPerMonth < 1 ||
-      nextWorkingHours <= 0)
+    nextWorkDaysPerMonth < 1 ||
+    nextWorkDaysPerMonth > 31 ||
+    nextWorkingHours <= 0
   ) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
@@ -4718,6 +4720,31 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   if (!employee) {
     res.status(404).json({ error: message(req, "employeeNotFound") });
     return;
+  }
+  const compensationInputsChanged =
+    before.salary !== employee.salary ||
+    before.workDaysPerMonth !== employee.workDaysPerMonth ||
+    before.workingHours !== employee.workingHours ||
+    before.payBasis !== employee.payBasis;
+  if (
+    compensationInputsChanged &&
+    canUseCapability(context, "payroll.manage")
+  ) {
+    try {
+      const periodsRefreshed =
+        await recalculateOpenPayrollPeriodsForRuleChange(context, req, true);
+      if (!periodsRefreshed) {
+        req.log.error(
+          { employeeId: employee.id },
+          "Employee compensation was saved, but open payroll periods could not all be refreshed",
+        );
+      }
+    } catch (err) {
+      req.log.error(
+        { err, employeeId: employee.id },
+        "Employee compensation was saved, but open payroll periods could not be refreshed",
+      );
+    }
   }
   const [row] = (await employeeRows(context)).filter(
     (item) => item.employee.id === employee.id,
@@ -9736,18 +9763,7 @@ router.get("/reports/data", async (req, res): Promise<void> => {
       )
     )
       .filter((row) => reportEmployeeMatches(row.employee, filters));
-    const [movementRules, movementHolidays] = await Promise.all([
-      attendanceRulesFor(context.companyId, from),
-      holidaysForCompany(context.companyId),
-    ]);
-    const movementScheduledDayCount = Math.max(
-      1,
-      dateStrings(from, to).filter(
-        (dateValue) =>
-          movementRules.workingDays.includes(weekdayFor(dateValue)) &&
-          !isHolidayDate(dateValue, movementRules, movementHolidays),
-      ).length,
-    );
+    const movementRules = await attendanceRulesFor(context.companyId, from);
     const calculatedRows = await Promise.all(
       rows.map(async (row) => {
         // Recalculate instead of trusting a historical snapshot. This keeps
@@ -9765,14 +9781,14 @@ router.get("/reports/data", async (req, res): Promise<void> => {
               ? "late"
               : "present"
             : row.attendance.status;
-        const employeeWorkingHours = Math.max(
-          0.01,
-          Number(row.employee.workingHours ?? movementRules.requiredHours ?? 8),
+        if (row.employee.workDaysPerMonth === null) {
+          throw new Error("EMPLOYEE_MISSING_REFERENCE_WORKDAYS");
+        }
+        const hourlyRate = deriveHourlyRate(
+          row.employee.salary,
+          row.employee.workDaysPerMonth,
+          row.employee.workingHours,
         );
-        const hourlyRate =
-          row.employee.salary /
-          movementScheduledDayCount /
-          employeeWorkingHours;
         const overtimeAmount = moneyValue(
           (calculation.finalOvertimeMinutes / 60) *
             hourlyRate *
@@ -11549,24 +11565,16 @@ async function calculatePayrollPeriod(
           calculationPeriod.from,
         )
       : await attendanceRulesFor(context.companyId, calculationPeriod.from);
-    const employeeWorkingHours = Math.max(
-      0.01,
-      Number(row.employee.workingHours ?? rules.requiredHours ?? 8),
-    );
     let hourlyRate: number;
-    if (hourlyEmployee) {
-      if (row.employee.workDaysPerMonth === null) {
-        throw new Error("HOURLY_EMPLOYEE_MISSING_REFERENCE_WORKDAYS");
-      }
-      hourlyRate = deriveHourlyRate(
-        row.employee.salary,
-        row.employee.workDaysPerMonth,
-        row.employee.workingHours,
-      );
-    } else {
-      hourlyRate =
-        row.employee.salary / scheduledDayCount / employeeWorkingHours;
+    const referenceWorkdays = row.employee.workDaysPerMonth;
+    if (referenceWorkdays === null) {
+      throw new Error("EMPLOYEE_MISSING_REFERENCE_WORKDAYS");
     }
+    hourlyRate = deriveHourlyRate(
+      row.employee.salary,
+      referenceWorkdays,
+      row.employee.workingHours,
+    );
     const hourlyPayroll = hourlyEmployee
       ? calculateHourlyPayroll(
           employeeCalculations.reduce(
@@ -11643,7 +11651,7 @@ async function calculatePayrollPeriod(
           ).length,
           absentDays,
         );
-    const dailyRate = row.employee.salary / scheduledDayCount;
+    const dailyRate = row.employee.salary / referenceWorkdays;
     const absenceDeduction = hourlyEmployee
       ? 0
       : (rules.absenceDeductionMethod as string) === "none"
