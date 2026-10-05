@@ -5171,6 +5171,8 @@ const task5Copy = {
     shiftOrganization: "Shift organization",
     shiftOrganizationDetail:
       "Create and manage reusable shifts, working days, breaks, grace periods, overtime, and the company default shift.",
+    scheduleListTitle: "Shift list",
+    scheduleListDetail: "Select a shift to edit it or set it as the company default.",
     employeeShiftAssignment: "Employee shift assignment",
     employeeShiftAssignmentDetail:
       "Assign shifts to employees, set effective dates, bulk assign, and review assignment history.",
@@ -5296,6 +5298,8 @@ const task5Copy = {
     shiftOrganization: "تنظيم الشيفتات",
     shiftOrganizationDetail:
       "أنشئ وأدر الشيفتات ومواعيدها والاستراحات وفترات السماح والإضافي والشيفت الافتراضي للشركة.",
+    scheduleListTitle: "قائمة الشيفتات",
+    scheduleListDetail: "اختر شيفتًا لتعديله أو تعيينه افتراضيًا.",
     employeeShiftAssignment: "ربط الموظفين بالشيفتات",
     employeeShiftAssignmentDetail:
       "اربط الشيفتات بالموظفين وحدد تواريخ السريان والربط الجماعي وراجع سجل التعيينات.",
@@ -5664,7 +5668,7 @@ function Button({
   className = "",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "quiet" | "outline" | "danger";
+  variant?: "primary" | "secondary" | "quiet" | "outline" | "danger";
 }) {
   return (
     <button
@@ -5673,6 +5677,8 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" &&
           "bg-primary text-primary-foreground hover:brightness-110",
+        variant === "secondary" &&
+          "bg-secondary text-secondary-foreground hover:opacity-90",
         variant === "quiet" &&
           "text-muted-foreground hover:bg-muted hover:text-foreground",
         variant === "outline" &&
@@ -18194,13 +18200,23 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       {canAdminister || role === "manager" ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
           <section className="min-w-0">
-            <div className="mb-4">
-              <h2 className="font-display text-lg font-semibold">
-                {t("schedules")}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {t("startTime")} → {t("endTime")}
-              </p>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-base font-bold">
+                  {t("scheduleListTitle")}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("scheduleListDetail")}
+                </p>
+              </div>
+              {schedules.data?.length ? (
+                <span
+                  aria-label={`${new Intl.NumberFormat(locale).format(schedules.data.length)} ${t("scheduleListTitle")}`}
+                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                >
+                  {new Intl.NumberFormat(locale).format(schedules.data.length)}
+                </span>
+              ) : null}
             </div>
             {schedules.isLoading ? (
               <div className="space-y-3 p-5">
@@ -18221,7 +18237,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                       <div className="flex min-w-0 items-start gap-3">
                         <span
                           aria-hidden="true"
-                          className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-dark"
+                          className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-dark dark:text-primary"
                         >
                           <Clock3 size={19} />
                         </span>
@@ -18234,13 +18250,17 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                           </h3>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                             {schedule.isDefault && (
-                              <Badge tone="accent">{t("defaultSchedule")}</Badge>
+                              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary-dark dark:text-primary">
+                                {t("defaultSchedule")}
+                              </span>
                             )}
-                            <Badge tone={schedule.active ? "good" : "neutral"}>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${schedule.active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}
+                            >
                               {schedule.active
                                 ? t("activeSchedule")
                                 : t("statusInactive")}
-                            </Badge>
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -18257,7 +18277,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                           </Button>
                         )}
                         <Button
-                          variant="outline"
+                          variant="secondary"
                           className="min-h-9 px-3 text-xs"
                           onClick={() => openEditor(schedule)}
                           data-testid={`button-edit-schedule-${schedule.id}`}
