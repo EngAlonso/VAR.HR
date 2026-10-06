@@ -20546,92 +20546,185 @@ function DatabaseAdministration() {
     return String(value ?? "—");
   };
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={t("platformOwnerOnly")}
         title={t("databaseAdministration")}
-         detail={t("databaseAdminDetail")}
+        detail={t("databaseAdminDetail")}
       />
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          {[
-           [t("databaseCompanies"), companies.length],
-           [t("databaseActiveCompanies"), companies.filter((company) => company.active).length],
-           [t("databaseVisibleRecords"), data?.rows.length ?? 0],
-        ].map(([label, value]) => (
-          <Card className="p-4" key={String(label)}>
-            <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
-              {label}
-            </p>
-            <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          {
+            label: t("databaseCompanies"),
+            value: companies.length,
+            icon: Building2,
+          },
+          {
+            label: t("databaseActiveCompanies"),
+            value: companies.filter((company) => company.active).length,
+            icon: Users,
+          },
+          {
+            label: t("databaseVisibleRecords"),
+            value: data?.rows.length ?? 0,
+            icon: Database,
+          },
+        ].map(({ label, value, icon: Icon }) => (
+          <Card
+            className="flex items-center justify-between gap-4 p-4 shadow-sm"
+            key={label}
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+                {label}
+              </p>
+              <p className="mt-2 font-display text-2xl font-semibold tabular-nums">
+                {value}
+              </p>
+            </div>
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
+              <Icon size={20} />
+            </span>
           </Card>
         ))}
       </div>
-      <div className="mb-6 grid gap-4 lg:grid-cols-3">
-        {databaseGroups.map((group) => {
-           const available = group.keys.filter((key) =>
-            entities.some((item) => item.key === key),
-          );
-          if (!available.length) return null;
-          return (
-             <Card className="p-4" key={group.label}>
-               <p className="text-sm font-semibold">
-                 {t(databaseGroupTranslationKeys[group.label])}
-               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {available.map((key) => (
-                  <button
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors hover:border-primary hover:text-primary",
-                      entity === key
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground",
-                    )}
-                    key={key}
-                    onClick={() => setEntity(key)}
-                  >
-                     {databaseEntityTranslationKeys[key]
-                       ? t(databaseEntityTranslationKeys[key])
-                       : entities.find((item) => item.key === key)?.label ?? key}
-                  </button>
-                ))}
+
+      <div className="grid items-start gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="hidden xl:block">
+          <Card className="sticky top-4 overflow-hidden p-3 shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-3">
+              <span className="grid size-9 place-items-center rounded-lg bg-primary/12 text-primary">
+                <Database size={17} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{t("dataExplorer")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("databaseEntity")}
+                </p>
               </div>
-            </Card>
-          );
-        })}
-      </div>
-      <Card className="overflow-hidden">
-        <div className="border-b border-border p-5">
-           <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
-             {t("dataExplorer")}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("supportScopeHint")}
-          </p>
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto_auto] lg:items-end">
-            <label className="text-sm font-semibold">
+            </div>
+            <nav aria-label={t("dataExplorer")} className="mt-2 space-y-5">
+              {databaseGroups.map((group) => {
+                const available = group.keys.filter((key) =>
+                  entities.some((item) => item.key === key),
+                );
+                if (!available.length) return null;
+                return (
+                  <section key={group.label}>
+                    <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">
+                      {t(databaseGroupTranslationKeys[group.label])}
+                    </p>
+                    <div className="space-y-1">
+                      {available.map((key) => {
+                        const label = databaseEntityTranslationKeys[key]
+                          ? t(databaseEntityTranslationKeys[key])
+                          : entities.find((item) => item.key === key)?.label ??
+                            key;
+                        const selected = entity === key;
+                        return (
+                          <button
+                            aria-current={selected ? "page" : undefined}
+                            className={cn(
+                              "flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm font-medium transition-colors",
+                              selected
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                            key={key}
+                            onClick={() => setEntity(key)}
+                            type="button"
+                          >
+                            <span className="truncate">{label}</span>
+                            {data?.key === key && (
+                              <span
+                                className={cn(
+                                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
+                                  selected
+                                    ? "bg-primary-foreground/15 text-primary-foreground"
+                                    : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {data.rows.length}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </nav>
+            <div className="mt-5 flex items-start gap-2 rounded-lg bg-muted/55 p-3 text-xs leading-relaxed text-muted-foreground">
+              <Eye className="mt-0.5 shrink-0" size={14} />
+              <span>{t("inspectionOnly")}</span>
+            </div>
+          </Card>
+        </aside>
+
+        <Card className="min-w-0 overflow-hidden shadow-sm">
+          <div className="border-b border-border bg-gradient-to-br from-primary/[0.08] via-background to-background p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-primary">
+                  <Database size={14} />
+                  {t("dataExplorer")}
+                </p>
+                <h2 className="mt-2 truncate text-xl font-semibold tracking-tight md:text-2xl">
+                  {databaseEntityTranslationKeys[entity]
+                    ? t(databaseEntityTranslationKeys[entity])
+                    : entities.find((item) => item.key === entity)?.label ??
+                      entity}
+                </h2>
+              </div>
+              <span className="rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                {t("databaseVisibleRecords")}:{" "}
+                <span className="font-bold tabular-nums text-foreground">
+                  {data?.rows.length ?? 0}
+                </span>
+              </span>
+            </div>
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-sm leading-relaxed text-muted-foreground">
+              <ShieldCheck className="mt-0.5 shrink-0 text-primary" size={16} />
+              <span>{t("supportScopeHint")}</span>
+            </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-[minmax(180px,.85fr)_minmax(280px,1.25fr)_auto_auto] 2xl:items-end">
+            <label className="text-sm font-semibold xl:hidden">
               {t("databaseEntity")}
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={entity}
                 onChange={(event) => setEntity(event.target.value)}
               >
-                {entities.map((item) => (
-                  <option key={item.key} value={item.key}>
-                     {databaseEntityTranslationKeys[item.key]
-                       ? t(databaseEntityTranslationKeys[item.key])
-                       : item.label}
-                  </option>
+                {databaseGroups.map((group) => (
+                  <optgroup
+                    key={group.label}
+                    label={t(databaseGroupTranslationKeys[group.label])}
+                  >
+                    {group.keys
+                      .filter((key) =>
+                        entities.some((item) => item.key === key),
+                      )
+                      .map((key) => (
+                        <option key={key} value={key}>
+                          {databaseEntityTranslationKeys[key]
+                            ? t(databaseEntityTranslationKeys[key])
+                            : entities.find((item) => item.key === key)?.label ??
+                              key}
+                        </option>
+                      ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
             <label className="text-sm font-semibold">
-               {t("companyContext")}
+              {t("companyContext")}
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={companyFilter}
                 onChange={(event) => setCompanyFilter(event.target.value)}
               >
-                 <option value="">{t("allCompanies")}</option>
+                <option value="">{t("allCompanies")}</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
                     {localizedName(locale, company.name, company.nameEn)}
@@ -20655,7 +20748,7 @@ function DatabaseAdministration() {
               </div>
             </label>
             {entity === "employees" && (
-              <label className="flex items-center gap-2 pb-3 text-sm font-medium">
+              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-muted/25 px-3 text-sm font-medium">
                 <input
                   type="checkbox"
                   checked={missingWorkdaysOnly}
@@ -20667,29 +20760,38 @@ function DatabaseAdministration() {
                 {t("missingReferenceWorkdaysOnly")}
               </label>
             )}
-          <Button
-            variant="outline"
-            onClick={() => void load()}
-            disabled={pending !== "" || loading}
-          >
-            {t("refresh")}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => void exportData()}
-            disabled={pending !== "" || !data}
-          >
-            <Download size={14} />
-            {pending === "export" ? "…" : t("exportExcel")}
-          </Button>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => void load()}
+                disabled={pending !== "" || loading}
+              >
+                <RefreshCw size={14} />
+                {t("refresh")}
+              </Button>
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => void exportData()}
+                disabled={pending !== "" || !data}
+              >
+                <Download size={14} />
+                {pending === "export" ? "…" : t("exportExcel")}
+              </Button>
+            </div>
           </div>
         </div>
         {error && (
-          <div className="m-5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div
+            aria-live="polite"
+            className="mx-4 mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive md:mx-6"
+          >
+            <AlertCircle className="mt-0.5 shrink-0" size={16} />
             {error}
           </div>
         )}
-        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground xl:hidden">
           <Eye size={14} />
           {t("inspectionOnly")}
         </div>
@@ -20701,34 +20803,38 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
-              <thead className="bg-muted/60">
+          <div className="max-w-full overflow-auto">
+            <table className="w-full min-w-[980px] text-left text-sm rtl:text-right">
+              <thead className="sticky top-0 z-10 bg-muted/90 text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
                 <tr>
-                   {visibleColumns.map((column) => (
-                     <th className="p-3 font-semibold" key={column}>
-                       {databaseColumnTranslationKeys[column]
-                         ? t(databaseColumnTranslationKeys[column])
-                         : locale === "ar"
-                           ? t("databaseDataField")
-                           : column.replaceAll("_", " ")}
+                  {visibleColumns.map((column) => (
+                    <th className="whitespace-nowrap px-4 py-3 font-bold" key={column}>
+                      {databaseColumnTranslationKeys[column]
+                        ? t(databaseColumnTranslationKeys[column])
+                        : locale === "ar"
+                          ? t("databaseDataField")
+                          : column.replaceAll("_", " ")}
                     </th>
                   ))}
-                    {(supportsDatabaseActions ||
-                      editFields.length ||
-                      data.canArchive ||
-                      data.canDelete) && (
+                  {(supportsDatabaseActions ||
+                    editFields.length ||
+                    data.canArchive ||
+                    data.canDelete) && (
                     <th className="p-3 font-semibold">{t("actions")}</th>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {data.rows.map((row) => (
-                  <tr key={String(row.id)}>
-                     {visibleColumns.map((column) => (
+                  <tr
+                    className="transition-colors hover:bg-muted/35"
+                    key={String(row.id)}
+                  >
+                    {visibleColumns.map((column) => (
                       <td
-                        className="max-w-[240px] truncate p-3 align-top"
+                        className="max-w-[260px] truncate px-4 py-3 align-middle"
                         key={column}
+                        title={String(row[column] ?? "")}
                       >
                         {column === "company_name" && row.company_id ? (
                           <button
@@ -20739,41 +20845,64 @@ function DatabaseAdministration() {
                               )
                             }
                           >
-                           {String(row[column] ?? t("unknownCompany"))}
+                            {String(row[column] ?? t("unknownCompany"))}
                           </button>
+                        ) : column === "work_days_per_month" &&
+                          (row[column] === null ||
+                            row[column] === undefined ||
+                            row[column] === "") ? (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
+                            <AlertCircle size={13} />
+                            {t("missingReferenceWorkdays")}
+                          </span>
                         ) : row[column] !== null &&
-                          typeof row[column] === "object"
-                          ? JSON.stringify(row[column])
-                          : databaseValue(column, row[column])}
+                          typeof row[column] === "object" ? (
+                          JSON.stringify(row[column])
+                        ) : (
+                          databaseValue(column, row[column])
+                        )}
                       </td>
                     ))}
-                      {(supportsDatabaseActions ||
-                        editFields.length ||
-                        data.canArchive ||
-                        data.canDelete) && (
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                           {supportsDatabaseActions ? (
-                             <>
-                               <Button variant="outline" onClick={() => setDetails(row)}>
-                                  {t("viewDetails")}
-                               </Button>
-                               <Button variant="outline" onClick={() => void openHistory(row)}>
-                                 {t("history")}
-                               </Button>
-                             </>
-                           ) : null}
+                    {(supportsDatabaseActions ||
+                      editFields.length ||
+                      data.canArchive ||
+                      data.canDelete) && (
+                      <td className="whitespace-nowrap p-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {supportsDatabaseActions ? (
+                            <>
+                              <Button
+                                className="h-8 gap-1.5 px-2 text-xs"
+                                variant="outline"
+                                onClick={() => setDetails(row)}
+                              >
+                                <Eye size={14} />
+                                {t("viewDetails")}
+                              </Button>
+                              <Button
+                                className="h-8 gap-1.5 px-2 text-xs"
+                                variant="outline"
+                                onClick={() => void openHistory(row)}
+                              >
+                                <Activity size={14} />
+                                {t("history")}
+                              </Button>
+                            </>
+                          ) : null}
                           {editFields.length ? (
                             <Button
+                              className="h-8 gap-1.5 px-2 text-xs"
                               variant="outline"
                               disabled={pending !== "" || !companyFilter}
                               onClick={() => openEdit(row)}
                             >
+                              <Pencil size={14} />
                               {t("edit")}
                             </Button>
                           ) : null}
                           {data.canArchive ? (
                             <Button
+                              className="h-8 px-2 text-xs"
                               variant="quiet"
                               disabled={pending !== ""}
                               onClick={() => void archive(row)}
@@ -20783,6 +20912,7 @@ function DatabaseAdministration() {
                           ) : null}
                           {data.canDelete ? (
                             <Button
+                              className="h-8 gap-1.5 px-2 text-xs"
                               variant="danger"
                               disabled={pending !== ""}
                               onClick={() => void deleteRecord(row)}
@@ -20805,7 +20935,8 @@ function DatabaseAdministration() {
             detail={t("tryAnotherEntityOrFilter")}
           />
         )}
-      </Card>
+        </Card>
+      </div>
       {editing && data && (
         <Modal
            title={`${t("editRecord")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
@@ -20815,11 +20946,11 @@ function DatabaseAdministration() {
           <p className="mb-4 text-sm text-muted-foreground">
              {t(usesSupportEditor ? "supportEditHint" : "databaseEditHint")}
           </p>
-          <div className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {editFields.map((key) => (
               <Field
                 key={key}
-                 label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
+                label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
                 value={String(editValues[key] ?? "")}
                 type={key === "work_days_per_month" ? "number" : "text"}
                 min={key === "work_days_per_month" ? 1 : undefined}
@@ -20831,11 +20962,11 @@ function DatabaseAdministration() {
               />
             ))}
             {data.key === "employees" && (
-              <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+              <p className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground md:col-span-2">
                 {t("supportPayrollRefreshHint")}
               </p>
             )}
-            <label className="block text-sm font-semibold">
+            <label className="block text-sm font-semibold md:col-span-2">
               <span>{t("supportReasonLabel")}</span>
               <textarea
                 className="mt-2 min-h-24 w-full rounded-xl border border-input bg-background px-3.5 py-3 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
