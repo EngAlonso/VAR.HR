@@ -1894,7 +1894,7 @@ const pageCopy = {
     loading: "Loading…",
     createDepartmentPrompt: "Department name",
     departmentNameHint:
-      "This name is stored exactly as entered and is not translated.",
+      "Enter the department name separately in Arabic and English.",
     createBranchPrompt: "Branch name",
     branchCityPrompt: "Branch city",
     employeeStatusUpdated: "Employee status updated",
@@ -2360,7 +2360,7 @@ const pageCopy = {
     loading: "جارٍ التحميل…",
     createDepartmentPrompt: "اسم القسم",
     departmentNameHint:
-      "يُحفظ هذا الاسم كما تم إدخاله تمامًا ولا تتم ترجمته.",
+      "أدخل اسم القسم في الحقل العربي والحقل الإنجليزي كلٌ على حدة.",
     createBranchPrompt: "اسم الفرع",
     branchCityPrompt: "مدينة الفرع",
     employeeStatusUpdated: "تم تحديث حالة الموظف",
@@ -10391,8 +10391,8 @@ function Branches() {
       {editing && (
         <Modal title={selected ? t("edit") : t("addBranch")} onClose={() => setEditing(false)}>
           <form onSubmit={save} className="space-y-4">
-            <Field label={t("branchName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
-            <Field label={locale === "ar" ? "English branch name" : "اسم الفرع بالإنجليزية"} value={form.nameEn} onChange={(value) => setForm({ ...form, nameEn: value })} />
+            <Field label={t("arabicName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+            <Field label={t("englishName")} value={form.nameEn} onChange={(value) => setForm({ ...form, nameEn: value })} />
             <Field label={t("branchCity")} required value={form.city} onChange={(value) => setForm({ ...form, city: value })} />
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={form.gpsEnabled} onChange={(event) => setForm({ ...form, gpsEnabled: event.target.checked })} />
@@ -10696,7 +10696,7 @@ function Departments() {
                 </div>
               </div>
               <Field
-                label={t("departmentName")}
+                label={t("arabicName")}
                 name="departmentName"
                 required
                 autoComplete="organization"
@@ -10704,7 +10704,7 @@ function Departments() {
                 onChange={(value) => setForm({ ...form, name: value })}
               />
               <Field
-                label={locale === "ar" ? "English department name" : "اسم القسم بالإنجليزية"}
+                label={t("englishName")}
                 value={form.nameEn}
                 onChange={(value) => setForm({ ...form, nameEn: value })}
               />
@@ -10945,7 +10945,7 @@ function AddEmployeePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Field
-                label={t("employeeName")}
+                label={t("arabicName")}
                 name="employeeName"
                 required
                 autoComplete="name"
@@ -10958,7 +10958,7 @@ function AddEmployeePage() {
             </div>
             <div className="sm:col-span-2">
               <Field
-                label={locale === "ar" ? "English employee name" : "اسم الموظف بالإنجليزية"}
+                label={t("englishName")}
                 name="employeeNameEn"
                 autoComplete="name"
                 placeholder="First Last"
@@ -18057,7 +18057,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       schedule
         ? {
             ...schedule,
-            nameAr: schedule.nameAr || "",
+            nameAr: schedule.nameAr || schedule.name || "",
             nameEn: schedule.nameEn || "",
             requiredHours: String(schedule.requiredHours),
             breakDurationMinutes: String(schedule.breakDurationMinutes),
@@ -18090,7 +18090,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
   function submitSchedule(event: FormEvent) {
     event.preventDefault();
     if (
-      !draft.name.trim() ||
+      !draft.nameAr.trim() ||
       !draft.startTime ||
       !draft.endTime
     ) {
@@ -18099,7 +18099,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     }
     const data = {
       ...draft,
-      name: draft.name.trim(),
+      name: draft.nameAr.trim(),
       nameAr: draft.nameAr.trim(),
       nameEn: draft.nameEn.trim(),
       requiredHours: Number(draft.requiredHours),
@@ -18662,15 +18662,17 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         >
           <form onSubmit={submitSchedule} className="space-y-4">
             <Field
-              label={t("scheduleName")}
+              label={t("arabicName")}
               required
-              value={draft.name}
-              onChange={(value) => setDraft({ ...draft, name: value })}
+              value={draft.nameAr}
+              onChange={(value) =>
+                setDraft({ ...draft, name: value, nameAr: value })
+              }
             />
             <Field
-              label={t("scheduleNameAr")}
-              value={draft.nameAr}
-              onChange={(value) => setDraft({ ...draft, nameAr: value })}
+              label={t("englishName")}
+              value={draft.nameEn}
+              onChange={(value) => setDraft({ ...draft, nameEn: value })}
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
@@ -21527,7 +21529,7 @@ function Accounts() {
           </div>
           <form onSubmit={submit} className="space-y-4 p-5">
             <Field
-              label={authLabel(locale, "employeeName")}
+              label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
               value={form.fullName}
               onChange={(value) => {
                 setFieldErrors((current) => ({
@@ -21554,7 +21556,7 @@ function Accounts() {
               required
             />
             <Field
-              label={locale === "ar" ? "Full name in English" : "الاسم الكامل بالإنجليزية"}
+              label={locale === "ar" ? "الاسم الكامل بالإنجليزية" : "Full name (English)"}
               value={form.fullNameEn}
               onChange={(value) => setForm({ ...form, fullNameEn: value })}
             />
@@ -21730,7 +21732,7 @@ function Accounts() {
           <form onSubmit={saveAccount} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label={authLabel(locale, "employeeName")}
+                label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
                 value={editForm.fullName}
                 onChange={(value) =>
                   setEditForm({ ...editForm, fullName: value })
@@ -21749,7 +21751,7 @@ function Accounts() {
                 required
               />
               <Field
-                label={locale === "ar" ? "Full name in English" : "الاسم الكامل بالإنجليزية"}
+                label={locale === "ar" ? "الاسم الكامل بالإنجليزية" : "Full name (English)"}
                 value={editForm.fullNameEn}
                 onChange={(value) => setEditForm({ ...editForm, fullNameEn: value })}
               />
@@ -23940,7 +23942,7 @@ function Platform() {
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-semibold">
-                  {text("Company name", "اسم الشركة")}
+                  {text("Company name (Arabic)", "اسم الشركة بالعربية")}
                   <input
                     className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
                     value={companyForm.name}
@@ -23953,7 +23955,7 @@ function Platform() {
                   />
                 </label>
                 <label className="text-sm font-semibold">
-                  {text("Company name in English", "اسم الشركة بالإنجليزية")}
+                  {text("Company name (English)", "اسم الشركة بالإنجليزية")}
                   <input
                     className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
                     value={companyForm.nameEn}
@@ -25406,6 +25408,7 @@ function PlatformCompanyDetailsPage() {
         body: JSON.stringify({
           username: account.username,
           fullName: account.fullName,
+          fullNameEn: account.fullNameEn,
           primaryPhone: account.primaryPhone,
           backupPhones: account.backupPhones,
           email: account.email,
@@ -25479,6 +25482,7 @@ function PlatformCompanyDetailsPage() {
                 id: account.id,
                 username: account.username,
                 fullName: account.fullName,
+                fullNameEn: account.fullNameEn,
                 primaryPhone: account.primaryPhone,
                 backupPhones: account.backupPhones,
                 email: account.email,
@@ -25487,6 +25491,7 @@ function PlatformCompanyDetailsPage() {
               ...newOwners.map((owner) => ({
                 username: owner.username,
                 fullName: owner.fullName,
+                fullNameEn: owner.fullNameEn,
                 password: owner.password,
                 primaryPhone: owner.primaryPhone,
                 backupPhones: owner.backupPhones
@@ -25816,7 +25821,7 @@ function PlatformCompanyDetailsPage() {
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <Field
-                      label={text("Owner full name", "الاسم الكامل للمالك")}
+                      label={text("Owner full name (Arabic)", "الاسم الكامل للمالك بالعربية")}
                       value={account.fullName}
                       onChange={(value) =>
                         setDetails((current) =>
@@ -25826,6 +25831,24 @@ function PlatformCompanyDetailsPage() {
                                 owners: current.owners.map((item) =>
                                   item.id === account.id
                                     ? { ...item, fullName: value }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Owner full name (English)", "الاسم الكامل للمالك بالإنجليزية")}
+                      value={account.fullNameEn ?? ""}
+                      onChange={(value) =>
+                        setDetails((current) =>
+                          current
+                            ? {
+                                ...current,
+                                owners: current.owners.map((item) =>
+                                  item.id === account.id
+                                    ? { ...item, fullNameEn: value }
                                     : item,
                                 ),
                               }
@@ -26001,13 +26024,26 @@ function PlatformCompanyDetailsPage() {
                   </div>
                   <div className="space-y-3">
                     <Field
-                      label={text("Owner full name", "الاسم الكامل للمالك")}
-                      value={accountDisplayName(locale, owner)}
+                      label={text("Owner full name (Arabic)", "الاسم الكامل للمالك بالعربية")}
+                      value={owner.fullName}
                       onChange={(value) =>
                         setNewOwners((current) =>
                           current.map((item, itemIndex) =>
                             itemIndex === index
                               ? { ...item, fullName: value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Field
+                      label={text("Owner full name (English)", "الاسم الكامل للمالك بالإنجليزية")}
+                      value={owner.fullNameEn}
+                      onChange={(value) =>
+                        setNewOwners((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, fullNameEn: value }
                               : item,
                           ),
                         )
@@ -26363,14 +26399,14 @@ function PlatformCompanyDetailsPage() {
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Field
-            label={text("Company name", "اسم الشركة")}
+            label={text("Company name (Arabic)", "اسم الشركة بالعربية")}
             value={companyForm.name}
             onChange={(value) =>
               setCompanyForm({ ...companyForm, name: value })
             }
           />
           <Field
-            label={text("Company name in English", "اسم الشركة بالإنجليزية")}
+            label={text("Company name (English)", "اسم الشركة بالإنجليزية")}
             value={companyForm.nameEn}
             onChange={(value) =>
               setCompanyForm({ ...companyForm, nameEn: value })
@@ -26680,10 +26716,15 @@ function AddCompanyPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field
-                label={text("Company name", "اسم الشركة")}
+                label={text("Company name (Arabic)", "اسم الشركة بالعربية")}
                 required
-                value={localizedName(locale, company.name, company.nameEn)}
+                value={company.name}
                 onChange={(value) => setCompany({ ...company, name: value })}
+              />
+              <Field
+                label={text("Company name (English)", "اسم الشركة بالإنجليزية")}
+                value={company.nameEn}
+                onChange={(value) => setCompany({ ...company, nameEn: value })}
               />
               <Field
                 label={text("Currency", "العملة")}
@@ -26802,7 +26843,7 @@ function AddCompanyPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {(
                       [
-                         ["fullName", text("Full name", "الاسم الكامل")],
+                         ["fullName", text("Full name (Arabic)", "الاسم الكامل بالعربية")],
                          ["fullNameEn", text("Full name in English", "الاسم الكامل بالإنجليزية")],
                         ["username", text("Username", "اسم المستخدم")],
                         [
