@@ -813,6 +813,9 @@ const copy = {
     supportReasonLabel: "Reason for this support change",
     supportReasonRequired:
       "Enter a reason of at least 10 characters before saving.",
+    supportNoChanges: "Change at least one supported field before saving.",
+    supportWorkdaysInvalid:
+      "Enter a whole number from 1 to 31 for reference workdays.",
     supportChangeSaved: "Support change saved and added to the audit history.",
     supportPayrollRefreshHint:
       "Changing reference workdays recalculates calculated, editable payroll periods. Drafts use the new value when first calculated; approved or locked periods stay unchanged.",
@@ -2932,6 +2935,9 @@ const pageCopy = {
     supportReasonLabel: "سبب تعديل الدعم",
     supportReasonRequired:
       "اكتب سبباً لا يقل عن 10 أحرف قبل الحفظ.",
+    supportNoChanges: "غيّر حقلاً واحداً على الأقل قبل الحفظ.",
+    supportWorkdaysInvalid:
+      "أدخل عددًا صحيحًا من 1 إلى 31 لأيام العمل المرجعية.",
     supportChangeSaved: "تم حفظ تعديل الدعم وإضافته إلى سجل التدقيق.",
     supportPayrollRefreshHint:
       "تعديل أيام العمل المرجعية يعيد حساب فترات الرواتب المحسوبة والقابلة للتعديل. تستخدم المسودات القيمة الجديدة عند حسابها أول مرة، ولا تتغير الفترات المعتمدة أو المقفلة.",
@@ -20399,6 +20405,32 @@ function DatabaseAdministration() {
       setError(t("supportReasonRequired"));
       return;
     }
+    const valuesToSave = usesSupportEditor
+      ? Object.fromEntries(
+          editFields
+            .filter(
+              (key) =>
+                String(editValues[key] ?? "") !==
+                String(editing[key] ?? ""),
+            )
+            .map((key) => [key, editValues[key]]),
+        )
+      : editValues;
+    if (usesSupportEditor && !Object.keys(valuesToSave).length) {
+      setError(t("supportNoChanges"));
+      return;
+    }
+    if (
+      usesSupportEditor &&
+      data.key === "employees" &&
+      "work_days_per_month" in valuesToSave &&
+      (!Number.isInteger(Number(valuesToSave.work_days_per_month)) ||
+        Number(valuesToSave.work_days_per_month) < 1 ||
+        Number(valuesToSave.work_days_per_month) > 31)
+    ) {
+      setError(t("supportWorkdaysInvalid"));
+      return;
+    }
     setPending("save");
     try {
       const endpoint = usesSupportEditor
@@ -20407,7 +20439,7 @@ function DatabaseAdministration() {
       const result = await authRequest<{ payrollRefreshWarning?: boolean }>(endpoint, {
         method: "PATCH",
         body: JSON.stringify({
-          values: editValues,
+          values: valuesToSave,
           companyId: companyFilter,
           reason: editReason.trim(),
         }),
@@ -20420,12 +20452,15 @@ function DatabaseAdministration() {
       }
       await load();
     } catch (cause) {
+      const fallback = t(
+        usesSupportEditor
+          ? "couldNotSaveSupportedChanges"
+          : "couldNotSaveRecord",
+      );
       setError(
-        t(
-          usesSupportEditor
-            ? "couldNotSaveSupportedChanges"
-            : "couldNotSaveRecord",
-        ),
+        cause instanceof Error && cause.message !== "Request failed."
+          ? cause.message
+          : fallback,
       );
     } finally {
       setPending("");

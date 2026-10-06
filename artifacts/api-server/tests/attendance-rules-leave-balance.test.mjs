@@ -399,8 +399,11 @@ test("platform database editing is restricted to configured fields and wired to 
   assert.match(app, /const endpoint = usesSupportEditor/);
   assert.match(
     app,
-    /values: editValues,\s*companyId: companyFilter,\s*reason: editReason\.trim\(\)/,
+    /values: valuesToSave,\s*companyId: companyFilter,\s*reason: editReason\.trim\(\)/,
   );
+  assert.match(app, /String\(editValues\[key\][\s\S]*String\(editing\[key\]/);
+  assert.match(app, /supportWorkdaysInvalid/);
+  assert.match(app, /cause instanceof Error && cause\.message !== "Request failed\."/);
   assert.match(platformAdminRoute, /reason: z\.string\(\)\.trim\(\)\.min\(10\)/);
   assert.match(platformAdminRoute, /work_days_per_month/);
   assert.match(app, /String\(entry\.metadata\.reason\)/);
