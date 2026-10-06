@@ -807,7 +807,7 @@ const copy = {
     supportEditHint:
       "Only approved support fields are editable. Company ownership and authentication fields are locked.",
     supportScopeHint:
-      "Choose a company before editing. Each correction requires a reason and is recorded in the company history.",
+      "Editing a company-owned row automatically scopes the correction to its company. Each change requires a reason and is recorded in company history.",
     supportSelectCompany:
       "Select one company in Company context before editing a record.",
     supportReasonLabel: "Reason for this support change",
@@ -2929,7 +2929,7 @@ const pageCopy = {
     supportEditHint:
       "يمكن تعديل الحقول المعتمدة للدعم فقط. ملكية الشركة وحقول المصادقة مقفلة.",
     supportScopeHint:
-      "اختر شركة قبل التعديل. كل تصحيح يتطلب سبباً ويُسجل في سجل تغييرات الشركة.",
+      "تعديل أي سجل تابع لشركة يحدد نطاق التصحيح على شركته تلقائيًا. كل تصحيح يتطلب سببًا ويُسجل في سجل الشركة.",
     supportSelectCompany:
       "اختر شركة واحدة من سياق الشركة قبل تعديل أي سجل.",
     supportReasonLabel: "سبب تعديل الدعم",
@@ -20291,6 +20291,7 @@ function DatabaseAdministration() {
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [editCompanyId, setEditCompanyId] = useState("");
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
   const [editReason, setEditReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
@@ -20382,12 +20383,19 @@ function DatabaseAdministration() {
     }
   };
   const openEdit = (row: Record<string, unknown>) => {
-    if (!companyFilter) {
+    const rowCompanyId = String(row.company_id ?? "");
+    const scopeCompanyId = rowCompanyId || companyFilter;
+    if (
+      !scopeCompanyId ||
+      (companyFilter && rowCompanyId && companyFilter !== rowCompanyId)
+    ) {
       setError(t("supportSelectCompany"));
       return;
     }
     setError("");
     setEditReason("");
+    setEditCompanyId(scopeCompanyId);
+    if (!companyFilter && rowCompanyId) setCompanyFilter(rowCompanyId);
     setEditing(row);
     setEditValues(
       Object.fromEntries(
@@ -20397,7 +20405,8 @@ function DatabaseAdministration() {
   };
   const saveEdit = async () => {
     if (!editing || !data) return;
-    if (!companyFilter) {
+    const scopeCompanyId = editCompanyId || companyFilter;
+    if (!scopeCompanyId) {
       setError(t("supportSelectCompany"));
       return;
     }
@@ -20440,11 +20449,12 @@ function DatabaseAdministration() {
         method: "PATCH",
         body: JSON.stringify({
           values: valuesToSave,
-          companyId: companyFilter,
+          companyId: scopeCompanyId,
           reason: editReason.trim(),
         }),
       });
       setEditing(null);
+      setEditCompanyId("");
       if (result.payrollRefreshWarning) {
         toast.warning(t("supportPayrollRefreshWarning"));
       } else {
@@ -20893,7 +20903,10 @@ function DatabaseAdministration() {
                             <Button
                               className="h-8 gap-1.5 px-2 text-xs"
                               variant="outline"
-                              disabled={pending !== "" || !companyFilter}
+                              disabled={
+                                pending !== "" ||
+                                (!companyFilter && !row.company_id)
+                              }
                               onClick={() => openEdit(row)}
                             >
                               <Pencil size={14} />
@@ -20940,7 +20953,10 @@ function DatabaseAdministration() {
       {editing && data && (
         <Modal
            title={`${t("editRecord")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setEditCompanyId("");
+          }}
           className="max-w-2xl"
         >
           <p className="mb-4 text-sm text-muted-foreground">
@@ -20979,7 +20995,13 @@ function DatabaseAdministration() {
             </label>
           </div>
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => setEditing(null)}>
+            <Button
+              variant="quiet"
+              onClick={() => {
+                setEditing(null);
+                setEditCompanyId("");
+              }}
+            >
               {t("cancel")}
             </Button>
             <Button onClick={() => void saveEdit()} disabled={pending !== ""}>
