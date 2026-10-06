@@ -81,7 +81,7 @@ export const employeesTable = pgTable(
       .notNull()
       .default(8),
     payBasis: text("pay_basis").notNull().default("monthly"),
-    workDaysPerMonth: integer("work_days_per_month").default(26),
+    workDaysPerMonth: integer("work_days_per_month"),
     departmentId: uuid("department_id").references(() => departmentsTable.id),
     branchId: uuid("branch_id").notNull().references(() => branchesTable.id),
     status: text("status").notNull().default("active"),

@@ -4080,9 +4080,10 @@ router.post("/employees", async (req, res): Promise<void> => {
     return;
   }
   const payBasis = parsed.data.payBasis ?? "monthly";
-  const workDaysPerMonth = parsed.data.workDaysPerMonth ?? 26;
+  const workDaysPerMonth = parsed.data.workDaysPerMonth;
   const workingHours = parsed.data.workingHours ?? 8;
   if (
+    !Number.isInteger(workDaysPerMonth) ||
     workDaysPerMonth < 1 ||
     workDaysPerMonth > 31 ||
     workingHours <= 0
@@ -4558,10 +4559,12 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   const nextWorkDaysPerMonth =
     parsed.data.workDaysPerMonth !== undefined
       ? parsed.data.workDaysPerMonth
-      : (before.workDaysPerMonth ?? 26);
+      : before.workDaysPerMonth;
   const nextWorkingHours =
     parsed.data.workingHours ?? before.workingHours;
   if (
+    nextWorkDaysPerMonth === null ||
+    !Number.isInteger(nextWorkDaysPerMonth) ||
     nextWorkDaysPerMonth < 1 ||
     nextWorkDaysPerMonth > 31 ||
     nextWorkingHours <= 0
@@ -10113,6 +10116,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
     phone: "phone",
     departmentid: "departmentId",
     branchid: "branchId",
+    workdayspermonth: "workDaysPerMonth",
     status: "status",
     role: "role",
     joinedon: "joinedOn",
@@ -10127,6 +10131,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
     "branchid",
     "joinedon",
     "salary",
+    "workdayspermonth",
   ];
   const headerError = canonicalHeaders.some(
     (header, index) =>
@@ -10227,6 +10232,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
       role: string;
       joinedOn: string;
       salary: number;
+      workDaysPerMonth: number;
     };
     resultIndex: number;
   }> = [];
@@ -10256,6 +10262,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
     const branchId = read("branchId");
     const joinedOn = read("joinedOn");
     const salaryValue = read("salary");
+    const workDaysValue = read("workDaysPerMonth");
     const status = read("status") || "active";
     const role = read("role") || "employee";
     const providedNumber = read("employeeNumber");
@@ -10268,7 +10275,9 @@ router.post("/employees/import", async (req, res): Promise<void> => {
       !branchId ||
       !joinedOn ||
       salaryValue === undefined ||
-      salaryValue === ""
+      salaryValue === "" ||
+      workDaysValue === undefined ||
+      workDaysValue === ""
     ) {
       error = message(req, "reportValidationFailed");
     } else if (
@@ -10296,6 +10305,12 @@ router.post("/employees/import", async (req, res): Promise<void> => {
       (typeof salaryValue !== "string" ||
         salaryValue.trim() === "" ||
         Number.isNaN(Number(salaryValue)))
+    ) {
+      error = message(req, "reportValidationFailed");
+    } else if (
+      !Number.isInteger(Number(workDaysValue)) ||
+      Number(workDaysValue) < 1 ||
+      Number(workDaysValue) > 31
     ) {
       error = message(req, "reportValidationFailed");
     } else if (
@@ -10344,6 +10359,7 @@ router.post("/employees/import", async (req, res): Promise<void> => {
             role: String(role),
             joinedOn: String(joinedOn),
             salary: Number(salaryValue),
+            workDaysPerMonth: Number(workDaysValue),
           },
         });
         existingEmails.add(normalizedEmail);

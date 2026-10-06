@@ -2884,7 +2884,7 @@ components:
     EmployeeInput:
       type: object
       required:
-        [firstName, lastName, phone, branchId, joinedOn, salary]
+        [firstName, lastName, phone, branchId, joinedOn, salary, workDaysPerMonth]
       properties:
         firstName: { type: string, minLength: 1 }
         lastName: { type: string, minLength: 1 }
@@ -2901,7 +2901,7 @@ components:
           type: string
           enum: [monthly, hourly]
           default: monthly
-        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31, default: 26 }
+        workDaysPerMonth: { type: integer, minimum: 1, maximum: 31 }
         departmentId: { type: ["string", "null"] }
         branchId: { type: string }
         joinedOn: { type: string, format: date }

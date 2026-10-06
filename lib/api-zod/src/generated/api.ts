@@ -839,7 +839,6 @@ export const createEmployeeBodyWorkingHoursMin = 0;
 export const createEmployeeBodyWorkingHoursMax = 24;
 
 export const createEmployeeBodyPayBasisDefault = `monthly`;
-export const createEmployeeBodyWorkDaysPerMonthDefault = 26;
 export const createEmployeeBodyWorkDaysPerMonthMax = 31;
 
 export const createEmployeeBodySalaryMin = 0;
@@ -859,7 +858,7 @@ export const CreateEmployeeBody = zod.object({
   "automaticAnnualLeaveEligible": zod.boolean().default(createEmployeeBodyAutomaticAnnualLeaveEligibleDefault),
   "workingHours": zod.number().min(createEmployeeBodyWorkingHoursMin).max(createEmployeeBodyWorkingHoursMax).default(createEmployeeBodyWorkingHoursDefault),
   "payBasis": zod.enum(['monthly', 'hourly']).default(createEmployeeBodyPayBasisDefault),
-  "workDaysPerMonth": zod.int().min(1).max(createEmployeeBodyWorkDaysPerMonthMax).default(createEmployeeBodyWorkDaysPerMonthDefault),
+  "workDaysPerMonth": zod.int().min(1).max(createEmployeeBodyWorkDaysPerMonthMax),
   "departmentId": zod.string().nullish(),
   "branchId": zod.string(),
   "joinedOn": zod.iso.date(),

@@ -8317,6 +8317,7 @@ const importHeaderAliases: Record<string, string> = {
   phone: "phone",
   departmentid: "departmentId",
   branchid: "branchId",
+  workdayspermonth: "workDaysPerMonth",
   status: "status",
   role: "role",
   joinedon: "joinedOn",
@@ -8331,6 +8332,7 @@ const importRequiredHeaders = [
   "branchId",
   "joinedOn",
   "salary",
+  "workDaysPerMonth",
 ];
 
 function parseDelimitedText(text: string) {
@@ -8421,6 +8423,8 @@ function makeImportDraft(
       const branchId = values[headers[canonicalHeaders.indexOf("branchId")]];
       const joinedOn = values[headers[canonicalHeaders.indexOf("joinedOn")]];
       const salary = values[headers[canonicalHeaders.indexOf("salary")]];
+      const workDaysPerMonth =
+        values[headers[canonicalHeaders.indexOf("workDaysPerMonth")]];
       const employeeNumberIndex = canonicalHeaders.indexOf("employeeNumber");
       const statusIndex = canonicalHeaders.indexOf("status");
       const roleIndex = canonicalHeaders.indexOf("role");
@@ -8444,6 +8448,9 @@ function makeImportDraft(
         Number.isNaN(Date.parse(`${joinedOn}T00:00:00Z`)) ||
         Number.isNaN(Number(salary)) ||
         Number(salary) < 0 ||
+        !Number.isInteger(Number(workDaysPerMonth)) ||
+        Number(workDaysPerMonth) < 1 ||
+        Number(workDaysPerMonth) > 31 ||
         !["active", "inactive"].includes(status) ||
         !["employee", "manager"].includes(role)
       ) {
@@ -10767,7 +10774,7 @@ function AddEmployeePage() {
     biometricCode: "",
     workingHours: "8",
     payBasis: "monthly" as "monthly" | "hourly",
-    workDaysPerMonth: "26",
+    workDaysPerMonth: "",
     departmentId: "",
     branchId: "",
     joinedOn: new Date().toISOString().slice(0, 10),
@@ -11390,7 +11397,7 @@ function EmployeeProfilePage() {
     biometricCode: "",
     workingHours: "8",
     payBasis: "monthly" as "monthly" | "hourly",
-    workDaysPerMonth: "26",
+    workDaysPerMonth: "",
     salary: "0",
     joinedOn: "",
     scheduleId: "",
@@ -11442,7 +11449,7 @@ function EmployeeProfilePage() {
       biometricCode: employee.data.biometricCode ?? "",
       workingHours: String(employee.data.workingHours ?? 8),
       payBasis: employee.data.payBasis ?? "monthly",
-      workDaysPerMonth: String(employee.data.workDaysPerMonth ?? 26),
+      workDaysPerMonth: String(employee.data.workDaysPerMonth ?? ""),
       salary: String(employee.data.salary ?? 0),
       joinedOn: employee.data.joinedOn,
       scheduleId:
@@ -12298,6 +12305,7 @@ function EmployeeProfilePage() {
               <Field
                 label={t("referenceWorkdaysPerMonth")}
                 type="number"
+                required
                 min={1}
                 max={31}
                 step={1}
@@ -12527,6 +12535,7 @@ function Employees() {
       "role",
       "joinedOn",
       "salary",
+      "workDaysPerMonth",
     ];
     downloadReport(
       "var-hr-employee-import-template.csv",

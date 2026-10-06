@@ -34,7 +34,7 @@ export interface EmployeeInput {
      * @minimum 1
      * @maximum 31
      */
-  workDaysPerMonth?: number;
+  workDaysPerMonth: number;
   /** @nullable */
   departmentId?: string | null;
   branchId: string;

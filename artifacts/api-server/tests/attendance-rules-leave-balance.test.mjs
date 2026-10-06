@@ -513,13 +513,48 @@ test("monthly and hourly compensation rates use employee reference workdays and 
   );
 });
 
-test("startup preserves company-specific reference workdays for support correction", () => {
-  assert.match(employeeSchema, /workDaysPerMonth: integer\("work_days_per_month"\)\.default\(26\)/);
+test("employee creation and import require explicit reference workdays", () => {
+  assert.match(
+    employeeSchema,
+    /workDaysPerMonth: integer\("work_days_per_month"\)(?:,|\n)/,
+  );
+  assert.doesNotMatch(employeeSchema, /workDaysPerMonth:.*default\(26\)/);
   assert.doesNotMatch(
     apiStart,
     /Backfilled reference workdays|workDaysPerMonth: 26/,
   );
-  assert.match(route, /parsed\.data\.workDaysPerMonth \?\? 26/);
+  assert.match(route, /const workDaysPerMonth = parsed\.data\.workDaysPerMonth;/);
+  assert.doesNotMatch(route, /workDaysPerMonth[^\n]*\?\?\s*26/);
+  assert.match(route, /nextWorkDaysPerMonth === null/);
+  assert.match(route, /workdayspermonth: "workDaysPerMonth"/);
+  assert.match(route, /workDaysPerMonth: Number\(workDaysValue\)/);
+  assert.match(
+    route,
+    /!Number\.isInteger\(Number\(workDaysValue\)\)[\s\S]*Number\(workDaysValue\) > 31/,
+  );
+  assert.match(app, /workdayspermonth: "workDaysPerMonth"/);
+  assert.match(
+    app,
+    /importRequiredHeaders = \[[\s\S]*"workDaysPerMonth"/,
+  );
+  assert.match(
+    app,
+    /name="workDaysPerMonth"[\s\S]*required[\s\S]*value=\{form\.workDaysPerMonth\}/,
+  );
+  assert.match(
+    app,
+    /label=\{t\("referenceWorkdaysPerMonth"\)\}[\s\S]*type="number"\s+required/,
+  );
+  assert.match(spec, /workDaysPerMonth: \{ type: integer, minimum: 1, maximum: 31 \}/);
+  assert.match(
+    spec,
+    /EmployeeInput:[\s\S]*required:[\s\S]*workDaysPerMonth[\s\S]*EmployeeUpdate:/,
+  );
+  assert.doesNotMatch(spec, /workDaysPerMonth:.*default: 26/);
+  assert.match(
+    app,
+    /workDaysPerMonth: ""[\s\S]*workDaysPerMonth: ""/,
+  );
 });
 
 test("hourly payroll translations include all parameters in every API locale", () => {
