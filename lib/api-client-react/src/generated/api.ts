@@ -92,6 +92,7 @@ import type {
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
   GetReportParams,
+  GoogleDriveRetryRequest,
   GoogleDriveRetryResult,
   GoogleDriveStatus,
   HealthStatus,
@@ -10051,14 +10052,14 @@ export const getRetryPlatformGoogleDriveBackupsUrl = () => {
 /**
  * @summary Retry pending scheduled backup uploads
  */
-export const retryPlatformGoogleDriveBackups = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleDriveRetryResult> => {
+export const retryPlatformGoogleDriveBackups = async (googleDriveRetryRequest?: GoogleDriveRetryRequest, options?: Parameters<typeof customFetch>[1]): Promise<GoogleDriveRetryResult> => {
 
   return customFetch<GoogleDriveRetryResult>(getRetryPlatformGoogleDriveBackupsUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(googleDriveRetryRequest)
   }
 );}
 
@@ -10067,8 +10068,8 @@ export const retryPlatformGoogleDriveBackups = async ( options?: Parameters<type
 
 
 export const getRetryPlatformGoogleDriveBackupsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,{data?: BodyType<GoogleDriveRetryRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,{data?: BodyType<GoogleDriveRetryRequest>}, TContext> => {
 
 const mutationKey = ['retryPlatformGoogleDriveBackups'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -10080,10 +10081,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, {data?: BodyType<GoogleDriveRetryRequest>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  retryPlatformGoogleDriveBackups(requestOptions)
+          return  retryPlatformGoogleDriveBackups(data,requestOptions)
         }
 
 
@@ -10094,18 +10095,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RetryPlatformGoogleDriveBackupsMutationResult = NonNullable<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>>
-
+    export type RetryPlatformGoogleDriveBackupsMutationBody = BodyType<GoogleDriveRetryRequest> | undefined
     export type RetryPlatformGoogleDriveBackupsMutationError = ErrorType<unknown>
 
     /**
  * @summary Retry pending scheduled backup uploads
  */
 export const useRetryPlatformGoogleDriveBackups = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>, TError,{data?: BodyType<GoogleDriveRetryRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof retryPlatformGoogleDriveBackups>>,
         TError,
-        void,
+        {data?: BodyType<GoogleDriveRetryRequest>},
         TContext
       > => {
       return useMutation(getRetryPlatformGoogleDriveBackupsMutationOptions(options));

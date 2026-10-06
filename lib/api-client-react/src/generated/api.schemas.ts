@@ -2951,6 +2951,11 @@ export interface GoogleDriveRetryResult {
   pending: number;
 }
 
+export interface GoogleDriveRetryRequest {
+  /** Retry immediately even when a backup's backoff period has not elapsed. */
+  force?: boolean;
+}
+
 export type SearchParameter = string;
 
 export type StatusParameter = typeof StatusParameter[keyof typeof StatusParameter];

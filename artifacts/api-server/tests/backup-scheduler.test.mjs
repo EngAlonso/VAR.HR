@@ -9,6 +9,7 @@ const settingsRoute = read("../src/routes/platform-admin.ts");
 const backupRoute = read("../src/routes/backups.ts");
 const backupLibrary = read("../src/lib/backups.ts");
 const scheduler = read("../src/lib/backup-scheduler.ts");
+const googleDriveRoute = read("../src/routes/google-drive.ts");
 const apiIndex = read("../src/index.ts");
 const webApp = read("../../var-hr/src/App.tsx");
 const vercelConfig = read("../../../vercel.json");
@@ -42,6 +43,16 @@ test("persistent servers and Vercel have authenticated scheduler triggers", () =
   assert.match(backupRoute, /timingSafeEqual/);
   assert.match(vercelConfig, /"path": "\/api\/internal\/backup-scheduler"/);
   assert.match(vercelConfig, /"schedule": "0 2 \* \* \*"/);
+});
+
+test("opening backup settings automatically retries connected Drive backlog", () => {
+  assert.match(webApp, /driveAutoRetryStarted = useRef\(false\)/);
+  assert.match(
+    webApp,
+    /!driveStatus\?\.connected[\s\S]*?driveStatus\.pendingBackups <= 0[\s\S]*?driveAutoRetryStarted\.current/,
+  );
+  assert.match(webApp, /driveAutoRetryStarted\.current = true;[\s\S]*?void retryGoogleDrive\(false\)/);
+  assert.match(googleDriveRoute, /const force = retryRequest\.data\.force \?\? true/);
 });
 
 test("older platform backups default new schedule settings during restore", () => {

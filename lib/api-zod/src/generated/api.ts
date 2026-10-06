@@ -4792,6 +4792,10 @@ export const CompletePlatformGoogleDriveOAuthResponse = zod.void()
 /**
  * @summary Retry pending scheduled backup uploads
  */
+export const RetryPlatformGoogleDriveBackupsBody = zod.object({
+  "force": zod.boolean().optional().describe('Retry immediately even when a backup\'s backoff period has not elapsed.')
+})
+
 export const RetryPlatformGoogleDriveBackupsResponse = zod.object({
   "processed": zod.int(),
   "uploaded": zod.int(),

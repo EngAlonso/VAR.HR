@@ -2267,6 +2267,12 @@ paths:
       operationId: retryPlatformGoogleDriveBackups
       tags: [platform]
       summary: Retry pending scheduled backup uploads
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleDriveRetryRequest"
       responses:
         "200":
           description: Retry results
@@ -4900,3 +4906,9 @@ components:
         uploaded: { type: integer }
         failed: { type: integer }
         pending: { type: integer }
+    GoogleDriveRetryRequest:
+      type: object
+      properties:
+        force:
+          type: boolean
+          description: Retry immediately even when a backup's backoff period has not elapsed.

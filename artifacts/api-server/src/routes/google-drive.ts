@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { z } from "zod";
 import { writeAuthAudit } from "../lib/auth";
 import {
   completeGoogleDriveAuthorization,
@@ -142,7 +143,15 @@ router.post(
   "/platform/google-drive/retry",
   async (req, res): Promise<void> => {
     const context = await requirePlatformOwner(req);
-    const result = await retryPendingGoogleDriveBackups({ force: true });
+    const retryRequest = z
+      .object({ force: z.boolean().optional() })
+      .safeParse(req.body ?? {});
+    if (!retryRequest.success) {
+      res.status(400).json({ error: "Invalid Google Drive retry request." });
+      return;
+    }
+    const force = retryRequest.data.force ?? true;
+    const result = await retryPendingGoogleDriveBackups({ force });
     await writeAuthAudit({
       accountId: context.accountId,
       companyId: null,
@@ -154,6 +163,7 @@ router.post(
         uploaded: result.uploaded,
         failed: result.failed,
         pending: result.pending,
+        force,
       },
     });
     res.json(result);

@@ -19233,6 +19233,7 @@ function BackupRestore() {
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveAction, setDriveAction] = useState("");
   const [driveMessage, setDriveMessage] = useState("");
+  const driveAutoRetryStarted = useRef(false);
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -19521,13 +19522,13 @@ function BackupRestore() {
     }
   };
 
-  const retryGoogleDrive = async () => {
+  const retryGoogleDrive = async (force = true) => {
     setDriveAction("retry");
     setDriveMessage("");
     try {
       const result = await authRequest<GoogleDriveRetryResult>(
         "/api/platform/google-drive/retry",
-        { method: "POST", body: JSON.stringify({}) },
+        { method: "POST", body: JSON.stringify({ force }) },
       );
       toast.success(`${labels.driveRetryComplete} ${result.uploaded}`);
       await Promise.all([loadDriveStatus(), load()]);
@@ -19537,6 +19538,20 @@ function BackupRestore() {
       setDriveAction("");
     }
   };
+
+  useEffect(() => {
+    if (
+      !isPlatformOwner ||
+      driveLoading ||
+      !driveStatus?.connected ||
+      driveStatus.pendingBackups <= 0 ||
+      driveAutoRetryStarted.current
+    ) {
+      return;
+    }
+    driveAutoRetryStarted.current = true;
+    void retryGoogleDrive(false);
+  }, [driveLoading, driveStatus, isPlatformOwner]);
 
   const create = async () => {
     setPending("create");
