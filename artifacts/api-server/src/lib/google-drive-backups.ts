@@ -213,15 +213,10 @@ async function findExistingBackupFile(
 }
 
 function driveFilename(record: BackupRecord): string {
-  const timestamp = record.createdAt
-    .toISOString()
-    .replaceAll(":", "-")
-    .replaceAll(".", "-");
-  const scope =
-    record.scope === "platform"
-      ? "platform"
-      : `company-${record.companyId ?? "unknown"}`;
-  return `var-hr-${scope}-${timestamp}-${record.id}.json`;
+  const isoTimestamp = record.createdAt.toISOString();
+  const date = isoTimestamp.slice(0, 10);
+  const time = isoTimestamp.slice(11, 19).replaceAll(":", "-");
+  return `VAR-HR-${date}_${time}Z.json`;
 }
 
 async function uploadJsonFile(

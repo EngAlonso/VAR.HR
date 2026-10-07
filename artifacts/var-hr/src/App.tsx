@@ -9461,12 +9461,11 @@ function EmployeeAttendanceMovement({
 
   function printMovement() {
     if (!report.data) return;
-    // The movement record is intentionally printed as one A4 sheet. The
-    // table can contain many days, so scale the complete sheet down instead
-    // of letting the browser split rows across multiple pages.
+    // Keep a 30-day movement record at full size on one A4 landscape sheet.
+    // Longer ranges scale down as needed instead of splitting rows.
     const printScale = Math.min(
       1,
-      Math.max(0.01, 750 / (Math.max(rows.length, 1) * 13 + 190)),
+      Math.max(0.01, 750 / (Math.max(rows.length, 1) * 19 + 180)),
     );
     const escapeHtml = (value: unknown) =>
       String(value ?? "")
@@ -9534,8 +9533,8 @@ function EmployeeAttendanceMovement({
         transform: scale(${printScale});
         transform-origin: top left;
       }
-      h1 { margin: 0 0 3px; font-size: 16px; }
-      p { margin: 0 0 6px; color: #607080; font-size: 9px; }
+      h1 { margin: 0 0 3px; font-size: 18px; font-weight: 700; }
+      p { margin: 0 0 6px; color: #40566b; font-size: 10px; font-weight: 700; }
       .summary {
         display: flex;
         gap: 5px;
@@ -9547,24 +9546,28 @@ function EmployeeAttendanceMovement({
         background: #edf4f4;
         border-radius: 999px;
         padding: 3px 6px;
-        font-size: 8px;
+        font-size: 9px;
+        font-weight: 700;
       }
       table {
         width: 100%;
         table-layout: fixed;
         border-collapse: collapse;
-        font-size: 7px;
+        font-size: 13px;
+        font-weight: 700;
         line-height: 1.05;
       }
       th, td {
         overflow: hidden;
         border: 1px solid #d8e0e4;
-        padding: 2px 3px;
+        padding: 1px 2px;
         text-align: start;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
         text-overflow: clip;
       }
-      th { background: #edf4f4; }
+      th { background: #edf4f4; font-weight: 800; }
+      td { white-space: nowrap; }
       tr { break-inside: avoid; page-break-inside: avoid; }
       @media print {
         html, body { width: 297mm; height: 210mm; }
