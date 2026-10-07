@@ -7583,6 +7583,20 @@ function Shell({ children }: { children: ReactNode }) {
     query: {
       queryKey: getGetDashboardSummaryQueryKey(),
       enabled: Boolean(workspaceQuery.data),
+      refetchInterval: 30_000,
+      refetchIntervalInBackground: false,
+    },
+  });
+  const attendancePunchReviews = useListAttendancePunchRequests({
+    query: {
+      queryKey: getListAttendancePunchRequestsQueryKey(),
+      enabled: Boolean(
+        workspaceQuery.data?.capabilities?.includes(
+          "attendance.location.approve",
+        ),
+      ),
+      refetchInterval: 30_000,
+      refetchIntervalInBackground: false,
     },
   });
   const workspaceStatus = queryStatus(workspaceQuery.error);
@@ -7683,6 +7697,7 @@ function Shell({ children }: { children: ReactNode }) {
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
+  const pendingAttendanceReviews = attendancePunchReviews.data?.length ?? 0;
   const canInstallPwa = !isPwaInstalled;
   async function installPwa() {
     if (!installPrompt) {
@@ -7801,8 +7816,19 @@ function Shell({ children }: { children: ReactNode }) {
                     : t(key)}
                 </span>
                 {href === "/requests" && pendingRequests > 0 && (
-                  <span className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary">
+                  <span
+                    aria-hidden="true"
+                    className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary"
+                  >
                     {pendingRequests}
+                  </span>
+                )}
+                {href === "/attendance" && pendingAttendanceReviews > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="ms-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  >
+                    {pendingAttendanceReviews}
                   </span>
                 )}
               </Link>
@@ -8024,6 +8050,13 @@ function Shell({ children }: { children: ReactNode }) {
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
+                  </span>
+                ) : href === "/attendance" && pendingAttendanceReviews > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white"
+                  >
+                    {pendingAttendanceReviews}
                   </span>
                 ) : null}
               </Link>
