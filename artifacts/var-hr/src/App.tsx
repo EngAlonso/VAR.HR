@@ -1115,7 +1115,7 @@ const copy = {
     workLocationSaved: "Work location recorded",
     workLocationSaveFailed: "Could not record the work location",
     workLocationHistoryDetail:
-      "Review the places visited by date, with the recorded time, map, and comment.",
+      "Recorded GPS locations with their date, time, coordinates, and map links.",
     noWorkLocations: "No work locations recorded yet",
     noWorkLocationsDetail:
       "Recorded work locations will appear here, grouped by day.",
@@ -1552,7 +1552,7 @@ const copy = {
     workLocationSaved: "تم تسجيل موقع العمل",
     workLocationSaveFailed: "تعذر تسجيل موقع العمل",
     workLocationHistoryDetail:
-      "راجع الأماكن التي زارها الموظف حسب اليوم، مع الوقت والخريطة والتعليق.",
+      "مواقع GPS المسجلة مع تاريخ ووقت التسجيل والإحداثيات وروابط الخريطة.",
     noWorkLocations: "لا توجد مواقع عمل مسجلة حتى الآن",
     noWorkLocationsDetail: "ستظهر هنا مواقع العمل المسجلة مرتبة حسب اليوم.",
     openWorkLocationMap: "فتح الخريطة",
@@ -8825,6 +8825,104 @@ function WorkLocationChangeButton({
   );
 }
 
+function EmployeeWorkLocationsSection({
+  employeeId,
+}: {
+  employeeId: string;
+}) {
+  const { t, locale } = useI18n();
+  const workspace = useGetWorkspace();
+  const workLocations = useListEmployeeWorkLocations(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
+    },
+  });
+  const localeTag =
+    locale === "ar"
+      ? "ar-EG"
+      : locale === "fr"
+        ? "fr-FR"
+        : locale === "de"
+          ? "de-DE"
+          : "en-US";
+  const entries = [...(workLocations.data ?? [])].sort((a, b) =>
+    b.recordedAt.localeCompare(a.recordedAt),
+  );
+  const dateTime = (value: string) =>
+    new Intl.DateTimeFormat(localeTag, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: workspace.data?.company?.timezone || undefined,
+    }).format(new Date(value));
+
+  return (
+    <section className="mt-6" data-testid="attendance-work-locations">
+      <Card>
+        <div className="border-b border-border p-5">
+          <h2 className="font-display text-lg font-semibold">
+            {t("workLocations")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("workLocationHistoryDetail")}
+          </p>
+        </div>
+        {workLocations.isLoading ? (
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        ) : workLocations.isError ? (
+          <div className="p-5">
+            <ErrorState retry={() => workLocations.refetch()} />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="p-5">
+            <Empty
+              title={t("noWorkLocations")}
+              detail={t("noWorkLocationsDetail")}
+            />
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {entries.map((entry) => (
+              <article
+                key={entry.id}
+                className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center sm:p-5"
+                data-testid={`attendance-work-location-${entry.id}`}
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold">{dateTime(entry.recordedAt)}</p>
+                  <p
+                    className="mt-1 text-sm text-muted-foreground"
+                    dir="ltr"
+                  >
+                    <span>{t("locationCoordinates")}: </span>
+                    <span className="font-mono">
+                      {entry.latitude.toFixed(6)}, {entry.longitude.toFixed(6)}
+                    </span>
+                  </p>
+                </div>
+                <a
+                  href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                  data-testid={`attendance-work-location-map-${entry.id}`}
+                >
+                  <MapPin size={16} />
+                  {t("openWorkLocationMap")}
+                  <ArrowUpRight size={14} />
+                </a>
+              </article>
+            ))}
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 function EmployeeHrProfile({
   employeeIdOverride,
 }: {
@@ -13640,6 +13738,9 @@ function Attendance() {
           </Card>
         </div>
       )}
+      {workspace.data?.role === "employee" && selfEmployee.data?.id ? (
+        <EmployeeWorkLocationsSection employeeId={selfEmployee.data.id} />
+      ) : null}
       {correction && (
         <Modal
           title={t("correctAttendance")}
