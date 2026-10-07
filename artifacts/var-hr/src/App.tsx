@@ -1107,14 +1107,11 @@ const copy = {
       "Review the employee and HR information available to your signed-in workspace identity.",
     workLocations: "Work locations",
     changeWorkLocation: "Change work location",
-    workLocationComment: "Where are you working?",
-    workLocationCommentPlaceholder:
-      "Describe the client site or work location you visited.",
-    workLocationCommentRequired: "Add a short comment about this work location.",
     workLocationInfoOnly:
       "This is an informational visit log. It does not affect attendance, check-in/out, or payroll.",
     workLocationGpsRequired:
       "Allow location access to record your work location.",
+    workLocationGpsComment: "Location recorded from this device's GPS.",
     workLocationSaved: "Work location recorded",
     workLocationSaveFailed: "Could not record the work location",
     workLocationHistoryDetail:
@@ -1548,13 +1545,10 @@ const copy = {
       "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
     workLocations: "مواقع العمل",
     changeWorkLocation: "تغيير موقع العمل",
-    workLocationComment: "أين تعمل الآن؟",
-    workLocationCommentPlaceholder:
-      "اكتب اسم موقع العميل أو مكان العمل الذي وصلت إليه.",
-    workLocationCommentRequired: "اكتب تعليقًا قصيرًا عن موقع العمل.",
     workLocationInfoOnly:
       "هذا سجل معلوماتي لمواقع العمل فقط، ولا يؤثر على الحضور أو الانصراف أو الرواتب.",
     workLocationGpsRequired: "اسمح بالوصول إلى موقعك لتسجيل موقع العمل.",
+    workLocationGpsComment: "تم تسجيل موقع العمل باستخدام GPS.",
     workLocationSaved: "تم تسجيل موقع العمل",
     workLocationSaveFailed: "تعذر تسجيل موقع العمل",
     workLocationHistoryDetail:
@@ -8772,17 +8766,10 @@ function WorkLocationChangeButton({
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const createLocation = useCreateEmployeeWorkLocation();
-  const [open, setOpen] = useState(false);
-  const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function recordLocation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedComment = comment.trim();
-    if (!trimmedComment) {
-      toast.error(t("workLocationCommentRequired"));
-      return;
-    }
+  async function recordLocation() {
+    if (saving) return;
     if (!navigator.geolocation) {
       toast.error(t("workLocationGpsRequired"));
       return;
@@ -8811,15 +8798,13 @@ function WorkLocationChangeButton({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracyMeters: position.coords.accuracy,
-          comment: trimmedComment,
+          comment: t("workLocationGpsComment"),
         },
       });
       await queryClient.invalidateQueries({
         queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
       });
       toast.success(t("workLocationSaved"));
-      setComment("");
-      setOpen(false);
     } catch (error) {
       toast.error(apiErrorMessage(error, t("workLocationSaveFailed")));
     } finally {
@@ -8828,77 +8813,15 @@ function WorkLocationChangeButton({
   }
 
   return (
-    <>
-      <Button
-        variant="outline"
-        onClick={() => setOpen(true)}
-        data-testid={`button-change-work-location-${employeeId}`}
-      >
-        <MapPin size={16} />
-        {t("changeWorkLocation")}
-      </Button>
-      {open ? (
-        <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !saving) {
-              setOpen(false);
-            }
-          }}
-        >
-          <section
-            className="w-full max-w-lg rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="work-location-dialog-title"
-            dir="inherit"
-          >
-            <h2
-              id="work-location-dialog-title"
-              className="font-display text-xl font-semibold"
-            >
-              {t("changeWorkLocation")}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {t("workLocationInfoOnly")}
-            </p>
-            <form onSubmit={recordLocation} className="mt-5 space-y-4">
-              <label className="block text-sm font-semibold">
-                {t("workLocationComment")}
-                <textarea
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                  placeholder={t("workLocationCommentPlaceholder")}
-                  maxLength={1000}
-                  required
-                  rows={4}
-                  className="mt-2 min-h-28 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal outline-none focus:border-primary"
-                  data-testid="input-work-location-comment"
-                />
-              </label>
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                >
-                  {t("cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving || !comment.trim()}
-                  data-testid="button-save-work-location"
-                >
-                  {saving ? t("saving") : t("changeWorkLocation")}
-                </Button>
-              </div>
-            </form>
-          </section>
-        </div>
-      ) : null}
-    </>
+    <Button
+      variant="outline"
+      onClick={() => void recordLocation()}
+      disabled={saving}
+      data-testid={`button-change-work-location-${employeeId}`}
+    >
+      <MapPin size={16} />
+      {saving ? t("gpsRequesting") : t("changeWorkLocation")}
+    </Button>
   );
 }
 
