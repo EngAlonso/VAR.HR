@@ -1900,6 +1900,18 @@ const pageCopy = {
     saving: "Saving…",
     createEmployee: "Create employee",
     employeeProfile: "Employee profile",
+    leaveAttendanceSummary: "Leave and attendance summary",
+    deductedForAbsence: "Deducted for absence",
+    pendingLeave: "Pending",
+    deductionMonths: "Deduction months",
+    deductionMonthlyMaximum: "Monthly deduction maximum",
+    deductedThisMonth: "Deducted this month",
+    unauthorizedAbsenceDays: "Unauthorized absence",
+    approvedLeaveDays: "Approved leave days",
+    extraPayDays: "Days with extra pay",
+    extraPayCalculationNote:
+      "Extra pay follows the active attendance rules and the highest eligible holiday or weekly multiplier.",
+    annualLeaveBalanceUnavailable: "No annual leave balance is available.",
     employeeNumber: "Employee number",
     salary: "Salary",
     markInactive: "Mark inactive",
@@ -2366,6 +2378,18 @@ const pageCopy = {
     saving: "جارٍ الحفظ…",
     createEmployee: "إنشاء موظف",
     employeeProfile: "ملف الموظف",
+    leaveAttendanceSummary: "ملخص الإجازات والحضور",
+    deductedForAbsence: "المخصوم مقابل الغياب",
+    pendingLeave: "أيام قيد الموافقة",
+    deductionMonths: "أشهر الخصم",
+    deductionMonthlyMaximum: "الحد الأقصى للخصم الشهري",
+    deductedThisMonth: "المخصوم هذا الشهر",
+    unauthorizedAbsenceDays: "أيام الغياب غير المصرح به",
+    approvedLeaveDays: "أيام الإجازة المعتمدة",
+    extraPayDays: "أيام الأجر الإضافي",
+    extraPayCalculationNote:
+      "يُحسب الأجر الإضافي وفق قواعد الحضور المطبقة وأعلى معامل مستحق للعطلات أو العطلة الأسبوعية.",
+    annualLeaveBalanceUnavailable: "لا يوجد رصيد إجازة سنوية متاح.",
     hrProfile: "ملفي الوظيفي",
     hrProfileDetail:
       "راجع معلومات الموظف وسجل الموارد البشرية المتاح لهوية مساحة العمل المسجلة.",
@@ -3137,6 +3161,44 @@ const pageCopy = {
     saving: "Enregistrement…",
     createEmployee: "Créer l’employé",
     employeeProfile: "Profil de l’employé",
+    hrProfile: "Mon profil professionnel",
+    hrProfileDetail:
+      "Consultez les informations personnelles et professionnelles liées à votre compte.",
+    workLocations: "Lieux de travail",
+    hrRecord: "Dossier RH",
+    jobTitle: "Intitulé du poste",
+    employmentType: "Type de contrat",
+    manager: "Responsable",
+    address: "Adresse",
+    emergencyContactName: "Contact d’urgence",
+    emergencyContactPhone: "Téléphone d’urgence",
+    notes: "Notes RH",
+    hrRecordNotFound: "Aucun dossier RH n’a encore été créé pour cet employé.",
+    hrRecordUnauthorized: "Vous n’êtes pas autorisé à consulter ce dossier RH.",
+    hrRecordLoadFailed: "Impossible de charger le dossier RH.",
+    hrRecordCreateHint:
+      "Complétez les champs ci-dessous pour créer le dossier RH de l’employé.",
+    saveHrRecord: "Enregistrer le dossier RH",
+    hrRecordSaved: "Dossier RH enregistré",
+    hrRecordSaveFailed: "Impossible d’enregistrer le dossier RH",
+    employeeProfileLoadFailed: "Impossible de charger le profil de l’employé.",
+    ownProfileOnly: "Les employés ne peuvent consulter que leur propre dossier RH.",
+    noEmployeeContextDetail:
+      "Aucun identifiant d’employé n’est associé à cette session.",
+    annualLeaveBalances: "Soldes de congés annuels",
+    absenceDays: "Jours d’absence",
+    leaveAttendanceSummary: "Résumé des congés et de la présence",
+    deductedForAbsence: "Déduit pour absence",
+    pendingLeave: "En attente",
+    deductionMonths: "Mois de déduction",
+    deductionMonthlyMaximum: "Plafond mensuel de déduction",
+    deductedThisMonth: "Déduit ce mois-ci",
+    unauthorizedAbsenceDays: "Absence non autorisée",
+    approvedLeaveDays: "Jours de congé approuvés",
+    extraPayDays: "Jours avec rémunération supplémentaire",
+    extraPayCalculationNote:
+      "La rémunération supplémentaire suit les règles de présence actives et le multiplicateur admissible le plus élevé pour les jours fériés ou hebdomadaires.",
+    annualLeaveBalanceUnavailable: "Aucun solde de congé annuel disponible.",
     employeeNumber: "Numéro d’employé",
     employeeNumberEditHint:
       "Vous pouvez modifier ce numéro. La connexion, l’historique, la paie et les liens biométriques restent liés à cet employé.",
@@ -3562,6 +3624,45 @@ const pageCopy = {
     saving: "Speichern…",
     createEmployee: "Mitarbeitenden erstellen",
     employeeProfile: "Mitarbeiterprofil",
+    hrProfile: "Mein berufliches Profil",
+    hrProfileDetail:
+      "Hier sehen Sie die persönlichen und beruflichen Informationen Ihres Kontos.",
+    workLocations: "Arbeitsorte",
+    hrRecord: "Personalakte",
+    jobTitle: "Berufsbezeichnung",
+    employmentType: "Beschäftigungsart",
+    manager: "Vorgesetzte Person",
+    address: "Adresse",
+    emergencyContactName: "Notfallkontakt",
+    emergencyContactPhone: "Telefon des Notfallkontakts",
+    notes: "Personalnotizen",
+    hrRecordNotFound: "Für diese Person wurde noch keine Personalakte angelegt.",
+    hrRecordUnauthorized: "Sie dürfen diese Personalakte nicht ansehen.",
+    hrRecordLoadFailed: "Die Personalakte konnte nicht geladen werden.",
+    hrRecordCreateHint:
+      "Füllen Sie die Felder aus, um die Personalakte anzulegen.",
+    saveHrRecord: "Personalakte speichern",
+    hrRecordSaved: "Personalakte gespeichert",
+    hrRecordSaveFailed: "Die Personalakte konnte nicht gespeichert werden",
+    employeeProfileLoadFailed: "Das Mitarbeiterprofil konnte nicht geladen werden.",
+    ownProfileOnly:
+      "Mitarbeitende können nur ihre eigene Personalakte ansehen.",
+    noEmployeeContextDetail:
+      "Dieser Sitzung ist keine Mitarbeiteridentität zugeordnet.",
+    annualLeaveBalances: "Jahresurlaubssalden",
+    absenceDays: "Abwesenheitstage",
+    leaveAttendanceSummary: "Übersicht zu Urlaub und Anwesenheit",
+    deductedForAbsence: "Wegen Abwesenheit abgezogen",
+    pendingLeave: "Ausstehend",
+    deductionMonths: "Abzugsmonate",
+    deductionMonthlyMaximum: "Monatliche Abzugsgrenze",
+    deductedThisMonth: "Diesen Monat abgezogen",
+    unauthorizedAbsenceDays: "Unentschuldigte Abwesenheit",
+    approvedLeaveDays: "Genehmigte Urlaubstage",
+    extraPayDays: "Tage mit Zuschlag",
+    extraPayCalculationNote:
+      "Zusätzliche Vergütung richtet sich nach den geltenden Anwesenheitsregeln und dem höchsten anwendbaren Feiertags- oder Wochenendfaktor.",
+    annualLeaveBalanceUnavailable: "Kein Jahresurlaubssaldo verfügbar.",
     employeeNumber: "Mitarbeiternummer",
     employeeNumberEditHint:
       "Diese Nummer kann manuell geändert werden. Login, Verlauf, Lohnabrechnung und biometrische Verknüpfungen bleiben diesem Mitarbeitenden zugeordnet.",
@@ -8528,11 +8629,16 @@ const emptyHrRecordForm: HrRecordForm = {
 function EmployeeHrPanel({
   employeeId,
   canEdit,
+  standalone = false,
 }: {
   employeeId: string;
   canEdit: boolean;
+  standalone?: boolean;
 }) {
   const { t, locale } = useI18n();
+  const wrapperClass = standalone
+    ? "space-y-4"
+    : "mt-7 border-t border-border pt-6";
   const qc = useQueryClient();
   const hr = useGetEmployeeHrRecord(employeeId, {
     query: {
@@ -8564,7 +8670,7 @@ function EmployeeHrPanel({
   if (!employeeId) return null;
   if (hr.isLoading)
     return (
-      <div className="mt-7 border-t border-border pt-6">
+      <div className={wrapperClass}>
         <Skeleton className="h-40" />
       </div>
     );
@@ -8572,14 +8678,14 @@ function EmployeeHrPanel({
   const status = queryStatus(hr.error);
   if (hr.isError && status === 403) {
     return (
-      <div className="mt-7 border-t border-border pt-6">
+      <div className={wrapperClass}>
         <Empty title={t("hrRecordUnauthorized")} detail={t("ownProfileOnly")} />
       </div>
     );
   }
   if (hr.isError && status !== 404) {
     return (
-      <div className="mt-7 border-t border-border pt-6">
+      <div className={wrapperClass}>
         <Empty
           title={t("hrRecordLoadFailed")}
           detail={t("checkWorkspace")}
@@ -8594,7 +8700,7 @@ function EmployeeHrPanel({
   }
   if (hr.isError && !canEdit) {
     return (
-      <div className="mt-7 border-t border-border pt-6">
+      <div className={wrapperClass}>
         <Empty title={t("hrRecordNotFound")} detail={t("hrProfileDetail")} />
       </div>
     );
@@ -8642,8 +8748,8 @@ function EmployeeHrPanel({
     (item: any) => item.id === form.managerId,
   );
   return (
-    <div className="mt-7 border-t border-border pt-6">
-      <div className="mb-4">
+    <div className={wrapperClass}>
+      <div className={standalone ? "mb-0" : "mb-4"}>
         <h3 className="font-display text-lg font-semibold">{t("hrRecord")}</h3>
         {!hr.data && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -8984,10 +9090,28 @@ function EmployeeHrProfile({
       balance.employee?.id === employeeId &&
       balance.type.toLowerCase().includes("annual"),
   );
+  const localeTag =
+    locale === "ar"
+      ? "ar-EG"
+      : locale === "fr"
+        ? "fr-FR"
+        : locale === "de"
+          ? "de-DE"
+          : "en-US";
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(localeTag).format(value);
+  const formatDays = (value: number) =>
+    `${formatNumber(value)} ${t("days")}`;
+  const formatMonth = (month: number) =>
+    month >= 1 && month <= 12
+      ? new Intl.DateTimeFormat(localeTag, { month: "short" }).format(
+          new Date(2020, month - 1, 15),
+        )
+      : formatNumber(month);
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={t("hrRecord")}
+        eyebrow={t("employeeProfile")}
         title={t("hrProfile")}
         detail={t("hrProfileDetail")}
       />
@@ -9013,49 +9137,70 @@ function EmployeeHrProfile({
           />
         </Card>
       ) : employee.data ? (
-        <Card className="p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 font-bold text-primary">
-                {employee.data.avatarInitials}
+        <div className="space-y-4">
+          <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-4 sm:p-6">
+            <div className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15">
+                  {employee.data.avatarInitials ||
+                    `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate font-display text-2xl font-semibold sm:text-3xl">
+                    {employeeDisplayName(locale, employee.data)}
+                  </h2>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {employee.data.phone || t("notAvailable")}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge tone="accent">
+                      {t("employeeNumber")}: {employee.data.employeeNumber}
+                    </Badge>
+                    <Status value={employee.data.status} />
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h2 className="truncate font-display text-xl font-semibold">
-                  {employeeDisplayName(locale, employee.data)}
-                </h2>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setLocation(`/employees/${employee.data.id}/movement`)}
-              className="w-full shrink-0 sm:w-auto"
-              data-testid={`button-open-attendance-movement-${employee.data.id}`}
-            >
-              <Activity size={16} />
-              {t("showAttendanceMovement")}
-            </Button>
-            {selfService && employee.data.locationAttendanceEnabled ? (
-              <>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                 <Button
                   variant="outline"
                   onClick={() =>
-                    setLocation(
-                      `/employees/${employee.data.id}/work-locations`,
-                    )
+                    setLocation(`/employees/${employee.data.id}/movement`)
                   }
-                  data-testid={`button-open-work-locations-${employee.data.id}`}
+                  className="w-full sm:w-auto"
+                  data-testid={`button-open-attendance-movement-${employee.data.id}`}
                 >
-                  <MapPin size={16} />
-                  {t("workLocations")}
+                  <Activity size={16} />
+                  {t("showAttendanceMovement")}
                 </Button>
-              </>
-            ) : null}
-          </div>
-          <div className="mt-6 border-t border-border pt-6">
-            <h3 className="font-display text-lg font-semibold">
-              {t("employeeProfile")}
-            </h3>
-            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                {selfService && employee.data.locationAttendanceEnabled ? (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setLocation(
+                        `/employees/${employee.data.id}/work-locations`,
+                      )
+                    }
+                    className="w-full sm:w-auto"
+                    data-testid={`button-open-work-locations-${employee.data.id}`}
+                  >
+                    <MapPin size={16} />
+                    {t("workLocations")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <UserRound size={18} />
+              </div>
+              <h3 className="font-display text-lg font-semibold">
+                {t("employeeProfile")}
+              </h3>
+            </div>
+            <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <Info
                 label={t("employeeNumber")}
                 value={employee.data.employeeNumber}
@@ -9076,7 +9221,7 @@ function EmployeeHrProfile({
                 label={t("workingHours")}
                 value={
                   employee.data.workingHours != null
-                    ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
+                    ? `${formatNumber(employee.data.workingHours)} ${t("hours")}`
                     : t("notAvailable")
                 }
               />
@@ -9108,9 +9253,15 @@ function EmployeeHrProfile({
                 value={employee.data.biometricCode || t("notAvailable")}
               />
             </div>
-          </div>
-          <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
-          <div className="mt-6 border-t border-border pt-6">
+          </Card>
+          <Card className="p-4 sm:p-6">
+            <EmployeeHrPanel
+              employeeId={employee.data.id}
+              canEdit={false}
+              standalone
+            />
+          </Card>
+          <Card className="p-4 sm:p-6">
             <div className="flex items-center gap-2">
               <CalendarDays size={17} className="text-primary" />
               <h3 className="font-display text-lg font-semibold">
@@ -9127,29 +9278,36 @@ function EmployeeHrProfile({
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Info
                   label={t("allocatedDays")}
-                  value={`${annualLeaveBalance.total} ${t("days")}`}
+                  value={formatDays(annualLeaveBalance.total)}
                 />
                 <Info
                   label={t("usedDays")}
-                  value={`${annualLeaveBalance.used ?? 0} ${t("days")}`}
+                  value={formatDays(annualLeaveBalance.used ?? 0)}
                 />
                 <Info
                   label={t("daysRemaining")}
-                  value={`${Math.max(0, annualLeaveBalance.remaining ?? 0)} ${t("days")}`}
+                  value={formatDays(
+                    Math.max(0, annualLeaveBalance.remaining ?? 0),
+                  )}
                 />
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                {t("notAvailable")}
+                {t("annualLeaveBalanceUnavailable")}
               </p>
             )}
-          </div>
+          </Card>
           {selfService && (
-            <div className="mt-6 border-t border-border pt-6">
-              <h3 className="font-display text-lg font-semibold">
-                Leave & attendance summary
-              </h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Activity size={18} />
+                </div>
+                <h3 className="font-display text-lg font-semibold">
+                  {t("leaveAttendanceSummary")}
+                </h3>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {(
                   (leaveBalances.data || []) as Array<{
                     type: string;
@@ -9170,75 +9328,88 @@ function EmployeeHrProfile({
                   .map((balance) => (
                     <Fragment key={balance.type}>
                       <Info
-                        label="Annual balance"
-                        value={`${balance.total} days`}
+                        label={t("allocatedDays")}
+                        value={formatDays(balance.total)}
                       />
                       <Info
-                        label="Used leave"
-                        value={`${balance.used} days`}
+                        label={t("usedDays")}
+                        value={formatDays(balance.used)}
                       />
                       <Info
-                        label="Deducted for absence"
-                        value={`${balance.absenceDeducted} days`}
-                      />
-                      <Info label="Pending" value={`${balance.pending} days`} />
-                      <Info
-                        label="Remaining"
-                        value={`${Math.max(0, balance.remaining)} days`}
+                        label={t("deductedForAbsence")}
+                        value={formatDays(balance.absenceDeducted)}
                       />
                       <Info
-                        label="Deduction months"
-                        value={balance.allowedBalanceMonths.join(", ")}
+                        label={t("pendingLeave")}
+                        value={formatDays(balance.pending)}
                       />
                       <Info
-                        label="Monthly maximum"
-                        value={`${balance.monthlyDeductionLimit} days`}
+                        label={t("daysRemaining")}
+                        value={formatDays(Math.max(0, balance.remaining))}
                       />
                       <Info
-                        label="Deducted this month"
-                        value={`${balance.deductedThisMonth} days`}
+                        label={t("deductionMonths")}
+                        value={
+                          balance.allowedBalanceMonths
+                            .map(formatMonth)
+                            .join(", ") || t("notAvailable")
+                        }
                       />
                       <Info
-                        label="Unauthorized absence"
-                        value={`${balance.unauthorizedAbsenceDays} days`}
+                        label={t("deductionMonthlyMaximum")}
+                        value={formatDays(balance.monthlyDeductionLimit)}
+                      />
+                      <Info
+                        label={t("deductedThisMonth")}
+                        value={formatDays(balance.deductedThisMonth)}
+                      />
+                      <Info
+                        label={t("unauthorizedAbsenceDays")}
+                        value={formatDays(balance.unauthorizedAbsenceDays)}
                       />
                     </Fragment>
                   ))}
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Info
-                  label="Absence days"
-                  value={
+                  label={t("absenceDays")}
+                  value={formatNumber(
                     (attendanceHistory.data || []).filter((item: any) =>
                       ["absent", "unexcused_absence", "missing_attendance"].includes(
                         item.status,
                       ),
-                    ).length
-                  }
+                    ).length,
+                  )}
                 />
                 <Info
-                  label="Approved leave days"
-                  value={(leaveRequests.data || [])
-                    .filter((item: any) => item.status === "approved")
-                    .reduce((sum: number, item: any) => sum + Number(item.days), 0)}
+                  label={t("approvedLeaveDays")}
+                  value={formatDays(
+                    (leaveRequests.data || [])
+                      .filter((item: any) => item.status === "approved")
+                      .reduce(
+                        (sum: number, item: any) => sum + Number(item.days),
+                        0,
+                      ),
+                  )}
                 />
                 <Info
-                  label="Extra-pay days"
-                  value={(attendanceHistory.data || []).filter(
-                    (item: any) =>
-                      item.status === "holiday" ||
-                      Number(item.overtimeHours || 0) > 0,
-                  ).length}
+                  label={t("extraPayDays")}
+                  value={formatNumber(
+                    (attendanceHistory.data || []).filter(
+                      (item: any) =>
+                        item.status === "holiday" ||
+                        Number(item.overtimeHours || 0) > 0,
+                    ).length,
+                  )}
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Extra pay is calculated from the effective attendance rules and
-                the highest applicable holiday or weekly multiplier.
+                {t("extraPayCalculationNote")}
               </p>
-            </div>
+            </Card>
           )}
           <EmployeePasswordChange />
-        </Card>
+        </div>
       ) : (
         <Empty
           title={t("employeeProfileLoadFailed")}

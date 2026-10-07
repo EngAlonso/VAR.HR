@@ -3,7 +3,7 @@
 - [Vercel and Replit data separation](vercel-replit-data-separation.md) — production data and scheduled work must use the environment and database the HR UI reads.
 - [Biometric out-of-order metrics](biometric-out-of-order-metrics.md) — recalculate all derived attendance values when an earlier movement arrives after a later one.
 - [Attendance calculation schedule](attendance-calculation-schedule.md) — refresh explicit shift changes outside immutable payroll periods, including dates not covered by a payroll period.
-- [Localized names](localized-names.md) — Arabic locale uses Arabic names; all other locales use English names with Arabic fallback.
+- [Localization rules](localized-names.md) — use locale-specific employee names and fully translate the employee profile UI.
 - [Backup restore compatibility](backup-restore-compatibility.md) — normalize legacy rows and clear missing optional audit actors so valid restores are not rolled back.
 - [Employee reference compensation rates](company-workday-authority.md) — employee reference workdays and hours determine daily/hourly rates across both pay bases.
 - [Platform-owner support policy](platform-owner-support-policy.md) — resolve company issues through curated, audited support tools; never guess employee workday values.
