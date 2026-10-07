@@ -9497,7 +9497,7 @@ function EmployeeAttendanceMovement({
           <tr>
             <td>${escapeHtml(date(row.date ?? undefined))}</td>
             <td>${escapeHtml(weekday(row.date))}</td>
-            <td>${escapeHtml(sourceLabel(row))}</td>
+            <td>${escapeHtml(row.source === "biometric" ? row.biometricCode || biometricCode || "—" : row.source || "—")}</td>
             <td>${escapeHtml(row.scheduledStart || "—")}</td>
             <td>${escapeHtml(row.scheduledEnd || "—")}</td>
             <td>${escapeHtml(time(row.checkIn))}</td>
@@ -9532,13 +9532,15 @@ function EmployeeAttendanceMovement({
         padding: 4mm;
         transform: scale(${printScale});
         transform-origin: top left;
+        text-align: center;
       }
-      h1 { margin: 0 0 3px; font-size: 18px; font-weight: 700; }
-      p { margin: 0 0 6px; color: #40566b; font-size: 10px; font-weight: 700; }
+      h1 { margin: 0 0 3px; font-size: 18px; font-weight: 700; text-align: center; }
+      p { margin: 0 0 6px; color: #40566b; font-size: 10px; font-weight: 700; text-align: center; }
       .summary {
         display: flex;
         gap: 5px;
         flex-wrap: nowrap;
+        justify-content: center;
         margin: 0 0 6px;
         white-space: nowrap;
       }
@@ -9556,18 +9558,21 @@ function EmployeeAttendanceMovement({
         font-size: 13px;
         font-weight: 700;
         line-height: 1.05;
+        margin-inline: auto;
       }
+      col.source-column { width: 6%; }
       th, td {
         overflow: hidden;
         border: 1px solid #d8e0e4;
         padding: 1px 2px;
-        text-align: start;
+        text-align: center;
         white-space: normal;
         overflow-wrap: anywhere;
         text-overflow: clip;
       }
+      th:nth-child(3), td:nth-child(3) { font-size: 9px; }
       th { background: #edf4f4; font-weight: 800; }
-      td { white-space: nowrap; }
+      td { white-space: normal; }
       tr { break-inside: avoid; page-break-inside: avoid; }
       @media print {
         html, body { width: 297mm; height: 210mm; }
@@ -9575,7 +9580,7 @@ function EmployeeAttendanceMovement({
       }
     `;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>${printCss}</style></head><body><main class="sheet"><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></main><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>${printCss}</style></head><body><main class="sheet"><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><colgroup><col><col><col class="source-column"><col><col><col><col><col><col><col><col><col><col></colgroup><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></main><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
