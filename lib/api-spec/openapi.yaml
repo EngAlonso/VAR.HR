@@ -4900,12 +4900,16 @@ components:
         pendingBackups: { type: integer }
     GoogleDriveRetryResult:
       type: object
-      required: [processed, uploaded, failed, pending]
+      required: [processed, uploaded, failed, pending, errorCodes]
       properties:
         processed: { type: integer }
         uploaded: { type: integer }
         failed: { type: integer }
         pending: { type: integer }
+        errorCodes:
+          type: array
+          description: Sanitized stable error codes; never includes provider response bodies or credentials.
+          items: { type: string }
     GoogleDriveRetryRequest:
       type: object
       properties:

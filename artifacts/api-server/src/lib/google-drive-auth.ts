@@ -397,7 +397,15 @@ export async function disconnectGoogleDrive(): Promise<void> {
 }
 
 export function googleDriveErrorCode(error: unknown): string {
-  return error instanceof GoogleDriveOAuthError
-    ? error.code
-    : "GOOGLE_DRIVE_REQUEST_FAILED";
+  if (error instanceof GoogleDriveOAuthError) return error.code;
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    /^[A-Z][A-Z0-9_]*$/.test(error.code)
+  ) {
+    return error.code;
+  }
+  return "GOOGLE_DRIVE_REQUEST_FAILED";
 }

@@ -19313,7 +19313,13 @@ function BackupRestore() {
         drivePending: "نسخ بانتظار الرفع",
         driveRetry: "إعادة محاولة الرفع",
         driveRetrying: "جارٍ إعادة المحاولة…",
-        driveRetryComplete: "انتهت محاولة رفع النسخ إلى Google Drive.",
+        driveRetryUploaded: "مرفوعة",
+        driveRetryFailed: "فشلت",
+        driveRetryPendingResult: "ما زالت معلّقة",
+        driveRetryNotDue:
+          "لم يحِن موعد إعادة المحاولة بعد؛ ما زالت {pending} نسخة معلّقة.",
+        driveRetryNotProcessed: "لم تُعالج أي نسخة.",
+        driveRetryErrorCodes: "رموز الخطأ",
         driveConnectedToast: "تم ربط Google Drive.",
         driveDisconnectedToast:
           "تم فصل Google Drive. النسخ الموجودة لم تُحذف.",
@@ -19402,7 +19408,13 @@ function BackupRestore() {
         drivePending: "Backups waiting to upload",
         driveRetry: "Retry pending uploads",
         driveRetrying: "Retrying…",
-        driveRetryComplete: "Google Drive upload retry finished.",
+        driveRetryUploaded: "uploaded",
+        driveRetryFailed: "failed",
+        driveRetryPendingResult: "still pending",
+        driveRetryNotDue:
+          "No backup is due for another attempt yet; {pending} remain pending.",
+        driveRetryNotProcessed: "No backups were processed.",
+        driveRetryErrorCodes: "Error codes",
         driveConnectedToast: "Google Drive connected.",
         driveDisconnectedToast:
           "Google Drive disconnected. Existing Drive files were kept.",
@@ -19530,7 +19542,19 @@ function BackupRestore() {
         "/api/platform/google-drive/retry",
         { method: "POST", body: JSON.stringify({ force }) },
       );
-      toast.success(`${labels.driveRetryComplete} ${result.uploaded}`);
+      const summary =
+        result.processed === 0 && result.pending > 0 && result.errorCodes.length === 0
+          ? labels.driveRetryNotDue.replace("{pending}", String(result.pending))
+          : result.processed === 0 && result.errorCodes.length > 0
+            ? `${labels.driveRetryNotProcessed} ${labels.driveRetryErrorCodes}: ${result.errorCodes.join(", ")}`
+            : `${result.uploaded} ${labels.driveRetryUploaded}, ${result.failed} ${labels.driveRetryFailed}, ${result.pending} ${labels.driveRetryPendingResult}${result.errorCodes.length > 0 ? `. ${labels.driveRetryErrorCodes}: ${result.errorCodes.join(", ")}` : ""}`;
+      if (result.failed > 0 || result.errorCodes.length > 0) {
+        toast.error(summary);
+      } else if (result.processed === 0 && result.pending > 0) {
+        toast.info(summary);
+      } else {
+        toast.success(summary);
+      }
       await Promise.all([loadDriveStatus(), load()]);
     } catch {
       setDriveMessage(labels.driveError);

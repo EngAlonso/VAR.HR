@@ -340,6 +340,7 @@ export async function retryPendingGoogleDriveBackups(input?: {
   uploaded: number;
   failed: number;
   pending: number;
+  errorCodes: string[];
 }> {
   if (!isGoogleDriveOAuthConfigured()) {
     return {
@@ -347,6 +348,7 @@ export async function retryPendingGoogleDriveBackups(input?: {
       uploaded: 0,
       failed: 0,
       pending: await pendingScheduledBackupsCount(),
+      errorCodes: ["GOOGLE_OAUTH_NOT_CONFIGURED"],
     };
   }
   const connection = await getGoogleDriveConnection();
@@ -356,6 +358,7 @@ export async function retryPendingGoogleDriveBackups(input?: {
       uploaded: 0,
       failed: 0,
       pending: await pendingScheduledBackupsCount(),
+      errorCodes: ["GOOGLE_DRIVE_NOT_CONNECTED"],
     };
   }
 
@@ -380,16 +383,21 @@ export async function retryPendingGoogleDriveBackups(input?: {
 
   let uploaded = 0;
   let failed = 0;
+  const errorCodes = new Set<string>();
   for (const record of records) {
     const result = await uploadScheduledBackupToGoogleDrive(record);
     if (result.uploaded) uploaded += 1;
-    else if (result.errorCode) failed += 1;
+    else if (result.errorCode) {
+      failed += 1;
+      errorCodes.add(result.errorCode);
+    }
   }
   return {
     processed: records.length,
     uploaded,
     failed,
     pending: await pendingScheduledBackupsCount(),
+    errorCodes: [...errorCodes],
   };
 }
 

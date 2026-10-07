@@ -11,4 +11,6 @@ export interface GoogleDriveRetryResult {
   uploaded: number;
   failed: number;
   pending: number;
+  /** Sanitized stable error codes; never includes provider response bodies or credentials. */
+  errorCodes: string[];
 }

@@ -10,6 +10,9 @@ const backupRoute = read("../src/routes/backups.ts");
 const backupLibrary = read("../src/lib/backups.ts");
 const scheduler = read("../src/lib/backup-scheduler.ts");
 const googleDriveRoute = read("../src/routes/google-drive.ts");
+const googleDriveBackups = read("../src/lib/google-drive-backups.ts");
+const googleDriveAuth = read("../src/lib/google-drive-auth.ts");
+const apiSpec = read("../../../lib/api-spec/openapi.yaml");
 const apiIndex = read("../src/index.ts");
 const webApp = read("../../var-hr/src/App.tsx");
 const vercelConfig = read("../../../vercel.json");
@@ -53,6 +56,15 @@ test("opening backup settings automatically retries connected Drive backlog", ()
   );
   assert.match(webApp, /driveAutoRetryStarted\.current = true;[\s\S]*?void retryGoogleDrive\(false\)/);
   assert.match(googleDriveRoute, /const force = retryRequest\.data\.force \?\? true/);
+});
+
+test("Drive retry results expose sanitized failure codes to the backup UI", () => {
+  assert.match(googleDriveBackups, /errorCodes: \["GOOGLE_OAUTH_NOT_CONFIGURED"\]/);
+  assert.match(googleDriveBackups, /errorCodes\.add\(result\.errorCode\)/);
+  assert.match(googleDriveAuth, /typeof error\.code === "string"[\s\S]*?return error\.code/);
+  assert.match(apiSpec, /GoogleDriveRetryResult:[\s\S]*?errorCodes:/);
+  assert.match(webApp, /result\.failed[\s\S]*?result\.errorCodes\.join\(", "\)/);
+  assert.match(webApp, /driveRetryNotDue/);
 });
 
 test("older platform backups default new schedule settings during restore", () => {

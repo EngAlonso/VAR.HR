@@ -4800,7 +4800,8 @@ export const RetryPlatformGoogleDriveBackupsResponse = zod.object({
   "processed": zod.int(),
   "uploaded": zod.int(),
   "failed": zod.int(),
-  "pending": zod.int()
+  "pending": zod.int(),
+  "errorCodes": zod.array(zod.string()).describe('Sanitized stable error codes; never includes provider response bodies or credentials.')
 })
 
 
