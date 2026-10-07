@@ -39,11 +39,22 @@ type JsonObject = Record<string, unknown>;
 
 class GoogleDriveApiError extends Error {
   readonly code: string;
+  readonly status: number;
+  readonly operation: string;
 
-  constructor(status: number) {
+  constructor(status: number, operation: string, reason?: string) {
     super(`Google Drive API request failed (${status}).`);
     this.name = "GoogleDriveApiError";
-    this.code = `GOOGLE_DRIVE_API_HTTP_${status}`;
+    this.status = status;
+    this.operation = operation;
+    this.code = [
+      "GOOGLE_DRIVE_API",
+      `HTTP_${status}`,
+      operation,
+      reason,
+    ]
+      .filter(Boolean)
+      .join("_");
   }
 }
 
@@ -51,6 +62,37 @@ function recordObject(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JsonObject)
     : {};
+}
+
+function errorCodePart(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+}
+
+async function driveApiError(
+  response: Response,
+  operation: string,
+): Promise<GoogleDriveApiError> {
+  let reason: string | undefined;
+  try {
+    const body = recordObject(await response.clone().json());
+    const error = recordObject(body.error);
+    const details = Array.isArray(error.errors) ? error.errors : [];
+    const firstDetail = recordObject(details[0]);
+    const candidate =
+      typeof firstDetail.reason === "string"
+        ? firstDetail.reason
+        : typeof error.status === "string"
+          ? error.status
+          : "";
+    if (candidate) reason = errorCodePart(candidate) || undefined;
+  } catch {
+    // Some Google endpoints return a non-JSON body for errors.
+  }
+  return new GoogleDriveApiError(response.status, operation, reason);
 }
 
 function driveMetadata(record: BackupRecord): DriveUploadMetadata {
@@ -66,6 +108,7 @@ function escapeDriveQuery(value: string): string {
 async function driveJson<T>(
   accessToken: string,
   url: string,
+  operation: string,
   init: RequestInit = {},
 ): Promise<T> {
   const response = await fetch(url, {
@@ -76,16 +119,16 @@ async function driveJson<T>(
     },
     signal: AbortSignal.timeout(30_000),
   });
-  if (!response.ok) throw new GoogleDriveApiError(response.status);
+  if (!response.ok) throw await driveApiError(response, operation);
   try {
     return (await response.json()) as T;
   } catch {
-    throw new GoogleDriveApiError(502);
+    throw new GoogleDriveApiError(502, operation);
   }
 }
 
 async function persistFolder(file: DriveFile): Promise<void> {
-  if (!file.id) throw new GoogleDriveApiError(502);
+  if (!file.id) throw new GoogleDriveApiError(502, "PERSIST_BACKUP_FOLDER");
   await db
     .update(googleDriveConnectionTable)
     .set({
@@ -100,6 +143,7 @@ async function createBackupFolder(accessToken: string): Promise<DriveFile> {
   const folder = await driveJson<DriveFile>(
     accessToken,
     `${DRIVE_API}/files?fields=id,name,webViewLink,mimeType`,
+    "CREATE_BACKUP_FOLDER",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -124,6 +168,7 @@ async function ensureBackupFolder(
       const folder = await driveJson<DriveFile>(
         accessToken,
         `${DRIVE_API}/files/${encodeURIComponent(connection.driveFolderId)}?fields=id,name,webViewLink,mimeType,trashed`,
+        "GET_BACKUP_FOLDER",
       );
       if (
         folder.id &&
@@ -132,9 +177,11 @@ async function ensureBackupFolder(
       ) {
         return folder;
       }
-      if (!folder.trashed) throw new GoogleDriveApiError(400);
+      if (!folder.trashed) {
+        throw new GoogleDriveApiError(400, "VALIDATE_BACKUP_FOLDER");
+      }
     } catch (error) {
-      if (!(error instanceof GoogleDriveApiError) || error.code !== "GOOGLE_DRIVE_API_HTTP_404") {
+      if (!(error instanceof GoogleDriveApiError) || error.status !== 404) {
         throw error;
       }
     }
@@ -160,6 +207,7 @@ async function findExistingBackupFile(
   const result = await driveJson<{ files?: DriveFile[] }>(
     accessToken,
     `${DRIVE_API}/files?${params.toString()}`,
+    "FIND_EXISTING_BACKUP",
   );
   return result.files?.find((file) => Boolean(file.id)) ?? null;
 }
@@ -206,12 +254,12 @@ async function uploadJsonFile(
     },
   );
   if (!sessionResponse.ok) {
-    throw new GoogleDriveApiError(sessionResponse.status);
+    throw await driveApiError(sessionResponse, "START_BACKUP_UPLOAD");
   }
   const uploadUrl = sessionResponse.headers.get("location");
-  if (!uploadUrl) throw new GoogleDriveApiError(502);
+  if (!uploadUrl) throw new GoogleDriveApiError(502, "START_BACKUP_UPLOAD");
 
-  return driveJson<DriveFile>(accessToken, uploadUrl, {
+  return driveJson<DriveFile>(accessToken, uploadUrl, "UPLOAD_BACKUP_CONTENT", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: content,
@@ -222,7 +270,7 @@ async function markUploaded(
   record: BackupRecord,
   file: DriveFile,
 ): Promise<void> {
-  if (!file.id) throw new GoogleDriveApiError(502);
+  if (!file.id) throw new GoogleDriveApiError(502, "PERSIST_UPLOADED_BACKUP");
   const metadata = recordObject(record.metadata);
   const current = driveMetadata(record);
   await db
@@ -297,7 +345,7 @@ export async function uploadScheduledBackupToGoogleDrive(
   try {
     const accessToken = await getGoogleDriveAccessToken();
     const folder = await ensureBackupFolder(accessToken);
-    if (!folder.id) throw new GoogleDriveApiError(502);
+    if (!folder.id) throw new GoogleDriveApiError(502, "VALIDATE_BACKUP_FOLDER");
     const existing = await findExistingBackupFile(
       accessToken,
       folder.id,

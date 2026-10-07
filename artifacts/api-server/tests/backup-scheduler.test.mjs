@@ -61,6 +61,8 @@ test("opening backup settings automatically retries connected Drive backlog", ()
 test("Drive retry results expose sanitized failure codes to the backup UI", () => {
   assert.match(googleDriveBackups, /errorCodes: \["GOOGLE_OAUTH_NOT_CONFIGURED"\]/);
   assert.match(googleDriveBackups, /errorCodes\.add\(result\.errorCode\)/);
+  assert.match(googleDriveBackups, /firstDetail\.reason[\s\S]*?error\.status/);
+  assert.match(googleDriveBackups, /new GoogleDriveApiError\(response\.status, operation, reason\)/);
   assert.match(googleDriveAuth, /typeof error\.code === "string"[\s\S]*?return error\.code/);
   assert.match(apiSpec, /GoogleDriveRetryResult:[\s\S]*?errorCodes:/);
   assert.match(webApp, /result\.failed[\s\S]*?result\.errorCodes\.join\(", "\)/);
