@@ -788,6 +788,16 @@ const copy = {
     databaseCoreOrganization: "Core organization",
     databaseSchedulingAttendance: "Scheduling and attendance",
     databaseLeavePayrollSupport: "Leave, payroll and platform support",
+    databaseLeaveBalances: "Annual leave balances",
+    adjustAnnualLeaveTotal: "Adjust annual leave total",
+    annualLeaveTotalHint:
+      "This changes the total allocated days only. Used and pending days stay unchanged; remaining days are recalculated.",
+    annualLeaveTotalSaved:
+      "Annual leave total updated and recorded in the audit and leave history.",
+    supportAnnualLeaveTotalInvalid:
+      "Enter a total from 0 to 9,999.99 days, with no more than two decimal places.",
+    pendingLeaveDays: "Pending days",
+    databaseEmployeeName: "Employee",
     dataExplorer: "Data explorer",
     companyContext: "Company context",
     allCompanies: "All companies",
@@ -2935,6 +2945,16 @@ const pageCopy = {
     databaseCoreOrganization: "الهيكل الأساسي",
     databaseSchedulingAttendance: "الجدولة والحضور",
     databaseLeavePayrollSupport: "الإجازات والرواتب ودعم المنصة",
+    databaseLeaveBalances: "أرصدة الإجازة السنوية",
+    adjustAnnualLeaveTotal: "تعديل إجمالي الإجازة السنوية",
+    annualLeaveTotalHint:
+      "سيتم تعديل إجمالي الأيام المخصصة فقط. تظل الأيام المستخدمة والمعلقة كما هي، ويُعاد حساب الرصيد المتبقي.",
+    annualLeaveTotalSaved:
+      "تم تعديل إجمالي الإجازة السنوية وتسجيل التغيير في سجل التدقيق والإجازات.",
+    supportAnnualLeaveTotalInvalid:
+      "أدخل إجماليًا من 0 إلى 9,999.99 يومًا، وبحد أقصى منزلتين عشريتين.",
+    pendingLeaveDays: "الأيام المعلقة",
+    databaseEmployeeName: "الموظف",
     dataExplorer: "مستكشف البيانات",
     companyContext: "سياق الشركة",
     allCompanies: "كل الشركات",
@@ -20353,6 +20373,7 @@ const databaseEntityTranslationKeys: Record<string, AppCopyKey> = {
   attendance: "databaseAttendance",
   holidays: "databaseHolidays",
   leave_requests: "databaseLeaveRequests",
+  leave_balances: "databaseLeaveBalances",
   permission_requests: "databasePermissionRequests",
   payroll_periods: "databasePayrollPeriods",
   payroll_calculations: "databasePayrollCalculations",
@@ -20371,6 +20392,13 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   id: "databaseId",
   company_id: "databaseCompanyId",
   company_name: "databaseCompanyName",
+  employee_name: "databaseEmployeeName",
+  employee_id: "databaseEmployeeName",
+  type: "leaveType",
+  allocated: "allocatedDays",
+  used: "usedDays",
+  pending: "pendingLeaveDays",
+  remaining: "daysRemaining",
   name: "databaseName",
   name_ar: "databaseArabicName",
   description: "databaseDescription",
@@ -20457,6 +20485,7 @@ const databaseGroups = [
     label: "Leave, payroll and platform support",
     keys: [
       "leave_requests",
+      "leave_balances",
       "permission_requests",
       "payroll_periods",
       "payroll_calculations",
@@ -20490,6 +20519,10 @@ function DatabaseAdministration() {
   const [editCompanyId, setEditCompanyId] = useState("");
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
   const [editReason, setEditReason] = useState("");
+  const [balanceEditing, setBalanceEditing] =
+    useState<Record<string, unknown> | null>(null);
+  const [balanceAllocated, setBalanceAllocated] = useState("");
+  const [balanceReason, setBalanceReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
@@ -20598,6 +20631,64 @@ function DatabaseAdministration() {
         editFields.map((key) => [key, row[key] ?? ""]),
       ),
     );
+  };
+  const openBalanceEdit = (row: Record<string, unknown>) => {
+    const rowCompanyId = String(row.company_id ?? "");
+    if (!rowCompanyId || (companyFilter && companyFilter !== rowCompanyId)) {
+      setError(t("supportSelectCompany"));
+      return;
+    }
+    setError("");
+    setBalanceAllocated(String(row.allocated ?? 0));
+    setBalanceReason("");
+    setBalanceEditing(row);
+    if (!companyFilter) setCompanyFilter(rowCompanyId);
+  };
+  const saveBalanceEdit = async () => {
+    if (!balanceEditing) return;
+    const companyId = String(balanceEditing.company_id ?? "");
+    const allocated = Number(balanceAllocated);
+    if (
+      !companyId ||
+      !Number.isFinite(allocated) ||
+      allocated < 0 ||
+      allocated > 9999.99 ||
+      Math.round(allocated * 100) !== allocated * 100
+    ) {
+      setError(t("supportAnnualLeaveTotalInvalid"));
+      return;
+    }
+    if (allocated === Number(balanceEditing.allocated ?? 0)) {
+      setError(t("supportNoChanges"));
+      return;
+    }
+    if (balanceReason.trim().length < 10) {
+      setError(t("supportReasonRequired"));
+      return;
+    }
+    setPending("leave-balance");
+    setError("");
+    try {
+      await authRequest(`/api/platform/leave-balances/${balanceEditing.id}/support`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          companyId,
+          allocated,
+          reason: balanceReason.trim(),
+        }),
+      });
+      setBalanceEditing(null);
+      toast.success(t("annualLeaveTotalSaved"));
+      await load();
+    } catch (cause) {
+      setError(
+        cause instanceof Error && cause.message !== "Request failed."
+          ? cause.message
+          : t("couldNotSaveSupportedChanges"),
+      );
+    } finally {
+      setPending("");
+    }
   };
   const saveEdit = async () => {
     if (!editing || !data) return;
@@ -21023,6 +21114,7 @@ function DatabaseAdministration() {
                     </th>
                   ))}
                   {(supportsDatabaseActions ||
+                    data.key === "leave_balances" ||
                     editFields.length ||
                     data.canArchive ||
                     data.canDelete) && (
@@ -21070,6 +21162,7 @@ function DatabaseAdministration() {
                       </td>
                     ))}
                     {(supportsDatabaseActions ||
+                      data.key === "leave_balances" ||
                       editFields.length ||
                       data.canArchive ||
                       data.canDelete) && (
@@ -21109,6 +21202,20 @@ function DatabaseAdministration() {
                               {t("edit")}
                             </Button>
                           ) : null}
+                          {data.key === "leave_balances" &&
+                          ["annual", "annual leave"].includes(
+                            String(row.type ?? "").trim().toLowerCase(),
+                          ) ? (
+                            <Button
+                              className="h-8 gap-1.5 px-2 text-xs"
+                              variant="outline"
+                              disabled={pending !== ""}
+                              onClick={() => openBalanceEdit(row)}
+                            >
+                              <Pencil size={14} />
+                              {t("adjustAnnualLeaveTotal")}
+                            </Button>
+                          ) : null}
                           {data.canArchive ? (
                             <Button
                               className="h-8 px-2 text-xs"
@@ -21146,6 +21253,82 @@ function DatabaseAdministration() {
         )}
         </Card>
       </div>
+      {balanceEditing && (
+        <Modal
+          title={t("adjustAnnualLeaveTotal")}
+          onClose={() => setBalanceEditing(null)}
+          className="max-w-xl"
+        >
+          <p className="mb-4 rounded-lg bg-muted/60 p-3 text-sm leading-relaxed text-muted-foreground">
+            {t("annualLeaveTotalHint")}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t("databaseEmployeeName")}
+              </p>
+              <p className="mt-1 font-medium">
+                {String(balanceEditing.employee_name ?? balanceEditing.employee_id ?? "—")}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t("usedDays")}
+              </p>
+              <p className="mt-1 font-medium">{String(balanceEditing.used ?? 0)}</p>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t("pendingLeaveDays")}
+              </p>
+              <p className="mt-1 font-medium">{String(balanceEditing.pending ?? 0)}</p>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t("daysRemaining")}
+              </p>
+              <p className="mt-1 font-medium">
+                {String(
+                  Number(balanceAllocated || 0) -
+                    Number(balanceEditing.used ?? 0) -
+                    Number(balanceEditing.pending ?? 0),
+                )}
+              </p>
+            </div>
+            <Field
+              label={t("allocatedDays")}
+              value={balanceAllocated}
+              type="number"
+              min={0}
+              max={9999.99}
+              step={0.01}
+              onChange={setBalanceAllocated}
+            />
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span>{t("supportReasonLabel")}</span>
+              <textarea
+                className="mt-2 min-h-24 w-full rounded-xl border border-input bg-background px-3.5 py-3 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                value={balanceReason}
+                onChange={(event) => setBalanceReason(event.target.value)}
+                minLength={10}
+                maxLength={500}
+                required
+              />
+            </label>
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="quiet" onClick={() => setBalanceEditing(null)}>
+              {t("cancel")}
+            </Button>
+            <Button
+              onClick={() => void saveBalanceEdit()}
+              disabled={pending !== ""}
+            >
+              {pending === "leave-balance" ? "…" : t("saveChanges")}
+            </Button>
+          </div>
+        </Modal>
+      )}
       {editing && data && (
         <Modal
            title={`${t("editRecord")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}

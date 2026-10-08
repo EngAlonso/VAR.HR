@@ -2209,6 +2209,32 @@ paths:
       responses:
         "200":
           description: Updated company
+  /platform/leave-balances/{id}/support:
+    patch:
+      operationId: supportPlatformAnnualLeaveBalance
+      tags: [platform]
+      summary: Update an employee's annual leave total while preserving used and pending days
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformLeaveBalanceSupportInput"
+      responses:
+        "200":
+          description: Updated annual leave balance with usage preserved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformLeaveBalanceSupportResponse"
+        "400": { description: Invalid total or non-annual leave balance }
+        "403": { description: Platform Owner access required }
+        "404": { description: Balance not found in the selected company }
   /platform/google-drive:
     get:
       operationId: getPlatformGoogleDriveStatus
@@ -3341,6 +3367,30 @@ components:
       properties:
         amount: { type: number }
         reason: { type: string, minLength: 1 }
+    PlatformLeaveBalanceSupportInput:
+      type: object
+      required: [companyId, allocated, reason]
+      properties:
+        companyId: { type: string, format: uuid }
+        allocated: { type: number, minimum: 0, maximum: 9999.99 }
+        reason: { type: string, minLength: 10, maxLength: 500 }
+    PlatformLeaveBalanceSupportResponse:
+      type: object
+      required: [balance]
+      properties:
+        balance:
+          type: object
+          required:
+            [id, companyId, employeeId, type, allocated, used, pending, remaining]
+          properties:
+            id: { type: string, format: uuid }
+            companyId: { type: string, format: uuid }
+            employeeId: { type: string, format: uuid }
+            type: { type: string }
+            allocated: { type: number }
+            used: { type: number }
+            pending: { type: number }
+            remaining: { type: number }
     LeaveRequest:
       type: object
       required:

@@ -407,7 +407,7 @@ test("platform database editing is restricted to configured fields and wired to 
   assert.match(app, /const endpoint = usesSupportEditor/);
   assert.match(
     app,
-    /values: valuesToSave,\s*companyId: companyFilter,\s*reason: editReason\.trim\(\)/,
+    /values: valuesToSave,\s*companyId: scopeCompanyId,\s*reason: editReason\.trim\(\)/,
   );
   assert.match(app, /String\(editValues\[key\][\s\S]*String\(editing\[key\]/);
   assert.match(app, /supportWorkdaysInvalid/);
@@ -419,6 +419,26 @@ test("platform database editing is restricted to configured fields and wired to 
     route,
     /export async function refreshPlatformSupportPayroll\([\s\S]*?return recalculateOpenPayrollPeriodsForRuleChange\(context, req, true\);/,
   );
+});
+
+test("platform owner can adjust annual leave total without changing usage", () => {
+  assert.match(
+    platformAdminRoute,
+    /router\.patch\(\s*"\/platform\/leave-balances\/:id\/support"/,
+  );
+  assert.match(
+    platformAdminRoute,
+    /const context = await requirePlatformOwner\(req\)/,
+  );
+  assert.match(platformAdminRoute, /if \(!\["annual", "annual leave"\]/);
+  assert.match(platformAdminRoute, /\.set\(\{ allocated \}\)/);
+  assert.match(platformAdminRoute, /transactionType: "manual_adjustment"/);
+  assert.match(platformAdminRoute, /used: roundDays\(Number\(updated\.used\)\)/);
+  assert.match(platformAdminRoute, /entityType: "leave_balance"/);
+  assert.match(app, /leave_balances: "databaseLeaveBalances"/);
+  assert.match(app, /data\.key === "leave_balances"/);
+  assert.match(app, /annualLeaveTotalHint/);
+  assert.match(app, /\/api\/platform\/leave-balances\/\$\{balanceEditing\.id\}\/support/);
 });
 
 test("USB connector ingestion is device-key protected and idempotent", () => {

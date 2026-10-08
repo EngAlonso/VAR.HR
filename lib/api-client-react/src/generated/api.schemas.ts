@@ -1146,6 +1146,35 @@ export interface LeaveBalanceAdjustmentInput {
   reason: string;
 }
 
+export interface PlatformLeaveBalanceSupportInput {
+  companyId: string;
+  /**
+     * @minimum 0
+     * @maximum 9999.99
+     */
+  allocated: number;
+  /**
+     * @minLength 10
+     * @maxLength 500
+     */
+  reason: string;
+}
+
+export type PlatformLeaveBalanceSupportResponseBalance = {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  type: string;
+  allocated: number;
+  used: number;
+  pending: number;
+  remaining: number;
+};
+
+export interface PlatformLeaveBalanceSupportResponse {
+  balance: PlatformLeaveBalanceSupportResponseBalance;
+}
+
 export type LeaveRequestStatus = typeof LeaveRequestStatus[keyof typeof LeaveRequestStatus];
 
 

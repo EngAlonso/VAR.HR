@@ -4749,6 +4749,41 @@ export const UpdatePlatformCompanyResponse = zod.unknown()
 
 
 /**
+ * @summary Update an employee's annual leave total while preserving used and pending days
+ */
+export const SupportPlatformAnnualLeaveBalanceParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const supportPlatformAnnualLeaveBalanceBodyAllocatedMin = 0;
+export const supportPlatformAnnualLeaveBalanceBodyAllocatedMax = 9999.99;
+
+export const supportPlatformAnnualLeaveBalanceBodyReasonMin = 10;
+export const supportPlatformAnnualLeaveBalanceBodyReasonMax = 500;
+
+
+
+export const SupportPlatformAnnualLeaveBalanceBody = zod.object({
+  "companyId": zod.uuid(),
+  "allocated": zod.number().min(supportPlatformAnnualLeaveBalanceBodyAllocatedMin).max(supportPlatformAnnualLeaveBalanceBodyAllocatedMax),
+  "reason": zod.string().min(supportPlatformAnnualLeaveBalanceBodyReasonMin).max(supportPlatformAnnualLeaveBalanceBodyReasonMax)
+})
+
+export const SupportPlatformAnnualLeaveBalanceResponse = zod.object({
+  "balance": zod.object({
+  "id": zod.uuid(),
+  "companyId": zod.uuid(),
+  "employeeId": zod.uuid(),
+  "type": zod.string(),
+  "allocated": zod.number(),
+  "used": zod.number(),
+  "pending": zod.number(),
+  "remaining": zod.number()
+})
+})
+
+
+/**
  * @summary Get Google Drive backup connection status
  */
 export const GetPlatformGoogleDriveStatusResponse = zod.object({

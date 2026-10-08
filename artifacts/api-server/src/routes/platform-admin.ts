@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   auditLogsTable,
   branchesTable,
@@ -8,6 +8,8 @@ import {
   db,
   departmentsTable,
   employeesTable,
+  leaveBalanceTransactionsTable,
+  leaveBalancesTable,
   authAuditEventsTable,
   platformSettingsTable,
   userAccountsTable,
@@ -364,6 +366,23 @@ const entities: Record<string, EntityConfig> = {
     companyColumn: "company_id",
     orderColumn: "submitted_at",
   },
+  leave_balances: {
+    table: "var_hr_leave_balances",
+    label: "Annual leave balances",
+    columns: [
+      "id",
+      "company_id",
+      "employee_id",
+      "type",
+      "allocated",
+      "used",
+      "pending",
+    ],
+    editable: [],
+    canDelete: false,
+    companyColumn: "company_id",
+    orderColumn: "employee_id",
+  },
   permission_requests: {
     table: "var_hr_permission_requests",
     label: "Permission requests",
@@ -487,6 +506,18 @@ const supportEditSchema = z
   .object({
     values: z.record(z.string(), z.unknown()),
     companyId: idSchema,
+    reason: z.string().trim().min(10).max(500),
+  })
+  .strict();
+const platformLeaveBalanceSupportSchema = z
+  .object({
+    companyId: idSchema,
+    allocated: z
+      .number()
+      .finite()
+      .min(0)
+      .max(9999.99)
+      .refine((value) => Number.isInteger(value * 100)),
     reason: z.string().trim().min(10).max(500),
   })
   .strict();
@@ -830,6 +861,143 @@ router.get("/platform/database/entities", async (req, res): Promise<void> => {
   );
 });
 
+router.patch(
+  "/platform/leave-balances/:id/support",
+  async (req, res): Promise<void> => {
+    const context = await requirePlatformOwner(req);
+    if (!idSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: "A valid leave balance id is required." });
+      return;
+    }
+    const parsed = platformLeaveBalanceSupportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Provide a valid total allocation, company, and reason.",
+      });
+      return;
+    }
+
+    const roundDays = (value: number) => Number(value.toFixed(2));
+    const result = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(leaveBalancesTable)
+        .where(
+          and(
+            eq(leaveBalancesTable.id, req.params.id),
+            eq(leaveBalancesTable.companyId, parsed.data.companyId),
+          ),
+        )
+        .limit(1)
+        .for("update");
+      if (!before) return { kind: "not_found" as const };
+      if (!["annual", "annual leave"].includes(before.type.trim().toLowerCase())) {
+        return { kind: "not_annual" as const };
+      }
+
+      const previousAllocated = roundDays(Number(before.allocated));
+      const allocated = roundDays(parsed.data.allocated);
+      if (previousAllocated === allocated) return { kind: "unchanged" as const };
+
+      const used = roundDays(Number(before.used));
+      const pending = roundDays(Number(before.pending));
+      const beforeRemaining = roundDays(previousAllocated - used - pending);
+      const afterRemaining = roundDays(allocated - used - pending);
+      const amount = roundDays(allocated - previousAllocated);
+      const [updated] = await tx
+        .update(leaveBalancesTable)
+        .set({ allocated })
+        .where(
+          and(
+            eq(leaveBalancesTable.id, before.id),
+            eq(leaveBalancesTable.companyId, parsed.data.companyId),
+          ),
+        )
+        .returning();
+      if (!updated) return { kind: "not_found" as const };
+
+      await tx.insert(leaveBalanceTransactionsTable).values({
+        companyId: before.companyId,
+        employeeId: before.employeeId,
+        leaveType: before.type,
+        amount,
+        transactionType: "manual_adjustment",
+        beforeBalance: beforeRemaining,
+        afterBalance: afterRemaining,
+        actorId: context.accountId,
+        reason: parsed.data.reason,
+      });
+      await tx.insert(auditLogsTable).values({
+        companyId: before.companyId,
+        actorType: "platform_owner",
+        actorId: context.accountId,
+        action: "support_updated",
+        entityType: "leave_balance",
+        entityId: before.id,
+        before: {
+          allocated: previousAllocated,
+          used,
+          pending,
+          remaining: beforeRemaining,
+        },
+        after: {
+          allocated,
+          used,
+          pending,
+          remaining: afterRemaining,
+          reason: parsed.data.reason,
+        },
+      });
+      return {
+        kind: "updated" as const,
+        balance: {
+          id: updated.id,
+          companyId: updated.companyId,
+          employeeId: updated.employeeId,
+          type: updated.type,
+          allocated: roundDays(Number(updated.allocated)),
+          used: roundDays(Number(updated.used)),
+          pending: roundDays(Number(updated.pending)),
+          remaining: afterRemaining,
+        },
+        previousAllocated,
+        amount,
+      };
+    });
+
+    if (result.kind === "not_found") {
+      res.status(404).json({ error: "Leave balance not found in that company." });
+      return;
+    }
+    if (result.kind === "not_annual") {
+      res.status(400).json({ error: "Only annual leave balances can be edited here." });
+      return;
+    }
+    if (result.kind === "unchanged") {
+      res.status(400).json({ error: "The total allocation has not changed." });
+      return;
+    }
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId: parsed.data.companyId,
+      action: "database_support_updated",
+      entityType: "database:leave_balances",
+      entityId: result.balance.id,
+      metadata: {
+        fields: ["allocated"],
+        previousAllocated: result.previousAllocated,
+        allocated: result.balance.allocated,
+        used: result.balance.used,
+        pending: result.balance.pending,
+        remaining: result.balance.remaining,
+        amount: result.amount,
+        reason: parsed.data.reason,
+      },
+    });
+    res.json({ balance: result.balance });
+  },
+);
+
 router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   const config = configFor(req.params.entity);
   await requirePlatformOwner(req);
@@ -863,7 +1031,9 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
       : []),
     ...(search
       ? [
-          `to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${sqlStringLiteral(`%${search}%`)}`,
+          req.params.entity === "leave_balances"
+            ? `(to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${sqlStringLiteral(`%${search}%`)} OR EXISTS (SELECT 1 FROM "var_hr_employees" employee WHERE employee.id = "var_hr_leave_balances".employee_id AND concat_ws(' ', employee.first_name, employee.last_name) ILIKE ${sqlStringLiteral(`%${search}%`)}))`
+            : `to_jsonb(${sqlIdentifier(config.table)})::text ILIKE ${sqlStringLiteral(`%${search}%`)}`,
         ]
       : []),
   ];
@@ -878,8 +1048,39 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   const companyNames = new Map(
     companies.map((company) => [company.id, company.name]),
   );
-  const rows = (result.rows as Record<string, unknown>[]).map((row) => ({
+  const rawRows = result.rows as Record<string, unknown>[];
+  const employeeIds = rawRows
+    .map((row) => String(row.employee_id ?? ""))
+    .filter((employeeId) => idSchema.safeParse(employeeId).success);
+  const employeeNames =
+    req.params.entity === "leave_balances" && employeeIds.length
+      ? new Map(
+          (
+            await db
+              .select({
+                id: employeesTable.id,
+                firstName: employeesTable.firstName,
+                lastName: employeesTable.lastName,
+              })
+              .from(employeesTable)
+              .where(inArray(employeesTable.id, employeeIds))
+          ).map((employee) => [
+            employee.id,
+            `${employee.firstName} ${employee.lastName}`.trim(),
+          ]),
+        )
+      : new Map<string, string>();
+  const rows = rawRows.map((row) => ({
     ...safeRow(row),
+    ...(req.params.entity === "leave_balances"
+      ? {
+          employee_name: employeeNames.get(String(row.employee_id ?? "")) ?? "",
+          remaining:
+            Number(row.allocated ?? 0) -
+            Number(row.used ?? 0) -
+            Number(row.pending ?? 0),
+        }
+      : {}),
     ...(req.params.entity !== "companies"
       ? {
           company_name:
@@ -898,6 +1099,8 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
     columns:
       req.params.entity === "companies"
         ? config.columns
+        : req.params.entity === "leave_balances"
+          ? [...config.columns, "employee_name", "remaining", "company_name"]
         : [...config.columns, "company_name"],
     editable: config.editable,
     supportEditable: config.supportEditable ?? [],
