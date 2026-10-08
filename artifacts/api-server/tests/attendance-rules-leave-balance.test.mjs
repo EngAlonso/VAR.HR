@@ -34,10 +34,6 @@ const apiMessages = readFileSync(
   new URL("../src/lib/i18n.ts", import.meta.url),
   "utf8",
 );
-const leaveBalanceLogic = readFileSync(
-  new URL("../src/lib/annual-leave-balance.mjs", import.meta.url),
-  "utf8",
-);
 const spec = readFileSync(
   new URL("../../../lib/api-spec/openapi.yaml", import.meta.url),
   "utf8",
@@ -207,21 +203,37 @@ test("schedule changes rebase movement records only in editable payroll periods"
   assert.match(app, /query\.queryKey\[0\]\.startsWith\("\/api\/payroll\/"\)/);
 });
 
-test("absence-to-annual-leave deduction follows the explicit attendance rule", () => {
-  assert.match(route, /absenceDeductsAnnualLeave/);
-  assert.match(route, /absenceLeaveDeductionDays/);
-  assert.match(route, /calculateAnnualLeaveDeduction/);
-  assert.match(route, /automaticallyDeductAbsence/);
-  assert.match(route, /absenceLeaveDeductionTrigger === "any_absence"/);
-  assert.match(route, /"approved_permission"/);
-  assert.match(route, /absenceKind,\s*date/);
-  assert.match(route, /absence_leave:\$\{attendance\.id\}/);
-  assert.match(route, /permission_leave:\$\{request\.id\}/);
-  assert.doesNotMatch(route, /const shouldDeductAnnualLeave = true/);
-  assert.match(leaveBalanceLogic, /"unexcused_absence"/);
-  assert.match(leaveBalanceLogic, /"missing_attendance"/);
-  assert.match(leaveBalanceLogic, /includes\(absenceKind\)/);
-  assert.match(route, /transactionType: "deduction"/);
+test("annual leave is deducted only for explicit leave approval or manager conversion", () => {
+  assert.doesNotMatch(
+    route,
+    /applyAutomaticAbsenceAnnualLeave|applyApprovedPermissionAnnualLeave|permission_leave:\$\{request\.id\}/,
+  );
+  assert.match(
+    route,
+    /const deductOnApproval =\s*isAnnualLeaveType\(request\.type\) \|\| policy\?\.deductionMode !== "manual"/,
+  );
+  assert.match(
+    route,
+    /used: sql`\$\{leaveBalancesTable\.used\} \+ \$\{request\.days\}`/,
+  );
+  assert.match(route, /Converted absence on \$\{row\.attendance\.date\} to annual leave/);
+  assert.match(route, /status: "approved"/);
+  assert.match(app, /annualLeaveDeductionOnlyExplicit/);
+  const annualLeaveSettings = app.slice(
+    app.indexOf('<Card className="order-4 p-6">'),
+    app.indexOf('<h3 className="mt-6 font-semibold">{t("annualLeaveBalances")}</h3>'),
+  );
+  assert.doesNotMatch(annualLeaveSettings, /absenceDeductsAnnualLeave|absenceLeaveDeductionDays/);
+  assert.doesNotMatch(
+    annualLeaveSettings,
+    /monthlyMaximumDeduction|balanceDeductionMonths/,
+  );
+  assert.match(app, /function isAnnualLeavePolicy/);
+  assert.match(app, /t\("deductOnApproval"\)/);
+  assert.match(
+    app,
+    /deductionMode: isAnnualLeavePolicy\(policyForm\.leaveType\)\s*\?\s*"automatic"/,
+  );
   assert.match(route, /absence_leave_reversal:\$\{attendance\.id\}/);
   assert.match(route, /transactionType: "restoration"/);
   assert.match(route, /onConflictDoNothing\(\)/);
@@ -249,12 +261,9 @@ test("manual absence conversion decrements annual leave by one day", () => {
   assert.match(route, /balanceRemaining: afterBalance/);
 });
 
-test("annual eligibility gates automatic deductions but not manual conversions", () => {
-  assert.equal(
-    (route.match(/if \(!employee\?\.automaticAnnualLeaveEligible\) return 0;/g) ?? [])
-      .length,
-    2,
-  );
+test("annual eligibility controls allocation but does not gate explicit manual conversion", () => {
+  assert.match(route, /calculateEligibleAnnualLeaveAllocation/);
+  assert.doesNotMatch(route, /if \(!employee\?\.automaticAnnualLeaveEligible\) return 0;/);
   assert.match(app, /automaticAnnualLeaveEligible:\s*form\.automaticAnnualLeaveEligible/);
   assert.match(app, /automaticAnnualLeaveEligible:\s*editForm\.automaticAnnualLeaveEligible/);
 });
@@ -314,9 +323,8 @@ test("leave balances expose configured leave-year boundaries and states", () => 
   assert.match(route, /deductedThisMonth/);
   assert.match(route, /unauthorizedAbsenceDays/);
   assert.match(app, /leaveYearStartsIn/);
-  assert.match(app, /label="Annual balance"/);
-  assert.match(app, /label="Deducted for absence"/);
-  assert.match(app, /label="Deducted this month"/);
+  assert.match(app, /label=\{t\("deductedForAbsence"\)\}/);
+  assert.match(app, /label=\{t\("deductedThisMonth"\)\}/);
   assert.match(app, /function EmployeeProfilePage\(\)/);
   assert.match(app, /text-profile-annual-total-\$\{employee\.data\.id\}/);
 });
@@ -334,7 +342,7 @@ test("attendance rules and leave balances share the policy contract", () => {
   assert.match(route, /monthStart/);
   assert.match(route, /change\.oldValue/);
   assert.match(route, /effectiveLeavePolicy\([\s\S]*request\.from/);
-  assert.match(route, /attendanceRulesFor\(context\.companyId, request\.date\)/);
+  assert.doesNotMatch(route, /attendanceRulesFor\(context\.companyId, request\.date\)/);
   assert.match(route, /attendanceRuleChangesTable/);
 });
 

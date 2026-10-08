@@ -1867,9 +1867,10 @@ const pageCopy = {
     employeeEmploymentSection: "Employment details",
     employeeEmploymentDetail:
       "Set the working terms that will guide attendance and payroll calculations.",
-    automaticAnnualLeaveEligible: "Eligible for automatic annual leave",
+    automaticAnnualLeaveEligible:
+      "Eligible for automatic annual leave accrual",
     automaticAnnualLeaveEligibleHint:
-      "When off, annual leave is not added or deducted automatically. Manually assigned balances and manual absence conversions still work.",
+      "When off, the annual entitlement is not added automatically. Manually assigned balances and manager-approved leave still work.",
     workingHours: "Working hours",
     workingHoursHint: "Hours per working day.",
     employmentStartDate: "Employment start date",
@@ -2106,7 +2107,9 @@ const pageCopy = {
       "Set late, early-departure, and absence multipliers, including approved permission coverage.",
     annualLeaveSettings: "Annual leave system",
     annualLeaveSettingsDetail:
-      "These current settings are used by annual balances, attendance, permissions, payroll, and self-service.",
+      "Annual leave is deducted only after an annual-leave request is approved or a manager explicitly grants the leave.",
+    annualLeaveDeductionOnlyExplicit:
+      "Absence and permission records do not deduct annual leave.",
     annualLeaveBalances: "Annual leave balances",
     annualEntitlementDays: "Annual entitlement (days)",
     leaveYearStartsIn: "Leave year starts in",
@@ -2121,6 +2124,7 @@ const pageCopy = {
     policyEnabled: "Policy enabled",
     accrualFrequency: "Accrual frequency",
     deductionMode: "Deduction mode",
+    deductOnApproval: "Deduct on leave approval",
     automatic: "Automatic",
     manual: "Manual",
     carryForwardDays: "Carry-forward days",
@@ -2346,9 +2350,9 @@ const pageCopy = {
     employeeEmploymentSection: "بيانات التوظيف",
     employeeEmploymentDetail:
       "حدد شروط العمل التي ستوجّه حسابات الحضور والرواتب.",
-    automaticAnnualLeaveEligible: "مؤهل للرصيد السنوي التلقائي",
+    automaticAnnualLeaveEligible: "مؤهل للاستحقاق السنوي التلقائي",
     automaticAnnualLeaveEligibleHint:
-      "عند إيقافه، لا يُضاف أو يُخصم الرصيد السنوي تلقائيًا. يظل الرصيد المضاف يدويًا والتحويل اليدوي للغياب متاحين.",
+      "عند إيقافه، لا يُضاف الاستحقاق السنوي تلقائيًا. يظل الرصيد المضاف يدويًا والإجازات المعتمدة متاحين.",
     workingHours: "ساعات العمل",
     workingHoursHint: "عدد الساعات في يوم العمل.",
     employmentStartDate: "تاريخ بدء العمل",
@@ -2603,7 +2607,9 @@ const pageCopy = {
       "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد.",
     annualLeaveSettings: "نظام الرصيد السنوي",
     annualLeaveSettingsDetail:
-      "تستخدم هذه الإعدادات الحالية في الرصيد السنوي والحضور والإذن والرواتب والخدمة الذاتية.",
+      "يُخصم الرصيد السنوي بعد اعتماد طلب الإجازة السنوية أو منح المدير للإجازة يدويًا فقط.",
+    annualLeaveDeductionOnlyExplicit:
+      "الغياب والإذن لا يخصمان من رصيد الإجازة السنوية.",
     annualLeaveBalances: "أرصدة الإجازة السنوية",
     annualEntitlementDays: "أيام الإجازة السنوية",
     leaveYearStartsIn: "بداية سنة الإجازة",
@@ -2618,6 +2624,7 @@ const pageCopy = {
     policyEnabled: "السياسة مفعلة",
     accrualFrequency: "وتيرة الاستحقاق",
     deductionMode: "طريقة الخصم",
+    deductOnApproval: "الخصم عند اعتماد الإجازة",
     automatic: "تلقائي",
     manual: "يدوي",
     carryForwardDays: "أيام الترحيل",
@@ -3109,9 +3116,10 @@ const pageCopy = {
     employeeEmploymentSection: "Détails de l’emploi",
     employeeEmploymentDetail:
       "Définissez les conditions qui guideront les calculs de présence et de paie.",
-    automaticAnnualLeaveEligible: "Éligible au congé annuel automatique",
+    automaticAnnualLeaveEligible:
+      "Éligible à l’attribution automatique du congé annuel",
     automaticAnnualLeaveEligibleHint:
-      "Désactivé, le congé annuel n’est ni ajouté ni déduit automatiquement. Les soldes attribués manuellement et la conversion manuelle des absences restent possibles.",
+      "Désactivé, le droit annuel n’est pas ajouté automatiquement. Les soldes attribués manuellement et les congés approuvés restent possibles.",
     monthlySalary: "Salaire mensuel",
     compensation: "Rémunération",
     payBasis: "Mode de rémunération",
@@ -3572,9 +3580,10 @@ const pageCopy = {
     employeeEmploymentSection: "Beschäftigungsdetails",
     employeeEmploymentDetail:
       "Legen Sie die Angaben fest, die Anwesenheits- und Abrechnungen steuern.",
-    automaticAnnualLeaveEligible: "Für automatischen Jahresurlaub berechtigt",
+    automaticAnnualLeaveEligible:
+      "Für automatische Jahresurlaubszuweisung berechtigt",
     automaticAnnualLeaveEligibleHint:
-      "Ist die Option aus, wird Jahresurlaub weder automatisch gutgeschrieben noch abgezogen. Manuell zugewiesene Salden und manuelle Abwesenheitsumwandlungen bleiben möglich.",
+      "Ist die Option aus, wird der Jahresurlaubsanspruch nicht automatisch gutgeschrieben. Manuell zugewiesene Salden und genehmigter Urlaub bleiben möglich.",
     monthlySalary: "Monatsgehalt",
     compensation: "Vergütung",
     payBasis: "Vergütungsart",
@@ -9316,8 +9325,6 @@ function EmployeeHrProfile({
                     absenceDeducted: number;
                     pending: number;
                     remaining: number;
-                    allowedBalanceMonths: number[];
-                    monthlyDeductionLimit: number;
                     deductedThisMonth: number;
                     unauthorizedAbsenceDays: number;
                   }>
@@ -9346,18 +9353,6 @@ function EmployeeHrProfile({
                       <Info
                         label={t("daysRemaining")}
                         value={formatDays(Math.max(0, balance.remaining))}
-                      />
-                      <Info
-                        label={t("deductionMonths")}
-                        value={
-                          balance.allowedBalanceMonths
-                            .map(formatMonth)
-                            .join(", ") || t("notAvailable")
-                        }
-                      />
-                      <Info
-                        label={t("deductionMonthlyMaximum")}
-                        value={formatDays(balance.monthlyDeductionLimit)}
                       />
                       <Info
                         label={t("deductedThisMonth")}
@@ -14771,6 +14766,10 @@ function AnnualLeaveControls() {
     return value === "automatic" ? t("automatic") : t("manual");
   }
 
+  function isAnnualLeavePolicy(type: string) {
+    return ["annual", "annual leave"].includes(type.trim().toLowerCase());
+  }
+
   function transactionType(value: string) {
     return (
       {
@@ -14789,6 +14788,9 @@ function AnnualLeaveControls() {
         data: {
           ...policyForm,
           annualEntitlement: Number(policyForm.annualEntitlement),
+          deductionMode: isAnnualLeavePolicy(policyForm.leaveType)
+            ? "automatic"
+            : policyForm.deductionMode,
           carryForwardDays: Number(policyForm.carryForwardDays),
           allowedBalanceMonths: policyForm.allowedBalanceMonths.map(Number),
           monthlyDeductionLimit: Number(policyForm.monthlyDeductionLimit),
@@ -14871,7 +14873,9 @@ function AnnualLeaveControls() {
                     {policy.annualEntitlement} {t("days")} /{" "}
                     {locale === "ar" ? "سنة" : "year"} ·{" "}
                     {policyFrequency(policy.accrualFrequency)} ·{" "}
-                    {deductionMode(policy.deductionMode)} ·{" "}
+                     {isAnnualLeavePolicy(policy.leaveType)
+                       ? t("deductOnApproval")
+                       : deductionMode(policy.deductionMode)} ·{" "}
                     {locale === "ar" ? "ساري من" : "effective"}{" "}
                     {policy.effectiveFrom}
                   </p>
@@ -14891,9 +14895,9 @@ function AnnualLeaveControls() {
                         ? "محظور"
                         : "blocked"}{" "}
                     · {t("leaveYearStartsMonth")}{" "}
-                    {policy.periodStartMonth || 1} · {t("deductionMonths")}:{" "}
-                    {(policy.allowedBalanceMonths || []).join(", ")} ·{" "}
-                    {t("monthlyMaximum")}: {policy.monthlyDeductionLimit}
+                     {policy.periodStartMonth || 1}
+                     {!isAnnualLeavePolicy(policy.leaveType) &&
+                       ` · ${t("deductionMonths")}: ${(policy.allowedBalanceMonths || []).join(", ")} · ${t("monthlyMaximum")}: ${policy.monthlyDeductionLimit}`}
                     {!policy.enabled && ` · ${t("disabled")}`}
                   </p>
                 </div>
@@ -14910,12 +14914,18 @@ function AnnualLeaveControls() {
               className="space-y-3 rounded-xl bg-muted/40 p-4"
             >
               <h3 className="font-semibold">{t("createPolicyVersion")}</h3>
-              <Field
-                label={t("leaveType")}
-                value={policyForm.leaveType}
-                onChange={(value) =>
-                  setPolicyForm({ ...policyForm, leaveType: value })
-                }
+                <Field
+                  label={t("leaveType")}
+                  value={policyForm.leaveType}
+                  onChange={(value) =>
+                    setPolicyForm({
+                      ...policyForm,
+                      leaveType: value,
+                      ...(isAnnualLeavePolicy(value)
+                        ? { deductionMode: "automatic" }
+                        : {}),
+                    })
+                  }
                 required
               />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -15008,22 +15018,24 @@ function AnnualLeaveControls() {
                     </option>
                   </select>
                 </label>
-                <label className="text-sm font-semibold">
-                  {t("deductionMode")}
-                  <select
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                    value={policyForm.deductionMode}
-                    onChange={(event) =>
-                      setPolicyForm({
-                        ...policyForm,
-                        deductionMode: event.target.value,
-                      })
-                    }
-                  >
-                    <option value="automatic">{t("automatic")}</option>
-                    <option value="manual">{t("manual")}</option>
-                  </select>
-                </label>
+                {!isAnnualLeavePolicy(policyForm.leaveType) && (
+                  <label className="text-sm font-semibold">
+                    {t("deductionMode")}
+                    <select
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                      value={policyForm.deductionMode}
+                      onChange={(event) =>
+                        setPolicyForm({
+                          ...policyForm,
+                          deductionMode: event.target.value,
+                        })
+                      }
+                    >
+                      <option value="automatic">{t("automatic")}</option>
+                      <option value="manual">{t("manual")}</option>
+                    </select>
+                  </label>
+                )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
@@ -15048,6 +15060,7 @@ function AnnualLeaveControls() {
                   }
                 />
               </div>
+              {!isAnnualLeavePolicy(policyForm.leaveType) && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
                   label={t("monthlyMaximumDeduction")}
@@ -15094,6 +15107,7 @@ function AnnualLeaveControls() {
                   </span>
                 </label>
               </div>
+              )}
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -15918,56 +15932,10 @@ function Rules() {
           </p>
         </div>
         <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-          <label className="flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
-            <input
-              type="checkbox"
-              checked={Boolean(form.absenceDeductsAnnualLeave)}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  absenceDeductsAnnualLeave: event.target.checked,
-                })
-              }
-              className="mt-0.5 h-4 w-4 accent-primary"
-            />
-            <span>
-              {t("deductAnnualLeaveForUnapproved")}
-              <span className="mt-1 block text-xs font-normal">
-                {t("absenceDeductionDetail")}
-              </span>
-            </span>
-          </label>
+          <p className="rounded-xl border border-border bg-background p-4 text-sm text-muted-foreground">
+            {t("annualLeaveDeductionOnlyExplicit")}
+          </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-semibold">
-              {t("absenceDeductionWhen")}
-              <select
-                value={form.absenceLeaveDeductionTrigger}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    absenceLeaveDeductionTrigger: event.target.value,
-                  })
-                }
-                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-              >
-                <option value="unexcused_absence">
-                  {t("unapprovedAbsencesOnly")}
-                </option>
-                <option value="any_absence">{t("anyAbsenceMissing")}</option>
-              </select>
-            </label>
-            <Field
-              label={t("leaveDaysPerAbsence")}
-              type="number"
-              min={0}
-              required
-              value={form.absenceLeaveDeductionDays}
-              onChange={(value) =>
-                setForm({ ...form, absenceLeaveDeductionDays: value })
-              }
-            />
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field
               label={t("annualEntitlementDays")}
               type="number"
@@ -15998,55 +15966,6 @@ function Rules() {
                 )}
               </select>
             </label>
-            <Field
-              label={t("monthlyMaximumDeduction")}
-              type="number"
-              min={0}
-              value={form.annualLeaveMonthlyDeductionLimit ?? 1}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  annualLeaveMonthlyDeductionLimit: value,
-                })
-              }
-            />
-          </div>
-          <div className="mt-4">
-            <span className="text-sm font-semibold">
-              {t("balanceDeductionMonths")}
-            </span>
-            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
-              {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                (month) => {
-                  const selectedMonths = form.annualLeaveAllowedMonths || [];
-                  return (
-                    <label
-                      key={month}
-                      className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedMonths.includes(month)}
-                        onChange={(event) =>
-                          setForm({
-                            ...form,
-                            annualLeaveAllowedMonths: event.target.checked
-                              ? [...selectedMonths, month].sort(
-                                  (a: number, b: number) => a - b,
-                                )
-                              : selectedMonths.filter(
-                                  (item: number) => item !== month,
-                                ),
-                          })
-                        }
-                        className="h-4 w-4 accent-primary"
-                      />
-                      {month}
-                    </label>
-                  );
-                },
-              )}
-            </div>
           </div>
         </div>
         <h3 className="mt-6 font-semibold">{t("annualLeaveBalances")}</h3>
