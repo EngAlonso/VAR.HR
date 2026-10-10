@@ -517,7 +517,13 @@ const platformLeaveBalanceSupportSchema = z
       .finite()
       .min(0)
       .max(9999.99)
-      .refine((value) => Number.isInteger(value * 100)),
+      .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8),
+    used: z
+      .number()
+      .finite()
+      .min(0)
+      .max(9999.99)
+      .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8),
     reason: z.string().trim().min(10).max(500),
   })
   .strict();
@@ -872,7 +878,7 @@ router.patch(
     const parsed = platformLeaveBalanceSupportSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({
-        error: "Provide a valid total allocation, company, and reason.",
+        error: "Provide a valid total, used days, company, and reason.",
       });
       return;
     }
@@ -896,17 +902,26 @@ router.patch(
       }
 
       const previousAllocated = roundDays(Number(before.allocated));
+      const previousUsed = roundDays(Number(before.used));
       const allocated = roundDays(parsed.data.allocated);
-      if (previousAllocated === allocated) return { kind: "unchanged" as const };
-
-      const used = roundDays(Number(before.used));
+      const used = roundDays(parsed.data.used);
       const pending = roundDays(Number(before.pending));
-      const beforeRemaining = roundDays(previousAllocated - used - pending);
+      if (previousAllocated === allocated && previousUsed === used) {
+        return { kind: "unchanged" as const };
+      }
+
+      const originalRemaining = roundDays(previousAllocated - previousUsed - pending);
       const afterRemaining = roundDays(allocated - used - pending);
-      const amount = roundDays(allocated - previousAllocated);
+      if (afterRemaining < 0) return { kind: "total_too_small" as const };
+
+      const amount = roundDays(afterRemaining - originalRemaining);
+      const changedFields = [
+        ...(previousAllocated !== allocated ? ["allocated"] : []),
+        ...(previousUsed !== used ? ["used"] : []),
+      ];
       const [updated] = await tx
         .update(leaveBalancesTable)
-        .set({ allocated })
+        .set({ allocated, used })
         .where(
           and(
             eq(leaveBalancesTable.id, before.id),
@@ -922,7 +937,7 @@ router.patch(
         leaveType: before.type,
         amount,
         transactionType: "manual_adjustment",
-        beforeBalance: beforeRemaining,
+        beforeBalance: originalRemaining,
         afterBalance: afterRemaining,
         actorId: context.accountId,
         reason: parsed.data.reason,
@@ -936,9 +951,9 @@ router.patch(
         entityId: before.id,
         before: {
           allocated: previousAllocated,
-          used,
+          used: previousUsed,
           pending,
-          remaining: beforeRemaining,
+          remaining: originalRemaining,
         },
         after: {
           allocated,
@@ -961,7 +976,9 @@ router.patch(
           remaining: afterRemaining,
         },
         previousAllocated,
+        previousUsed,
         amount,
+        changedFields,
       };
     });
 
@@ -974,7 +991,13 @@ router.patch(
       return;
     }
     if (result.kind === "unchanged") {
-      res.status(400).json({ error: "The total allocation has not changed." });
+      res.status(400).json({ error: "The leave balance has not changed." });
+      return;
+    }
+    if (result.kind === "total_too_small") {
+      res.status(400).json({
+        error: "The total must cover used and pending leave days.",
+      });
       return;
     }
     await writeAuthAudit({
@@ -984,8 +1007,9 @@ router.patch(
       entityType: "database:leave_balances",
       entityId: result.balance.id,
       metadata: {
-        fields: ["allocated"],
+        fields: result.changedFields,
         previousAllocated: result.previousAllocated,
+        previousUsed: result.previousUsed,
         allocated: result.balance.allocated,
         used: result.balance.used,
         pending: result.balance.pending,

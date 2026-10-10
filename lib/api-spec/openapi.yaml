@@ -2213,7 +2213,7 @@ paths:
     patch:
       operationId: supportPlatformAnnualLeaveBalance
       tags: [platform]
-      summary: Update an employee's annual leave total while preserving used and pending days
+      summary: Update an employee's annual leave allocation and usage while preserving pending days
       parameters:
         - name: id
           in: path
@@ -2227,12 +2227,12 @@ paths:
               $ref: "#/components/schemas/PlatformLeaveBalanceSupportInput"
       responses:
         "200":
-          description: Updated annual leave balance with usage preserved
+          description: Updated annual leave balance with pending days preserved
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlatformLeaveBalanceSupportResponse"
-        "400": { description: Invalid total or non-annual leave balance }
+        "400": { description: Invalid balance values or non-annual leave balance }
         "403": { description: Platform Owner access required }
         "404": { description: Balance not found in the selected company }
   /platform/google-drive:
@@ -3369,10 +3369,11 @@ components:
         reason: { type: string, minLength: 1 }
     PlatformLeaveBalanceSupportInput:
       type: object
-      required: [companyId, allocated, reason]
+      required: [companyId, allocated, used, reason]
       properties:
         companyId: { type: string, format: uuid }
         allocated: { type: number, minimum: 0, maximum: 9999.99 }
+        used: { type: number, minimum: 0, maximum: 9999.99 }
         reason: { type: string, minLength: 10, maxLength: 500 }
     PlatformLeaveBalanceSupportResponse:
       type: object

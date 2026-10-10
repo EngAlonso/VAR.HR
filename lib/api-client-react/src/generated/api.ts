@@ -9736,7 +9736,7 @@ export const getSupportPlatformAnnualLeaveBalanceUrl = (id: string,) => {
 }
 
 /**
- * @summary Update an employee's annual leave total while preserving used and pending days
+ * @summary Update an employee's annual leave allocation and usage while preserving pending days
  */
 export const supportPlatformAnnualLeaveBalance = async (id: string,
     platformLeaveBalanceSupportInput: PlatformLeaveBalanceSupportInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformLeaveBalanceSupportResponse> => {
@@ -9786,7 +9786,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SupportPlatformAnnualLeaveBalanceMutationError = ErrorType<void>
 
     /**
- * @summary Update an employee's annual leave total while preserving used and pending days
+ * @summary Update an employee's annual leave allocation and usage while preserving pending days
  */
 export const useSupportPlatformAnnualLeaveBalance = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof supportPlatformAnnualLeaveBalance>>, TError,{id: string;data: BodyType<PlatformLeaveBalanceSupportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

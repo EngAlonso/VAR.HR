@@ -4749,7 +4749,7 @@ export const UpdatePlatformCompanyResponse = zod.unknown()
 
 
 /**
- * @summary Update an employee's annual leave total while preserving used and pending days
+ * @summary Update an employee's annual leave allocation and usage while preserving pending days
  */
 export const SupportPlatformAnnualLeaveBalanceParams = zod.object({
   "id": zod.uuid()
@@ -4757,6 +4757,9 @@ export const SupportPlatformAnnualLeaveBalanceParams = zod.object({
 
 export const supportPlatformAnnualLeaveBalanceBodyAllocatedMin = 0;
 export const supportPlatformAnnualLeaveBalanceBodyAllocatedMax = 9999.99;
+
+export const supportPlatformAnnualLeaveBalanceBodyUsedMin = 0;
+export const supportPlatformAnnualLeaveBalanceBodyUsedMax = 9999.99;
 
 export const supportPlatformAnnualLeaveBalanceBodyReasonMin = 10;
 export const supportPlatformAnnualLeaveBalanceBodyReasonMax = 500;
@@ -4766,6 +4769,7 @@ export const supportPlatformAnnualLeaveBalanceBodyReasonMax = 500;
 export const SupportPlatformAnnualLeaveBalanceBody = zod.object({
   "companyId": zod.uuid(),
   "allocated": zod.number().min(supportPlatformAnnualLeaveBalanceBodyAllocatedMin).max(supportPlatformAnnualLeaveBalanceBodyAllocatedMax),
+  "used": zod.number().min(supportPlatformAnnualLeaveBalanceBodyUsedMin).max(supportPlatformAnnualLeaveBalanceBodyUsedMax),
   "reason": zod.string().min(supportPlatformAnnualLeaveBalanceBodyReasonMin).max(supportPlatformAnnualLeaveBalanceBodyReasonMax)
 })
 

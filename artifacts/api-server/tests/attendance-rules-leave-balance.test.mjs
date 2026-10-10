@@ -421,7 +421,7 @@ test("platform database editing is restricted to configured fields and wired to 
   );
 });
 
-test("platform owner can adjust annual leave total without changing usage", () => {
+test("platform owner can edit annual leave total or usage and preserve pending days", () => {
   assert.match(
     platformAdminRoute,
     /router\.patch\(\s*"\/platform\/leave-balances\/:id\/support"/,
@@ -431,14 +431,26 @@ test("platform owner can adjust annual leave total without changing usage", () =
     /const context = await requirePlatformOwner\(req\)/,
   );
   assert.match(platformAdminRoute, /if \(!\["annual", "annual leave"\]/);
-  assert.match(platformAdminRoute, /\.set\(\{ allocated \}\)/);
+  assert.match(platformAdminRoute, /\.set\(\{ allocated, used \}\)/);
+  assert.match(platformAdminRoute, /afterRemaining < 0/);
+  assert.match(
+    platformAdminRoute,
+    /const originalRemaining = roundDays\(previousAllocated - previousUsed - pending\)/,
+  );
+  assert.match(platformAdminRoute, /afterRemaining - originalRemaining/);
   assert.match(platformAdminRoute, /transactionType: "manual_adjustment"/);
   assert.match(platformAdminRoute, /used: roundDays\(Number\(updated\.used\)\)/);
   assert.match(platformAdminRoute, /entityType: "leave_balance"/);
+  assert.match(app, /const \[balanceUsed, setBalanceUsed\]/);
+  assert.match(app, /const \[balanceRemaining, setBalanceRemaining\]/);
+  assert.match(app, /updateBalanceFromRemaining/);
+  assert.match(app, /allocated - used - pendingDays/);
+  assert.match(app, /allocated - pendingDays - remaining/);
   assert.match(app, /leave_balances: "databaseLeaveBalances"/);
   assert.match(app, /data\.key === "leave_balances"/);
   assert.match(app, /annualLeaveTotalHint/);
   assert.match(app, /\/api\/platform\/leave-balances\/\$\{balanceEditing\.id\}\/support/);
+  assert.match(spec, /required: \[companyId, allocated, used, reason\]/);
 });
 
 test("USB connector ingestion is device-key protected and idempotent", () => {

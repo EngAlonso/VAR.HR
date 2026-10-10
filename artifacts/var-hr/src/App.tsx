@@ -789,13 +789,13 @@ const copy = {
     databaseSchedulingAttendance: "Scheduling and attendance",
     databaseLeavePayrollSupport: "Leave, payroll and platform support",
     databaseLeaveBalances: "Annual leave balances",
-    adjustAnnualLeaveTotal: "Adjust annual leave total",
+    adjustAnnualLeaveTotal: "Adjust annual leave balance",
     annualLeaveTotalHint:
-      "This changes the total allocated days only. Used and pending days stay unchanged; remaining days are recalculated.",
+      "Edit the total, used, or remaining days. The related value updates automatically using total = used + pending + remaining. Pending requests stay unchanged.",
     annualLeaveTotalSaved:
-      "Annual leave total updated and recorded in the audit and leave history.",
+      "Annual leave balance updated and recorded in the audit and leave history.",
     supportAnnualLeaveTotalInvalid:
-      "Enter a total from 0 to 9,999.99 days, with no more than two decimal places.",
+      "Enter valid total, used, and remaining values from 0 to 9,999.99 days, with no more than two decimal places. The total must cover used and pending days.",
     pendingLeaveDays: "Pending days",
     databaseEmployeeName: "Employee",
     dataExplorer: "Data explorer",
@@ -2946,13 +2946,13 @@ const pageCopy = {
     databaseSchedulingAttendance: "الجدولة والحضور",
     databaseLeavePayrollSupport: "الإجازات والرواتب ودعم المنصة",
     databaseLeaveBalances: "أرصدة الإجازة السنوية",
-    adjustAnnualLeaveTotal: "تعديل إجمالي الإجازة السنوية",
+    adjustAnnualLeaveTotal: "تعديل رصيد الإجازة السنوية",
     annualLeaveTotalHint:
-      "سيتم تعديل إجمالي الأيام المخصصة فقط. تظل الأيام المستخدمة والمعلقة كما هي، ويُعاد حساب الرصيد المتبقي.",
+      "يمكنك تعديل الإجمالي أو المستخدم أو المتبقي. تتحدث الخانة المرتبطة تلقائيًا وفق المعادلة: الإجمالي = المستخدم + المعلق + المتبقي. الطلبات المعلقة لا تتغير.",
     annualLeaveTotalSaved:
-      "تم تعديل إجمالي الإجازة السنوية وتسجيل التغيير في سجل التدقيق والإجازات.",
+      "تم تعديل رصيد الإجازة السنوية وتسجيل التغيير في سجل التدقيق والإجازات.",
     supportAnnualLeaveTotalInvalid:
-      "أدخل إجماليًا من 0 إلى 9,999.99 يومًا، وبحد أقصى منزلتين عشريتين.",
+      "أدخل إجماليًا ومستخدمًا ومتبقيًا صالحًا من 0 إلى 9,999.99 يومًا، وبحد أقصى منزلتين عشريتين. يجب أن يغطي الإجمالي الأيام المستخدمة والمعلقة.",
     pendingLeaveDays: "الأيام المعلقة",
     databaseEmployeeName: "الموظف",
     dataExplorer: "مستكشف البيانات",
@@ -20522,6 +20522,8 @@ function DatabaseAdministration() {
   const [balanceEditing, setBalanceEditing] =
     useState<Record<string, unknown> | null>(null);
   const [balanceAllocated, setBalanceAllocated] = useState("");
+  const [balanceUsed, setBalanceUsed] = useState("");
+  const [balanceRemaining, setBalanceRemaining] = useState("");
   const [balanceReason, setBalanceReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
@@ -20639,26 +20641,85 @@ function DatabaseAdministration() {
       return;
     }
     setError("");
-    setBalanceAllocated(String(row.allocated ?? 0));
+    const allocated = Number(row.allocated ?? 0);
+    const used = Number(row.used ?? 0);
+    const pending = Number(row.pending ?? 0);
+    setBalanceAllocated(String(allocated));
+    setBalanceUsed(String(used));
+    setBalanceRemaining(String(Math.round((allocated - used - pending) * 100) / 100));
     setBalanceReason("");
     setBalanceEditing(row);
     if (!companyFilter) setCompanyFilter(rowCompanyId);
+  };
+  const roundLeaveDays = (value: number) => Math.round(value * 100) / 100;
+  const hasTwoLeaveDecimals = (value: number) =>
+    Math.abs(value * 100 - Math.round(value * 100)) < 1e-8;
+  const updateBalanceFromTotal = (value: string) => {
+    setBalanceAllocated(value);
+    if (!value.trim()) return;
+    const allocated = Number(value);
+    const used = Number(balanceUsed);
+    const pendingDays = Number(balanceEditing?.pending ?? 0);
+    if (Number.isFinite(allocated) && Number.isFinite(used)) {
+      setBalanceRemaining(
+        String(roundLeaveDays(allocated - used - pendingDays)),
+      );
+    }
+  };
+  const updateBalanceFromUsed = (value: string) => {
+    setBalanceUsed(value);
+    if (!value.trim()) return;
+    const allocated = Number(balanceAllocated);
+    const used = Number(value);
+    const pendingDays = Number(balanceEditing?.pending ?? 0);
+    if (Number.isFinite(allocated) && Number.isFinite(used)) {
+      setBalanceRemaining(
+        String(roundLeaveDays(allocated - used - pendingDays)),
+      );
+    }
+  };
+  const updateBalanceFromRemaining = (value: string) => {
+    setBalanceRemaining(value);
+    if (!value.trim()) return;
+    const allocated = Number(balanceAllocated);
+    const remaining = Number(value);
+    const pendingDays = Number(balanceEditing?.pending ?? 0);
+    if (Number.isFinite(allocated) && Number.isFinite(remaining)) {
+      setBalanceUsed(
+        String(roundLeaveDays(allocated - pendingDays - remaining)),
+      );
+    }
   };
   const saveBalanceEdit = async () => {
     if (!balanceEditing) return;
     const companyId = String(balanceEditing.company_id ?? "");
     const allocated = Number(balanceAllocated);
+    const used = Number(balanceUsed);
+    const remaining = Number(balanceRemaining);
+    const pendingDays = Number(balanceEditing.pending ?? 0);
     if (
       !companyId ||
       !Number.isFinite(allocated) ||
+      !Number.isFinite(used) ||
+      !Number.isFinite(remaining) ||
       allocated < 0 ||
       allocated > 9999.99 ||
-      Math.round(allocated * 100) !== allocated * 100
+      used < 0 ||
+      used > 9999.99 ||
+      remaining < 0 ||
+      remaining > 9999.99 ||
+      !hasTwoLeaveDecimals(allocated) ||
+      !hasTwoLeaveDecimals(used) ||
+      !hasTwoLeaveDecimals(remaining) ||
+      roundLeaveDays(allocated - used - pendingDays) !== remaining
     ) {
       setError(t("supportAnnualLeaveTotalInvalid"));
       return;
     }
-    if (allocated === Number(balanceEditing.allocated ?? 0)) {
+    if (
+      allocated === Number(balanceEditing.allocated ?? 0) &&
+      used === Number(balanceEditing.used ?? 0)
+    ) {
       setError(t("supportNoChanges"));
       return;
     }
@@ -20674,6 +20735,7 @@ function DatabaseAdministration() {
         body: JSON.stringify({
           companyId,
           allocated,
+          used,
           reason: balanceReason.trim(),
         }),
       });
@@ -21273,27 +21335,9 @@ function DatabaseAdministration() {
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs font-semibold text-muted-foreground">
-                {t("usedDays")}
-              </p>
-              <p className="mt-1 font-medium">{String(balanceEditing.used ?? 0)}</p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs font-semibold text-muted-foreground">
                 {t("pendingLeaveDays")}
               </p>
               <p className="mt-1 font-medium">{String(balanceEditing.pending ?? 0)}</p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs font-semibold text-muted-foreground">
-                {t("daysRemaining")}
-              </p>
-              <p className="mt-1 font-medium">
-                {String(
-                  Number(balanceAllocated || 0) -
-                    Number(balanceEditing.used ?? 0) -
-                    Number(balanceEditing.pending ?? 0),
-                )}
-              </p>
             </div>
             <Field
               label={t("allocatedDays")}
@@ -21302,7 +21346,25 @@ function DatabaseAdministration() {
               min={0}
               max={9999.99}
               step={0.01}
-              onChange={setBalanceAllocated}
+              onChange={updateBalanceFromTotal}
+            />
+            <Field
+              label={t("usedDays")}
+              value={balanceUsed}
+              type="number"
+              min={0}
+              max={9999.99}
+              step={0.01}
+              onChange={updateBalanceFromUsed}
+            />
+            <Field
+              label={t("daysRemaining")}
+              value={balanceRemaining}
+              type="number"
+              min={0}
+              max={9999.99}
+              step={0.01}
+              onChange={updateBalanceFromRemaining}
             />
             <label className="block text-sm font-semibold sm:col-span-2">
               <span>{t("supportReasonLabel")}</span>

@@ -14,6 +14,11 @@ export interface PlatformLeaveBalanceSupportInput {
      */
   allocated: number;
   /**
+     * @minimum 0
+     * @maximum 9999.99
+     */
+  used: number;
+  /**
      * @minLength 10
      * @maxLength 500
      */
