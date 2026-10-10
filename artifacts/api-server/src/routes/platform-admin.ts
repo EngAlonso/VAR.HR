@@ -584,6 +584,14 @@ function configFor(name: string): EntityConfig {
   return config;
 }
 
+function databaseOrderBy(entity: string, config: EntityConfig): string {
+  if (entity === "employees") {
+    const employeeNumber = sqlIdentifier("employee_number");
+    return `regexp_replace(${employeeNumber}, '[^0-9]', '', 'g')::numeric ASC, ${employeeNumber} ASC, ${sqlIdentifier("id")} ASC`;
+  }
+  return `${sqlIdentifier(config.orderColumn ?? "created_at")} DESC NULLS LAST`;
+}
+
 function sqlIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
@@ -1063,7 +1071,7 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   ];
   const where = predicates.length ? ` WHERE ${predicates.join(" AND ")}` : "";
   const query = sql.raw(
-    `SELECT ${columns} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${sqlIdentifier(config.orderColumn ?? "created_at")} DESC NULLS LAST LIMIT ${limit} OFFSET ${offset}`,
+    `SELECT ${columns} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${databaseOrderBy(req.params.entity, config)} LIMIT ${limit} OFFSET ${offset}`,
   );
   const result = await db.execute(query);
   const companies = await db
@@ -1151,7 +1159,7 @@ router.get(
         : "";
     const result = await db.execute(
       sql.raw(
-        `SELECT ${config.columns.map(sqlIdentifier).join(", ")} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${sqlIdentifier(config.orderColumn ?? "created_at")} DESC NULLS LAST LIMIT 5000`,
+          `SELECT ${config.columns.map(sqlIdentifier).join(", ")} FROM ${sqlIdentifier(config.table)}${where} ORDER BY ${databaseOrderBy(req.params.entity, config)} LIMIT 5000`,
       ),
     );
     const rows = (result.rows as Record<string, unknown>[]).map(safeRow);

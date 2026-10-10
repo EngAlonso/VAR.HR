@@ -20886,12 +20886,70 @@ function DatabaseAdministration() {
   };
   const visibleColumns = data ? safeDatabaseColumns(data.columns) : [];
   const compactEmployeeTable = data?.key === "employees";
+  const compactTechnicalColumns = new Set([
+    "id",
+    "company_id",
+    "employee_id",
+    "department_id",
+    "branch_id",
+    "shift_id",
+    "created_at",
+    "updated_at",
+  ]);
+  const compactColumnPriority = [
+    "employee_name",
+    "employee_number",
+    "name",
+    "type",
+    "status",
+    "date",
+    "email",
+    "phone",
+    "from",
+    "to",
+    "amount",
+    "allocated",
+    "used",
+    "remaining",
+    "active",
+  ];
+  const compactColumnCandidates = visibleColumns.filter(
+    (column) => !compactTechnicalColumns.has(column),
+  );
+  const orderedCompactColumns = [...compactColumnCandidates].sort(
+    (left, right) => {
+      const leftPriority = compactColumnPriority.indexOf(left);
+      const rightPriority = compactColumnPriority.indexOf(right);
+      const leftRank =
+        leftPriority < 0
+          ? compactColumnPriority.length + compactColumnCandidates.indexOf(left)
+          : leftPriority;
+      const rightRank =
+        rightPriority < 0
+          ? compactColumnPriority.length + compactColumnCandidates.indexOf(right)
+          : rightPriority;
+      return leftRank - rightRank;
+    },
+  );
   const tableColumns = compactEmployeeTable
     ? ["employee_number", "employee_name", "phone", "status"]
-    : visibleColumns;
+    : orderedCompactColumns.length
+      ? orderedCompactColumns.slice(0, 3)
+      : visibleColumns.slice(0, 3);
+  const hasHiddenTableColumns = visibleColumns.some(
+    (column) => !tableColumns.includes(column),
+  );
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
+  const hasTableActions = Boolean(
+    supportsDatabaseActions ||
+      data?.key === "leave_balances" ||
+      editFields.length ||
+      data?.canArchive ||
+      data?.canDelete ||
+      hasHiddenTableColumns,
+  );
   const databaseValue = (key: string, value: unknown) => {
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
     if (
@@ -21167,38 +21225,34 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div
-            className={
-              compactEmployeeTable
-                ? "w-full overflow-hidden"
-                : "max-w-full overflow-auto"
-            }
-          >
-            <table
-              className={
-                compactEmployeeTable
-                  ? "w-full table-fixed text-left text-xs rtl:text-right"
-                  : "w-full min-w-[980px] text-left text-sm rtl:text-right"
-              }
-            >
-              {compactEmployeeTable ? (
-                <colgroup>
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "24%" }} />
-                  <col style={{ width: "20%" }} />
-                  <col style={{ width: "15%" }} />
-                  <col style={{ width: "23%" }} />
-                </colgroup>
-              ) : null}
+          <div className="w-full overflow-hidden">
+            <table className="w-full table-fixed text-left text-sm rtl:text-right">
+              <colgroup>
+                {tableColumns.map((column) => (
+                  <col
+                    key={column}
+                    style={{
+                      width: `${
+                        (hasTableActions
+                          ? compactEmployeeTable
+                            ? 66
+                            : 62
+                          : 100) / Math.max(tableColumns.length, 1)
+                      }%`,
+                    }}
+                  />
+                ))}
+                {hasTableActions ? (
+                  <col
+                    style={{ width: compactEmployeeTable ? "34%" : "38%" }}
+                  />
+                ) : null}
+              </colgroup>
               <thead className="sticky top-0 z-10 bg-muted/90 text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
                 <tr>
                   {tableColumns.map((column) => (
                     <th
-                      className={
-                        compactEmployeeTable
-                          ? "break-words px-2 py-2 font-bold leading-tight"
-                          : "whitespace-nowrap px-4 py-3 font-bold"
-                      }
+                      className="break-words px-2 py-2 font-bold leading-tight"
                       key={column}
                     >
                       {databaseColumnTranslationKeys[column]
@@ -21208,12 +21262,10 @@ function DatabaseAdministration() {
                           : column.replaceAll("_", " ")}
                     </th>
                   ))}
-                  {(supportsDatabaseActions ||
-                    data.key === "leave_balances" ||
-                    editFields.length ||
-                    data.canArchive ||
-                    data.canDelete) && (
-                    <th className="p-3 font-semibold">{t("actions")}</th>
+                  {hasTableActions && (
+                    <th className="break-words px-2 py-2 text-center font-semibold leading-tight">
+                      {t("actions")}
+                    </th>
                   )}
                 </tr>
               </thead>
@@ -21225,11 +21277,7 @@ function DatabaseAdministration() {
                   >
                     {tableColumns.map((column) => (
                       <td
-                        className={
-                          compactEmployeeTable
-                            ? "max-w-0 truncate px-2 py-2 align-middle leading-tight"
-                            : "max-w-[260px] truncate px-4 py-3 align-middle"
-                        }
+                        className="max-w-0 truncate px-2 py-2 align-middle leading-tight"
                         key={column}
                         title={
                           column === "employee_name"
@@ -21274,25 +21322,9 @@ function DatabaseAdministration() {
                         )}
                       </td>
                     ))}
-                    {(supportsDatabaseActions ||
-                      data.key === "leave_balances" ||
-                      editFields.length ||
-                      data.canArchive ||
-                      data.canDelete) && (
-                      <td
-                        className={
-                          compactEmployeeTable
-                            ? "p-1 align-middle"
-                            : "whitespace-nowrap p-3"
-                        }
-                      >
-                        <div
-                          className={
-                            compactEmployeeTable
-                              ? "flex flex-nowrap items-center justify-center gap-1"
-                              : "flex flex-wrap items-center gap-1.5"
-                          }
-                        >
+                    {hasTableActions && (
+                      <td className="px-2 py-1.5 align-middle">
+                        <div className="flex flex-wrap items-center gap-1">
                           {supportsDatabaseActions ? (
                             <>
                               <Button
