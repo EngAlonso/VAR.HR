@@ -20967,6 +20967,17 @@ function DatabaseAdministration() {
     }
     return String(value ?? "—");
   };
+  const databaseColumnLabel = (column: string) => {
+    if (data?.key === "departments") {
+      if (column === "name") return t("arabicName");
+      if (column === "name_en") return t("englishName");
+    }
+    return databaseColumnTranslationKeys[column]
+      ? t(databaseColumnTranslationKeys[column])
+      : locale === "ar"
+        ? t("databaseDataField")
+        : column.replaceAll("_", " ");
+  };
   return (
     <div className="animate-in space-y-6">
       <SectionTitle
@@ -21255,11 +21266,7 @@ function DatabaseAdministration() {
                       className="break-words px-2 py-2 font-bold leading-tight"
                       key={column}
                     >
-                      {databaseColumnTranslationKeys[column]
-                        ? t(databaseColumnTranslationKeys[column])
-                        : locale === "ar"
-                          ? t("databaseDataField")
-                          : column.replaceAll("_", " ")}
+                      {databaseColumnLabel(column)}
                     </th>
                   ))}
                   {hasTableActions && (
@@ -21533,7 +21540,7 @@ function DatabaseAdministration() {
             {editFields.map((key) => (
               <Field
                 key={key}
-                label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
+                label={databaseColumnLabel(key)}
                 value={String(editValues[key] ?? "")}
                 type={key === "work_days_per_month" ? "number" : "text"}
                 min={key === "work_days_per_month" ? 1 : undefined}
@@ -21587,11 +21594,7 @@ function DatabaseAdministration() {
             {visibleColumns.map((key) => (
               <div className="rounded-lg border border-border p-3" key={key}>
                 <p className="text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
-                {databaseColumnTranslationKeys[key]
-                  ? t(databaseColumnTranslationKeys[key])
-                  : locale === "ar"
-                    ? t("databaseDataField")
-                    : key.replaceAll("_", " ")}
+                  {databaseColumnLabel(key)}
                 </p>
                 <p className="mt-1 break-words text-sm">
                   {details[key] && typeof details[key] === "object"

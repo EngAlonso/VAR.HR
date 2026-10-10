@@ -61,7 +61,7 @@ const entities: Record<string, EntityConfig> = {
       "id",
       "company_id",
       "name",
-      "name_ar",
+      "name_en",
       "description",
       "manager_id",
       "default_schedule_id",
@@ -69,7 +69,7 @@ const entities: Record<string, EntityConfig> = {
       "created_at",
     ],
     editable: ["name"],
-    supportEditable: ["name", "name_ar", "description", "manager_id", "active"],
+    supportEditable: ["name", "name_en", "description", "manager_id", "active"],
     canArchive: true,
     companyColumn: "company_id",
   },
@@ -540,7 +540,7 @@ const supportFields: Record<string, string[]> = {
     "role",
     "work_days_per_month",
   ],
-  departments: ["name", "name_ar", "description", "manager_id", "active"],
+  departments: ["name", "name_en", "description", "manager_id", "active"],
   branches: [
     "name",
     "city",
@@ -1443,7 +1443,7 @@ router.patch(
         return;
       }
       if (
-        ["name", "name_ar", "description", "employee_number", "first_name", "last_name", "email", "phone", "city", "status", "role"].includes(key) &&
+        ["name", "name_ar", "name_en", "description", "employee_number", "first_name", "last_name", "email", "phone", "city", "status", "role"].includes(key) &&
         value !== null &&
         typeof value !== "string"
       ) {
