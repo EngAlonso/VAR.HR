@@ -21330,7 +21330,7 @@ function DatabaseAdministration() {
                               <Button
                                 className={
                                   compactEmployeeTable
-                                    ? "h-7 w-7 shrink-0 p-0"
+                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
                                     : "h-8 gap-1.5 px-2 text-xs"
                                 }
                                 variant="outline"
@@ -21339,12 +21339,12 @@ function DatabaseAdministration() {
                                 onClick={() => setDetails(row)}
                               >
                                 <Eye size={14} />
-                                {!compactEmployeeTable ? t("viewDetails") : null}
+                                {t("viewDetails")}
                               </Button>
                               <Button
                                 className={
                                   compactEmployeeTable
-                                    ? "h-7 w-7 shrink-0 p-0"
+                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
                                     : "h-8 gap-1.5 px-2 text-xs"
                                 }
                                 variant="outline"
@@ -21353,7 +21353,7 @@ function DatabaseAdministration() {
                                 onClick={() => void openHistory(row)}
                               >
                                 <Activity size={14} />
-                                {!compactEmployeeTable ? t("history") : null}
+                                {t("history")}
                               </Button>
                             </>
                           ) : null}
@@ -21361,7 +21361,7 @@ function DatabaseAdministration() {
                             <Button
                                 className={
                                   compactEmployeeTable
-                                    ? "h-7 w-7 shrink-0 p-0"
+                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
                                     : "h-8 gap-1.5 px-2 text-xs"
                                 }
                               variant="outline"
@@ -21374,7 +21374,7 @@ function DatabaseAdministration() {
                               onClick={() => openEdit(row)}
                             >
                               <Pencil size={14} />
-                                {!compactEmployeeTable ? t("edit") : null}
+                              {t("edit")}
                             </Button>
                           ) : null}
                           {data.key === "leave_balances" &&
@@ -21395,7 +21395,7 @@ function DatabaseAdministration() {
                             <Button
                               className={
                                 compactEmployeeTable
-                                  ? "h-7 w-7 shrink-0 p-0"
+                                  ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
                                   : "h-8 px-2 text-xs"
                               }
                               variant="quiet"
@@ -21404,18 +21404,15 @@ function DatabaseAdministration() {
                               disabled={pending !== ""}
                               onClick={() => void archive(row)}
                             >
-                              {compactEmployeeTable ? (
-                                <Archive size={14} />
-                              ) : (
-                                t("archive")
-                              )}
+                              {compactEmployeeTable ? <Archive size={14} /> : null}
+                              {t("archive")}
                             </Button>
                           ) : null}
                           {data.canDelete ? (
                             <Button
                                 className={
                                   compactEmployeeTable
-                                    ? "h-7 w-7 shrink-0 p-0"
+                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
                                     : "h-8 gap-1.5 px-2 text-xs"
                                 }
                               variant="danger"
@@ -21425,11 +21422,7 @@ function DatabaseAdministration() {
                               onClick={() => void deleteRecord(row)}
                             >
                               <Trash2 size={14} />
-                                {!compactEmployeeTable
-                                  ? pending === "delete"
-                                    ? "…"
-                                    : t("deleteRecord")
-                                  : null}
+                              {pending === "delete" ? "…" : t("deleteRecord")}
                             </Button>
                           ) : null}
                         </div>
