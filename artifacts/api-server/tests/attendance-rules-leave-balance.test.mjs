@@ -453,6 +453,18 @@ test("platform owner can edit annual leave total or usage and preserve pending d
   assert.match(spec, /required: \[companyId, allocated, used, reason\]/);
 });
 
+test("platform employee rows use a compact table without horizontal scrolling", () => {
+  assert.match(app, /const compactEmployeeTable = data\?\.key === "employees"/);
+  assert.match(app, /"w-full overflow-hidden"/);
+  assert.match(app, /"w-full table-fixed text-left text-xs rtl:text-right"/);
+  assert.match(
+    app,
+    /\["employee_number", "employee_name", "phone", "status"\]/,
+  );
+  assert.match(app, /"flex flex-nowrap items-center justify-center gap-1"/);
+  assert.match(app, /"h-7 w-7 shrink-0 p-0"/);
+});
+
 test("USB connector ingestion is device-key protected and idempotent", () => {
   assert.match(
     deviceConnectorRoute,

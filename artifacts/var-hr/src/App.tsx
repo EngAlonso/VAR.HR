@@ -42,6 +42,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  Archive,
   Check,
   ChevronDown,
   CircleHelp,
@@ -20884,6 +20885,10 @@ function DatabaseAdministration() {
     }
   };
   const visibleColumns = data ? safeDatabaseColumns(data.columns) : [];
+  const compactEmployeeTable = data?.key === "employees";
+  const tableColumns = compactEmployeeTable
+    ? ["employee_number", "employee_name", "phone", "status"]
+    : visibleColumns;
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
@@ -21162,12 +21167,40 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div className="max-w-full overflow-auto">
-            <table className="w-full min-w-[980px] text-left text-sm rtl:text-right">
+          <div
+            className={
+              compactEmployeeTable
+                ? "w-full overflow-hidden"
+                : "max-w-full overflow-auto"
+            }
+          >
+            <table
+              className={
+                compactEmployeeTable
+                  ? "w-full table-fixed text-left text-xs rtl:text-right"
+                  : "w-full min-w-[980px] text-left text-sm rtl:text-right"
+              }
+            >
+              {compactEmployeeTable ? (
+                <colgroup>
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "24%" }} />
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "23%" }} />
+                </colgroup>
+              ) : null}
               <thead className="sticky top-0 z-10 bg-muted/90 text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
                 <tr>
-                  {visibleColumns.map((column) => (
-                    <th className="whitespace-nowrap px-4 py-3 font-bold" key={column}>
+                  {tableColumns.map((column) => (
+                    <th
+                      className={
+                        compactEmployeeTable
+                          ? "break-words px-2 py-2 font-bold leading-tight"
+                          : "whitespace-nowrap px-4 py-3 font-bold"
+                      }
+                      key={column}
+                    >
                       {databaseColumnTranslationKeys[column]
                         ? t(databaseColumnTranslationKeys[column])
                         : locale === "ar"
@@ -21190,13 +21223,31 @@ function DatabaseAdministration() {
                     className="transition-colors hover:bg-muted/35"
                     key={String(row.id)}
                   >
-                    {visibleColumns.map((column) => (
+                    {tableColumns.map((column) => (
                       <td
-                        className="max-w-[260px] truncate px-4 py-3 align-middle"
+                        className={
+                          compactEmployeeTable
+                            ? "max-w-0 truncate px-2 py-2 align-middle leading-tight"
+                            : "max-w-[260px] truncate px-4 py-3 align-middle"
+                        }
                         key={column}
-                        title={String(row[column] ?? "")}
+                        title={
+                          column === "employee_name"
+                            ? [row.first_name, row.last_name]
+                                .map((value) => String(value ?? "").trim())
+                                .filter(Boolean)
+                                .join(" ")
+                            : String(row[column] ?? "")
+                        }
                       >
-                        {column === "company_name" && row.company_id ? (
+                        {column === "employee_name" ? (
+                          <span className="block truncate font-medium">
+                            {[row.first_name, row.last_name]
+                              .map((value) => String(value ?? "").trim())
+                              .filter(Boolean)
+                              .join(" ") || "—"}
+                          </span>
+                        ) : column === "company_name" && row.company_id ? (
                           <button
                             className="font-semibold text-primary hover:underline"
                             onClick={() =>
@@ -21228,32 +21279,62 @@ function DatabaseAdministration() {
                       editFields.length ||
                       data.canArchive ||
                       data.canDelete) && (
-                      <td className="whitespace-nowrap p-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      <td
+                        className={
+                          compactEmployeeTable
+                            ? "p-1 align-middle"
+                            : "whitespace-nowrap p-3"
+                        }
+                      >
+                        <div
+                          className={
+                            compactEmployeeTable
+                              ? "flex flex-nowrap items-center justify-center gap-1"
+                              : "flex flex-wrap items-center gap-1.5"
+                          }
+                        >
                           {supportsDatabaseActions ? (
                             <>
                               <Button
-                                className="h-8 gap-1.5 px-2 text-xs"
+                                className={
+                                  compactEmployeeTable
+                                    ? "h-7 w-7 shrink-0 p-0"
+                                    : "h-8 gap-1.5 px-2 text-xs"
+                                }
                                 variant="outline"
+                                aria-label={t("viewDetails")}
+                                title={t("viewDetails")}
                                 onClick={() => setDetails(row)}
                               >
                                 <Eye size={14} />
-                                {t("viewDetails")}
+                                {!compactEmployeeTable ? t("viewDetails") : null}
                               </Button>
                               <Button
-                                className="h-8 gap-1.5 px-2 text-xs"
+                                className={
+                                  compactEmployeeTable
+                                    ? "h-7 w-7 shrink-0 p-0"
+                                    : "h-8 gap-1.5 px-2 text-xs"
+                                }
                                 variant="outline"
+                                aria-label={t("history")}
+                                title={t("history")}
                                 onClick={() => void openHistory(row)}
                               >
                                 <Activity size={14} />
-                                {t("history")}
+                                {!compactEmployeeTable ? t("history") : null}
                               </Button>
                             </>
                           ) : null}
                           {editFields.length ? (
                             <Button
-                              className="h-8 gap-1.5 px-2 text-xs"
+                                className={
+                                  compactEmployeeTable
+                                    ? "h-7 w-7 shrink-0 p-0"
+                                    : "h-8 gap-1.5 px-2 text-xs"
+                                }
                               variant="outline"
+                                aria-label={t("edit")}
+                                title={t("edit")}
                               disabled={
                                 pending !== "" ||
                                 (!companyFilter && !row.company_id)
@@ -21261,7 +21342,7 @@ function DatabaseAdministration() {
                               onClick={() => openEdit(row)}
                             >
                               <Pencil size={14} />
-                              {t("edit")}
+                                {!compactEmployeeTable ? t("edit") : null}
                             </Button>
                           ) : null}
                           {data.key === "leave_balances" &&
@@ -21280,23 +21361,43 @@ function DatabaseAdministration() {
                           ) : null}
                           {data.canArchive ? (
                             <Button
-                              className="h-8 px-2 text-xs"
+                              className={
+                                compactEmployeeTable
+                                  ? "h-7 w-7 shrink-0 p-0"
+                                  : "h-8 px-2 text-xs"
+                              }
                               variant="quiet"
+                              aria-label={t("archive")}
+                              title={t("archive")}
                               disabled={pending !== ""}
                               onClick={() => void archive(row)}
                             >
-                               {t("archive")}
+                              {compactEmployeeTable ? (
+                                <Archive size={14} />
+                              ) : (
+                                t("archive")
+                              )}
                             </Button>
                           ) : null}
                           {data.canDelete ? (
                             <Button
-                              className="h-8 gap-1.5 px-2 text-xs"
+                                className={
+                                  compactEmployeeTable
+                                    ? "h-7 w-7 shrink-0 p-0"
+                                    : "h-8 gap-1.5 px-2 text-xs"
+                                }
                               variant="danger"
+                                aria-label={t("deleteRecord")}
+                                title={t("deleteRecord")}
                               disabled={pending !== ""}
                               onClick={() => void deleteRecord(row)}
                             >
                               <Trash2 size={14} />
-                              {pending === "delete" ? "…" : t("deleteRecord")}
+                                {!compactEmployeeTable
+                                  ? pending === "delete"
+                                    ? "…"
+                                    : t("deleteRecord")
+                                  : null}
                             </Button>
                           ) : null}
                         </div>
