@@ -19454,10 +19454,10 @@ function BackupRestore() {
         size: "الحجم",
         scheduleTitle: "النسخ الاحتياطي التلقائي",
         scheduleDetail:
-          "حدد تكرار نسخة المنصة ونسخة كل شركة بشكل مستقل.",
+          "عند اختيار التكرار اليومي، تُنشأ نسخة المنصة ونسخة كل شركة الساعة 13:00 بتوقيت القاهرة.",
         scheduleLoading: "جارٍ تحميل إعدادات الجدولة…",
         scheduleRuntime:
-          "الخوادم المستمرة تشغّل الجدولة تلقائيًا. في الخوادم serverless، اربط Cron يوميًا بالمسار /api/internal/backup-scheduler وأرسل CRON_SECRET في ترويسة Authorization.",
+          "على Replit، يفحص الخادم الجدولة كل دقيقة وينشئ النسخ ابتداءً من 13:00 بتوقيت القاهرة. على الخوادم serverless، اضبط Cron بعد 13:00 بتوقيت القاهرة وأرسل CRON_SECRET في ترويسة Authorization.",
         platformFrequency: "تكرار نسخة المنصة",
         companyFrequency: "تكرار نسخة كل شركة",
         off: "متوقف",
@@ -19549,10 +19549,10 @@ function BackupRestore() {
         size: "Size",
         scheduleTitle: "Automatic backup schedule",
         scheduleDetail:
-          "Set separate schedules for the full platform and each company.",
+          "When daily is selected, platform and company backups run at 13:00 Africa/Cairo time.",
         scheduleLoading: "Loading schedule settings…",
         scheduleRuntime:
-          "Long-running servers run the schedule automatically. On serverless hosts, call /api/internal/backup-scheduler daily with CRON_SECRET in the Authorization header.",
+          "On Replit, the server checks every minute and creates backups at or after 13:00 Africa/Cairo time. On serverless hosts, schedule the authenticated endpoint after 13:00 Cairo time.",
         platformFrequency: "Platform backup frequency",
         companyFrequency: "Company backup frequency",
         off: "Off",
@@ -20529,6 +20529,36 @@ function DatabaseAdministration() {
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
+  const backupActionCopy =
+    locale === "ar"
+      ? {
+          download: "تنزيل النسخة",
+          delete: "حذف النسخة",
+          deleted: "تم حذف النسخة الاحتياطية.",
+          downloadFailed: "تعذر تنزيل النسخة الاحتياطية.",
+          platform: "المنصة بالكامل",
+          company: "نسخة شركة",
+          ready: "جاهزة",
+          safety: "نسخة أمان",
+        }
+      : {
+          download: "Download backup",
+          delete: "Delete backup",
+          deleted: "Backup deleted.",
+          downloadFailed: "Could not download this backup.",
+          platform: "Full platform",
+          company: "Company",
+          ready: "Ready",
+          safety: "Safety backup",
+        };
+  const backupCompanyName = (row: Record<string, unknown>) => {
+    if (row.scope === "platform") return backupActionCopy.platform;
+    const arabicName = String(row.company_name ?? "");
+    const englishName = String(row.company_name_en ?? "");
+    return arabicName && arabicName !== "Unknown company"
+      ? localizedName(locale, arabicName, englishName)
+      : t("unknownCompany");
+  };
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -20867,6 +20897,66 @@ function DatabaseAdministration() {
       setPending("");
     }
   };
+  const downloadBackupRow = async (row: Record<string, unknown>) => {
+    const id = String(row.id ?? "");
+    if (!id) return;
+    setPending(`backup-download-${id}`);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/backups/${encodeURIComponent(id)}/download`,
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error(backupActionCopy.downloadFailed);
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `var-hr-${String(row.scope ?? "backup")}-backup-${id.slice(0, 8)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(backupActionCopy.downloadFailed);
+    } finally {
+      setPending("");
+    }
+  };
+  const deleteBackupRow = async (row: Record<string, unknown>) => {
+    const id = String(row.id ?? "");
+    if (!id) return;
+    const createdAt = row.created_at
+      ? new Date(String(row.created_at)).toLocaleString(locale)
+      : "";
+    const confirmationDetails = [
+      `${t("databaseCompanyName")}: ${backupCompanyName(row)}`,
+      `${locale === "ar" ? "النطاق" : "Scope"}: ${
+        row.scope === "company"
+          ? backupActionCopy.company
+          : backupActionCopy.platform
+      }`,
+      `${t("databaseCreatedAt")}: ${createdAt || "—"}`,
+      `${t("databaseId")}: ${id}`,
+    ].join("\n");
+    if (
+      !window.confirm(
+        `${t("deleteRecordConfirmation")}\n\n${confirmationDetails}`,
+      )
+    ) {
+      return;
+    }
+    setPending(`backup-delete-${id}`);
+    setError("");
+    try {
+      await authRequest(`/api/backups/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      toast.success(backupActionCopy.deleted);
+      await load();
+    } catch (cause) {
+      setError(apiErrorMessage(cause, t("recordCouldNotBeDeleted")));
+    } finally {
+      setPending("");
+    }
+  };
   const openHistory = async (row: Record<string, unknown>) => {
     if (!data) return;
     setPending("history");
@@ -20933,7 +21023,9 @@ function DatabaseAdministration() {
   );
   const tableColumns = compactEmployeeTable
     ? ["employee_number", "employee_name", "phone", "status"]
-    : orderedCompactColumns.length
+    : data?.key === "backups"
+      ? ["company_name", "scope", "status", "created_at"]
+      : orderedCompactColumns.length
       ? orderedCompactColumns.slice(0, 3)
       : visibleColumns.slice(0, 3);
   const hasHiddenTableColumns = visibleColumns.some(
@@ -20944,6 +21036,7 @@ function DatabaseAdministration() {
     : false;
   const hasTableActions = Boolean(
     supportsDatabaseActions ||
+      data?.key === "backups" ||
       data?.key === "leave_balances" ||
       editFields.length ||
       data?.canArchive ||
@@ -20951,6 +21044,25 @@ function DatabaseAdministration() {
       hasHiddenTableColumns,
   );
   const databaseValue = (key: string, value: unknown) => {
+    if (data?.key === "backups" && key === "scope") {
+      return value === "company"
+        ? backupActionCopy.company
+        : backupActionCopy.platform;
+    }
+    if (data?.key === "backups" && key === "status") {
+      if (value === "ready") return backupActionCopy.ready;
+      if (value === "safety") return backupActionCopy.safety;
+    }
+    if (
+      data?.key === "backups" &&
+      key === "created_at" &&
+      typeof value === "string"
+    ) {
+      const createdAt = new Date(value);
+      return Number.isNaN(createdAt.getTime())
+        ? value
+        : createdAt.toLocaleString(locale);
+    }
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
     if (
       key === "work_days_per_month" &&
@@ -21236,8 +21348,18 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div className="w-full overflow-hidden">
-            <table className="w-full table-fixed text-left text-sm rtl:text-right">
+          <div
+            className={cn(
+              "w-full",
+              data.key === "backups" ? "overflow-x-auto" : "overflow-hidden",
+            )}
+          >
+            <table
+              className={cn(
+                "w-full table-fixed text-left text-sm rtl:text-right",
+                data.key === "backups" && "min-w-[760px]",
+              )}
+            >
               <colgroup>
                 {tableColumns.map((column) => (
                   <col
@@ -21292,6 +21414,9 @@ function DatabaseAdministration() {
                                 .map((value) => String(value ?? "").trim())
                                 .filter(Boolean)
                                 .join(" ")
+                            : column === "company_name" &&
+                                data.key === "backups"
+                              ? backupCompanyName(row)
                             : String(row[column] ?? "")
                         }
                       >
@@ -21302,6 +21427,24 @@ function DatabaseAdministration() {
                               .filter(Boolean)
                               .join(" ") || "—"}
                           </span>
+                        ) : column === "company_name" &&
+                          data.key === "backups" ? (
+                          row.company_id ? (
+                            <button
+                              className="block max-w-full truncate font-semibold text-primary hover:underline"
+                              onClick={() =>
+                                setLocation(
+                                  `/platform/companies/${encodeURIComponent(String(row.company_id))}`,
+                                )
+                              }
+                            >
+                              {backupCompanyName(row)}
+                            </button>
+                          ) : (
+                            <span className="block truncate font-semibold">
+                              {backupCompanyName(row)}
+                            </span>
+                          )
                         ) : column === "company_name" && row.company_id ? (
                           <button
                             className="font-semibold text-primary hover:underline"
@@ -21332,6 +21475,36 @@ function DatabaseAdministration() {
                     {hasTableActions && (
                       <td className="px-2 py-1.5 align-middle">
                         <div className="flex flex-wrap items-center gap-1">
+                          {data.key === "backups" ? (
+                            <>
+                              <Button
+                                className="h-8 gap-1.5 px-2 text-xs"
+                                variant="outline"
+                                aria-label={backupActionCopy.download}
+                                title={backupActionCopy.download}
+                                disabled={pending !== ""}
+                                onClick={() => void downloadBackupRow(row)}
+                              >
+                                <Download size={14} />
+                                {pending === `backup-download-${String(row.id)}`
+                                  ? "…"
+                                  : backupActionCopy.download}
+                              </Button>
+                              <Button
+                                className="h-8 gap-1.5 px-2 text-xs"
+                                variant="danger"
+                                aria-label={backupActionCopy.delete}
+                                title={backupActionCopy.delete}
+                                disabled={pending !== ""}
+                                onClick={() => void deleteBackupRow(row)}
+                              >
+                                <Trash2 size={14} />
+                                {pending === `backup-delete-${String(row.id)}`
+                                  ? "…"
+                                  : backupActionCopy.delete}
+                              </Button>
+                            </>
+                          ) : null}
                           {supportsDatabaseActions ? (
                             <>
                               <Button

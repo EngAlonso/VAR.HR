@@ -9,6 +9,7 @@ import {
   userAccountsTable,
 } from "@workspace/db";
 import { createBackup } from "./backups";
+import { isBackupDue as isDue } from "./backup-schedule-time.mjs";
 import { logger } from "./logger";
 import {
   retryPendingGoogleDriveBackups,
@@ -20,19 +21,6 @@ const advisoryLockSql = "SELECT pg_try_advisory_lock(15480, 23001) AS acquired";
 const advisoryUnlockSql = "SELECT pg_advisory_unlock(15480, 23001)";
 
 let schedulerTimer: ReturnType<typeof setInterval> | undefined;
-
-function isDue(
-  intervalMinutes: number,
-  lastCreatedAt: Date | undefined,
-  now: Date,
-): boolean {
-  if (intervalMinutes <= 0) return false;
-  if (!lastCreatedAt) return true;
-  return (
-    now.getTime() - new Date(lastCreatedAt).getTime() >=
-    intervalMinutes * 60_000
-  );
-}
 
 async function lastPlatformScheduledBackup(): Promise<Date | undefined> {
   const [record] = await db

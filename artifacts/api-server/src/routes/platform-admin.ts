@@ -467,6 +467,7 @@ const entities: Record<string, EntityConfig> = {
     ],
     editable: [],
     companyColumn: "company_id",
+    canDelete: false,
   },
 };
 
@@ -1075,10 +1076,17 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
   );
   const result = await db.execute(query);
   const companies = await db
-    .select({ id: companiesTable.id, name: companiesTable.name })
+    .select({
+      id: companiesTable.id,
+      name: companiesTable.name,
+      nameEn: companiesTable.nameEn,
+    })
     .from(companiesTable);
   const companyNames = new Map(
-    companies.map((company) => [company.id, company.name]),
+    companies.map((company) => [
+      company.id,
+      { name: company.name, nameEn: company.nameEn },
+    ]),
   );
   const rawRows = result.rows as Record<string, unknown>[];
   const employeeIds = rawRows
@@ -1116,7 +1124,14 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
     ...(req.params.entity !== "companies"
       ? {
           company_name:
-            companyNames.get(String(row.company_id ?? "")) ?? "Unknown company",
+            companyNames.get(String(row.company_id ?? ""))?.name ??
+            "Unknown company",
+          ...(req.params.entity === "backups"
+            ? {
+                company_name_en:
+                  companyNames.get(String(row.company_id ?? ""))?.nameEn ?? "",
+              }
+            : {}),
         }
       : {}),
   }));

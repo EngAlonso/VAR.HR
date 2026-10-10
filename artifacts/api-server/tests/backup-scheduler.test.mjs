@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { isBackupDue } from "../src/lib/backup-schedule-time.mjs";
 
 const read = (path) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
@@ -38,6 +39,30 @@ test("automatic backups use their own marker and a shared scheduler lock", () =>
   assert.match(scheduler, /scope: "company"/);
   assert.match(backupLibrary, /input\.creationMode \? \{ creationMode: input\.creationMode \}/);
   assert.match(backupLibrary, /scheduleIntervalMinutes/);
+});
+
+test("daily backups run once per Cairo day at or after 13:00 local time", () => {
+  const daily = 1440;
+  const beforeRun = new Date("2026-07-12T09:59:00.000Z"); // 12:59 in Cairo
+  const atRun = new Date("2026-07-12T10:00:00.000Z"); // 13:00 in Cairo
+  const earlierToday = new Date("2026-07-12T08:00:00.000Z"); // 11:00 in Cairo
+  const alreadyRunToday = new Date("2026-07-12T10:00:00.000Z");
+  const previousDayLate = new Date("2026-07-11T20:30:00.000Z"); // 23:30 yesterday
+
+  assert.equal(isBackupDue(daily, undefined, beforeRun), false);
+  assert.equal(isBackupDue(daily, undefined, atRun), true);
+  assert.equal(isBackupDue(daily, earlierToday, atRun), true);
+  assert.equal(isBackupDue(daily, alreadyRunToday, atRun), false);
+  assert.equal(isBackupDue(daily, previousDayLate, atRun), true);
+});
+
+test("weekly backups retain their elapsed-interval behavior", () => {
+  const now = new Date("2026-07-12T02:00:00.000Z");
+  const sixDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60_000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
+
+  assert.equal(isBackupDue(10080, sixDaysAgo, now), false);
+  assert.equal(isBackupDue(10080, sevenDaysAgo, now), true);
 });
 
 test("persistent servers and Vercel have authenticated scheduler triggers", () => {
