@@ -18,3 +18,9 @@ Vercel Cron expressions are always UTC, while Cairo alternates between UTC+2 and
 **Why:** Serverless functions do not provide a durable in-process timer, and an unauthenticated scheduled-work endpoint can be triggered by arbitrary callers. A fixed UTC cron time also does not follow Cairo's daylight-saving changes.
 
 **How to apply:** Verify which database contains live data before enabling automatic backups. On Vercel, configure `CRON_SECRET` in the production environment and activate cron changes with a production deployment; on another serverless host, connect its cron service to the same authenticated endpoint. Keep cadence choices within the trigger frequency supported by the host.
+
+Vercel registers Cron Jobs from the production deployment's `vercel.json`. Delivery is best-effort, and Vercel does not retry a failed invocation; a missing invocation log means the backup handler did not run.
+
+**Why:** Changing backup execution code cannot repair a Cron Job that is absent, disabled, or not part of the active production deployment.
+
+**How to apply:** Check the production Cron Jobs list and invocation logs before debugging backup logic. Redeploy after changing Cron configuration, and keep the handler idempotent so a later successful invocation can catch up safely. See [Vercel Cron management](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
