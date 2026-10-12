@@ -70,7 +70,23 @@ test("persistent servers and Vercel have authenticated scheduler triggers", () =
   assert.match(backupRoute, /process\.env\.CRON_SECRET/);
   assert.match(backupRoute, /timingSafeEqual/);
   assert.match(vercelConfig, /"path": "\/api\/internal\/backup-scheduler"/);
-  assert.match(vercelConfig, /"schedule": "0 2 \* \* \*"/);
+});
+
+test("Vercel cron checks at 13:00 Cairo in both standard and daylight time", () => {
+  const schedules = [
+    ...vercelConfig.matchAll(/"schedule":\s*"([^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.deepEqual(schedules, ["0 10 * * *", "0 11 * * *"]);
+
+  const summerAtThirteen = new Date("2026-07-12T10:00:00.000Z");
+  const summerAtFourteen = new Date("2026-07-12T11:00:00.000Z");
+  const winterAtTwelve = new Date("2026-01-12T10:00:00.000Z");
+  const winterAtThirteen = new Date("2026-01-12T11:00:00.000Z");
+
+  assert.equal(isBackupDue(1440, undefined, summerAtThirteen), true);
+  assert.equal(isBackupDue(1440, summerAtThirteen, summerAtFourteen), false);
+  assert.equal(isBackupDue(1440, undefined, winterAtTwelve), false);
+  assert.equal(isBackupDue(1440, undefined, winterAtThirteen), true);
 });
 
 test("opening backup settings automatically retries connected Drive backlog", () => {

@@ -13,6 +13,8 @@ The ADMS Bridge currently targets the Vercel site, while the Replit workspace us
 
 Keep schedule policy in the database and make the work itself callable independently of the hosting provider. Long-running Node servers can run a local polling loop; serverless environments need a provider cron or external scheduler to invoke a protected endpoint. Use `CRON_SECRET` to authenticate those invocations. Replit development and production Vercel may use different databases, so a scheduler running in the wrong environment does not protect production data.
 
-**Why:** Serverless functions do not provide a durable in-process timer, and an unauthenticated scheduled-work endpoint can be triggered by arbitrary callers. Hosting may change while the schedule and backup logic should remain portable.
+Vercel Cron expressions are always UTC, while Cairo alternates between UTC+2 and UTC+3. To run the daily backup at 13:00 Cairo in both seasons, schedule checks at 10:00 and 11:00 UTC; the timezone-aware due check must create at most one backup per Cairo day. A cron earlier than both times can return successfully while creating no backup.
 
-**How to apply:** Verify which database contains live data before enabling automatic backups. On Vercel, configure `CRON_SECRET` in the deployment environment; on another serverless host, connect its cron service to the same authenticated endpoint. Keep cadence choices within the trigger frequency supported by the host.
+**Why:** Serverless functions do not provide a durable in-process timer, and an unauthenticated scheduled-work endpoint can be triggered by arbitrary callers. A fixed UTC cron time also does not follow Cairo's daylight-saving changes.
+
+**How to apply:** Verify which database contains live data before enabling automatic backups. On Vercel, configure `CRON_SECRET` in the production environment and activate cron changes with a production deployment; on another serverless host, connect its cron service to the same authenticated endpoint. Keep cadence choices within the trigger frequency supported by the host.
