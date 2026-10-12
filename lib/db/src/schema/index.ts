@@ -25,6 +25,7 @@ export * from "./scheduling";
 export * from "./hr-records";
 export * from "./auth";
 export * from "./backups";
+export * from "./backup-scheduler-status";
 export * from "./notifications";
 export * from "./platform";
 export * from "./google-drive";

@@ -2253,6 +2253,38 @@ paths:
       summary: Disconnect Google Drive backup uploads
       responses:
         "204": { description: Google Drive disconnected; existing Drive files are retained }
+  /platform/backup-schedule:
+    get:
+      operationId: getPlatformBackupSchedule
+      tags: [platform]
+      summary: Get automatic backup schedule and scheduler status
+      responses:
+        "200":
+          description: Backup schedule, latest execution, and latest platform/company attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformBackupSchedule"
+        "403": { description: Platform Owner access required }
+    patch:
+      operationId: updatePlatformBackupSchedule
+      tags: [platform]
+      summary: Update automatic backup intervals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformBackupScheduleInput"
+      responses:
+        "200":
+          description: Updated backup schedule and current scheduler status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformBackupSchedule"
+        "400": { description: Invalid backup schedule interval }
+        "403": { description: Platform Owner access required }
   /platform/google-drive/oauth/start:
     get:
       operationId: startPlatformGoogleDriveOAuth
@@ -4967,3 +4999,106 @@ components:
         force:
           type: boolean
           description: Retry immediately even when a backup's backoff period has not elapsed.
+    PlatformBackupScheduleInput:
+      type: object
+      required: [platformBackupIntervalMinutes, companyBackupIntervalMinutes]
+      properties:
+        platformBackupIntervalMinutes:
+          type: integer
+          enum: [0, 1440, 10080]
+        companyBackupIntervalMinutes:
+          type: integer
+          enum: [0, 1440, 10080]
+    PlatformBackupSchedule:
+      type: object
+      required:
+        [
+          platformBackupIntervalMinutes,
+          companyBackupIntervalMinutes,
+          schedulerReady,
+          schedulerStatus,
+        ]
+      properties:
+        platformBackupIntervalMinutes: { type: integer }
+        companyBackupIntervalMinutes: { type: integer }
+        schedulerReady: { type: boolean }
+        schedulerStatus:
+          $ref: "#/components/schemas/PlatformBackupSchedulerStatus"
+    PlatformBackupSchedulerStatus:
+      type: object
+      required: [latestRun, targets]
+      properties:
+        latestRun:
+          oneOf:
+            - $ref: "#/components/schemas/PlatformBackupSchedulerRun"
+            - type: "null"
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformBackupSchedulerTarget"
+    PlatformBackupSchedulerRun:
+      type: object
+      required:
+        [
+          startedAt,
+          completedAt,
+          source,
+          status,
+          reason,
+          platformCreated,
+          companyCreated,
+          failureCount,
+          driveUploaded,
+          driveFailed,
+          drivePending,
+          errorMessage,
+        ]
+      properties:
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        source: { type: string }
+        status: { type: string }
+        reason: { type: ["string", "null"] }
+        platformCreated: { type: integer }
+        companyCreated: { type: integer }
+        failureCount: { type: integer }
+        driveUploaded: { type: integer }
+        driveFailed: { type: integer }
+        drivePending: { type: integer }
+        errorMessage: { type: ["string", "null"] }
+    PlatformBackupSchedulerTarget:
+      type: object
+      required:
+        [
+          targetType,
+          companyId,
+          companyName,
+          companyNameEn,
+          scheduleEnabled,
+          source,
+          status,
+          reason,
+          startedAt,
+          completedAt,
+          backupsCreated,
+          failureCount,
+          driveFailed,
+          errorMessage,
+        ]
+      properties:
+        targetType:
+          type: string
+          enum: [platform, company]
+        companyId: { type: ["string", "null"], format: uuid }
+        companyName: { type: ["string", "null"] }
+        companyNameEn: { type: ["string", "null"] }
+        scheduleEnabled: { type: boolean }
+        source: { type: ["string", "null"] }
+        status: { type: string }
+        reason: { type: ["string", "null"] }
+        startedAt: { type: ["string", "null"], format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        backupsCreated: { type: integer }
+        failureCount: { type: integer }
+        driveFailed: { type: integer }
+        errorMessage: { type: ["string", "null"] }

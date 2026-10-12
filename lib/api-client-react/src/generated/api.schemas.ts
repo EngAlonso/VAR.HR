@@ -2992,6 +2992,92 @@ export interface GoogleDriveRetryRequest {
   force?: boolean;
 }
 
+export type PlatformBackupScheduleInputPlatformBackupIntervalMinutes = typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes];
+
+
+export const PlatformBackupScheduleInputPlatformBackupIntervalMinutes = {
+  NUMBER_0: 0,
+  NUMBER_1440: 1440,
+  NUMBER_10080: 10080,
+} as const;
+
+export type PlatformBackupScheduleInputCompanyBackupIntervalMinutes = typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes];
+
+
+export const PlatformBackupScheduleInputCompanyBackupIntervalMinutes = {
+  NUMBER_0: 0,
+  NUMBER_1440: 1440,
+  NUMBER_10080: 10080,
+} as const;
+
+export interface PlatformBackupScheduleInput {
+  platformBackupIntervalMinutes: PlatformBackupScheduleInputPlatformBackupIntervalMinutes;
+  companyBackupIntervalMinutes: PlatformBackupScheduleInputCompanyBackupIntervalMinutes;
+}
+
+export interface PlatformBackupSchedulerRun {
+  startedAt: string;
+  /** @nullable */
+  completedAt: string | null;
+  source: string;
+  status: string;
+  /** @nullable */
+  reason: string | null;
+  platformCreated: number;
+  companyCreated: number;
+  failureCount: number;
+  driveUploaded: number;
+  driveFailed: number;
+  drivePending: number;
+  /** @nullable */
+  errorMessage: string | null;
+}
+
+export type PlatformBackupSchedulerTargetTargetType = typeof PlatformBackupSchedulerTargetTargetType[keyof typeof PlatformBackupSchedulerTargetTargetType];
+
+
+export const PlatformBackupSchedulerTargetTargetType = {
+  platform: 'platform',
+  company: 'company',
+} as const;
+
+export interface PlatformBackupSchedulerTarget {
+  targetType: PlatformBackupSchedulerTargetTargetType;
+  /** @nullable */
+  companyId: string | null;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyNameEn: string | null;
+  scheduleEnabled: boolean;
+  /** @nullable */
+  source: string | null;
+  status: string;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  backupsCreated: number;
+  failureCount: number;
+  driveFailed: number;
+  /** @nullable */
+  errorMessage: string | null;
+}
+
+export interface PlatformBackupSchedulerStatus {
+  latestRun: PlatformBackupSchedulerRun | null;
+  targets: PlatformBackupSchedulerTarget[];
+}
+
+export interface PlatformBackupSchedule {
+  platformBackupIntervalMinutes: number;
+  companyBackupIntervalMinutes: number;
+  schedulerReady: boolean;
+  schedulerStatus: PlatformBackupSchedulerStatus;
+}
+
 export type SearchParameter = string;
 
 export type StatusParameter = typeof StatusParameter[keyof typeof StatusParameter];

@@ -4807,6 +4807,95 @@ export const DisconnectPlatformGoogleDriveResponse = zod.void()
 
 
 /**
+ * @summary Get automatic backup schedule and scheduler status
+ */
+export const GetPlatformBackupScheduleResponse = zod.object({
+  "platformBackupIntervalMinutes": zod.int(),
+  "companyBackupIntervalMinutes": zod.int(),
+  "schedulerReady": zod.boolean(),
+  "schedulerStatus": zod.object({
+  "latestRun": zod.union([zod.object({
+  "startedAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "source": zod.string(),
+  "status": zod.string(),
+  "reason": zod.string().nullable(),
+  "platformCreated": zod.int(),
+  "companyCreated": zod.int(),
+  "failureCount": zod.int(),
+  "driveUploaded": zod.int(),
+  "driveFailed": zod.int(),
+  "drivePending": zod.int(),
+  "errorMessage": zod.string().nullable()
+}),zod.null()]),
+  "targets": zod.array(zod.object({
+  "targetType": zod.enum(['platform', 'company']),
+  "companyId": zod.uuid().nullable(),
+  "companyName": zod.string().nullable(),
+  "companyNameEn": zod.string().nullable(),
+  "scheduleEnabled": zod.boolean(),
+  "source": zod.string().nullable(),
+  "status": zod.string(),
+  "reason": zod.string().nullable(),
+  "startedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "backupsCreated": zod.int(),
+  "failureCount": zod.int(),
+  "driveFailed": zod.int(),
+  "errorMessage": zod.string().nullable()
+}))
+})
+})
+
+
+/**
+ * @summary Update automatic backup intervals
+ */
+export const UpdatePlatformBackupScheduleBody = zod.object({
+  "platformBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(1440),zod.literal(10080)]),
+  "companyBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(1440),zod.literal(10080)])
+})
+
+export const UpdatePlatformBackupScheduleResponse = zod.object({
+  "platformBackupIntervalMinutes": zod.int(),
+  "companyBackupIntervalMinutes": zod.int(),
+  "schedulerReady": zod.boolean(),
+  "schedulerStatus": zod.object({
+  "latestRun": zod.union([zod.object({
+  "startedAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "source": zod.string(),
+  "status": zod.string(),
+  "reason": zod.string().nullable(),
+  "platformCreated": zod.int(),
+  "companyCreated": zod.int(),
+  "failureCount": zod.int(),
+  "driveUploaded": zod.int(),
+  "driveFailed": zod.int(),
+  "drivePending": zod.int(),
+  "errorMessage": zod.string().nullable()
+}),zod.null()]),
+  "targets": zod.array(zod.object({
+  "targetType": zod.enum(['platform', 'company']),
+  "companyId": zod.uuid().nullable(),
+  "companyName": zod.string().nullable(),
+  "companyNameEn": zod.string().nullable(),
+  "scheduleEnabled": zod.boolean(),
+  "source": zod.string().nullable(),
+  "status": zod.string(),
+  "reason": zod.string().nullable(),
+  "startedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "backupsCreated": zod.int(),
+  "failureCount": zod.int(),
+  "driveFailed": zod.int(),
+  "errorMessage": zod.string().nullable()
+}))
+})
+})
+
+
+/**
  * @summary Start Google Drive authorization
  */
 export const StartPlatformGoogleDriveOAuthQueryParams = zod.object({

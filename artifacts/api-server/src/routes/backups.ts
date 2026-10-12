@@ -32,7 +32,10 @@ router.get("/internal/backup-scheduler", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await runAutomaticBackupScheduler();
+  const result = await runAutomaticBackupScheduler({
+    source: "vercel-cron",
+    recordIdleRuns: true,
+  });
   if (result.reason === "no_active_platform_owner") {
     res.status(503).json(result);
     return;

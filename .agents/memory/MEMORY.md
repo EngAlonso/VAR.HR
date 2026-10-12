@@ -16,6 +16,8 @@
 - [Annual-leave deduction](annual-leave-deduction.md) — deduct only for approved annual-leave requests or an explicit manager grant, never for absence or permission alone.
 - [PWA shell cache updates](pwa-shell-cache-updates.md) — bump the shell cache version when UI assets change so installed clients receive the new interface.
 - [Backup schedule time](backup-schedule-time.md) — daily company and platform backups run at 13:00 Cairo time, not after a rolling 24-hour delay.
+- [Backup scheduler observability](backup-scheduler-observability.md) — record no-op Cron runs separately from each target's last actual backup attempt.
+- [Google Drive backup scope](google-drive-backup-scope.md) — only platform-scope scheduled backups belong in the platform owner's connected Drive.
 - [Payroll-generated attendance source](payroll-generated-attendance-source.md) — API response contracts must accept internal payroll absence rows without widening valid punch inputs.
 - [Field employee location capture](field-employee-location-capture.md) — roaming staff need GPS captured at each phone punch, without requiring a fixed company geofence.
 - [Informational work-location records](work-location-visit-log.md) — visited-site history is separate from attendance, check-in/out, and payroll.

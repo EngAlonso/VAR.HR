@@ -19384,6 +19384,47 @@ type BackupSchedule = {
   schedulerReady: boolean;
 };
 
+type BackupSchedulerTargetStatus = {
+  targetType: "platform" | "company";
+  companyId: string | null;
+  companyName: string | null;
+  companyNameEn: string | null;
+  scheduleEnabled: boolean;
+  source: string | null;
+  status: string;
+  reason: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  backupsCreated: number;
+  failureCount: number;
+  driveFailed: number;
+  errorMessage: string | null;
+};
+
+type BackupSchedulerRunStatus = {
+  startedAt: string;
+  completedAt: string | null;
+  source: string;
+  status: string;
+  reason: string | null;
+  platformCreated: number;
+  companyCreated: number;
+  failureCount: number;
+  driveUploaded: number;
+  driveFailed: number;
+  drivePending: number;
+  errorMessage: string | null;
+};
+
+type BackupSchedulerStatus = {
+  latestRun: BackupSchedulerRunStatus | null;
+  targets: BackupSchedulerTargetStatus[];
+};
+
+type BackupScheduleResponse = BackupSchedule & {
+  schedulerStatus: BackupSchedulerStatus;
+};
+
 function BackupRestore() {
   const { locale, t } = useI18n();
   const workspace = useGetWorkspace();
@@ -19405,6 +19446,10 @@ function BackupRestore() {
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [schedulerStatus, setSchedulerStatus] =
+    useState<BackupSchedulerStatus | null>(null);
+  const [schedulerStatusLoading, setSchedulerStatusLoading] = useState(true);
+  const [schedulerStatusError, setSchedulerStatusError] = useState("");
   const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveAction, setDriveAction] = useState("");
@@ -19469,6 +19514,49 @@ function BackupRestore() {
         scheduleFailed: "تعذر تحميل أو حفظ إعدادات النسخ التلقائي.",
         schedulerNeedsSecret:
           "لتشغيل النسخ على Vercel، أضف CRON_SECRET إلى إعدادات بيئة النشر. لن تعمل الجدولة قبل ذلك.",
+        schedulerStatusTitle: "حالة تشغيل النسخ التلقائي",
+        schedulerStatusDetail:
+          "آخر تشغيل للجدولة ونتيجته، وآخر محاولة لكل نسخة من المنصة والشركات.",
+        refreshSchedulerStatus: "تحديث الحالة",
+        refreshingSchedulerStatus: "جارٍ التحديث…",
+        schedulerStatusFailed: "تعذر تحميل حالة تشغيل النسخ التلقائي.",
+        latestSchedulerRun: "آخر تشغيل للجدولة",
+        noSchedulerRun: "لا توجد محاولات جدولة مسجلة بعد.",
+        runTime: "وقت التشغيل",
+        runSource: "مصدر التشغيل",
+        runStatus: "حالة التشغيل",
+        platformCreatedCount: "نسخ المنصة المنشأة",
+        companyCreatedCount: "نسخ الشركات المنشأة",
+        backupFailureCount: "فشل إنشاء النسخ",
+        driveFailureCount: "فشل رفع Google Drive",
+        targetStatusTitle: "آخر محاولة لكل نطاق",
+        backupTarget: "النطاق",
+        backupTargetStatus: "الحالة",
+        backupTargetTime: "وقت آخر محاولة",
+        backupTargetCreated: "النسخ المنشأة",
+        backupTargetError: "الأخطاء",
+        platformTargetName: "المنصة",
+        noTargetAttempt: "لم تتم المحاولة بعد",
+        statusRunning: "جارٍ التنفيذ",
+        statusCompleted: "اكتمل",
+        statusCompletedWithErrors: "اكتمل مع أخطاء",
+        statusFailed: "فشل",
+        statusSkipped: "تم التخطي",
+        statusCreated: "تم إنشاء النسخة",
+        statusCreatedWithErrors: "أُنشئت النسخة مع خطأ في Google Drive",
+        statusNotAttempted: "لم تتم المحاولة",
+        statusDisabled: "الجدولة متوقفة",
+        statusUnknown: "غير معروف",
+        sourceVercel: "Vercel Cron",
+        sourceServer: "الخادم",
+        reasonInProgress: "جارٍ تنفيذ النسخ",
+        reasonNoDueBackups: "لم يحن موعد نسخة جديدة",
+        reasonDisabled: "الجدولة متوقفة",
+        reasonBackupFailures: "حدث فشل أثناء إنشاء النسخ",
+        reasonCompleted: "انتهى التشغيل",
+        reasonNoActiveOwner: "لا يوجد حساب نشط لصاحب المنصة",
+        reasonSchedulerError: "حدث خطأ في تشغيل الجدولة",
+        reasonBackupAttempt: "محاولة إنشاء نسخة",
         keepAllBackups:
           "لا تُحذف النسخ القديمة تلقائيًا؛ احذفها يدويًا عند الحاجة.",
         automatic: "تلقائية",
@@ -19564,6 +19652,49 @@ function BackupRestore() {
         scheduleFailed: "Automatic backup settings could not be loaded or saved.",
         schedulerNeedsSecret:
           "For Vercel, add CRON_SECRET to the deployment environment before scheduled backups can run.",
+        schedulerStatusTitle: "Automatic backup run status",
+        schedulerStatusDetail:
+          "Latest scheduler run and the most recent attempt for the platform and each company.",
+        refreshSchedulerStatus: "Refresh status",
+        refreshingSchedulerStatus: "Refreshing…",
+        schedulerStatusFailed: "Automatic backup status could not be loaded.",
+        latestSchedulerRun: "Latest scheduler run",
+        noSchedulerRun: "No scheduler attempts have been recorded yet.",
+        runTime: "Run time",
+        runSource: "Run source",
+        runStatus: "Run status",
+        platformCreatedCount: "Platform backups created",
+        companyCreatedCount: "Company backups created",
+        backupFailureCount: "Backup creation failures",
+        driveFailureCount: "Google Drive upload failures",
+        targetStatusTitle: "Latest attempt by scope",
+        backupTarget: "Scope",
+        backupTargetStatus: "Status",
+        backupTargetTime: "Last attempt",
+        backupTargetCreated: "Backups created",
+        backupTargetError: "Errors",
+        platformTargetName: "Platform",
+        noTargetAttempt: "Not attempted yet",
+        statusRunning: "Running",
+        statusCompleted: "Completed",
+        statusCompletedWithErrors: "Completed with errors",
+        statusFailed: "Failed",
+        statusSkipped: "Skipped",
+        statusCreated: "Backup created",
+        statusCreatedWithErrors: "Backup created; Google Drive upload failed",
+        statusNotAttempted: "Not attempted",
+        statusDisabled: "Schedule disabled",
+        statusUnknown: "Unknown",
+        sourceVercel: "Vercel Cron",
+        sourceServer: "Server",
+        reasonInProgress: "Backups are running",
+        reasonNoDueBackups: "No backup was due",
+        reasonDisabled: "The schedule is disabled",
+        reasonBackupFailures: "One or more backups failed",
+        reasonCompleted: "Run completed",
+        reasonNoActiveOwner: "No active platform owner account",
+        reasonSchedulerError: "Scheduler error",
+        reasonBackupAttempt: "Backup attempt",
         keepAllBackups:
           "Old backups are not deleted automatically; remove them manually when needed.",
         automatic: "Automatic",
@@ -19618,15 +19749,38 @@ function BackupRestore() {
   const loadSchedule = async () => {
     setScheduleLoading(true);
     setScheduleError("");
+    setSchedulerStatusLoading(true);
+    setSchedulerStatusError("");
     try {
-      setSchedule(
-        await authRequest<BackupSchedule>("/api/platform/backup-schedule"),
+      const result = await authRequest<BackupScheduleResponse>(
+        "/api/platform/backup-schedule",
       );
+      setSchedule({
+        platformBackupIntervalMinutes: result.platformBackupIntervalMinutes,
+        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
+        schedulerReady: result.schedulerReady,
+      });
+      setSchedulerStatus(result.schedulerStatus);
       setScheduleLoaded(true);
     } catch {
       setScheduleError(labels.scheduleFailed);
     } finally {
       setScheduleLoading(false);
+      setSchedulerStatusLoading(false);
+    }
+  };
+  const refreshSchedulerStatus = async () => {
+    setSchedulerStatusLoading(true);
+    setSchedulerStatusError("");
+    try {
+      const result = await authRequest<BackupScheduleResponse>(
+        "/api/platform/backup-schedule",
+      );
+      setSchedulerStatus(result.schedulerStatus);
+    } catch {
+      setSchedulerStatusError(labels.schedulerStatusFailed);
+    } finally {
+      setSchedulerStatusLoading(false);
     }
   };
   const loadDriveStatus = async () => {
@@ -19647,6 +19801,18 @@ function BackupRestore() {
     if (role === "platform_owner") void loadSchedule();
     if (role === "platform_owner") void loadDriveStatus();
   }, [role]);
+  useEffect(() => {
+    if (role !== "platform_owner") return;
+    const interval = window.setInterval(() => {
+      void authRequest<BackupScheduleResponse>("/api/platform/backup-schedule")
+        .then((result) => {
+          setSchedulerStatus(result.schedulerStatus);
+          setSchedulerStatusError("");
+        })
+        .catch(() => setSchedulerStatusError(labels.schedulerStatusFailed));
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [role, locale]);
   useEffect(() => {
     if (!isPlatformOwner) return;
     const params = new URLSearchParams(window.location.search);
@@ -19669,8 +19835,9 @@ function BackupRestore() {
     setScheduleSaving(true);
     setScheduleError("");
     try {
-      setSchedule(
-        await authRequest<BackupSchedule>("/api/platform/backup-schedule", {
+      const result = await authRequest<BackupScheduleResponse>(
+        "/api/platform/backup-schedule",
+        {
           method: "PATCH",
           body: JSON.stringify({
             platformBackupIntervalMinutes:
@@ -19678,8 +19845,14 @@ function BackupRestore() {
             companyBackupIntervalMinutes:
               schedule.companyBackupIntervalMinutes,
           }),
-        }),
+        },
       );
+      setSchedule({
+        platformBackupIntervalMinutes: result.platformBackupIntervalMinutes,
+        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
+        schedulerReady: result.schedulerReady,
+      });
+      setSchedulerStatus(result.schedulerStatus);
       toast.success(labels.scheduleSaved);
     } catch {
       setScheduleError(labels.scheduleFailed);
@@ -19848,6 +20021,50 @@ function BackupRestore() {
     }
   };
 
+  const formatSchedulerTime = (value: string | null) => {
+    if (!value) return labels.noTargetAttempt;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Africa/Cairo",
+    }).format(date);
+  };
+  const schedulerStatusText = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      running: labels.statusRunning,
+      completed: labels.statusCompleted,
+      completed_with_errors: labels.statusCompletedWithErrors,
+      failed: labels.statusFailed,
+      skipped: labels.statusSkipped,
+      created: labels.statusCreated,
+      created_with_errors: labels.statusCreatedWithErrors,
+      not_attempted: labels.statusNotAttempted,
+      disabled: labels.statusDisabled,
+    };
+    return statusLabels[status] ?? labels.statusUnknown;
+  };
+  const schedulerReasonText = (reason: string | null) => {
+    const reasonLabels: Record<string, string> = {
+      running: labels.reasonInProgress,
+      in_progress: labels.reasonInProgress,
+      no_due_backups: labels.reasonNoDueBackups,
+      disabled: labels.reasonDisabled,
+      backup_failures: labels.reasonBackupFailures,
+      completed: labels.reasonCompleted,
+      no_active_platform_owner: labels.reasonNoActiveOwner,
+      scheduler_error: labels.reasonSchedulerError,
+      backup_attempt: labels.reasonBackupAttempt,
+    };
+    return reason ? reasonLabels[reason] ?? reason : "—";
+  };
+  const schedulerSourceText = (source: string | null) => {
+    if (source === "vercel-cron") return labels.sourceVercel;
+    if (source === "server-poller") return labels.sourceServer;
+    return source ?? "—";
+  };
+
   if (!role || (role !== "platform_owner" && role !== "company_owner")) {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -19861,6 +20078,196 @@ function BackupRestore() {
         title={labels.title}
         detail={labels.detail}
       />
+      {isPlatformOwner && (
+        <Card className="mb-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5">
+            <div>
+              <h2 className="font-display text-lg font-semibold">
+                {labels.schedulerStatusTitle}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {labels.schedulerStatusDetail}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              data-testid="refresh-backup-scheduler-status"
+              onClick={() => void refreshSchedulerStatus()}
+              disabled={schedulerStatusLoading}
+            >
+              {schedulerStatusLoading
+                ? labels.refreshingSchedulerStatus
+                : labels.refreshSchedulerStatus}
+            </Button>
+          </div>
+          <div className="space-y-4 p-5">
+            {schedulerStatusError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                {schedulerStatusError}
+              </div>
+            )}
+            {schedulerStatusLoading && !schedulerStatus ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                {labels.scheduleLoading}
+              </p>
+            ) : schedulerStatus?.latestRun ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    {
+                      label: labels.runTime,
+                      value: formatSchedulerTime(
+                        schedulerStatus.latestRun.startedAt,
+                      ),
+                    },
+                    {
+                      label: labels.runSource,
+                      value: schedulerSourceText(
+                        schedulerStatus.latestRun.source,
+                      ),
+                    },
+                    {
+                      label: labels.runStatus,
+                      value: `${schedulerStatusText(schedulerStatus.latestRun.status)} · ${schedulerReasonText(schedulerStatus.latestRun.reason)}`,
+                    },
+                    {
+                      label: labels.platformCreatedCount,
+                      value: schedulerStatus.latestRun.platformCreated,
+                    },
+                    {
+                      label: labels.companyCreatedCount,
+                      value: schedulerStatus.latestRun.companyCreated,
+                    },
+                    {
+                      label: labels.backupFailureCount,
+                      value: schedulerStatus.latestRun.failureCount,
+                    },
+                    {
+                      label: labels.driveFailureCount,
+                      value: schedulerStatus.latestRun.driveFailed,
+                    },
+                  ].map((metric) => (
+                    <div
+                      key={metric.label}
+                      className="rounded-lg bg-muted/60 p-3"
+                    >
+                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {metric.label}
+                      </div>
+                      <div className="mt-1 font-medium">{metric.value}</div>
+                    </div>
+                  ))}
+                </div>
+                {schedulerStatus.latestRun.errorMessage && (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                  >
+                    {schedulerStatus.latestRun.errorMessage}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {labels.noSchedulerRun}
+              </p>
+            )}
+
+            {schedulerStatus && schedulerStatus.targets.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full min-w-[760px] text-sm">
+                  <caption className="sr-only">
+                    {labels.targetStatusTitle}
+                  </caption>
+                  <thead className="bg-muted/60 text-left">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">
+                        {labels.backupTarget}
+                      </th>
+                      <th className="px-3 py-2 font-semibold">
+                        {labels.backupTargetStatus}
+                      </th>
+                      <th className="px-3 py-2 font-semibold">
+                        {labels.backupTargetTime}
+                      </th>
+                      <th className="px-3 py-2 font-semibold">
+                        {labels.backupTargetCreated}
+                      </th>
+                      <th className="px-3 py-2 font-semibold">
+                        {labels.backupTargetError}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedulerStatus.targets.map((target) => {
+                      const isProblem =
+                        target.status === "failed" ||
+                        target.status === "created_with_errors" ||
+                        target.driveFailed > 0;
+                      const isNeutral = [
+                        "disabled",
+                        "not_attempted",
+                        "skipped",
+                      ].includes(target.status);
+                      const targetName =
+                        target.targetType === "platform"
+                          ? labels.platformTargetName
+                          : isArabic
+                            ? target.companyName || target.companyNameEn
+                            : target.companyNameEn || target.companyName;
+                      return (
+                        <tr
+                          key={`${target.targetType}-${target.companyId ?? "platform"}`}
+                          data-testid={`backup-scheduler-target-${target.targetType}-${target.companyId ?? "platform"}`}
+                          className="border-t border-border"
+                        >
+                          <td className="px-3 py-3 font-medium">
+                            {targetName}
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                  isProblem
+                                    ? "bg-destructive/10 text-destructive"
+                                    : target.status === "running"
+                                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                      : isNeutral
+                                        ? "bg-muted text-muted-foreground"
+                                        : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                }`}
+                              >
+                                {schedulerStatusText(target.status)}
+                              </span>
+                              {!target.scheduleEnabled && (
+                                <span className="text-xs text-muted-foreground">
+                                  {labels.off}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {formatSchedulerTime(target.startedAt)}
+                          </td>
+                          <td className="px-3 py-3">
+                            {target.startedAt ? target.backupsCreated : "—"}
+                          </td>
+                          <td className="max-w-[280px] whitespace-normal px-3 py-3 text-destructive">
+                            {target.errorMessage || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
       {isPlatformOwner && (
         <Card className="mb-5">
           <div className="border-b border-border p-5">
@@ -20137,15 +20544,16 @@ function BackupRestore() {
                     <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">
                       {labels.integrity}: {backup.checksum}
                     </p>
-                      {backup.metadata.creationMode === "scheduled" && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {backup.metadata.googleDrive?.state === "uploaded"
-                            ? labels.driveUploaded
-                            : backup.metadata.googleDrive?.state === "failed"
-                              ? labels.driveUploadFailed
-                              : labels.driveUploadPending}
-                        </p>
-                      )}
+                      {backup.scope === "platform" &&
+                        backup.metadata.creationMode === "scheduled" && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {backup.metadata.googleDrive?.state === "uploaded"
+                              ? labels.driveUploaded
+                              : backup.metadata.googleDrive?.state === "failed"
+                                ? labels.driveUploadFailed
+                                : labels.driveUploadPending}
+                          </p>
+                        )}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
                     <Info
@@ -20173,7 +20581,8 @@ function BackupRestore() {
                     <Download size={14} />
                     {labels.download}
                   </Button>
-                  {backup.metadata.googleDrive?.state === "uploaded" &&
+                  {backup.scope === "platform" &&
+                    backup.metadata.googleDrive?.state === "uploaded" &&
                     backup.metadata.googleDrive.webViewLink && (
                       <a
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-input px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"

@@ -1,7 +1,9 @@
 // @ts-nocheck
+import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
 import {
   backupRecordsTable,
+  backupSchedulerStatusTable,
   companiesTable,
   db,
   platformSettingsTable,
@@ -38,18 +40,203 @@ async function lastPlatformScheduledBackup(): Promise<Date | undefined> {
   return record?.createdAt;
 }
 
-export async function runAutomaticBackupScheduler() {
-  const lockClient = await pool.connect();
+function storedBackupSchedulerError(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "Unknown error");
+  return message
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/(postgres(?:ql)?:\/\/)[^@\s]+@/gi, "$1[redacted]@")
+    .split("\n")[0]
+    .slice(0, 500);
+}
+
+async function saveBackupSchedulerStatus(values: Record<string, unknown>) {
+  await db
+    .insert(backupSchedulerStatusTable)
+    .values(values)
+    .onConflictDoUpdate({
+      target: backupSchedulerStatusTable.targetKey,
+      set: { ...values, updatedAt: new Date() },
+    });
+}
+
+export async function runAutomaticBackupScheduler(options = {}) {
+  const source = options.source ?? "server-poller";
+  const recordIdleRuns = options.recordIdleRuns === true;
+  const runId = randomUUID();
+  const startedAt = new Date();
+  let lockClient;
   let acquired = false;
   let destroyLockConnection = false;
+  let runStatusSaved = false;
+  let platformCreated = 0;
+  let companyCreated = 0;
+  let failures = 0;
+  let driveUploaded = 0;
+  let driveFailed = 0;
+  let drivePending = 0;
+  let attemptedTargets = 0;
+  const runErrors: string[] = [];
+
+  const saveRunStatus = async (status: string, reason: string | null) => {
+    await saveBackupSchedulerStatus({
+      targetKey: "latest-run",
+      runId,
+      targetType: "run",
+      companyId: null,
+      companyName: null,
+      companyNameEn: null,
+      source,
+      status,
+      reason,
+      startedAt,
+      completedAt: status === "running" ? null : new Date(),
+      backupsCreated: platformCreated + companyCreated,
+      platformCreated,
+      companyCreated,
+      failureCount: failures,
+      driveUploaded,
+      driveFailed,
+      drivePending,
+      errorMessage: runErrors.length
+        ? runErrors.join("; ").slice(0, 1000)
+        : null,
+    });
+    runStatusSaved = true;
+  };
+
+  const ensureRunStatus = async () => {
+    if (!runStatusSaved) await saveRunStatus("running", "in_progress");
+  };
+
+  const startTargetAttempt = async (target: {
+    targetKey: string;
+    targetType: "platform" | "company";
+    companyId: string | null;
+    companyName: string | null;
+    companyNameEn: string | null;
+  }) => {
+    await ensureRunStatus();
+    attemptedTargets += 1;
+    const targetStartedAt = new Date();
+    await saveBackupSchedulerStatus({
+      targetKey: target.targetKey,
+      runId,
+      targetType: target.targetType,
+      companyId: target.companyId,
+      companyName: target.companyName,
+      companyNameEn: target.companyNameEn,
+      source,
+      status: "running",
+      reason: "backup_attempt",
+      startedAt: targetStartedAt,
+      completedAt: null,
+      backupsCreated: 0,
+      platformCreated: 0,
+      companyCreated: 0,
+      failureCount: 0,
+      driveUploaded: 0,
+      driveFailed: 0,
+      drivePending: 0,
+      errorMessage: null,
+    });
+    return targetStartedAt;
+  };
+
+  const finishTargetAttempt = async (
+    target: {
+      targetKey: string;
+      targetType: "platform" | "company";
+      companyId: string | null;
+      companyName: string | null;
+      companyNameEn: string | null;
+    },
+    targetStartedAt: Date,
+    result: {
+      status: string;
+      backupsCreated: number;
+      failureCount?: number;
+      driveUploaded?: number;
+      driveFailed?: number;
+      errorMessage?: string | null;
+    },
+  ) => {
+    await saveBackupSchedulerStatus({
+      targetKey: target.targetKey,
+      runId,
+      targetType: target.targetType,
+      companyId: target.companyId,
+      companyName: target.companyName,
+      companyNameEn: target.companyNameEn,
+      source,
+      status: result.status,
+      reason: null,
+      startedAt: targetStartedAt,
+      completedAt: new Date(),
+      backupsCreated: result.backupsCreated,
+      platformCreated: 0,
+      companyCreated: 0,
+      failureCount: result.failureCount ?? 0,
+      driveUploaded: result.driveUploaded ?? 0,
+      driveFailed: result.driveFailed ?? 0,
+      drivePending: 0,
+      errorMessage: result.errorMessage ?? null,
+    });
+    await saveRunStatus("running", "in_progress");
+  };
+
+  const uploadCreatedBackup = async (record: unknown, targetLabel: string) => {
+    try {
+      const result = await uploadScheduledBackupToGoogleDrive(record);
+      if (result.uploaded) driveUploaded += 1;
+      if (result.errorCode) {
+        driveFailed += 1;
+        runErrors.push(
+          `${targetLabel}: Google Drive upload failed (${result.errorCode})`,
+        );
+      }
+      return {
+        driveUploaded: result.uploaded ? 1 : 0,
+        driveFailed: result.errorCode ? 1 : 0,
+        errorMessage: result.errorCode
+          ? `Google Drive upload failed (${result.errorCode})`
+          : null,
+      };
+    } catch (error) {
+      driveFailed += 1;
+      const message = storedBackupSchedulerError(error);
+      logger.error({ err: error, targetLabel }, "Scheduled Drive upload failed");
+      runErrors.push(`${targetLabel}: Google Drive upload failed: ${message}`);
+      return {
+        driveUploaded: 0,
+        driveFailed: 1,
+        errorMessage: `Google Drive upload failed: ${message}`,
+      };
+    }
+  };
+
   try {
+    lockClient = await pool.connect();
     const lockResult = await lockClient.query(advisoryLockSql);
     acquired = Boolean(lockResult.rows[0]?.acquired);
-    if (!acquired) return { started: false, reason: "already_running" };
+    if (!acquired) {
+      if (recordIdleRuns) {
+        await saveRunStatus("skipped", "already_running");
+      }
+      return {
+        started: false,
+        reason: "already_running",
+        platformCreated,
+        companyCreated,
+        failures,
+        driveUploaded,
+        driveFailed,
+        drivePending,
+      };
+    }
 
-    let driveUploaded = 0;
-    let driveFailed = 0;
-    let drivePending = 0;
+    if (recordIdleRuns) await saveRunStatus("running", "running");
+
     try {
       const retryResult = await retryPendingGoogleDriveBackups();
       driveUploaded += retryResult.uploaded;
@@ -57,6 +244,9 @@ export async function runAutomaticBackupScheduler() {
       drivePending = retryResult.pending;
     } catch (err) {
       driveFailed += 1;
+      runErrors.push(
+        `Could not retry pending Google Drive backups: ${storedBackupSchedulerError(err)}`,
+      );
       logger.error({ err }, "Could not retry pending Google Drive backups");
     }
 
@@ -74,13 +264,23 @@ export async function runAutomaticBackupScheduler() {
     const platformIntervalMinutes = settings?.platformIntervalMinutes ?? 0;
     const companyIntervalMinutes = settings?.companyIntervalMinutes ?? 0;
     if (platformIntervalMinutes <= 0 && companyIntervalMinutes <= 0) {
-      return {
+      const result = {
         started: true,
         reason: "disabled",
+        platformCreated,
+        companyCreated,
+        failures,
         driveUploaded,
         driveFailed,
         drivePending,
       };
+      if (recordIdleRuns || driveUploaded > 0 || driveFailed > 0) {
+        await saveRunStatus(
+          driveFailed > 0 ? "completed_with_errors" : "skipped",
+          "disabled",
+        );
+      }
+      return result;
     }
 
     const [owner] = await db
@@ -100,18 +300,51 @@ export async function runAutomaticBackupScheduler() {
       logger.warn(
         "Automatic backups are enabled, but no active platform owner account is available",
       );
-      return { started: false, reason: "no_active_platform_owner" };
+      failures += 1;
+      runErrors.push("No active platform owner account is available.");
+      await saveRunStatus("failed", "no_active_platform_owner");
+      return {
+        started: false,
+        reason: "no_active_platform_owner",
+        platformCreated,
+        companyCreated,
+        failures,
+        driveUploaded,
+        driveFailed,
+        drivePending,
+      };
     }
 
     const now = new Date();
-    let platformCreated = 0;
-    let companyCreated = 0;
-    let failures = 0;
 
     if (platformIntervalMinutes > 0) {
+      const target = {
+        targetKey: "platform",
+        targetType: "platform" as const,
+        companyId: null,
+        companyName: null,
+        companyNameEn: null,
+      };
+      let due = false;
       try {
         const lastCreatedAt = await lastPlatformScheduledBackup();
-        if (isDue(platformIntervalMinutes, lastCreatedAt, now)) {
+        due = isDue(platformIntervalMinutes, lastCreatedAt, now);
+      } catch (err) {
+        failures += 1;
+        const message = storedBackupSchedulerError(err);
+        runErrors.push(`Platform backup schedule check failed: ${message}`);
+        const targetStartedAt = await startTargetAttempt(target);
+        await finishTargetAttempt(target, targetStartedAt, {
+          status: "failed",
+          backupsCreated: 0,
+          failureCount: 1,
+          errorMessage: message,
+        });
+        logger.error({ err }, "Could not check platform backup schedule");
+      }
+      if (due) {
+        const targetStartedAt = await startTargetAttempt(target);
+        try {
           const record = await createBackup({
             scope: "platform",
             companyId: null,
@@ -119,25 +352,48 @@ export async function runAutomaticBackupScheduler() {
             creationMode: "scheduled",
             scheduleIntervalMinutes: platformIntervalMinutes,
           });
-          const driveResult = await uploadScheduledBackupToGoogleDrive(record);
-          if (driveResult.uploaded) driveUploaded += 1;
-          if (driveResult.errorCode) driveFailed += 1;
           platformCreated += 1;
+          const driveResult = await uploadCreatedBackup(
+            record,
+            "Platform backup",
+          );
+          await finishTargetAttempt(target, targetStartedAt, {
+            status:
+              driveResult.driveFailed > 0
+                ? "created_with_errors"
+                : "created",
+            backupsCreated: 1,
+            driveUploaded: driveResult.driveUploaded,
+            driveFailed: driveResult.driveFailed,
+            errorMessage: driveResult.errorMessage,
+          });
           logger.info(
             { intervalMinutes: platformIntervalMinutes },
             "Scheduled platform backup created",
           );
+        } catch (err) {
+          failures += 1;
+          const message = storedBackupSchedulerError(err);
+          runErrors.push(`Platform backup failed: ${message}`);
+          await finishTargetAttempt(target, targetStartedAt, {
+            status: "failed",
+            backupsCreated: 0,
+            failureCount: 1,
+            errorMessage: message,
+          });
+          logger.error({ err }, "Scheduled platform backup failed");
         }
-      } catch (err) {
-        failures += 1;
-        logger.error({ err }, "Scheduled platform backup failed");
       }
     }
 
     if (companyIntervalMinutes > 0) {
       try {
         const companies = await db
-          .select({ id: companiesTable.id })
+          .select({
+            id: companiesTable.id,
+            name: companiesTable.name,
+            nameEn: companiesTable.nameEn,
+          })
           .from(companiesTable)
           .orderBy(asc(companiesTable.id));
         const oldestRelevantBackup = new Date(
@@ -166,33 +422,71 @@ export async function runAutomaticBackupScheduler() {
         }
 
         for (const company of companies) {
-          if (
-            !isDue(
+          let due = false;
+          try {
+            due = isDue(
               companyIntervalMinutes,
               latestByCompany.get(company.id),
               now,
-            )
-          ) {
-            continue;
+            );
+          } catch (err) {
+            failures += 1;
+            const message = storedBackupSchedulerError(err);
+            runErrors.push(
+              `Backup schedule check failed for ${company.name}: ${message}`,
+            );
+            const target = {
+              targetKey: `company:${company.id}`,
+              targetType: "company" as const,
+              companyId: company.id,
+              companyName: company.name,
+              companyNameEn: company.nameEn,
+            };
+            const targetStartedAt = await startTargetAttempt(target);
+            await finishTargetAttempt(target, targetStartedAt, {
+              status: "failed",
+              backupsCreated: 0,
+              failureCount: 1,
+              errorMessage: message,
+            });
+            logger.error({ err, companyId: company.id }, "Could not check company backup schedule");
           }
+          if (!due) continue;
+          const target = {
+            targetKey: `company:${company.id}`,
+            targetType: "company" as const,
+            companyId: company.id,
+            companyName: company.name,
+            companyNameEn: company.nameEn,
+          };
+          const targetStartedAt = await startTargetAttempt(target);
           try {
-            const record = await createBackup({
+            await createBackup({
               scope: "company",
               companyId: company.id,
               createdBy: owner.id,
               creationMode: "scheduled",
               scheduleIntervalMinutes: companyIntervalMinutes,
             });
-            const driveResult = await uploadScheduledBackupToGoogleDrive(record);
-            if (driveResult.uploaded) driveUploaded += 1;
-            if (driveResult.errorCode) driveFailed += 1;
             companyCreated += 1;
+            await finishTargetAttempt(target, targetStartedAt, {
+              status: "created",
+              backupsCreated: 1,
+            });
             logger.info(
               { companyId: company.id, intervalMinutes: companyIntervalMinutes },
               "Scheduled company backup created",
             );
           } catch (err) {
             failures += 1;
+            const message = storedBackupSchedulerError(err);
+            runErrors.push(`Company backup failed for ${company.name}: ${message}`);
+            await finishTargetAttempt(target, targetStartedAt, {
+              status: "failed",
+              backupsCreated: 0,
+              failureCount: 1,
+              errorMessage: message,
+            });
             logger.error(
               { err, companyId: company.id },
               "Scheduled company backup failed",
@@ -201,13 +495,20 @@ export async function runAutomaticBackupScheduler() {
         }
       } catch (err) {
         failures += 1;
+        const message = storedBackupSchedulerError(err);
+        runErrors.push(`Could not enumerate companies for scheduled backups: ${message}`);
         logger.error({ err }, "Could not enumerate companies for scheduled backups");
       }
     }
 
-    return {
+    const result = {
       started: true,
-      reason: "completed",
+      reason:
+        failures > 0
+          ? "backup_failures"
+          : attemptedTargets === 0
+            ? "no_due_backups"
+            : "completed",
       platformCreated,
       companyCreated,
       failures,
@@ -215,8 +516,37 @@ export async function runAutomaticBackupScheduler() {
       driveFailed,
       drivePending,
     };
+    if (
+      recordIdleRuns ||
+      attemptedTargets > 0 ||
+      failures > 0 ||
+      driveUploaded > 0 ||
+      driveFailed > 0
+    ) {
+      const status =
+        failures > 0
+          ? "failed"
+          : driveFailed > 0
+            ? "completed_with_errors"
+            : "completed";
+      await saveRunStatus(status, result.reason);
+    }
+    return result;
+  } catch (err) {
+    const message = storedBackupSchedulerError(err);
+    failures += 1;
+    runErrors.push(message);
+    try {
+      await saveRunStatus("failed", "scheduler_error");
+    } catch (statusError) {
+      logger.error(
+        { err: statusError },
+        "Could not persist automatic backup scheduler failure status",
+      );
+    }
+    throw err;
   } finally {
-    if (acquired) {
+    if (acquired && lockClient) {
       try {
         await lockClient.query(advisoryUnlockSql);
       } catch (err) {
@@ -224,7 +554,7 @@ export async function runAutomaticBackupScheduler() {
         logger.error({ err }, "Could not release automatic backup scheduler lock");
       }
     }
-    lockClient.release(destroyLockConnection);
+    lockClient?.release(destroyLockConnection);
   }
 }
 

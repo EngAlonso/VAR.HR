@@ -131,6 +131,8 @@ import type {
   PermanentPasswordInput,
   PermissionRequest,
   PermissionRequestInput,
+  PlatformBackupSchedule,
+  PlatformBackupScheduleInput,
   PlatformCompany,
   PlatformCompanyCredentials,
   PlatformCompanyInput,
@@ -9945,6 +9947,154 @@ export const useDisconnectPlatformGoogleDrive = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDisconnectPlatformGoogleDriveMutationOptions(options));
+    }
+
+export const getGetPlatformBackupScheduleUrl = () => {
+
+
+
+
+  return `/api/platform/backup-schedule`
+}
+
+/**
+ * @summary Get automatic backup schedule and scheduler status
+ */
+export const getPlatformBackupSchedule = async ( options?: Parameters<typeof customFetch>[1]): Promise<PlatformBackupSchedule> => {
+
+  return customFetch<PlatformBackupSchedule>(getGetPlatformBackupScheduleUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformBackupScheduleQueryKey = () => {
+    return [
+    `/api/platform/backup-schedule`
+    ] as const;
+    }
+
+
+export const getGetPlatformBackupScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformBackupSchedule>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformBackupSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformBackupScheduleQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformBackupSchedule>>> = ({ signal }) => getPlatformBackupSchedule({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformBackupSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformBackupScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformBackupSchedule>>>
+export type GetPlatformBackupScheduleQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get automatic backup schedule and scheduler status
+ */
+
+export function useGetPlatformBackupSchedule<TData = Awaited<ReturnType<typeof getPlatformBackupSchedule>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformBackupSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformBackupScheduleQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePlatformBackupScheduleUrl = () => {
+
+
+
+
+  return `/api/platform/backup-schedule`
+}
+
+/**
+ * @summary Update automatic backup intervals
+ */
+export const updatePlatformBackupSchedule = async (platformBackupScheduleInput: PlatformBackupScheduleInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformBackupSchedule> => {
+
+  return customFetch<PlatformBackupSchedule>(getUpdatePlatformBackupScheduleUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformBackupScheduleInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePlatformBackupScheduleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformBackupSchedule>>, TError,{data: BodyType<PlatformBackupScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformBackupSchedule>>, TError,{data: BodyType<PlatformBackupScheduleInput>}, TContext> => {
+
+const mutationKey = ['updatePlatformBackupSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformBackupSchedule>>, {data: BodyType<PlatformBackupScheduleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlatformBackupSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformBackupScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformBackupSchedule>>>
+    export type UpdatePlatformBackupScheduleMutationBody = BodyType<PlatformBackupScheduleInput>
+    export type UpdatePlatformBackupScheduleMutationError = ErrorType<void>
+
+    /**
+ * @summary Update automatic backup intervals
+ */
+export const useUpdatePlatformBackupSchedule = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformBackupSchedule>>, TError,{data: BodyType<PlatformBackupScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformBackupSchedule>>,
+        TError,
+        {data: BodyType<PlatformBackupScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformBackupScheduleMutationOptions(options));
     }
 
 export const getStartPlatformGoogleDriveOAuthUrl = (params?: StartPlatformGoogleDriveOAuthParams,) => {

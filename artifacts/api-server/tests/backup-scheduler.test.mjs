@@ -69,7 +69,49 @@ test("persistent servers and Vercel have authenticated scheduler triggers", () =
   assert.match(apiIndex, /startAutomaticBackupScheduler\(\)/);
   assert.match(backupRoute, /process\.env\.CRON_SECRET/);
   assert.match(backupRoute, /timingSafeEqual/);
+  assert.match(
+    backupRoute,
+    /runAutomaticBackupScheduler\(\{\s*source: "vercel-cron",\s*recordIdleRuns: true/,
+  );
   assert.match(vercelConfig, /"path": "\/api\/internal\/backup-scheduler"/);
+});
+
+test("scheduler persists no-op runs and the latest platform/company attempts", () => {
+  assert.match(scheduler, /targetKey: "latest-run"/);
+  assert.match(scheduler, /targetKey: "platform"/);
+  assert.match(scheduler, /targetKey: `company:\$\{company\.id\}`/);
+  assert.match(scheduler, /attemptedTargets === 0[\s\S]*?"no_due_backups"/);
+  assert.match(
+    scheduler,
+    /if \(recordIdleRuns\) \{\s*await saveRunStatus\("skipped", "already_running"\)/,
+  );
+  assert.match(
+    settingsRoute,
+    /schedulerStatus:\s*\{\s*latestRun:[\s\S]*?targets:/,
+  );
+  assert.match(webApp, /labels\.schedulerStatusTitle/);
+  assert.match(webApp, /backup-scheduler-target-/);
+  assert.match(apiSpec, /\/platform\/backup-schedule:[\s\S]*?PlatformBackupSchedule/);
+});
+
+test("only scheduled platform backups can be uploaded or retried through Google Drive", () => {
+  assert.match(
+    googleDriveBackups,
+    /record\.scope !== "platform" \|\| record\.companyId !== null/,
+  );
+  assert.equal(
+    [...googleDriveBackups.matchAll(/eq\(backupRecordsTable\.scope, "platform"\)/g)]
+      .length,
+    2,
+  );
+  assert.match(
+    scheduler,
+    /scope: "platform"[\s\S]*?uploadCreatedBackup\(\s*record,\s*"Platform backup",?\s*\)/,
+  );
+  assert.match(
+    webApp,
+    /backup\.scope === "platform" &&\s*backup\.metadata\.creationMode === "scheduled"/,
+  );
 });
 
 test("Vercel cron checks at 13:00 Cairo in both standard and daylight time", () => {

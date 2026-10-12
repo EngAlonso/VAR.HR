@@ -11,6 +11,7 @@ import {
   leaveBalanceTransactionsTable,
   leaveBalancesTable,
   authAuditEventsTable,
+  backupSchedulerStatusTable,
   platformSettingsTable,
   userAccountsTable,
 } from "@workspace/db";
@@ -800,6 +801,58 @@ async function loadBackupSchedule() {
     .from(platformSettingsTable)
     .where(eq(platformSettingsTable.id, "default"))
     .limit(1);
+  const [latestRun] = await db
+    .select()
+    .from(backupSchedulerStatusTable)
+    .where(eq(backupSchedulerStatusTable.targetKey, "latest-run"))
+    .limit(1);
+  const savedTargets = await db
+    .select()
+    .from(backupSchedulerStatusTable)
+    .where(inArray(backupSchedulerStatusTable.targetType, ["platform", "company"]));
+  const companies = await db
+    .select({
+      id: companiesTable.id,
+      name: companiesTable.name,
+      nameEn: companiesTable.nameEn,
+    })
+    .from(companiesTable);
+  const savedTargetByKey = new Map(
+    savedTargets.map((target) => [target.targetKey, target]),
+  );
+  const serializeTarget = (
+    targetType: "platform" | "company",
+    company: { id: string; name: string; nameEn: string } | null,
+    scheduleEnabled: boolean,
+  ) => {
+    const targetKey = company ? `company:${company.id}` : "platform";
+    const target = savedTargetByKey.get(targetKey);
+    return {
+      targetType,
+      companyId: company?.id ?? null,
+      companyName: company?.name ?? null,
+      companyNameEn: company?.nameEn ?? null,
+      scheduleEnabled,
+      source: target?.source ?? null,
+      status: target?.status ?? (scheduleEnabled ? "not_attempted" : "disabled"),
+      reason: target?.reason ?? null,
+      startedAt: target?.startedAt ?? null,
+      completedAt: target?.completedAt ?? null,
+      backupsCreated: target?.backupsCreated ?? 0,
+      failureCount: target?.failureCount ?? 0,
+      driveFailed: target?.driveFailed ?? 0,
+      errorMessage: target?.errorMessage ?? null,
+    };
+  };
+  const serializedCompanies = companies
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((company) =>
+      serializeTarget(
+        "company",
+        company,
+        (settings?.companyBackupIntervalMinutes ?? 0) > 0,
+      ),
+    );
   return {
     platformBackupIntervalMinutes:
       settings?.platformBackupIntervalMinutes ?? 0,
@@ -807,6 +860,32 @@ async function loadBackupSchedule() {
       settings?.companyBackupIntervalMinutes ?? 0,
     schedulerReady:
       process.env.VERCEL !== "1" || Boolean(process.env.CRON_SECRET),
+    schedulerStatus: {
+      latestRun: latestRun
+        ? {
+            startedAt: latestRun.startedAt,
+            completedAt: latestRun.completedAt,
+            source: latestRun.source,
+            status: latestRun.status,
+            reason: latestRun.reason,
+            platformCreated: latestRun.platformCreated,
+            companyCreated: latestRun.companyCreated,
+            failureCount: latestRun.failureCount,
+            driveUploaded: latestRun.driveUploaded,
+            driveFailed: latestRun.driveFailed,
+            drivePending: latestRun.drivePending,
+            errorMessage: latestRun.errorMessage,
+          }
+        : null,
+      targets: [
+        serializeTarget(
+          "platform",
+          null,
+          (settings?.platformBackupIntervalMinutes ?? 0) > 0,
+        ),
+        ...serializedCompanies,
+      ],
+    },
   };
 }
 

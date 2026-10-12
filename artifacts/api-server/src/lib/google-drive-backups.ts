@@ -1,4 +1,4 @@
-import { desc, and, eq, sql } from "drizzle-orm";
+import { desc, and, eq, isNull, sql } from "drizzle-orm";
 import {
   backupRecordsTable,
   db,
@@ -325,6 +325,9 @@ async function markUploadFailed(
 export async function uploadScheduledBackupToGoogleDrive(
   record: BackupRecord,
 ): Promise<{ uploaded: boolean; errorCode?: string }> {
+  if (record.scope !== "platform" || record.companyId !== null) {
+    return { uploaded: false };
+  }
   if (
     record.metadata == null ||
     typeof record.metadata !== "object" ||
@@ -369,6 +372,8 @@ async function pendingScheduledBackupsCount(): Promise<number> {
     .from(backupRecordsTable)
     .where(
       and(
+        eq(backupRecordsTable.scope, "platform"),
+        isNull(backupRecordsTable.companyId),
         sql`${backupRecordsTable.metadata}->>'creationMode' = 'scheduled'`,
         sql`COALESCE(${backupRecordsTable.metadata}->'googleDrive'->>'state', 'pending') <> 'uploaded'`,
       ),
@@ -416,6 +421,8 @@ export async function retryPendingGoogleDriveBackups(input?: {
     .from(backupRecordsTable)
     .where(
       and(
+        eq(backupRecordsTable.scope, "platform"),
+        isNull(backupRecordsTable.companyId),
         sql`${backupRecordsTable.metadata}->>'creationMode' = 'scheduled'`,
         sql`COALESCE(${backupRecordsTable.metadata}->'googleDrive'->>'state', 'pending') <> 'uploaded'`,
         dueAttempt,
