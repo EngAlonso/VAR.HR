@@ -722,12 +722,6 @@ const platformNav: NavItem[] = [
     roles: ["platform_owner"],
   },
   {
-    href: "/accounts",
-    key: "accountManagement",
-    icon: UserPlus,
-    roles: ["platform_owner"],
-  },
-  {
     href: "/platform/account-settings",
     key: "accountSettings",
     icon: Settings,
@@ -20927,6 +20921,10 @@ function DatabaseAdministration() {
     const query = new URLSearchParams(location.split("?")[1] ?? "");
     return query.get("entity") ?? "";
   });
+  const selectEntity = (key: string) => {
+    setEntity(key);
+    setLocation(`/platform/database?entity=${encodeURIComponent(key)}`);
+  };
   const [companyFilter, setCompanyFilter] = useState("");
   const [missingWorkdaysOnly, setMissingWorkdaysOnly] = useState(false);
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
@@ -21693,7 +21691,7 @@ function DatabaseAdministration() {
                                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
                             )}
                             key={key}
-                            onClick={() => setEntity(key)}
+                            onClick={() => selectEntity(key)}
                             type="button"
                           >
                             <span className="truncate">{label}</span>
@@ -21724,6 +21722,9 @@ function DatabaseAdministration() {
           </Card>
         </aside>
 
+        {entity === "users" ? (
+          <Accounts embedded />
+        ) : (
         <Card className="min-w-0 overflow-hidden shadow-sm">
           <div className="border-b border-border bg-gradient-to-br from-primary/[0.08] via-background to-background p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -21756,7 +21757,7 @@ function DatabaseAdministration() {
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={entity}
-                onChange={(event) => setEntity(event.target.value)}
+                 onChange={(event) => selectEntity(event.target.value)}
               >
                 {databaseGroups.map((group) => (
                   <optgroup
@@ -22137,6 +22138,7 @@ function DatabaseAdministration() {
           />
         )}
         </Card>
+        )}
       </div>
       {balanceEditing && (
         <Modal
@@ -22897,7 +22899,7 @@ function PlatformSiteBranding() {
   );
 }
 
-function Accounts() {
+function Accounts({ embedded = false }: { embedded?: boolean }) {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
@@ -23111,12 +23113,25 @@ function Accounts() {
     <div className="animate-in">
       <SectionTitle
         eyebrow={
-          isPlatformOwner
+          embedded
+            ? text("Platform administration", "إدارة المنصة")
+            : isPlatformOwner
             ? text("All accounts", "كل الحسابات")
             : authLabel(locale, "staffAccounts")
         }
-        title={authLabel(locale, "accountManagement")}
-        detail={authLabel(locale, "managementDetail")}
+        title={
+          embedded
+            ? text("Users and accounts", "المستخدمون والحسابات")
+            : authLabel(locale, "accountManagement")
+        }
+        detail={
+          embedded
+            ? text(
+                "View and manage platform and company user accounts from one place.",
+                "اعرض حسابات المنصة والشركات وأدرها من مكان واحد.",
+              )
+            : authLabel(locale, "managementDetail")
+        }
         action={
           <Button variant="outline" onClick={() => void load()}>
             <RefreshCw size={15} />
@@ -23544,6 +23559,14 @@ function Accounts() {
       )}
     </div>
   );
+}
+
+function AccountsRoute() {
+  const auth = useAuth();
+  if (auth.account.accountType === "platform_owner") {
+    return <Redirect to="/platform/database?entity=users" />;
+  }
+  return <Accounts />;
 }
 
 function tSafe(locale: Locale, key: "refresh") {
@@ -28659,6 +28682,7 @@ function Field({
   required = false,
   autoComplete,
   placeholder,
+  disabled = false,
   showPasswordToggle = false,
   showPasswordLabel = "",
   hidePasswordLabel = "",
@@ -28686,6 +28710,7 @@ function Field({
   required?: boolean;
   autoComplete?: string;
   placeholder?: string;
+  disabled?: boolean;
   showPasswordToggle?: boolean;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
@@ -28725,6 +28750,7 @@ function Field({
           autoCorrect={authStyle ? "off" : undefined}
           autoComplete={autoComplete}
           placeholder={placeholder}
+          disabled={disabled}
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
@@ -29225,7 +29251,7 @@ function Router() {
           component={PlatformAccountSettings}
         />
         <Route path="/platform/site-branding" component={PlatformSiteBranding} />
-        <Route path="/accounts" component={Accounts} />
+        <Route path="/accounts" component={AccountsRoute} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
         <Route
