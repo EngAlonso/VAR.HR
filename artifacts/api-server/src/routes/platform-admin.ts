@@ -8,12 +8,14 @@ import {
   db,
   departmentsTable,
   employeesTable,
+  employeeScheduleAssignmentsTable,
   leaveBalanceTransactionsTable,
   leaveBalancesTable,
   authAuditEventsTable,
   backupSchedulerStatusTable,
   platformSettingsTable,
   userAccountsTable,
+  workSchedulesTable,
 } from "@workspace/db";
 import {
   hashPassword,
@@ -23,7 +25,11 @@ import {
 } from "../lib/auth";
 import { requirePlatformOwner } from "../lib/tenant-context";
 import { z } from "zod";
-import { refreshPlatformSupportPayroll } from "./var-hr";
+import {
+  ensureLeaveAccruals,
+  refreshPlatformSupportPayroll,
+  refreshPlatformSupportSchedule,
+} from "./var-hr";
 
 type EntityConfig = {
   table: string;
@@ -139,13 +145,22 @@ const entities: Record<string, EntityConfig> = {
       "employee_number",
       "first_name",
       "last_name",
-      "email",
+      "first_name_en",
+      "last_name_en",
       "phone",
+      "national_id",
+      "biometric_code",
+      "working_hours",
+      "pay_basis",
+      "work_days_per_month",
+      "salary",
+      "joined_on",
       "department_id",
       "branch_id",
       "status",
       "role",
-      "work_days_per_month",
+      "location_attendance_enabled",
+      "automatic_annual_leave_eligible",
     ],
     canArchive: true,
     hasUpdatedAt: true,
@@ -511,6 +526,20 @@ const supportEditSchema = z
     reason: z.string().trim().min(10).max(500),
   })
   .strict();
+const supportDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid calendar date.");
+const employeeSupportEditSchema = supportEditSchema
+  .extend({
+    scheduleAssignment: z
+      .object({
+        scheduleId: idSchema,
+        effectiveFrom: supportDateSchema,
+        effectiveTo: supportDateSchema.nullable(),
+      })
+      .optional(),
+  })
+  .strict();
 const platformLeaveBalanceSupportSchema = z
   .object({
     companyId: idSchema,
@@ -534,13 +563,22 @@ const supportFields: Record<string, string[]> = {
     "employee_number",
     "first_name",
     "last_name",
-    "email",
+    "first_name_en",
+    "last_name_en",
     "phone",
+    "national_id",
+    "biometric_code",
+    "working_hours",
+    "pay_basis",
+    "salary",
+    "joined_on",
     "department_id",
     "branch_id",
     "status",
     "role",
     "work_days_per_month",
+    "location_attendance_enabled",
+    "automatic_annual_leave_eligible",
   ],
   departments: ["name", "name_en", "description", "manager_id", "active"],
   branches: [
@@ -555,6 +593,8 @@ const supportFields: Record<string, string[]> = {
 const databaseBooleanFields = new Set([
   "active",
   "gps_enabled",
+  "location_attendance_enabled",
+  "automatic_annual_leave_eligible",
   "overtime_eligible",
   "recurring",
 ]);
@@ -568,13 +608,20 @@ const databaseNumericFields = new Set([
   "overtime_hours",
   "salary",
   "work_days_per_month",
+  "working_hours",
 ]);
 const safeHistoryValue = (value: unknown): unknown => {
   if (!value || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(safeHistoryValue);
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
-    if (/password|token|secret|session|api.?key|credential/i.test(key)) continue;
+    if (
+      /password|token|secret|session|api.?key|credential|national.?id|biometric.?code/i.test(
+        key,
+      )
+    ) {
+      continue;
+    }
     result[key] = safeHistoryValue(item);
   }
   return result;
@@ -1365,6 +1412,168 @@ router.get(
       })),
     ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
     res.json({ entity: req.params.entity, label: config.label, history });
+  },
+);
+
+router.get(
+  "/platform/database/employees/:id/support",
+  async (req, res): Promise<void> => {
+    const context = await requirePlatformOwner(req);
+    const companyId =
+      typeof req.query.companyId === "string" ? req.query.companyId.trim() : "";
+    if (
+      !idSchema.safeParse(req.params.id).success ||
+      !idSchema.safeParse(companyId).success
+    ) {
+      res.status(400).json({ error: "A valid employee and company are required." });
+      return;
+    }
+    const [employee] = await db
+      .select()
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, req.params.id),
+          eq(employeesTable.companyId, companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: "Employee not found in the selected company." });
+      return;
+    }
+    const [company] = await db
+      .select({
+        id: companiesTable.id,
+        timezone: companiesTable.timezone,
+        currency: companiesTable.currency,
+        defaultScheduleId: companiesTable.defaultScheduleId,
+      })
+      .from(companiesTable)
+      .where(eq(companiesTable.id, companyId))
+      .limit(1);
+    if (!company) {
+      res.status(404).json({ error: "Company not found." });
+      return;
+    }
+    const [departments, branches, schedules, assignments] = await Promise.all([
+      db
+        .select({
+          id: departmentsTable.id,
+          name: departmentsTable.name,
+          nameEn: departmentsTable.nameEn,
+        })
+        .from(departmentsTable)
+        .where(eq(departmentsTable.companyId, companyId))
+        .orderBy(departmentsTable.name),
+      db
+        .select({
+          id: branchesTable.id,
+          name: branchesTable.name,
+          nameEn: branchesTable.nameEn,
+        })
+        .from(branchesTable)
+        .where(eq(branchesTable.companyId, companyId))
+        .orderBy(branchesTable.name),
+      db
+        .select({
+          id: workSchedulesTable.id,
+          name: workSchedulesTable.name,
+          nameAr: workSchedulesTable.nameAr,
+          nameEn: workSchedulesTable.nameEn,
+          startTime: workSchedulesTable.startTime,
+          endTime: workSchedulesTable.endTime,
+          active: workSchedulesTable.active,
+        })
+        .from(workSchedulesTable)
+        .where(eq(workSchedulesTable.companyId, companyId))
+        .orderBy(workSchedulesTable.name),
+      db
+        .select()
+        .from(employeeScheduleAssignmentsTable)
+        .where(
+          and(
+            eq(employeeScheduleAssignmentsTable.companyId, companyId),
+            eq(employeeScheduleAssignmentsTable.employeeId, employee.id),
+          ),
+        )
+        .orderBy(desc(employeeScheduleAssignmentsTable.effectiveFrom)),
+    ]);
+    const dateParts = new Intl.DateTimeFormat("en", {
+      timeZone: company.timezone || "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(new Date())
+      .reduce<Record<string, string>>((parts, part) => {
+        if (part.type !== "literal") parts[part.type] = part.value;
+        return parts;
+      }, {});
+    const today = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+    const currentAssignment = assignments.find(
+      (assignment) =>
+        assignment.effectiveFrom <= today &&
+        (assignment.effectiveTo === null || assignment.effectiveTo >= today),
+    );
+    const availableSchedules = schedules.filter(
+      (schedule) =>
+        schedule.active ||
+        schedule.id === currentAssignment?.scheduleId ||
+        schedule.id === company.defaultScheduleId,
+    );
+    const currentScheduleId =
+      currentAssignment?.scheduleId ??
+      (availableSchedules.some(
+        (schedule) =>
+          schedule.id === company.defaultScheduleId && schedule.active,
+      )
+        ? company.defaultScheduleId
+        : "");
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId,
+      action: "database_support_viewed",
+      entityType: "database:employees",
+      entityId: employee.id,
+      metadata: { purpose: "employee_edit_form" },
+    });
+    res.json({
+      company: { currency: company.currency || "EGP" },
+      values: {
+        employee_number: employee.employeeNumber,
+        first_name: employee.firstName,
+        last_name: employee.lastName,
+        first_name_en: employee.firstNameEn,
+        last_name_en: employee.lastNameEn,
+        phone: employee.phone ?? "",
+        national_id: employee.nationalId ?? "",
+        biometric_code: employee.biometricCode ?? "",
+        working_hours: employee.workingHours,
+        pay_basis: employee.payBasis,
+        work_days_per_month: employee.workDaysPerMonth ?? "",
+        salary: employee.salary,
+        joined_on: employee.joinedOn,
+        department_id: employee.departmentId ?? "",
+        branch_id: employee.branchId,
+        role: employee.role,
+        status: employee.status,
+        location_attendance_enabled: employee.locationAttendanceEnabled,
+        automatic_annual_leave_eligible:
+          employee.automaticAnnualLeaveEligible,
+      },
+      currentScheduleId,
+      scheduleAssignment: currentAssignment
+        ? {
+            scheduleId: currentAssignment.scheduleId,
+            effectiveFrom: currentAssignment.effectiveFrom,
+            effectiveTo: currentAssignment.effectiveTo,
+          }
+        : null,
+      departments,
+      branches,
+      schedules: availableSchedules,
+    });
   },
 );
 
