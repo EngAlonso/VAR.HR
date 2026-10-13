@@ -21932,10 +21932,29 @@ function DatabaseAdministration() {
                         key={column}
                         title={
                           column === "employee_name"
-                            ? [row.first_name, row.last_name]
-                                .map((value) => String(value ?? "").trim())
-                                .filter(Boolean)
-                                .join(" ")
+                            ? localizedName(
+                                locale,
+                                String(
+                                  row.employee_name ??
+                                    [
+                                      row.first_name,
+                                      row.last_name,
+                                    ]
+                                      .map((value) => String(value ?? "").trim())
+                                      .filter(Boolean)
+                                      .join(" "),
+                                ),
+                                String(
+                                  row.employee_name_en ??
+                                    [
+                                      row.first_name_en,
+                                      row.last_name_en,
+                                    ]
+                                      .map((value) => String(value ?? "").trim())
+                                      .filter(Boolean)
+                                      .join(" "),
+                                ),
+                              )
                             : column === "company_name" &&
                                 data.key === "backups"
                               ? backupCompanyName(row)
@@ -21944,10 +21963,29 @@ function DatabaseAdministration() {
                       >
                         {column === "employee_name" ? (
                           <span className="block truncate font-medium">
-                            {[row.first_name, row.last_name]
-                              .map((value) => String(value ?? "").trim())
-                              .filter(Boolean)
-                              .join(" ") || "—"}
+                            {localizedName(
+                              locale,
+                              String(
+                                row.employee_name ??
+                                  [
+                                    row.first_name,
+                                    row.last_name,
+                                  ]
+                                    .map((value) => String(value ?? "").trim())
+                                    .filter(Boolean)
+                                    .join(" "),
+                              ),
+                              String(
+                                row.employee_name_en ??
+                                  [
+                                    row.first_name_en,
+                                    row.last_name_en,
+                                  ]
+                                    .map((value) => String(value ?? "").trim())
+                                    .filter(Boolean)
+                                    .join(" "),
+                              ),
+                            )}
                           </span>
                         ) : column === "company_name" &&
                           data.key === "backups" ? (

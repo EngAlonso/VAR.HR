@@ -1289,20 +1289,28 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
                 id: employeesTable.id,
                 firstName: employeesTable.firstName,
                 lastName: employeesTable.lastName,
+                firstNameEn: employeesTable.firstNameEn,
+                lastNameEn: employeesTable.lastNameEn,
               })
               .from(employeesTable)
               .where(inArray(employeesTable.id, employeeIds))
           ).map((employee) => [
             employee.id,
-            `${employee.firstName} ${employee.lastName}`.trim(),
+            {
+              arabic: `${employee.firstName} ${employee.lastName}`.trim(),
+              english: `${employee.firstNameEn} ${employee.lastNameEn}`.trim(),
+            },
           ]),
         )
-      : new Map<string, string>();
+      : new Map<string, { arabic: string; english: string }>();
   const rows = rawRows.map((row) => ({
     ...safeRow(row),
     ...(req.params.entity === "leave_balances"
       ? {
-          employee_name: employeeNames.get(String(row.employee_id ?? "")) ?? "",
+          employee_name:
+            employeeNames.get(String(row.employee_id ?? ""))?.arabic ?? "",
+          employee_name_en:
+            employeeNames.get(String(row.employee_id ?? ""))?.english ?? "",
           remaining:
             Number(row.allocated ?? 0) -
             Number(row.used ?? 0) -
@@ -1335,7 +1343,13 @@ router.get("/platform/database/:entity", async (req, res): Promise<void> => {
       req.params.entity === "companies"
         ? config.columns
         : req.params.entity === "leave_balances"
-          ? [...config.columns, "employee_name", "remaining", "company_name"]
+          ? [
+              ...config.columns,
+              "employee_name",
+              "employee_name_en",
+              "remaining",
+              "company_name",
+            ]
         : [...config.columns, "company_name"],
     editable: config.editable,
     supportEditable: config.supportEditable ?? [],
