@@ -14802,6 +14802,10 @@ function AnnualLeaveControls() {
         deduction: locale === "ar" ? "خصم" : "Deduction",
         restoration: locale === "ar" ? "إعادة" : "Restoration",
         adjustment: locale === "ar" ? "تعديل" : "Adjustment",
+        manual_adjustment:
+          locale === "ar" ? "تعديل يدوي" : "Manual adjustment",
+        support_usage_correction:
+          locale === "ar" ? "تصحيح استخدام الرصيد" : "Usage correction",
       }[value] || value
     );
   }

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  annualLeaveAllocationAdjustmentFromSupportAudit,
   calculateAbsencePenaltyMinutes,
+  calculateAnnualLeaveSupportAdjustmentAmounts,
   calculateEligibleAnnualLeaveAllocation,
 } from "../src/lib/annual-leave-balance.mjs";
 
@@ -43,6 +45,40 @@ test("manual adjustments after activation remain on top of the company entitleme
       ],
     }),
     23,
+  );
+});
+
+test("correcting used annual leave does not become an allocation adjustment", () => {
+  const amounts = calculateAnnualLeaveSupportAdjustmentAmounts({
+    previousAllocated: 11,
+    allocated: 11,
+    previousUsed: 1,
+    used: 0,
+  });
+  assert.deepEqual(amounts, {
+    allocationAdjustment: 0,
+    usageCorrection: 1,
+  });
+  assert.equal(
+    annualLeaveAllocationAdjustmentFromSupportAudit(
+      { amount: 1 },
+      { before: { allocated: 11 }, after: { allocated: 11 } },
+    ),
+    0,
+  );
+});
+
+test("legacy support allocation changes are derived from audited allocated totals", () => {
+  assert.equal(
+    annualLeaveAllocationAdjustmentFromSupportAudit(
+      { amount: 5 },
+      { before: { allocated: 10 }, after: { allocated: 12 } },
+    ),
+    2,
+  );
+  assert.equal(
+    annualLeaveAllocationAdjustmentFromSupportAudit({ amount: -2 }, null),
+    -2,
   );
 });
 

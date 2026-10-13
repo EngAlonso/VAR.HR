@@ -437,8 +437,21 @@ test("platform owner can edit annual leave total or usage and preserve pending d
     platformAdminRoute,
     /const originalRemaining = roundDays\(previousAllocated - previousUsed - pending\)/,
   );
-  assert.match(platformAdminRoute, /afterRemaining - originalRemaining/);
+  assert.match(
+    platformAdminRoute,
+    /calculateAnnualLeaveSupportAdjustmentAmounts\(\{[\s\S]*previousAllocated,[\s\S]*allocated,[\s\S]*previousUsed,[\s\S]*used/,
+  );
   assert.match(platformAdminRoute, /transactionType: "manual_adjustment"/);
+  assert.match(
+    platformAdminRoute,
+    /transactionType: "support_usage_correction"/,
+  );
+  assert.match(platformAdminRoute, /amount: allocationAdjustment/);
+  assert.match(platformAdminRoute, /amount: usageCorrection/);
+  assert.match(
+    route,
+    /eq\(auditLogsTable\.action, "support_updated"\)[\s\S]*eq\(auditLogsTable\.createdAt, leaveBalanceTransactionsTable\.createdAt\)/,
+  );
   assert.match(platformAdminRoute, /used: roundDays\(Number\(updated\.used\)\)/);
   assert.match(platformAdminRoute, /entityType: "leave_balance"/);
   assert.match(app, /const \[balanceUsed, setBalanceUsed\]/);

@@ -23,6 +23,9 @@ import {
   verifyPassword,
   writeAuthAudit,
 } from "../lib/auth";
+import {
+  calculateAnnualLeaveSupportAdjustmentAmounts,
+} from "../lib/annual-leave-balance.mjs";
 import { requirePlatformOwner } from "../lib/tenant-context";
 import { z } from "zod";
 import {
@@ -1049,7 +1052,26 @@ router.patch(
       const afterRemaining = roundDays(allocated - used - pending);
       if (afterRemaining < 0) return { kind: "total_too_small" as const };
 
-      const amount = roundDays(afterRemaining - originalRemaining);
+      const { allocationAdjustment, usageCorrection } =
+        calculateAnnualLeaveSupportAdjustmentAmounts({
+          previousAllocated,
+          allocated,
+          previousUsed,
+          used,
+        });
+      const allocationFirst = allocationAdjustment >= 0;
+      const allocationBeforeBalance = allocationFirst
+        ? originalRemaining
+        : roundDays(originalRemaining + usageCorrection);
+      const allocationAfterBalance = roundDays(
+        allocationBeforeBalance + allocationAdjustment,
+      );
+      const usageBeforeBalance = allocationFirst
+        ? allocationAfterBalance
+        : originalRemaining;
+      const usageAfterBalance = roundDays(
+        usageBeforeBalance + usageCorrection,
+      );
       const changedFields = [
         ...(previousAllocated !== allocated ? ["allocated"] : []),
         ...(previousUsed !== used ? ["used"] : []),
@@ -1066,17 +1088,32 @@ router.patch(
         .returning();
       if (!updated) return { kind: "not_found" as const };
 
-      await tx.insert(leaveBalanceTransactionsTable).values({
-        companyId: before.companyId,
-        employeeId: before.employeeId,
-        leaveType: before.type,
-        amount,
+      const allocationEvent = {
+        amount: allocationAdjustment,
         transactionType: "manual_adjustment",
-        beforeBalance: originalRemaining,
-        afterBalance: afterRemaining,
-        actorId: context.accountId,
-        reason: parsed.data.reason,
-      });
+        beforeBalance: allocationBeforeBalance,
+        afterBalance: allocationAfterBalance,
+      };
+      const usageEvent = {
+        amount: usageCorrection,
+        transactionType: "support_usage_correction",
+        beforeBalance: usageBeforeBalance,
+        afterBalance: usageAfterBalance,
+      };
+      const supportEvents = allocationFirst
+        ? [allocationEvent, usageEvent]
+        : [usageEvent, allocationEvent];
+      for (const event of supportEvents) {
+        if (event.amount === 0) continue;
+        await tx.insert(leaveBalanceTransactionsTable).values({
+          companyId: before.companyId,
+          employeeId: before.employeeId,
+          leaveType: before.type,
+          ...event,
+          actorId: context.accountId,
+          reason: parsed.data.reason,
+        });
+      }
       await tx.insert(auditLogsTable).values({
         companyId: before.companyId,
         actorType: "platform_owner",
@@ -1112,7 +1149,9 @@ router.patch(
         },
         previousAllocated,
         previousUsed,
-        amount,
+        amount: roundDays(afterRemaining - originalRemaining),
+        allocationAdjustment,
+        usageCorrection,
         changedFields,
       };
     });
@@ -1135,6 +1174,27 @@ router.patch(
       });
       return;
     }
+    await ensureLeaveAccruals(parsed.data.companyId);
+    const [refreshedBalance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(
+        and(
+          eq(leaveBalancesTable.id, result.balance.id),
+          eq(leaveBalancesTable.companyId, parsed.data.companyId),
+        ),
+      )
+      .limit(1);
+    if (refreshedBalance) {
+      result.balance.allocated = roundDays(Number(refreshedBalance.allocated));
+      result.balance.used = roundDays(Number(refreshedBalance.used));
+      result.balance.pending = roundDays(Number(refreshedBalance.pending));
+      result.balance.remaining = roundDays(
+        Number(refreshedBalance.allocated) -
+          Number(refreshedBalance.used) -
+          Number(refreshedBalance.pending),
+      );
+    }
     await writeAuthAudit({
       accountId: context.accountId,
       companyId: parsed.data.companyId,
@@ -1150,6 +1210,8 @@ router.patch(
         pending: result.balance.pending,
         remaining: result.balance.remaining,
         amount: result.amount,
+        allocationAdjustment: result.allocationAdjustment,
+        usageCorrection: result.usageCorrection,
         reason: parsed.data.reason,
       },
     });

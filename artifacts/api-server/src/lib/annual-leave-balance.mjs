@@ -22,6 +22,32 @@ export function calculateEligibleAnnualLeaveAllocation({
   return Math.max(0, Number(annualEntitlement) + manualAdjustmentTotal);
 }
 
+export function calculateAnnualLeaveSupportAdjustmentAmounts({
+  previousAllocated,
+  allocated,
+  previousUsed,
+  used,
+}) {
+  const roundDays = (value) => Math.round(Number(value) * 100) / 100;
+  return {
+    allocationAdjustment: roundDays(Number(allocated) - Number(previousAllocated)),
+    usageCorrection: roundDays(Number(previousUsed) - Number(used)),
+  };
+}
+
+export function annualLeaveAllocationAdjustmentFromSupportAudit(
+  adjustment,
+  supportAudit,
+) {
+  if (!supportAudit) return Number(adjustment.amount);
+  const beforeAllocated = Number(supportAudit.before?.allocated);
+  const afterAllocated = Number(supportAudit.after?.allocated);
+  if (!Number.isFinite(beforeAllocated) || !Number.isFinite(afterAllocated)) {
+    return Number(adjustment.amount);
+  }
+  return Math.round((afterAllocated - beforeAllocated) * 100) / 100;
+}
+
 export function calculateAbsencePenaltyMinutes({
   attendanceState,
   scheduledMinutes,

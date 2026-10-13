@@ -16,4 +16,5 @@ export const LeaveBalanceTransactionTransactionType = {
   carry_forward: 'carry_forward',
   expiry: 'expiry',
   manual_adjustment: 'manual_adjustment',
+  support_usage_correction: 'support_usage_correction',
 } as const;

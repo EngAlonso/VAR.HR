@@ -2064,7 +2064,7 @@ export const ListLeaveBalanceTransactionsResponseItem = zod.object({
 }),
   "leaveType": zod.string(),
   "amount": zod.number(),
-  "transactionType": zod.enum(['accrual', 'deduction', 'restoration', 'carry_forward', 'expiry', 'manual_adjustment']),
+  "transactionType": zod.enum(['accrual', 'deduction', 'restoration', 'carry_forward', 'expiry', 'manual_adjustment', 'support_usage_correction']),
   "beforeBalance": zod.number(),
   "afterBalance": zod.number(),
   "sourceRequestId": zod.string().nullish(),

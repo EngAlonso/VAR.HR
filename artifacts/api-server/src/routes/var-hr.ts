@@ -23,6 +23,9 @@ import {
   deriveHourlyRate,
 } from "../lib/hourly-payroll.mjs";
 import {
+  annualLeaveAllocationAdjustmentFromSupportAudit,
+} from "../lib/annual-leave-balance.mjs";
+import {
   ApiError,
   AttendanceReport,
   CalculatePayrollParams,
@@ -6969,14 +6972,67 @@ export async function ensureLeaveAccruals(companyId: string, through = TODAY) {
         ),
       ),
     );
+  const supportAnnualAdjustmentAudits = await db
+    .select({
+      employeeId: leaveBalanceTransactionsTable.employeeId,
+      createdAt: leaveBalanceTransactionsTable.createdAt,
+      before: auditLogsTable.before,
+      after: auditLogsTable.after,
+    })
+    .from(leaveBalanceTransactionsTable)
+    .innerJoin(
+      leaveBalancesTable,
+      and(
+        eq(leaveBalancesTable.companyId, leaveBalanceTransactionsTable.companyId),
+        eq(leaveBalancesTable.employeeId, leaveBalanceTransactionsTable.employeeId),
+        eq(leaveBalancesTable.type, leaveBalanceTransactionsTable.leaveType),
+      ),
+    )
+    .innerJoin(
+      auditLogsTable,
+      and(
+        eq(auditLogsTable.companyId, leaveBalanceTransactionsTable.companyId),
+        eq(auditLogsTable.entityId, sql`${leaveBalancesTable.id}::text`),
+        eq(auditLogsTable.entityType, "leave_balance"),
+        eq(auditLogsTable.action, "support_updated"),
+        eq(auditLogsTable.createdAt, leaveBalanceTransactionsTable.createdAt),
+      ),
+    )
+    .where(
+      and(
+        eq(leaveBalanceTransactionsTable.companyId, companyId),
+        eq(leaveBalanceTransactionsTable.transactionType, "manual_adjustment"),
+        or(
+          ilike(leaveBalanceTransactionsTable.leaveType, "annual"),
+          ilike(leaveBalanceTransactionsTable.leaveType, "annual leave"),
+        ),
+      ),
+    );
+  const supportAuditAdjustmentsByEmployeeAndTime = new Map<
+    string,
+    typeof supportAnnualAdjustmentAudits
+  >();
+  for (const supportAudit of supportAnnualAdjustmentAudits) {
+    const key = `${supportAudit.employeeId}:${supportAudit.createdAt.getTime()}`;
+    const matches = supportAuditAdjustmentsByEmployeeAndTime.get(key) ?? [];
+    matches.push(supportAudit);
+    supportAuditAdjustmentsByEmployeeAndTime.set(key, matches);
+  }
   const manualAdjustmentsByEmployee = new Map<
     string,
     typeof manualAnnualAdjustments
   >();
   for (const adjustment of manualAnnualAdjustments) {
+    const supportKey = `${adjustment.employeeId}:${adjustment.createdAt.getTime()}`;
+    const supportAudit =
+      supportAuditAdjustmentsByEmployeeAndTime.get(supportKey)?.shift();
+    const effectiveAmount = annualLeaveAllocationAdjustmentFromSupportAudit(
+      adjustment,
+      supportAudit,
+    );
     const employeeAdjustments =
       manualAdjustmentsByEmployee.get(adjustment.employeeId) ?? [];
-    employeeAdjustments.push(adjustment);
+    employeeAdjustments.push({ ...adjustment, amount: effectiveAmount });
     manualAdjustmentsByEmployee.set(adjustment.employeeId, employeeAdjustments);
   }
   for (const employee of employees) {

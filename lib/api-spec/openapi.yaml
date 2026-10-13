@@ -3385,6 +3385,7 @@ components:
                 carry_forward,
                 expiry,
                 manual_adjustment,
+                support_usage_correction,
               ],
           }
         beforeBalance: { type: number }
