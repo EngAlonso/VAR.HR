@@ -293,6 +293,10 @@ type AuthAccount = {
   backupPhones: string[];
   email: string;
   backupEmails: string[];
+  passwordSet?: boolean;
+  companyName?: string;
+  companyNameEn?: string;
+  isCurrentAccount?: boolean;
 };
 type PlatformCompanyDetail = {
   id: string;
@@ -715,6 +719,12 @@ const platformNav: NavItem[] = [
     href: "/platform/database",
     key: "databaseAdministration",
     icon: ShieldCheck,
+    roles: ["platform_owner"],
+  },
+  {
+    href: "/accounts",
+    key: "accountManagement",
+    icon: UserPlus,
     roles: ["platform_owner"],
   },
   {
@@ -22898,6 +22908,7 @@ function Accounts() {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     fullName?: string;
+    username?: string;
     primaryPhone?: string;
     password?: string;
   }>({});
@@ -22915,12 +22926,15 @@ function Accounts() {
   const [editForm, setEditForm] = useState({
     fullName: "",
     fullNameEn: "",
+    username: "",
     primaryPhone: "",
     displayRole: "",
     password: "",
     active: true,
     permissions: [] as string[],
   });
+  const isPlatformOwner = workspace.data?.role === "platform_owner";
+  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const load = async () => {
     setLoading(true);
     try {
@@ -22991,6 +23005,7 @@ function Accounts() {
     setEditForm({
       fullName: account.fullName,
       fullNameEn: account.fullNameEn || "",
+      username: account.username,
       primaryPhone: account.primaryPhone || account.username,
       displayRole: account.displayRole,
       password: "",
@@ -23001,17 +23016,37 @@ function Accounts() {
   const saveAccount = async (event: FormEvent) => {
     event.preventDefault();
     if (!editingAccount) return;
+    if (isPlatformOwner && editingAccount.isCurrentAccount) return;
     setFieldErrors({});
     if (editForm.fullName.trim().length < 1) {
       setFieldErrors({ fullName: authLabel(locale, "employeeNameInvalid") });
       return;
     }
-    if (!/^\+?[0-9 ()-]{7,20}$/.test(editForm.primaryPhone.trim())) {
-      setFieldErrors({ primaryPhone: authLabel(locale, "phoneInvalid") });
+    if (
+      isPlatformOwner
+        ? editForm.username.trim().length < 3
+        : !/^\+?[0-9 ()-]{7,20}$/.test(editForm.primaryPhone.trim())
+    ) {
+      setFieldErrors(
+        isPlatformOwner
+          ? { username: text("Enter a valid login username.", "أدخل اسم مستخدم صالحًا لتسجيل الدخول.") }
+          : { primaryPhone: authLabel(locale, "phoneInvalid") },
+      );
       return;
     }
-    if (editForm.password && editForm.password.length < 6) {
-      setFieldErrors({ password: authLabel(locale, "passwordTooShort") });
+    const minimumPasswordLength = isPlatformOwner ? 10 : 6;
+    if (
+      editForm.password &&
+      editForm.password.length < minimumPasswordLength
+    ) {
+      setFieldErrors({
+        password: isPlatformOwner
+          ? text(
+              "New passwords must contain at least 10 characters.",
+              "كلمة المرور الجديدة يجب ألا تقل عن 10 أحرف.",
+            )
+          : authLabel(locale, "passwordTooShort"),
+      });
       return;
     }
     setSaving(true);
@@ -23023,7 +23058,9 @@ function Accounts() {
           body: JSON.stringify({
             fullName: editForm.fullName,
             fullNameEn: editForm.fullNameEn,
-            primaryPhone: editForm.primaryPhone,
+            ...(isPlatformOwner
+              ? { username: editForm.username.trim() }
+              : { primaryPhone: editForm.primaryPhone }),
             displayRole: editForm.displayRole,
             active: editForm.active,
             permissions: editForm.permissions,
@@ -23033,7 +23070,13 @@ function Accounts() {
       );
       setAccounts((current) =>
         current.map((account) =>
-          account.id === result.account.id ? result.account : account,
+          account.id === result.account.id
+            ? {
+                ...result.account,
+                companyName: account.companyName,
+                companyNameEn: account.companyNameEn,
+              }
+            : account,
         ),
       );
       setEditingAccount(null);
@@ -23059,12 +23102,19 @@ function Accounts() {
     permissions.every((permission) =>
       editForm.permissions.includes(permission.key),
     );
-  if (workspace.data?.role !== "company_owner")
+  if (
+    workspace.data?.role !== "company_owner" &&
+    workspace.data?.role !== "platform_owner"
+  )
     return <WorkspaceState kind="unauthorized" />;
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={authLabel(locale, "staffAccounts")}
+        eyebrow={
+          isPlatformOwner
+            ? text("All accounts", "كل الحسابات")
+            : authLabel(locale, "staffAccounts")
+        }
         title={authLabel(locale, "accountManagement")}
         detail={authLabel(locale, "managementDetail")}
         action={
@@ -23074,7 +23124,13 @@ function Accounts() {
           </Button>
         }
       />
-      <div className="grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
+      <div
+        className={cn(
+          "grid gap-6",
+          isPlatformOwner ? "xl:grid-cols-1" : "xl:grid-cols-[.8fr_1.2fr]",
+        )}
+      >
+        {!isPlatformOwner && (
         <Card>
           <div className="border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">
@@ -23205,10 +23261,13 @@ function Accounts() {
             </Button>
           </form>
         </Card>
+        )}
         <Card>
           <div className="border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">
-              {authLabel(locale, "staffAccounts")}
+              {isPlatformOwner
+                ? text("All user accounts", "كل حسابات المستخدمين")
+                : authLabel(locale, "staffAccounts")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {loading
@@ -23245,6 +23304,25 @@ function Accounts() {
                       {account.displayRole} · {account.permissions.length}{" "}
                       {authLabel(locale, "permissionsCount")}
                     </p>
+                    {isPlatformOwner && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {account.accountType} ·{" "}
+                        {account.companyId
+                          ? localizedName(
+                              locale,
+                              account.companyName || account.companyId,
+                              account.companyNameEn,
+                            )
+                          : text("Platform account", "حساب المنصة")}{" "}
+                        ·{" "}
+                        {account.passwordSet
+                          ? text("Password set", "كلمة المرور معيّنة")
+                          : text(
+                              "No password set",
+                              "لا توجد كلمة مرور معيّنة",
+                            )}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -23287,30 +23365,74 @@ function Accounts() {
           className="max-w-2xl"
         >
           <form onSubmit={saveAccount} className="space-y-4">
+            {isPlatformOwner && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+                <p className="font-medium">
+                  {editingAccount.passwordSet
+                    ? text(
+                        "A password is set for this account.",
+                        "تم تعيين كلمة مرور لهذا الحساب.",
+                      )
+                    : text(
+                        "No password is set for this account.",
+                        "لم يتم تعيين كلمة مرور لهذا الحساب.",
+                      )}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  {text(
+                    "The current password cannot be viewed. Enter a new password below to replace it.",
+                    "لا يمكن عرض كلمة المرور الحالية. أدخل كلمة مرور جديدة أدناه لاستبدالها.",
+                  )}
+                </p>
+                {editingAccount.isCurrentAccount && (
+                  <p className="mt-1 font-medium text-destructive">
+                    {text(
+                      "Use Account Settings to change your own password or details.",
+                      "استخدم إعدادات الحساب لتغيير كلمة مرورك أو بياناتك.",
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
                 value={editForm.fullName}
+                disabled={isPlatformOwner && editingAccount.isCurrentAccount}
                 onChange={(value) =>
                   setEditForm({ ...editForm, fullName: value })
                 }
                 error={fieldErrors.fullName}
                 required
               />
-              <Field
-                label={authLabel(locale, "phoneNumber")}
-                type="tel"
-                value={editForm.primaryPhone}
-                onChange={(value) =>
-                  setEditForm({ ...editForm, primaryPhone: value })
-                }
-                error={fieldErrors.primaryPhone}
-                required
-              />
+              {isPlatformOwner ? (
+                <Field
+                  label={authLabel(locale, "loginUsername")}
+                  value={editForm.username}
+                  onChange={(value) =>
+                    setEditForm({ ...editForm, username: value })
+                  }
+                  error={fieldErrors.username}
+                  required
+                  disabled={editingAccount.isCurrentAccount}
+                />
+              ) : (
+                <Field
+                  label={authLabel(locale, "phoneNumber")}
+                  type="tel"
+                  value={editForm.primaryPhone}
+                  onChange={(value) =>
+                    setEditForm({ ...editForm, primaryPhone: value })
+                  }
+                  error={fieldErrors.primaryPhone}
+                  required
+                />
+              )}
               <Field
                 label={locale === "ar" ? "الاسم الكامل بالإنجليزية" : "Full name (English)"}
                 value={editForm.fullNameEn}
                 onChange={(value) => setEditForm({ ...editForm, fullNameEn: value })}
+                disabled={isPlatformOwner && editingAccount.isCurrentAccount}
               />
             </div>
             <p className="text-xs text-muted-foreground">

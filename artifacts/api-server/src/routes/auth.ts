@@ -108,7 +108,7 @@ const accountUpdateSchema = z.object({
   backupEmails: z.array(optionalEmail).optional(),
   permissions: z.array(z.string()).optional(),
   active: z.boolean().optional(),
-  password: z.string().max(256).optional(),
+  password: z.string().min(6).max(256).optional(),
 });
 const permanentPasswordSchema = z.object({
   password: z.string().min(10).max(256),
@@ -251,6 +251,7 @@ function accountResponse(account: {
   backupPhones?: string[];
   email?: string;
   backupEmails?: string[];
+  passwordHash?: string | null;
 }) {
   return {
     id: account.id,
@@ -267,6 +268,7 @@ function accountResponse(account: {
     backupPhones: account.backupPhones ?? [],
     email: account.email ?? "",
     backupEmails: account.backupEmails ?? [],
+    passwordSet: Boolean(account.passwordHash),
   };
 }
 
@@ -537,9 +539,13 @@ router.get("/auth/permissions", async (req, res): Promise<void> => {
 
 router.get("/auth/accounts", async (req, res): Promise<void> => {
   const context = await getWorkspaceContext(req);
+  const requestedCompanyId =
+    context.role === "platform_owner" && typeof req.query.companyId === "string"
+      ? req.query.companyId.trim()
+      : "";
   const companyId =
-    context.role === "platform_owner" && req.query.companyId
-      ? String(req.query.companyId)
+    context.role === "platform_owner"
+      ? requestedCompanyId || null
       : context.companyId;
   const canManageEmployeeCredentials =
     context.role === "platform_owner" ||
@@ -552,33 +558,43 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
     });
     return;
   }
-  if (!companyId) {
+  if (!companyId && context.role !== "platform_owner") {
     res.status(400).json({
-      error: "A company ID is required for Platform Owner account management.",
+      error: "A company ID is required for account management.",
       code: "INVALID_COMPANY",
     });
     return;
   }
-  const accounts = await db
-    .select()
-    .from(userAccountsTable)
-    .where(
-      context.role === "company_owner"
-        ? and(
-            eq(userAccountsTable.companyId, companyId),
-            or(
-              eq(userAccountsTable.accountType, "staff"),
-              eq(userAccountsTable.accountType, "employee"),
-            ),
+  const accounts =
+    context.role === "platform_owner"
+      ? companyId
+        ? await db
+            .select()
+            .from(userAccountsTable)
+            .where(eq(userAccountsTable.companyId, companyId))
+            .orderBy(asc(userAccountsTable.username))
+        : await db
+            .select()
+            .from(userAccountsTable)
+            .orderBy(asc(userAccountsTable.username))
+      : await db
+          .select()
+          .from(userAccountsTable)
+          .where(
+            context.role === "company_owner"
+              ? and(
+                  eq(userAccountsTable.companyId, companyId),
+                  or(
+                    eq(userAccountsTable.accountType, "staff"),
+                    eq(userAccountsTable.accountType, "employee"),
+                  ),
+                )
+              : and(
+                  eq(userAccountsTable.companyId, companyId),
+                  eq(userAccountsTable.accountType, "employee"),
+                ),
           )
-        : context.role === "platform_owner"
-          ? eq(userAccountsTable.companyId, companyId)
-          : and(
-              eq(userAccountsTable.companyId, companyId),
-              eq(userAccountsTable.accountType, "employee"),
-            ),
-    )
-    .orderBy(asc(userAccountsTable.username));
+          .orderBy(asc(userAccountsTable.username));
   if (accounts.length === 0) {
     res.json([]);
     return;
@@ -598,13 +614,38 @@ router.get("/auth/accounts", async (req, res): Promise<void> => {
       ...(byAccount.get(row.accountId) ?? []),
       row.permissionKey,
     ]);
+  const companyIds = [
+    ...new Set(
+      accounts
+        .map((account) => account.companyId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const companyRows = companyIds.length
+    ? await db
+        .select({
+          id: companiesTable.id,
+          name: companiesTable.name,
+          nameEn: companiesTable.nameEn,
+        })
+        .from(companiesTable)
+        .where(inArray(companiesTable.id, companyIds))
+    : [];
+  const companiesById = new Map(companyRows.map((company) => [company.id, company]));
   res.json(
-    accounts.map((account) =>
-      accountResponse({
+    accounts.map((account) => ({
+      ...accountResponse({
         ...account,
         permissions: byAccount.get(account.id) ?? [],
       }),
-    ),
+      companyName: account.companyId
+        ? companiesById.get(account.companyId)?.name ?? ""
+        : "",
+      companyNameEn: account.companyId
+        ? companiesById.get(account.companyId)?.nameEn ?? ""
+        : "",
+      isCurrentAccount: account.id === context.accountId,
+    })),
   );
 });
 
@@ -930,24 +971,34 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
       .json({ error: "Account not found.", code: "ACCOUNT_NOT_FOUND" });
     return;
   }
-  const isPlatformManagingOwner =
-    context.role === "platform_owner" &&
-    account.accountType === "company_owner";
+  const isPlatformManagingAccount =
+    context.role === "platform_owner" && account.id !== context.accountId;
   const isOwnerManagingStaff =
     context.role === "company_owner" &&
     account.companyId === context.companyId &&
     account.accountType === "staff";
-  if (!isPlatformManagingOwner && !isOwnerManagingStaff) {
+  if (!isPlatformManagingAccount && !isOwnerManagingStaff) {
     res.status(403).json({
       error: "This account is outside your management scope.",
       code: "ACCOUNT_ACCESS_DENIED",
     });
     return;
   }
-  if (parsed.data.password !== undefined && !isOwnerManagingStaff) {
+  if (parsed.data.password !== undefined && !isOwnerManagingStaff && !isPlatformManagingAccount) {
     res.status(403).json({
-      error: "Only a Company Owner can change a staff account password.",
+      error: "You do not have permission to change this account password.",
       code: "ACCOUNT_ACCESS_DENIED",
+    });
+    return;
+  }
+  if (
+    isPlatformManagingAccount &&
+    parsed.data.password !== undefined &&
+    parsed.data.password.length < 10
+  ) {
+    res.status(400).json({
+      error: "New passwords must contain at least 10 characters.",
+      code: "INVALID_PASSWORD",
     });
     return;
   }
@@ -1099,6 +1150,11 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
     .where(eq(userAccountsTable.id, account.id))
     .returning();
   if (permissions) await replaceAccountPermissions(account.id, permissions);
+  if (parsed.data.password || parsed.data.active === false) {
+    await db
+      .delete(authSessionsTable)
+      .where(eq(authSessionsTable.accountId, account.id));
+  }
   await writeAuthAudit({
     accountId: context.accountId,
     companyId: account.companyId,
@@ -1120,9 +1176,16 @@ router.patch("/auth/accounts/:accountId", async (req, res): Promise<void> => {
             : "account_status_changed",
     entityType: "account",
     entityId: account.id,
+    metadata: {
+      fields: Object.keys(parsed.data).filter((field) => field !== "password"),
+      passwordChanged: Boolean(parsed.data.password),
+    },
   });
   res.json({
-    account: accountResponse({ ...updated, permissions: permissions ?? [] }),
+    account: {
+      ...accountResponse({ ...updated, permissions: permissions ?? [] }),
+      isCurrentAccount: account.id === context.accountId,
+    },
   });
 });
 
