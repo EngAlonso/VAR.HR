@@ -2187,6 +2187,34 @@ export async function refreshPlatformSupportPayroll(
   return recalculateOpenPayrollPeriodsForRuleChange(context, req, true);
 }
 
+export async function refreshPlatformSupportSchedule(
+  companyId: string,
+  accountId: string,
+  req: Request,
+  scopes: ScheduleAttendanceRefreshScope[],
+): Promise<boolean> {
+  const [company] = await db
+    .select()
+    .from(companiesTable)
+    .where(eq(companiesTable.id, companyId))
+    .limit(1);
+  if (!company) {
+    throw new Error("The selected support company no longer exists.");
+  }
+  const context: TenantContext = {
+    companyId,
+    company,
+    role: "platform_owner",
+    employeeId: null,
+    departmentId: null,
+    branchId: null,
+    accountId,
+    accountType: "platform_owner",
+    permissions: [],
+  };
+  return recalculateAttendanceForScheduleChanges(context, req, scopes);
+}
+
 type ScheduleAttendanceRefreshScope = {
   employeeId: string;
   effectiveFrom: string;
@@ -6869,7 +6897,7 @@ function addMonths(value: string, months: number) {
   return date.toISOString().slice(0, 10);
 }
 
-async function ensureLeaveAccruals(companyId: string, through = TODAY) {
+export async function ensureLeaveAccruals(companyId: string, through = TODAY) {
   const [employees, policies] = await Promise.all([
     db
       .select({

@@ -20928,6 +20928,7 @@ function DatabaseAdministration() {
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [editCompanyId, setEditCompanyId] = useState("");
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
+  const [employeeSupport, setEmployeeSupport] = useState<any>(null);
   const [editReason, setEditReason] = useState("");
   const [balanceEditing, setBalanceEditing] =
     useState<Record<string, unknown> | null>(null);
@@ -21053,7 +21054,7 @@ function DatabaseAdministration() {
       setPending("");
     }
   };
-  const openEdit = (row: Record<string, unknown>) => {
+  const openEdit = async (row: Record<string, unknown>) => {
     const rowCompanyId = String(row.company_id ?? "");
     const scopeCompanyId = rowCompanyId || companyFilter;
     if (
@@ -21067,11 +21068,29 @@ function DatabaseAdministration() {
     setEditReason("");
     setEditCompanyId(scopeCompanyId);
     if (!companyFilter && rowCompanyId) setCompanyFilter(rowCompanyId);
+    if (data?.key === "employees") {
+      setPending("employee-edit-load");
+      try {
+        const result = await authRequest<any>(
+          `/api/platform/database/employees/${encodeURIComponent(String(row.id))}/support?companyId=${encodeURIComponent(scopeCompanyId)}`,
+        );
+        setEmployeeSupport(result);
+        setEditValues({
+          ...(result.values ?? {}),
+          schedule_id: result.currentScheduleId ?? "",
+        });
+        setEditing(row);
+      } catch (cause) {
+        setError(apiErrorMessage(cause, t("couldNotLoadData")));
+      } finally {
+        setPending("");
+      }
+      return;
+    }
+    setEmployeeSupport(null);
     setEditing(row);
     setEditValues(
-      Object.fromEntries(
-        editFields.map((key) => [key, row[key] ?? ""]),
-      ),
+      Object.fromEntries(editFields.map((key) => [key, row[key] ?? ""])),
     );
   };
   const openBalanceEdit = (row: Record<string, unknown>) => {
@@ -21194,6 +21213,7 @@ function DatabaseAdministration() {
   };
   const saveEdit = async () => {
     if (!editing || !data) return;
+    const valuesForSave = { ...editValues };
     const scopeCompanyId = editCompanyId || companyFilter;
     if (!scopeCompanyId) {
       setError(t("supportSelectCompany"));
@@ -21203,18 +21223,94 @@ function DatabaseAdministration() {
       setError(t("supportReasonRequired"));
       return;
     }
+    if (data.key === "employees") {
+      const employeeNumber = String(editValues.employee_number ?? "").trim();
+      const arabicName = [
+        editValues.first_name,
+        editValues.last_name,
+      ]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+        .join(" ");
+      const englishName = [
+        editValues.first_name_en,
+        editValues.last_name_en,
+      ]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+        .join(" ");
+      const salary = Number(editValues.salary);
+      const workingHours = Number(editValues.working_hours);
+      const workDays = Number(editValues.work_days_per_month);
+      if (
+        !/^[1-9][0-9]*$/.test(employeeNumber) ||
+        !arabicName ||
+        !String(editValues.phone ?? "").trim() ||
+        !String(editValues.joined_on ?? "") ||
+        !String(editValues.branch_id ?? "") ||
+        (editValues.pay_basis === "monthly" &&
+          !String(editValues.schedule_id ?? employeeSupport?.currentScheduleId ?? "")) ||
+        !Number.isFinite(salary) ||
+        salary < 0 ||
+        !Number.isFinite(workingHours) ||
+        workingHours <= 0 ||
+        workingHours > 24 ||
+        !Number.isInteger(workDays) ||
+        workDays < 1 ||
+        workDays > 31
+      ) {
+        setError(t("couldNotSaveRecord"));
+        return;
+      }
+      const arabicParts = splitEmployeeFullName(arabicName);
+      const englishParts = splitEmployeeFullName(englishName);
+      valuesForSave.first_name = arabicParts.firstName;
+      valuesForSave.last_name = arabicParts.lastName;
+      valuesForSave.first_name_en = englishParts.firstName;
+      valuesForSave.last_name_en = englishParts.lastName;
+    }
     const valuesToSave = usesSupportEditor
       ? Object.fromEntries(
           editFields
             .filter(
               (key) =>
-                String(editValues[key] ?? "") !==
-                String(editing[key] ?? ""),
+                data.key === "employees"
+                  ? String(valuesForSave[key] ?? "") !==
+                    String(employeeSupport?.values?.[key] ?? "")
+                  : String(editValues[key] ?? "") !==
+                    String(editing[key] ?? ""),
             )
-            .map((key) => [key, editValues[key]]),
+            .map((key) => [key, valuesForSave[key]]),
         )
       : editValues;
-    if (usesSupportEditor && !Object.keys(valuesToSave).length) {
+    const selectedScheduleId = String(
+      valuesForSave.schedule_id ?? employeeSupport?.currentScheduleId ?? "",
+    );
+    const employeeScheduleChanged =
+      data.key === "employees" &&
+      valuesForSave.pay_basis === "monthly" &&
+      selectedScheduleId &&
+      (selectedScheduleId !==
+        String(employeeSupport?.currentScheduleId ?? "") ||
+        !employeeSupport?.scheduleAssignment);
+    const scheduleAssignment = employeeScheduleChanged
+      ? {
+          scheduleId: selectedScheduleId,
+          effectiveFrom:
+            employeeSupport?.scheduleAssignment?.effectiveFrom ??
+            (employeeSupport?.values?.pay_basis === "hourly"
+              ? employeeSupport?.today ??
+                new Date().toISOString().slice(0, 10)
+              : String(valuesForSave.joined_on ?? "")),
+          effectiveTo:
+            employeeSupport?.scheduleAssignment?.effectiveTo ?? null,
+        }
+      : undefined;
+    if (
+      usesSupportEditor &&
+      !Object.keys(valuesToSave).length &&
+      !scheduleAssignment
+    ) {
       setError(t("supportNoChanges"));
       return;
     }
@@ -21240,10 +21336,12 @@ function DatabaseAdministration() {
           values: valuesToSave,
           companyId: scopeCompanyId,
           reason: editReason.trim(),
+          ...(scheduleAssignment ? { scheduleAssignment } : {}),
         }),
       });
       setEditing(null);
       setEditCompanyId("");
+      setEmployeeSupport(null);
       if (result.payrollRefreshWarning) {
         toast.warning(t("supportPayrollRefreshWarning"));
       } else {
@@ -22119,20 +22217,329 @@ function DatabaseAdministration() {
              {t(usesSupportEditor ? "supportEditHint" : "databaseEditHint")}
           </p>
           <div className="grid gap-3 md:grid-cols-2">
-            {editFields.map((key) => (
-              <Field
-                key={key}
-                label={databaseColumnLabel(key)}
-                value={String(editValues[key] ?? "")}
-                type={key === "work_days_per_month" ? "number" : "text"}
-                min={key === "work_days_per_month" ? 1 : undefined}
-                max={key === "work_days_per_month" ? 31 : undefined}
-                step={key === "work_days_per_month" ? 1 : undefined}
-                onChange={(value) =>
-                  setEditValues((current) => ({ ...current, [key]: value }))
-                }
-              />
-            ))}
+            {data.key === "employees" ? (
+              <>
+                <Field
+                  label={t("employeeNumber")}
+                  value={String(editValues.employee_number ?? "")}
+                  inputMode="numeric"
+                  required
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      employee_number: value,
+                    }))
+                  }
+                />
+                <p className="md:col-span-2 -mt-2 text-xs text-muted-foreground">
+                  {t("employeeNumberEditHint")}
+                </p>
+                <Field
+                  label={t("arabicName")}
+                  value={`${String(editValues.first_name ?? "")} ${String(editValues.last_name ?? "")}`.trim()}
+                  required
+                  onChange={(value) => {
+                    const parts = splitEmployeeFullName(value);
+                    setEditValues((current) => ({
+                      ...current,
+                      first_name: parts.firstName,
+                      last_name: parts.lastName,
+                    }));
+                  }}
+                />
+                <Field
+                  label={t("englishName")}
+                  value={`${String(editValues.first_name_en ?? "")} ${String(editValues.last_name_en ?? "")}`.trim()}
+                  onChange={(value) => {
+                    const parts = splitEmployeeFullName(value);
+                    setEditValues((current) => ({
+                      ...current,
+                      first_name_en: parts.firstName,
+                      last_name_en: parts.lastName,
+                    }));
+                  }}
+                />
+                <Field
+                  label={t("phoneNumber")}
+                  value={String(editValues.phone ?? "")}
+                  inputMode="tel"
+                  onChange={(value) =>
+                    setEditValues((current) => ({ ...current, phone: value }))
+                  }
+                />
+                <Field
+                  label={t("nationalId")}
+                  value={String(editValues.national_id ?? "")}
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      national_id: value,
+                    }))
+                  }
+                />
+                <Field
+                  label={t("biometricCode")}
+                  value={String(editValues.biometric_code ?? "")}
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      biometric_code: value,
+                    }))
+                  }
+                />
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("payBasis")}</span>
+                  <select
+                    value={String(editValues.pay_basis ?? "monthly")}
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        pay_basis: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="monthly">{t("monthlyPayBasis")}</option>
+                    <option value="hourly">{t("hourlyPayBasis")}</option>
+                  </select>
+                </label>
+                <Field
+                  label={t("referenceHoursPerDay")}
+                  type="number"
+                  min={0.01}
+                  max={24}
+                  step={0.25}
+                  value={String(editValues.working_hours ?? 8)}
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      working_hours: value,
+                    }))
+                  }
+                />
+                <Field
+                  label={
+                    editValues.pay_basis === "hourly"
+                      ? t("referenceMonthlySalary")
+                      : t("monthlySalary")
+                  }
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={String(editValues.salary ?? 0)}
+                  onChange={(value) =>
+                    setEditValues((current) => ({ ...current, salary: value }))
+                  }
+                />
+                <Field
+                  label={t("referenceWorkdaysPerMonth")}
+                  type="number"
+                  required
+                  min={1}
+                  max={31}
+                  step={1}
+                  value={String(editValues.work_days_per_month ?? "")}
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      work_days_per_month: value,
+                    }))
+                  }
+                />
+                <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 md:col-span-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("calculatedHourlyRate")}
+                  </div>
+                  <div className="mt-1 text-xl font-bold text-primary">
+                    {Number(editValues.salary) >= 0 &&
+                    Number(editValues.work_days_per_month) > 0 &&
+                    Number(editValues.working_hours) > 0
+                      ? `${money(
+                          Number(editValues.salary) /
+                            (Number(editValues.work_days_per_month) *
+                              Number(editValues.working_hours)),
+                          employeeSupport?.company?.currency ?? "EGP",
+                        )} / ${t("perHour")}`
+                      : t("notAvailable")}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    {t("hourlyRateDerivationHint")}{" "}
+                    {editValues.pay_basis === "hourly"
+                      ? t("hourlyPayAttendanceHint")
+                      : ""}
+                  </p>
+                </div>
+                <Field
+                  label={t("employmentStartDate")}
+                  type="date"
+                  value={String(editValues.joined_on ?? "")}
+                  required
+                  onChange={(value) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      joined_on: value,
+                    }))
+                  }
+                />
+                {editValues.pay_basis === "monthly" && (
+                  <label className="block text-sm font-semibold">
+                    <span className="mb-2 block">{t("shift")}</span>
+                    <select
+                      value={String(editValues.schedule_id ?? "")}
+                      required
+                      disabled={!employeeSupport?.schedules?.length}
+                      onChange={(event) =>
+                        setEditValues((current) => ({
+                          ...current,
+                          schedule_id: event.target.value,
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    >
+                      <option value="">
+                        {employeeSupport?.schedules?.length
+                          ? t("selectSchedule")
+                          : t("noShifts")}
+                      </option>
+                      {employeeSupport?.schedules?.map((schedule: any) => (
+                        <option key={schedule.id} value={schedule.id}>
+                          {localizedName(
+                            locale,
+                            schedule.nameAr || schedule.name,
+                            schedule.nameEn || schedule.name,
+                          )}{" "}
+                          · {schedule.startTime}–{schedule.endTime}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("department")}</span>
+                  <select
+                    value={String(editValues.department_id ?? "")}
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        department_id: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="">—</option>
+                    {employeeSupport?.departments?.map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {localizedName(locale, item.name, item.nameEn)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("branch")}</span>
+                  <select
+                    value={String(editValues.branch_id ?? "")}
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        branch_id: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    {employeeSupport?.branches?.map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {localizedName(locale, item.name, item.nameEn)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("status")}</span>
+                  <select
+                    value={String(editValues.status ?? "active")}
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        status: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="active">{t("active")}</option>
+                    <option value="inactive">{t("inactive")}</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("role")}</span>
+                  <select
+                    value={String(editValues.role ?? "employee")}
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        role: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="employee">{t("roleEmployee")}</option>
+                    <option value="manager">{t("roleManager")}</option>
+                  </select>
+                </label>
+                <EmployeeAttendanceLocationMode
+                  locale={locale}
+                  variableLocation={
+                    editValues.location_attendance_enabled === true ||
+                    editValues.location_attendance_enabled === "true"
+                  }
+                  onChange={(variableLocation) =>
+                    setEditValues((current) => ({
+                      ...current,
+                      location_attendance_enabled: variableLocation,
+                    }))
+                  }
+                />
+                <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm md:col-span-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 accent-primary"
+                    checked={
+                      editValues.automatic_annual_leave_eligible === true ||
+                      editValues.automatic_annual_leave_eligible === "true"
+                    }
+                    onChange={(event) =>
+                      setEditValues((current) => ({
+                        ...current,
+                        automatic_annual_leave_eligible:
+                          event.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    <span className="block font-semibold">
+                      {t("automaticAnnualLeaveEligible")}
+                    </span>
+                    <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+                      {t("automaticAnnualLeaveEligibleHint")}
+                    </span>
+                  </span>
+                </label>
+              </>
+            ) : (
+              editFields.map((key) => (
+                <Field
+                  key={key}
+                  label={databaseColumnLabel(key)}
+                  value={String(editValues[key] ?? "")}
+                  type={key === "work_days_per_month" ? "number" : "text"}
+                  min={key === "work_days_per_month" ? 1 : undefined}
+                  max={key === "work_days_per_month" ? 31 : undefined}
+                  step={key === "work_days_per_month" ? 1 : undefined}
+                  onChange={(value) =>
+                    setEditValues((current) => ({ ...current, [key]: value }))
+                  }
+                />
+              ))
+            )}
             {data.key === "employees" && (
               <p className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground md:col-span-2">
                 {t("supportPayrollRefreshHint")}

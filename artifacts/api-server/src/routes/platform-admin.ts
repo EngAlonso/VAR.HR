@@ -1540,6 +1540,7 @@ router.get(
     });
     res.json({
       company: { currency: company.currency || "EGP" },
+      today,
       values: {
         employee_number: employee.employeeNumber,
         first_name: employee.firstName,
@@ -1596,7 +1597,10 @@ router.patch(
       res.status(400).json({ error: "A valid record id is required." });
       return;
     }
-    const parsed = supportEditSchema.safeParse(req.body);
+    const parsed =
+      req.params.entity === "employees"
+        ? employeeSupportEditSchema.safeParse(req.body)
+        : supportEditSchema.safeParse(req.body);
     if (!parsed.success || !Object.keys(parsed.data.values).length) {
       res.status(400).json({
         error: "Provide fields, a company scope, and a support reason.",
@@ -1722,7 +1726,8 @@ router.patch(
     if (
       !parsed.success ||
       !allowed ||
-      !Object.keys(parsed.data.values).length
+      (!Object.keys(parsed.data.values).length &&
+        !(req.params.entity === "employees" && parsed.data.scheduleAssignment))
     ) {
       res.status(400).json({
         error: "Provide supported fields, a company scope, and a support reason.",
@@ -1772,6 +1777,451 @@ router.patch(
     }
     if (companyId !== parsed.data.companyId) {
       res.status(404).json({ error: "Record not found in the selected company." });
+      return;
+    }
+    if (req.params.entity === "employees") {
+      const employeeValues = parsed.data.values as Record<string, unknown>;
+      const employeeAllowed = new Set(allowed);
+      const fieldTypes: Record<string, "text" | "number" | "boolean"> = {
+        employee_number: "text",
+        first_name: "text",
+        last_name: "text",
+        first_name_en: "text",
+        last_name_en: "text",
+        phone: "text",
+        national_id: "text",
+        biometric_code: "text",
+        working_hours: "number",
+        pay_basis: "text",
+        salary: "number",
+        joined_on: "text",
+        department_id: "text",
+        branch_id: "text",
+        status: "text",
+        role: "text",
+        work_days_per_month: "number",
+        location_attendance_enabled: "boolean",
+        automatic_annual_leave_eligible: "boolean",
+      };
+      const employeeKeys = Object.keys(employeeValues);
+      if (employeeKeys.some((key) => !employeeAllowed.has(key))) {
+        res.status(400).json({ error: "One or more employee fields are not allowed." });
+        return;
+      }
+      const normalizedValues: Record<string, unknown> = {};
+      for (const key of employeeKeys) {
+        const value = employeeValues[key];
+        const type = fieldTypes[key];
+        if (type === "text") {
+          if (value !== null && typeof value !== "string") {
+            res.status(400).json({ error: `The ${key} field must be text.` });
+            return;
+          }
+          normalizedValues[key] = value === "" ? null : value;
+        } else if (type === "boolean") {
+          if (typeof value === "boolean") normalizedValues[key] = value;
+          else if (value === "true" || value === "false") {
+            normalizedValues[key] = value === "true";
+          } else {
+            res.status(400).json({ error: `${key} must be true or false.` });
+            return;
+          }
+        } else if (type === "number") {
+          const number = typeof value === "number" ? value : Number(value);
+          if (!Number.isFinite(number)) {
+            res.status(400).json({ error: `${key} must be a valid number.` });
+            return;
+          }
+          normalizedValues[key] = number;
+        }
+      }
+
+      const current = (key: string) =>
+        key in normalizedValues ? normalizedValues[key] : before[key];
+      const employeeNumber = String(current("employee_number") ?? "").trim();
+      const firstName = String(current("first_name") ?? "").trim();
+      const lastName = String(current("last_name") ?? "").trim();
+      const phone = String(current("phone") ?? "").trim();
+      const joinedOn = String(current("joined_on") ?? "");
+      const branchId = String(current("branch_id") ?? "");
+      const salary = Number(current("salary"));
+      const workingHours = Number(current("working_hours"));
+      const workDays = Number(current("work_days_per_month"));
+      const payBasis = String(current("pay_basis") ?? "");
+      const role = String(current("role") ?? "");
+      const status = String(current("status") ?? "");
+      if (
+        !/^[1-9][0-9]*$/.test(employeeNumber) ||
+        !firstName ||
+        !lastName ||
+        !phone ||
+        !supportDateSchema.safeParse(joinedOn).success ||
+        !idSchema.safeParse(branchId).success ||
+        !Number.isFinite(salary) ||
+        salary < 0 ||
+        !Number.isFinite(workingHours) ||
+        workingHours <= 0 ||
+        workingHours > 24 ||
+        !Number.isInteger(workDays) ||
+        workDays < 1 ||
+        workDays > 31 ||
+        !["monthly", "hourly"].includes(payBasis) ||
+        !["employee", "manager"].includes(role) ||
+        !["active", "inactive"].includes(status)
+      ) {
+        res.status(400).json({ error: "Employee fields are invalid or incomplete." });
+        return;
+      }
+      const [departmentRows, branchRows] = await Promise.all([
+        db
+          .select({ id: departmentsTable.id })
+          .from(departmentsTable)
+          .where(eq(departmentsTable.companyId, companyId)),
+        db
+          .select({ id: branchesTable.id })
+          .from(branchesTable)
+          .where(eq(branchesTable.companyId, companyId)),
+      ]);
+      const departmentId = current("department_id");
+      if (
+        !branchRows.some((row) => row.id === branchId) ||
+        (departmentId !== null &&
+          departmentId !== undefined &&
+          departmentId !== "" &&
+          !departmentRows.some((row) => row.id === departmentId))
+      ) {
+        res.status(400).json({ error: "Employee references must belong to the selected company." });
+        return;
+      }
+      const [duplicateNumber] = await db
+        .select({ id: employeesTable.id })
+        .from(employeesTable)
+        .where(
+          and(
+            eq(employeesTable.companyId, companyId),
+            eq(employeesTable.employeeNumber, employeeNumber),
+            sql`${employeesTable.id} <> ${req.params.id}`,
+          ),
+        )
+        .limit(1);
+      const [duplicatePhone] = await db
+        .select({ id: employeesTable.id })
+        .from(employeesTable)
+        .where(
+          and(
+            eq(employeesTable.companyId, companyId),
+            eq(employeesTable.phone, phone),
+            sql`${employeesTable.id} <> ${req.params.id}`,
+          ),
+        )
+        .limit(1);
+      const [linkedAccount] = await db
+        .select({ id: userAccountsTable.id })
+        .from(userAccountsTable)
+        .where(
+          and(
+            eq(userAccountsTable.employeeId, req.params.id),
+            eq(userAccountsTable.companyId, companyId),
+            eq(userAccountsTable.accountType, "employee"),
+          ),
+        )
+        .limit(1);
+      const [usernameConflict] = linkedAccount
+        ? await db
+            .select({ id: userAccountsTable.id })
+            .from(userAccountsTable)
+            .where(
+              and(
+                eq(userAccountsTable.username, phone),
+                sql`${userAccountsTable.id} <> ${linkedAccount.id}`,
+              ),
+            )
+            .limit(1)
+        : [];
+      if (duplicateNumber || duplicatePhone || usernameConflict) {
+        res.status(409).json({
+          error: duplicateNumber
+            ? "This employee number is already in use by this company."
+            : "This phone number is already in use.",
+        });
+        return;
+      }
+
+      const scheduleAssignment = parsed.data.scheduleAssignment;
+      let nextSchedule:
+        | typeof workSchedulesTable.$inferSelect
+        | undefined;
+      let matchingAssignment:
+        | typeof employeeScheduleAssignmentsTable.$inferSelect
+        | undefined;
+      if (scheduleAssignment) {
+        if (payBasis !== "monthly") {
+          res.status(400).json({ error: "Hourly employees cannot be assigned a fixed shift." });
+          return;
+        }
+        if (
+          scheduleAssignment.effectiveTo &&
+          scheduleAssignment.effectiveTo < scheduleAssignment.effectiveFrom
+        ) {
+          res.status(400).json({ error: "The shift end date must not precede its start date." });
+          return;
+        }
+        [nextSchedule] = await db
+          .select()
+          .from(workSchedulesTable)
+          .where(
+            and(
+              eq(workSchedulesTable.id, scheduleAssignment.scheduleId),
+              eq(workSchedulesTable.companyId, companyId),
+              eq(workSchedulesTable.active, true),
+            ),
+          )
+          .limit(1);
+        if (!nextSchedule) {
+          res.status(400).json({ error: "Select an active shift from this company." });
+          return;
+        }
+        const assignments = await db
+          .select()
+          .from(employeeScheduleAssignmentsTable)
+          .where(
+            and(
+              eq(employeeScheduleAssignmentsTable.companyId, companyId),
+              eq(employeeScheduleAssignmentsTable.employeeId, req.params.id),
+            ),
+          );
+        matchingAssignment = assignments.find(
+          (assignment) =>
+            assignment.effectiveFrom === scheduleAssignment.effectiveFrom,
+        );
+        const newEnd = scheduleAssignment.effectiveTo ?? "9999-12-31";
+        const overlaps = assignments.some((assignment) => {
+          if (matchingAssignment?.id === assignment.id) return false;
+          const existingEnd = assignment.effectiveTo ?? "9999-12-31";
+          return (
+            assignment.effectiveFrom <= newEnd &&
+            existingEnd >= scheduleAssignment.effectiveFrom
+          );
+        });
+        if (overlaps) {
+          res.status(409).json({ error: "The selected shift dates overlap another assignment." });
+          return;
+        }
+      }
+
+      const employeeColumnMap: Record<string, string> = {
+        employee_number: "employeeNumber",
+        first_name: "firstName",
+        last_name: "lastName",
+        first_name_en: "firstNameEn",
+        last_name_en: "lastNameEn",
+        phone: "phone",
+        national_id: "nationalId",
+        biometric_code: "biometricCode",
+        working_hours: "workingHours",
+        pay_basis: "payBasis",
+        salary: "salary",
+        joined_on: "joinedOn",
+        department_id: "departmentId",
+        branch_id: "branchId",
+        status: "status",
+        role: "role",
+        work_days_per_month: "workDaysPerMonth",
+        location_attendance_enabled: "locationAttendanceEnabled",
+        automatic_annual_leave_eligible: "automaticAnnualLeaveEligible",
+      };
+      const employeeUpdate = Object.fromEntries(
+        employeeKeys.map((key) => [
+          employeeColumnMap[key],
+          key === "employee_number" || key === "phone"
+            ? String(normalizedValues[key] ?? "").trim()
+            : normalizedValues[key] === null && key === "department_id"
+              ? null
+              : normalizedValues[key],
+        ]),
+      ) as Record<string, unknown>;
+      const eligibilityChanged =
+        "automatic_annual_leave_eligible" in normalizedValues &&
+        normalizedValues.automatic_annual_leave_eligible !==
+          before.automatic_annual_leave_eligible;
+      if (
+        eligibilityChanged &&
+        normalizedValues.automatic_annual_leave_eligible === true &&
+        !before.automatic_annual_leave_activated_at
+      ) {
+        employeeUpdate.automaticAnnualLeaveActivatedAt = new Date();
+      }
+      const phoneChanged = phone !== String(before.phone ?? "");
+      const beforeAccount = linkedAccount;
+      const [afterEmployee] = await db.transaction(async (tx) => {
+        const [updatedEmployee] = await tx
+          .update(employeesTable)
+          .set({ ...employeeUpdate, updatedAt: new Date() })
+          .where(
+            and(
+              eq(employeesTable.id, req.params.id),
+              eq(employeesTable.companyId, companyId),
+            ),
+          )
+          .returning();
+        if (updatedEmployee && phoneChanged && beforeAccount) {
+          await tx
+            .update(userAccountsTable)
+            .set({
+              username: phone,
+              primaryPhone: phone,
+              fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
+              fullNameEn: `${updatedEmployee.firstNameEn || updatedEmployee.firstName} ${updatedEmployee.lastNameEn || updatedEmployee.lastName}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(userAccountsTable.id, beforeAccount.id),
+                eq(userAccountsTable.employeeId, req.params.id),
+                eq(userAccountsTable.companyId, companyId),
+                eq(userAccountsTable.accountType, "employee"),
+              ),
+            );
+        }
+        if (scheduleAssignment && nextSchedule) {
+          const values = {
+            scheduleId: nextSchedule.id,
+            effectiveFrom: scheduleAssignment.effectiveFrom,
+            effectiveTo: scheduleAssignment.effectiveTo,
+          };
+          if (matchingAssignment) {
+            await tx
+              .update(employeeScheduleAssignmentsTable)
+              .set({
+                scheduleId: values.scheduleId,
+                effectiveTo: values.effectiveTo,
+              })
+              .where(eq(employeeScheduleAssignmentsTable.id, matchingAssignment.id));
+          } else {
+            await tx.insert(employeeScheduleAssignmentsTable).values({
+              companyId,
+              employeeId: req.params.id,
+              ...values,
+            });
+          }
+        }
+        return [updatedEmployee];
+      });
+      if (!afterEmployee) {
+        res.status(404).json({ error: "Employee not found in the selected company." });
+        return;
+      }
+      const after = safeRow(afterEmployee as unknown as Record<string, unknown>);
+      await db.insert(auditLogsTable).values({
+        companyId,
+        actorType: "platform_owner",
+        actorId: context.accountId,
+        action: "support_updated",
+        entityType: "employees",
+        entityId: req.params.id,
+        before: safeHistoryValue(before),
+        after,
+      });
+      await writeAuthAudit({
+        accountId: context.accountId,
+        companyId,
+        action: "database_support_updated",
+        entityType: "database:employees",
+        entityId: req.params.id,
+        metadata: {
+          fields: [
+            ...employeeKeys,
+            ...(scheduleAssignment ? ["schedule_assignment"] : []),
+          ],
+          reason: parsed.data.reason,
+          actorRole: "platform_owner",
+        },
+      });
+
+      let payrollRefreshWarning = false;
+      const compensationChanged =
+        Number(before.salary) !== Number(afterEmployee.salary) ||
+        Number(before.work_days_per_month) !==
+          Number(afterEmployee.workDaysPerMonth) ||
+        Number(before.working_hours) !== Number(afterEmployee.workingHours) ||
+        before.pay_basis !== afterEmployee.payBasis;
+      if (compensationChanged) {
+        try {
+          payrollRefreshWarning = !(await refreshPlatformSupportPayroll(
+            companyId,
+            context.accountId,
+            req,
+          ));
+        } catch (error) {
+          payrollRefreshWarning = true;
+          req.log?.error(
+            { err: error, companyId, employeeId: req.params.id },
+            "Employee compensation was saved, but open payroll periods could not be refreshed",
+          );
+        }
+      }
+      if (scheduleAssignment && nextSchedule) {
+        const [updatedAssignment] = await db
+          .select()
+          .from(employeeScheduleAssignmentsTable)
+          .where(
+            and(
+              eq(employeeScheduleAssignmentsTable.companyId, companyId),
+              eq(employeeScheduleAssignmentsTable.employeeId, req.params.id),
+              eq(
+                employeeScheduleAssignmentsTable.effectiveFrom,
+                scheduleAssignment.effectiveFrom,
+              ),
+            ),
+          )
+          .limit(1);
+        if (updatedAssignment) {
+          await db.insert(auditLogsTable).values({
+            companyId,
+            actorType: "platform_owner",
+            actorId: context.accountId,
+            action: matchingAssignment ? "updated" : "created",
+            entityType: "employee_schedule_assignment",
+            entityId: updatedAssignment.id,
+            before: matchingAssignment
+              ? safeHistoryValue(matchingAssignment)
+              : null,
+            after: safeHistoryValue(updatedAssignment),
+          });
+          try {
+            const refreshed = await refreshPlatformSupportSchedule(
+              companyId,
+              context.accountId,
+              req,
+              [
+                {
+                  employeeId: req.params.id,
+                  effectiveFrom: updatedAssignment.effectiveFrom,
+                  effectiveTo: updatedAssignment.effectiveTo,
+                },
+              ],
+            );
+            payrollRefreshWarning = payrollRefreshWarning || !refreshed;
+          } catch (error) {
+            payrollRefreshWarning = true;
+            req.log?.error(
+              { err: error, companyId, employeeId: req.params.id },
+              "Employee shift was saved, but attendance could not be refreshed",
+            );
+          }
+        }
+      }
+      if (eligibilityChanged) {
+        try {
+          await ensureLeaveAccruals(companyId);
+        } catch (error) {
+          req.log?.error(
+            { err: error, companyId, employeeId: req.params.id },
+            "Employee eligibility was saved, but leave accruals could not be refreshed",
+          );
+        }
+      }
+      res.json({ row: after, payrollRefreshWarning });
       return;
     }
     if (
