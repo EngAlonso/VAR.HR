@@ -22903,6 +22903,8 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
   const [permissions, setPermissions] = useState<
     Array<{ key: string; label: string; description?: string }>
   >([]);
@@ -22937,6 +22939,50 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   });
   const isPlatformOwner = workspace.data?.role === "platform_owner";
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
+  const accountCompanies = useMemo(() => {
+    const companies = new Map<string, { id: string; name: string }>();
+    for (const account of accounts) {
+      if (!account.companyId) continue;
+      companies.set(account.companyId, {
+        id: account.companyId,
+        name: localizedName(
+          locale,
+          account.companyName || account.companyId,
+          account.companyNameEn,
+        ),
+      });
+    }
+    return [...companies.values()].sort((left, right) =>
+      left.name.localeCompare(right.name, locale),
+    );
+  }, [accounts, locale]);
+  const filteredAccounts = useMemo(() => {
+    const query = accountSearch.trim().toLocaleLowerCase(locale);
+    const queryDigits = query.replace(/\D/g, "");
+    return accounts.filter((account) => {
+      if (companyFilter && account.companyId !== companyFilter) return false;
+      if (!query) return true;
+
+      const searchableText = [
+        accountDisplayName(locale, account),
+        account.fullName,
+        account.fullNameEn,
+        account.username,
+        account.primaryPhone,
+        ...account.backupPhones,
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLocaleLowerCase(locale).includes(query));
+      const searchableNumbers = [
+        account.username,
+        account.primaryPhone,
+        ...account.backupPhones,
+      ]
+        .filter(Boolean)
+        .some((value) => value.replace(/\D/g, "").includes(queryDigits));
+      return searchableText || (queryDigits.length > 0 && searchableNumbers);
+    });
+  }, [accounts, accountSearch, companyFilter, locale]);
   const load = async () => {
     setLoading(true);
     try {
@@ -23289,18 +23335,60 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                 ? authLabel(locale, "loading")
                 : authLabel(locale, "accountsCount").replace(
                     "{count}",
-                    String(accounts.length),
+                    String(
+                      isPlatformOwner
+                        ? filteredAccounts.length
+                        : accounts.length,
+                    ),
                   )}
             </p>
           </div>
+          {isPlatformOwner && (
+            <div className="grid gap-3 border-b border-border bg-muted/20 p-4 md:grid-cols-[minmax(200px,.8fr)_minmax(260px,1.2fr)]">
+              <label className="text-sm font-semibold">
+                {text("Company", "الشركة")}
+                <select
+                  className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                  value={companyFilter}
+                  onChange={(event) => setCompanyFilter(event.target.value)}
+                >
+                  <option value="">{text("All companies", "كل الشركات")}</option>
+                  {accountCompanies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-semibold">
+                {text("Search accounts", "البحث عن حساب")}
+                <div className="relative mt-2">
+                  <Search
+                    className="absolute left-3 top-3 text-muted-foreground rtl:left-auto rtl:right-3"
+                    size={16}
+                  />
+                  <input
+                    className="h-11 w-full rounded-lg border border-input bg-background px-9 font-normal"
+                    value={accountSearch}
+                    onChange={(event) => setAccountSearch(event.target.value)}
+                    placeholder={text(
+                      "Search by name or phone / username",
+                      "ابحث بالاسم أو رقم الهاتف أو اسم المستخدم",
+                    )}
+                    type="search"
+                  />
+                </div>
+              </label>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-16" />
               <Skeleton className="h-16" />
             </div>
-          ) : accounts.length ? (
+          ) : filteredAccounts.length ? (
             <div className="divide-y divide-border">
-              {accounts.map((account) => (
+              {filteredAccounts.map((account) => (
                 <div
                   className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
                   key={account.id}
@@ -23360,11 +23448,20 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             </div>
           ) : (
             <Empty
-              title={authLabel(locale, "staffAccounts")}
+              title={
+                isPlatformOwner
+                  ? text("No matching accounts", "لا توجد حسابات مطابقة")
+                  : authLabel(locale, "staffAccounts")
+              }
               detail={
-                locale === "ar"
-                  ? "لا توجد حسابات موظفين بعد."
-                  : "No staff accounts yet."
+                isPlatformOwner
+                  ? text(
+                      "Try another company or search term.",
+                      "جرّب شركة أو كلمة بحث مختلفة.",
+                    )
+                  : locale === "ar"
+                    ? "لا توجد حسابات موظفين بعد."
+                    : "No staff accounts yet."
               }
             />
           )}
