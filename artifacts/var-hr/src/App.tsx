@@ -2034,6 +2034,7 @@ const pageCopy = {
     newKindRequest: "New {kind} request",
     requestLeaveType: "Leave type",
     requestCategory: "Request type",
+    requestAnnualLeaveOption: "One or more days leave",
     temporaryPermission: "Temporary permission",
     noLeaveTypesAvailable: "No leave types are available.",
     requestPermissionType: "Permission type",
@@ -2546,6 +2547,7 @@ const pageCopy = {
     newKindRequest: "طلب {kind} جديد",
     requestLeaveType: "نوع الإجازة",
     requestCategory: "نوع الطلب",
+    requestAnnualLeaveOption: "إذن يوم أو عدة أيام",
     temporaryPermission: "إذن مؤقت",
     noLeaveTypesAvailable: "لا توجد أنواع إجازات متاحة.",
     requestPermissionType: "نوع الاستئذان",
@@ -3367,6 +3369,7 @@ const pageCopy = {
     newKindRequest: "Nouvelle demande de {kind}",
     requestLeaveType: "Type de congé",
     requestCategory: "Type de demande",
+    requestAnnualLeaveOption: "Congé d’un ou plusieurs jours",
     temporaryPermission: "Autorisation temporaire",
     noLeaveTypesAvailable: "Aucun type de congé n’est disponible.",
     requestPermissionType: "Type d’autorisation",
@@ -3852,6 +3855,7 @@ const pageCopy = {
     newKindRequest: "Neue {kind}-Anfrage",
     requestLeaveType: "Urlaubsart",
     requestCategory: "Antragsart",
+    requestAnnualLeaveOption: "Urlaub für einen oder mehrere Tage",
     temporaryPermission: "Vorübergehende Genehmigung",
     noLeaveTypesAvailable: "Es sind keine Urlaubsarten verfügbar.",
     requestPermissionType: "Art der Genehmigung",
@@ -6186,6 +6190,13 @@ function requestTypeLabel(value: string, t: (key: AppCopyKey) => string) {
     "Personal errand": "personalErrand",
   };
   return key[value] ? t(key[value]) : value;
+}
+
+function requestFormTypeLabel(value: string, t: (key: AppCopyKey) => string) {
+  if (["annual", "annual leave"].includes(value.trim().toLowerCase())) {
+    return t("requestAnnualLeaveOption");
+  }
+  return requestTypeLabel(value, t);
 }
 
 function localizedValue(
@@ -14698,7 +14709,7 @@ function Requests() {
                   {canCreateLeave &&
                     leaveTypes.map((type) => (
                       <option key={type} value={type}>
-                        {requestTypeLabel(type, t)}
+                        {requestFormTypeLabel(type, t)}
                       </option>
                     ))}
                   {canCreatePermissions && (
