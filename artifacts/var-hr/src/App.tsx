@@ -1922,11 +1922,16 @@ const pageCopy = {
     deductionMonths: "Deduction months",
     deductionMonthlyMaximum: "Monthly deduction maximum",
     deductedThisMonth: "Deducted this month",
-    unauthorizedAbsenceDays: "Unauthorized absence",
+    unauthorizedAbsenceDays: "Absence without approved permission (all dates)",
+    authorizedAbsenceDays: "Absence with approved permission",
+    currentMonthUnauthorizedAbsenceDays: "Unexcused absence this month",
+    totalAbsenceDays: "Total absence days",
+    absenceBreakdownNote:
+      "The first three figures use the same attendance-history dates. An absence is authorized only when an approved permission matches that date; the monthly figure is separate.",
     approvedLeaveDays: "Approved leave days",
-    extraPayDays: "Days with extra pay",
+    extraPayDays: "Days with recorded overtime or holiday",
     extraPayCalculationNote:
-      "Extra pay follows the active attendance rules and the highest eligible holiday or weekly multiplier.",
+      "This counts attendance dates with recorded overtime or a holiday status, not overtime hours or a guarantee of payment. Payable overtime follows the active attendance and payroll rules.",
     annualLeaveBalanceUnavailable: "No annual leave balance is available.",
     employeeNumber: "Employee number",
     salary: "Salary",
@@ -2403,11 +2408,16 @@ const pageCopy = {
     deductionMonths: "أشهر الخصم",
     deductionMonthlyMaximum: "الحد الأقصى للخصم الشهري",
     deductedThisMonth: "المخصوم هذا الشهر",
-    unauthorizedAbsenceDays: "أيام الغياب غير المصرح به",
+    unauthorizedAbsenceDays: "غياب بدون إذن معتمد (كل التواريخ)",
+    authorizedAbsenceDays: "غياب بإذن معتمد",
+    currentMonthUnauthorizedAbsenceDays: "غياب غير مصرح به هذا الشهر",
+    totalAbsenceDays: "إجمالي أيام الغياب",
+    absenceBreakdownNote:
+      "أول 3 أرقام محسوبة من نفس سجلات الحضور. يُعد يوم الغياب مصرحًا به فقط عند وجود إذن معتمد في التاريخ نفسه؛ ورقم الشهر الحالي منفصل.",
     approvedLeaveDays: "أيام الإجازة المعتمدة",
-    extraPayDays: "أيام الأجر الإضافي",
+    extraPayDays: "أيام بها وقت إضافي أو عطلة مسجلة",
     extraPayCalculationNote:
-      "يُحسب الأجر الإضافي وفق قواعد الحضور المطبقة وأعلى معامل مستحق للعطلات أو العطلة الأسبوعية.",
+      "هذا عدد أيام الحضور المسجل بها وقت إضافي أو المصنفة كعطلة، وليس عدد ساعات إضافية أو تأكيدًا بصرفها. يُحدد الأجر المستحق وفق قواعد الحضور والرواتب.",
     annualLeaveBalanceUnavailable: "لا يوجد رصيد إجازة سنوية متاح.",
     hrProfile: "ملفي الوظيفي",
     hrProfileDetail:
@@ -3226,11 +3236,16 @@ const pageCopy = {
     deductionMonths: "Mois de déduction",
     deductionMonthlyMaximum: "Plafond mensuel de déduction",
     deductedThisMonth: "Déduit ce mois-ci",
-    unauthorizedAbsenceDays: "Absence non autorisée",
+    unauthorizedAbsenceDays: "Absence sans autorisation approuvée (toutes dates)",
+    authorizedAbsenceDays: "Absence avec autorisation approuvée",
+    currentMonthUnauthorizedAbsenceDays: "Absence non autorisée ce mois-ci",
+    totalAbsenceDays: "Total des jours d’absence",
+    absenceBreakdownNote:
+      "Les trois premiers chiffres couvrent les mêmes dates d’historique. Une absence est autorisée uniquement si une autorisation approuvée correspond à cette date ; le chiffre mensuel est distinct.",
     approvedLeaveDays: "Jours de congé approuvés",
-    extraPayDays: "Jours avec rémunération supplémentaire",
+    extraPayDays: "Jours avec heures supplémentaires ou jour férié enregistré",
     extraPayCalculationNote:
-      "La rémunération supplémentaire suit les règles de présence actives et le multiplicateur admissible le plus élevé pour les jours fériés ou hebdomadaires.",
+      "Ce nombre compte les dates avec des heures supplémentaires enregistrées ou un statut de jour férié ; ce ne sont ni des heures ni une garantie de paiement. Le montant payable dépend des règles de présence et de paie.",
     annualLeaveBalanceUnavailable: "Aucun solde de congé annuel disponible.",
     employeeNumber: "Numéro d’employé",
     employeeNumberEditHint:
@@ -3691,11 +3706,16 @@ const pageCopy = {
     deductionMonths: "Abzugsmonate",
     deductionMonthlyMaximum: "Monatliche Abzugsgrenze",
     deductedThisMonth: "Diesen Monat abgezogen",
-    unauthorizedAbsenceDays: "Unentschuldigte Abwesenheit",
+    unauthorizedAbsenceDays: "Abwesenheit ohne genehmigte Erlaubnis (alle Daten)",
+    authorizedAbsenceDays: "Abwesenheit mit genehmigter Erlaubnis",
+    currentMonthUnauthorizedAbsenceDays: "Unentschuldigte Abwesenheit in diesem Monat",
+    totalAbsenceDays: "Abwesenheitstage insgesamt",
+    absenceBreakdownNote:
+      "Die ersten drei Werte verwenden denselben Anwesenheitszeitraum. Eine Abwesenheit gilt nur mit einer genehmigten Erlaubnis für dasselbe Datum als entschuldigt; der Monatswert ist separat.",
     approvedLeaveDays: "Genehmigte Urlaubstage",
-    extraPayDays: "Tage mit Zuschlag",
+    extraPayDays: "Tage mit erfasster Mehrarbeit oder Feiertag",
     extraPayCalculationNote:
-      "Zusätzliche Vergütung richtet sich nach den geltenden Anwesenheitsregeln und dem höchsten anwendbaren Feiertags- oder Wochenendfaktor.",
+      "Gezählt werden Anwesenheitstage mit erfasster Mehrarbeit oder Feiertagsstatus, nicht Stunden und keine garantierte Auszahlung. Die Vergütung richtet sich nach Anwesenheits- und Lohnregeln.",
     annualLeaveBalanceUnavailable: "Kein Jahresurlaubssaldo verfügbar.",
     employeeNumber: "Mitarbeiternummer",
     employeeNumberEditHint:
@@ -9113,17 +9133,60 @@ function EmployeeHrProfile({
       queryKey: getListAttendanceHistoryQueryKey(),
     },
   });
+  const permissionRequests = useListPermissionRequests({
+    query: {
+      enabled: selfService,
+      queryKey: getListPermissionRequestsQueryKey(),
+    },
+  });
   const annualLeaveBalance = ((leaveBalances.data || []) as Array<{
     type: string;
     employee?: { id?: string };
     total: number;
     used: number;
     remaining: number;
+    unauthorizedAbsenceDays: number;
   }>).find(
     (balance) =>
       balance.employee?.id === employeeId &&
       balance.type.toLowerCase().includes("annual"),
   );
+  const profileAttendanceRows = (attendanceHistory.data || []) as Array<{
+    date: string;
+    status: string;
+    overtimeHours: number;
+  }>;
+  const profileAbsenceDates = Array.from(
+    new Set(
+      profileAttendanceRows
+        .filter((item) =>
+          ["absent", "unexcused_absence", "missing_attendance"].includes(
+            item.status,
+          ),
+        )
+        .map((item) => item.date),
+    ),
+  );
+  const approvedPermissionDates = new Set(
+    (permissionRequests.data || [])
+      .filter((request) => request.status === "approved")
+      .map((request) => request.date),
+  );
+  const authorizedAbsenceDays = profileAbsenceDates.filter((date) =>
+    approvedPermissionDates.has(date),
+  ).length;
+  const unauthorizedAbsenceDays = Math.max(
+    0,
+    profileAbsenceDates.length - authorizedAbsenceDays,
+  );
+  const extraPayDays = new Set(
+    profileAttendanceRows
+      .filter(
+        (item) =>
+          item.status === "holiday" || Number(item.overtimeHours || 0) > 0,
+      )
+      .map((item) => item.date),
+  ).size;
   const localeTag =
     locale === "ar"
       ? "ar-EG"
@@ -9136,6 +9199,12 @@ function EmployeeHrProfile({
     new Intl.NumberFormat(localeTag).format(value);
   const formatDays = (value: number) =>
     `${formatNumber(value)} ${t("days")}`;
+  const attendanceSummaryValue = (value: number) =>
+    attendanceHistory.isLoading || permissionRequests.isLoading
+      ? "…"
+      : attendanceHistory.isError || permissionRequests.isError
+        ? "—"
+        : formatDays(value);
   const formatMonth = (month: number) =>
     month >= 1 && month <= 12
       ? new Intl.DateTimeFormat(localeTag, { month: "short" }).format(
@@ -9351,7 +9420,6 @@ function EmployeeHrProfile({
                     pending: number;
                     remaining: number;
                     deductedThisMonth: number;
-                    unauthorizedAbsenceDays: number;
                   }>
                 )
                   .filter((balance) =>
@@ -9383,44 +9451,59 @@ function EmployeeHrProfile({
                         label={t("deductedThisMonth")}
                         value={formatDays(balance.deductedThisMonth)}
                       />
-                      <Info
-                        label={t("unauthorizedAbsenceDays")}
-                        value={formatDays(balance.unauthorizedAbsenceDays)}
-                      />
                     </Fragment>
                   ))}
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Info
-                  label={t("absenceDays")}
-                  value={formatNumber(
-                    (attendanceHistory.data || []).filter((item: any) =>
-                      ["absent", "unexcused_absence", "missing_attendance"].includes(
-                        item.status,
-                      ),
-                    ).length,
-                  )}
+                  label={t("totalAbsenceDays")}
+                  value={attendanceSummaryValue(profileAbsenceDates.length)}
                 />
                 <Info
+                  label={t("authorizedAbsenceDays")}
+                  value={attendanceSummaryValue(authorizedAbsenceDays)}
+                />
+                <Info
+                  label={t("unauthorizedAbsenceDays")}
+                  value={attendanceSummaryValue(unauthorizedAbsenceDays)}
+                />
+                <Info
+                  label={t("currentMonthUnauthorizedAbsenceDays")}
+                  value={
+                    leaveBalances.isLoading
+                      ? "…"
+                      : leaveBalances.isError
+                        ? "—"
+                        : formatDays(
+                            annualLeaveBalance?.unauthorizedAbsenceDays ?? 0,
+                          )
+                  }
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {t("absenceBreakdownNote")}
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Info
                   label={t("approvedLeaveDays")}
-                  value={formatDays(
-                    (leaveRequests.data || [])
-                      .filter((item: any) => item.status === "approved")
-                      .reduce(
-                        (sum: number, item: any) => sum + Number(item.days),
-                        0,
-                      ),
-                  )}
+                  value={
+                    leaveRequests.isLoading
+                      ? "…"
+                      : leaveRequests.isError
+                        ? "—"
+                        : formatDays(
+                            (leaveRequests.data || [])
+                              .filter((item) => item.status === "approved")
+                              .reduce(
+                                (sum, item) => sum + Number(item.days),
+                                0,
+                              ),
+                          )
+                  }
                 />
                 <Info
                   label={t("extraPayDays")}
-                  value={formatNumber(
-                    (attendanceHistory.data || []).filter(
-                      (item: any) =>
-                        item.status === "holiday" ||
-                        Number(item.overtimeHours || 0) > 0,
-                    ).length,
-                  )}
+                  value={attendanceSummaryValue(extraPayDays)}
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
