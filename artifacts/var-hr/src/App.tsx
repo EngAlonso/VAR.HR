@@ -11394,7 +11394,7 @@ function AddEmployeePage() {
                 type="number"
                 min="0.01"
                 max="24"
-                step="0.5"
+                step="0.01"
                 inputMode="decimal"
                 value={form.workingHours}
                 onChange={(value) =>
@@ -12628,7 +12628,7 @@ function EmployeeProfilePage() {
                 type="number"
                 min={0.01}
                 max={24}
-                step={0.25}
+                step={0.01}
                 value={editForm.workingHours}
                 onChange={(value) => setEditForm({ ...editForm, workingHours: value })}
               />
@@ -22445,7 +22445,7 @@ function DatabaseAdministration() {
                   type="number"
                   min={0.01}
                   max={24}
-                  step={0.25}
+                  step={0.01}
                   value={String(editValues.working_hours ?? 8)}
                   onChange={(value) =>
                     setEditValues((current) => ({
