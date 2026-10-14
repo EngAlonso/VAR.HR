@@ -2033,6 +2033,8 @@ const pageCopy = {
     reject: "Reject",
     newKindRequest: "New {kind} request",
     requestLeaveType: "Leave type",
+    requestCategory: "Request type",
+    temporaryPermission: "Temporary permission",
     noLeaveTypesAvailable: "No leave types are available.",
     requestPermissionType: "Permission type",
     requestReasonLabel: "Reason or additional notes",
@@ -2543,6 +2545,8 @@ const pageCopy = {
     reject: "رفض",
     newKindRequest: "طلب {kind} جديد",
     requestLeaveType: "نوع الإجازة",
+    requestCategory: "نوع الطلب",
+    temporaryPermission: "إذن مؤقت",
     noLeaveTypesAvailable: "لا توجد أنواع إجازات متاحة.",
     requestPermissionType: "نوع الاستئذان",
     requestReasonLabel: "السبب أو ملاحظات إضافية",
@@ -3362,6 +3366,8 @@ const pageCopy = {
     reject: "Refuser",
     newKindRequest: "Nouvelle demande de {kind}",
     requestLeaveType: "Type de congé",
+    requestCategory: "Type de demande",
+    temporaryPermission: "Autorisation temporaire",
     noLeaveTypesAvailable: "Aucun type de congé n’est disponible.",
     requestPermissionType: "Type d’autorisation",
     requestReasonLabel: "Motif ou informations complémentaires",
@@ -3845,6 +3851,8 @@ const pageCopy = {
     reject: "Ablehnen",
     newKindRequest: "Neue {kind}-Anfrage",
     requestLeaveType: "Urlaubsart",
+    requestCategory: "Antragsart",
+    temporaryPermission: "Vorübergehende Genehmigung",
     noLeaveTypesAvailable: "Es sind keine Urlaubsarten verfügbar.",
     requestPermissionType: "Art der Genehmigung",
     requestReasonLabel: "Grund oder zusätzliche Hinweise",
@@ -14482,6 +14490,7 @@ function Requests() {
       ) as string[],
     [balances.data],
   );
+  const temporaryPermissionOption = "__temporary_permission__";
   useEffect(() => {
     if (
       show &&
@@ -14506,6 +14515,26 @@ function Requests() {
       endTime: "",
     });
     setShow(true);
+  }
+  function changeRequestCategory(value: string) {
+    if (value === temporaryPermissionOption) {
+      setKind("permission");
+      setForm((current: any) => ({
+        ...current,
+        type: "Short absence",
+        date: current.date || current.from || "",
+        startTime: current.startTime || "",
+        endTime: current.endTime || "",
+      }));
+      return;
+    }
+    setKind("leave");
+    setForm((current: any) => ({
+      ...current,
+      type: value,
+      from: current.from || current.date || "",
+      to: current.to || current.date || "",
+    }));
   }
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -14650,44 +14679,41 @@ function Requests() {
             >
               <label className="block text-sm font-semibold">
                 <span className="mb-2 block text-[13px]">
-                  {kind === "leave"
-                    ? t("requestLeaveType")
-                    : t("requestPermissionType")}
+                  {t("requestCategory")}
                 </span>
-                {kind === "leave" ? (
-                  <select
-                    required
-                    disabled={!leaveTypes.length}
-                    value={leaveTypes.includes(form.type) ? form.type : ""}
-                    onChange={(event) =>
-                      setForm({ ...form, type: event.target.value })
-                    }
-                    className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                  >
-                    {leaveTypes.length ? (
-                      leaveTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {requestTypeLabel(type, t)}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="">
-                        {balances.isLoading
-                          ? t("loading")
-                          : t("noLeaveTypesAvailable")}
+                <select
+                  required
+                  value={
+                    kind === "permission"
+                      ? temporaryPermissionOption
+                      : leaveTypes.includes(form.type)
+                        ? form.type
+                        : ""
+                  }
+                  onChange={(event) =>
+                    changeRequestCategory(event.target.value)
+                  }
+                  className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                >
+                  {canCreateLeave &&
+                    leaveTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {requestTypeLabel(type, t)}
                       </option>
-                    )}
-                  </select>
-                ) : (
-                  <input
-                    required
-                    value={form.type}
-                    onChange={(event) =>
-                      setForm({ ...form, type: event.target.value })
-                    }
-                    className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                  />
-                )}
+                    ))}
+                  {canCreatePermissions && (
+                    <option value={temporaryPermissionOption}>
+                      {t("temporaryPermission")}
+                    </option>
+                  )}
+                  {!leaveTypes.length && canCreateLeave && (
+                    <option value="" disabled>
+                      {balances.isLoading
+                        ? t("loading")
+                        : t("noLeaveTypesAvailable")}
+                    </option>
+                  )}
+                </select>
               </label>
               {kind === "leave" ? (
                 <>
