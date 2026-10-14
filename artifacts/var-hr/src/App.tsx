@@ -10732,99 +10732,447 @@ function Branches() {
       },
     );
   }
+  const branchRows = branches.data ?? [];
+  const summary = [
+    {
+      label: t("branchesTitle"),
+      value: branchRows.length,
+      icon: <Building2 size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("branchEmployees"),
+      value: branchRows.reduce(
+        (total: number, branch: any) =>
+          total + (Number(branch.employeeCount) || 0),
+        0,
+      ),
+      icon: <Users size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("branchDevices"),
+      value: branchRows.reduce(
+        (total: number, branch: any) =>
+          total + (Number(branch.deviceCount) || 0),
+        0,
+      ),
+      icon: <Network size={18} aria-hidden="true" />,
+    },
+  ];
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={t("branchesEyebrow")}
         title={t("branchesTitle")}
         detail={t("branchesDetail")}
-        action={canManage ? <Button onClick={openCreate}><Plus size={16} />{t("addBranch")}</Button> : undefined}
+        action={
+          canManage ? (
+            <Button
+              onClick={openCreate}
+              className="min-h-11 rounded-xl px-4 shadow-sm"
+            >
+              <Plus size={16} aria-hidden="true" />
+              {t("addBranch")}
+            </Button>
+          ) : undefined
+        }
       />
       {branches.isLoading ? (
-        <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {summary.map((item) => (
+              <Card key={item.label} className="h-24 animate-pulse bg-muted/40" />
+            ))}
+          </div>
+          <div className="grid gap-5 xl:grid-cols-[minmax(300px,.82fr)_minmax(0,1.18fr)]">
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
+        </div>
       ) : branches.isError ? (
         <ErrorState retry={() => branches.refetch()} />
-      ) : branches.data?.length ? (
-        <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
-          <div className="space-y-3">
-            {branches.data.map((branch: any) => (
+      ) : (
+        <>
+          <section
+            aria-label={t("branchesTitle")}
+            className="grid gap-3 sm:grid-cols-3"
+          >
+            {summary.map((item, index) => (
               <Card
-                key={branch.id}
-                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
-                onClick={() => setSelected(branch)}
+                key={item.label}
+                className="relative overflow-hidden p-4 sm:p-5"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-display text-lg font-semibold">
-                      {localizedName(locale, branch.name, branch.nameEn)}
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">{branch.city}</div>
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute inset-y-0 start-0 w-1",
+                    index === 0
+                      ? "bg-primary"
+                      : index === 1
+                        ? "bg-emerald-500"
+                        : "bg-secondary",
+                  )}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                      {item.value}
+                    </p>
                   </div>
-                  <Status value={branch.active ? "active" : "inactive"} />
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <Info label={t("branchEmployees")} value={branch.employeeCount} />
-                  <Info label={t("branchDevices")} value={branch.deviceCount} />
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                    {item.icon}
+                  </div>
                 </div>
               </Card>
             ))}
-          </div>
-          {selected ? (
-            <Card className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("branchDetails")}</p>
-                   <h2 className="mt-1 font-display text-2xl font-semibold">{localizedName(locale, selected.name, selected.nameEn)}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{selected.city}</p>
+          </section>
+
+          {branchRows.length ? (
+            <div className="grid gap-5 xl:grid-cols-[minmax(300px,.82fr)_minmax(0,1.18fr)]">
+              <section
+                aria-label={t("branchesTitle")}
+                className="min-w-0 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <h2 className="font-display text-base font-semibold">
+                    {t("branchesTitle")}
+                  </h2>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                    {branchRows.length}
+                  </span>
                 </div>
-                {canManage && <Button variant="outline" onClick={() => openEdit(selected)}>{t("edit")}</Button>}
-              </div>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <Info label={t("branchStatus")} value={selected.active ? t("branchActive") : t("branchInactive")} />
-                <Info label={t("branchEmployees")} value={selected.employeeCount} />
-                <Info label={t("branchDevices")} value={selected.deviceCount} />
-                <Info label={t("databaseCreatedAt")} value={date(selected.createdAt)} />
-              </div>
-              {selected.gpsEnabled && (
-                <p className="mt-5 rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">{t("gpsEnabled")}</p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  {branchRows.map((branch: any) => {
+                    const isSelected = selected?.id === branch.id;
+                    return (
+                      <button
+                        key={branch.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelected(branch)}
+                        className={cn(
+                          "group w-full rounded-2xl border p-4 text-start shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:p-5",
+                          isSelected
+                            ? "border-primary/60 bg-primary/[.06] ring-1 ring-primary/20"
+                            : "border-border bg-card hover:border-primary/40",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className={cn(
+                                "grid size-10 shrink-0 place-items-center rounded-xl transition-colors",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary-dark",
+                              )}
+                            >
+                              <Building2 size={18} aria-hidden="true" />
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="truncate font-display text-base font-semibold">
+                                {localizedName(
+                                  locale,
+                                  branch.name,
+                                  branch.nameEn,
+                                )}
+                              </h3>
+                              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <MapPin
+                                  size={14}
+                                  className="shrink-0"
+                                  aria-hidden="true"
+                                />
+                                <span className="truncate">{branch.city}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <Status
+                            value={
+                              branch.active === false ? "inactive" : "active"
+                            }
+                          />
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
+                          {[
+                            {
+                              label: t("branchEmployees"),
+                              value: branch.employeeCount ?? 0,
+                              icon: <Users size={14} aria-hidden="true" />,
+                            },
+                            {
+                              label: t("branchDevices"),
+                              value: branch.deviceCount ?? 0,
+                              icon: <Network size={14} aria-hidden="true" />,
+                            },
+                          ].map((metric) => (
+                            <div
+                              key={metric.label}
+                              className="flex min-w-0 items-center gap-2 text-xs"
+                            >
+                              <span className="text-muted-foreground">
+                                {metric.icon}
+                              </span>
+                              <span className="truncate text-muted-foreground">
+                                {metric.label}
+                              </span>
+                              <span className="ms-auto font-semibold tabular-nums">
+                                {metric.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {selected ? (
+                <Card className="min-w-0 self-start overflow-hidden">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:p-6">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
+                        <MapPin size={21} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                          {t("branchDetails")}
+                        </p>
+                        <h2 className="mt-1 truncate font-display text-xl font-bold sm:text-2xl">
+                          {localizedName(
+                            locale,
+                            selected.name,
+                            selected.nameEn,
+                          )}
+                        </h2>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {selected.city}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Status
+                        value={
+                          selected.active === false ? "inactive" : "active"
+                        }
+                      />
+                      {canManage && (
+                        <Button
+                          variant="outline"
+                          className="min-h-9 rounded-xl px-3"
+                          onClick={() => openEdit(selected)}
+                        >
+                          <Pencil size={14} aria-hidden="true" />
+                          {t("edit")}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6">
+                    {[
+                      {
+                        label: t("branchEmployees"),
+                        value: selected.employeeCount ?? 0,
+                        icon: <Users size={17} aria-hidden="true" />,
+                      },
+                      {
+                        label: t("branchDevices"),
+                        value: selected.deviceCount ?? 0,
+                        icon: <Network size={17} aria-hidden="true" />,
+                      },
+                      {
+                        label: t("branchStatus"),
+                        value:
+                          selected.active === false
+                            ? t("branchInactive")
+                            : t("branchActive"),
+                        icon: <Building2 size={17} aria-hidden="true" />,
+                      },
+                      {
+                        label: t("databaseCreatedAt"),
+                        value: selected.createdAt
+                          ? date(selected.createdAt)
+                          : "—",
+                        icon: <CalendarDays size={17} aria-hidden="true" />,
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5"
+                      >
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
+                          {item.icon}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            {item.label}
+                          </p>
+                          <p className="mt-0.5 truncate text-sm font-semibold">
+                            {item.value}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selected.gpsEnabled && (
+                    <div className="mx-4 mb-4 flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/[.06] px-4 py-3 text-sm font-medium text-primary-dark sm:mx-6 sm:mb-6">
+                      <MapPin size={16} aria-hidden="true" />
+                      {t("gpsEnabled")}
+                    </div>
+                  )}
+                </Card>
+              ) : (
+                <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
+                  <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
+                    <MapPin size={24} aria-hidden="true" />
+                  </div>
+                  <h2 className="mt-4 font-display text-lg font-semibold">
+                    {t("branchDetails")}
+                  </h2>
+                  <p className="mt-1 max-w-xs text-sm leading-6 text-muted-foreground">
+                    {t("selectOption")}
+                  </p>
+                </Card>
               )}
-            </Card>
+            </div>
           ) : (
-            <Empty title={t("branchDetails")} detail={t("selectOption")} />
+            <Card className="overflow-hidden border-dashed">
+              <div className="grid gap-5 p-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-8">
+                <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
+                  <Building2 size={24} aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-semibold">
+                    {t("noBranches")}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {t("branchesDetail")}
+                  </p>
+                </div>
+                {canManage && (
+                  <Button
+                    onClick={openCreate}
+                    className="min-h-11 rounded-xl px-4"
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {t("addBranch")}
+                  </Button>
+                )}
+              </div>
+            </Card>
           )}
-        </div>
-      ) : (
-        <Empty title={t("noBranches")} detail={t("branchesDetail")} action={canManage ? <Button onClick={openCreate}><Plus size={15} />{t("addBranch")}</Button> : undefined} />
+        </>
       )}
       {editing && (
-        <Modal title={selected ? t("edit") : t("addBranch")} onClose={() => setEditing(false)}>
-          <form onSubmit={save} className="space-y-4">
-            <Field label={t("arabicName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
-            <Field label={t("englishName")} value={form.nameEn} onChange={(value) => setForm({ ...form, nameEn: value })} />
-            <Field label={t("branchCity")} required value={form.city} onChange={(value) => setForm({ ...form, city: value })} />
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input type="checkbox" checked={form.gpsEnabled} onChange={(event) => setForm({ ...form, gpsEnabled: event.target.checked })} />
-              {t("gpsEnabled")}
-            </label>
-            {selected && (
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />
-                {form.active ? t("activateBranch") : t("deactivateBranch")}
-              </label>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>{t("cancel")}</Button>
-              {selected && (
+        <Modal
+          title={selected ? t("editBranch") : t("addBranch")}
+          onClose={() => setEditing(false)}
+          className="max-w-xl"
+          footer={
+            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+              <div>
+                {selected && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={deleteBranch}
+                    disabled={remove.isPending}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    {t("remove")}
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
-                  variant="danger"
-                  onClick={deleteBranch}
-                  disabled={remove.isPending}
+                  variant="quiet"
+                  onClick={() => setEditing(false)}
                 >
-                  {t("remove")}
+                  {t("cancel")}
                 </Button>
+                <Button
+                  type="submit"
+                  form="branch-editor-form"
+                  disabled={
+                    create.isPending || update.isPending || remove.isPending
+                  }
+                >
+                  {selected ? t("saveChanges") : t("createBranch")}
+                </Button>
+              </div>
+            </div>
+          }
+        >
+          <form
+            id="branch-editor-form"
+            onSubmit={save}
+            className="space-y-5"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={t("arabicName")}
+                required
+                value={form.name}
+                onChange={(value) => setForm({ ...form, name: value })}
+              />
+              <Field
+                label={t("englishName")}
+                value={form.nameEn}
+                onChange={(value) => setForm({ ...form, nameEn: value })}
+              />
+              <div className="sm:col-span-2">
+                <Field
+                  label={t("branchCity")}
+                  required
+                  value={form.city}
+                  onChange={(value) => setForm({ ...form, city: value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-3 border-t border-border pt-4">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/30">
+                <input
+                  type="checkbox"
+                  checked={form.gpsEnabled}
+                  onChange={(event) =>
+                    setForm({ ...form, gpsEnabled: event.target.checked })
+                  }
+                  className="size-4 shrink-0 accent-primary"
+                />
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary-dark">
+                  <MapPin size={16} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 text-sm font-semibold">
+                  {t("gpsEnabled")}
+                </span>
+              </label>
+              {selected && (
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/30">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.active}
+                      onChange={(event) =>
+                        setForm({ ...form, active: event.target.checked })
+                      }
+                      className="size-4 shrink-0 accent-primary"
+                    />
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                      <Building2 size={16} aria-hidden="true" />
+                    </span>
+                    <span className="text-sm font-semibold">
+                      {t("branchStatus")}
+                    </span>
+                  </span>
+                  <Status
+                    value={form.active ? "active" : "inactive"}
+                  />
+                </label>
               )}
-              <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
         </Modal>
