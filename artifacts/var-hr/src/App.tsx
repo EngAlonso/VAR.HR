@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   QueryClient,
   QueryClientProvider,
@@ -29297,7 +29298,7 @@ function Modal({
   footer?: ReactNode;
 }) {
   const { t } = useI18n();
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-secondary/45 p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
@@ -29323,7 +29324,8 @@ function Modal({
           {footer}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 function Field({
