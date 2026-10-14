@@ -1248,6 +1248,13 @@ const copy = {
     start: "Start",
     end: "End",
     submitRequest: "Submit request",
+    requestFormIntro: "Fill in the details below to send your request for review.",
+    leavePeriod: "Leave period",
+    leavePeriodHint: "Choose the first and last day you need off.",
+    permissionTime: "Permission time",
+    permissionTimeHint: "Select the date and time range for your permission.",
+    requestReasonHint: "A short explanation helps your manager review the request.",
+    requestPendingReview: "Your request will remain pending until a decision is made.",
     annualLeave: "Annual leave",
     reviewedInOperationsQueue: "Reviewed in operations queue",
     notApprovedAtThisTime: "Not approved at this time",
@@ -2025,6 +2032,11 @@ const pageCopy = {
     approve: "Approve",
     reject: "Reject",
     newKindRequest: "New {kind} request",
+    requestLeaveType: "Leave type",
+    requestPermissionType: "Permission type",
+    requestReasonLabel: "Reason or additional notes",
+    requestLeaveReasonPlaceholder: "Briefly explain your leave request.",
+    requestPermissionReasonPlaceholder: "Briefly explain why you need permission.",
     type: "Type",
     reason: "Reason",
     from: "From",
@@ -2529,6 +2541,11 @@ const pageCopy = {
     approve: "موافقة",
     reject: "رفض",
     newKindRequest: "طلب {kind} جديد",
+    requestLeaveType: "نوع الإجازة",
+    requestPermissionType: "نوع الاستئذان",
+    requestReasonLabel: "السبب أو ملاحظات إضافية",
+    requestLeaveReasonPlaceholder: "اكتب سبب طلب الإجازة باختصار.",
+    requestPermissionReasonPlaceholder: "اكتب سبب طلب الاستئذان باختصار.",
     type: "النوع",
     reason: "السبب",
     from: "من",
@@ -2536,6 +2553,13 @@ const pageCopy = {
     start: "البداية",
     end: "النهاية",
     submitRequest: "إرسال الطلب",
+    requestFormIntro: "املأ التفاصيل التالية لإرسال طلبك للمراجعة.",
+    leavePeriod: "مدة الإجازة",
+    leavePeriodHint: "اختر أول وآخر يوم تحتاج فيهما إلى إجازة.",
+    permissionTime: "موعد الاستئذان",
+    permissionTimeHint: "حدد تاريخ الاستئذان ووقته.",
+    requestReasonHint: "اكتب سبباً مختصراً ليساعد المسؤول على مراجعة الطلب.",
+    requestPendingReview: "سيظل الطلب قيد المراجعة حتى يصدر قرار بشأنه.",
     annualLeave: "إجازة سنوية",
     sickLeave: "إجازة مرضية",
     shortAbsence: "غياب قصير",
@@ -3335,6 +3359,11 @@ const pageCopy = {
     approve: "Approuver",
     reject: "Refuser",
     newKindRequest: "Nouvelle demande de {kind}",
+    requestLeaveType: "Type de congé",
+    requestPermissionType: "Type d’autorisation",
+    requestReasonLabel: "Motif ou informations complémentaires",
+    requestLeaveReasonPlaceholder: "Expliquez brièvement votre demande de congé.",
+    requestPermissionReasonPlaceholder: "Expliquez brièvement votre demande d’autorisation.",
     type: "Type",
     reason: "Motif",
     from: "Du",
@@ -3342,6 +3371,13 @@ const pageCopy = {
     start: "Début",
     end: "Fin",
     submitRequest: "Envoyer la demande",
+    requestFormIntro: "Renseignez les détails ci-dessous pour envoyer votre demande.",
+    leavePeriod: "Période de congé",
+    leavePeriodHint: "Choisissez le premier et le dernier jour de congé.",
+    permissionTime: "Horaire de l’autorisation",
+    permissionTimeHint: "Indiquez la date ainsi que l’heure de début et de fin.",
+    requestReasonHint: "Une courte explication aidera votre responsable à examiner la demande.",
+    requestPendingReview: "Votre demande restera en attente jusqu’à une décision.",
     annualLeave: "Congé annuel",
     sickLeave: "Congé maladie",
     shortAbsence: "Absence courte",
@@ -3805,6 +3841,11 @@ const pageCopy = {
     approve: "Genehmigen",
     reject: "Ablehnen",
     newKindRequest: "Neue {kind}-Anfrage",
+    requestLeaveType: "Urlaubsart",
+    requestPermissionType: "Art der Genehmigung",
+    requestReasonLabel: "Grund oder zusätzliche Hinweise",
+    requestLeaveReasonPlaceholder: "Begründen Sie Ihren Urlaubsantrag kurz.",
+    requestPermissionReasonPlaceholder: "Begründen Sie Ihre Genehmigungsanfrage kurz.",
     type: "Typ",
     reason: "Grund",
     from: "Von",
@@ -3812,6 +3853,13 @@ const pageCopy = {
     start: "Beginn",
     end: "Ende",
     submitRequest: "Anfrage senden",
+    requestFormIntro: "Füllen Sie die folgenden Angaben aus, um Ihre Anfrage einzureichen.",
+    leavePeriod: "Urlaubszeitraum",
+    leavePeriodHint: "Wählen Sie den ersten und letzten Urlaubstag aus.",
+    permissionTime: "Genehmigungszeit",
+    permissionTimeHint: "Wählen Sie Datum sowie Beginn und Ende der Genehmigung.",
+    requestReasonHint: "Eine kurze Erklärung erleichtert die Prüfung Ihrer Anfrage.",
+    requestPendingReview: "Ihre Anfrage bleibt offen, bis eine Entscheidung getroffen wurde.",
     annualLeave: "Jahresurlaub",
     sickLeave: "Krankheitsurlaub",
     shortAbsence: "Kurze Abwesenheit",
@@ -14389,7 +14437,7 @@ function Attendance() {
 }
 
 function Requests() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
   const capabilities = workspaceQuery.data?.capabilities || [];
@@ -14669,113 +14717,245 @@ function Requests() {
         </Card>
       </div>
       {show && (
-        <Modal
-          title={tr("newKindRequest", { kind: t(kind) })}
-          onClose={() => setShow(false)}
-        >
-          <form onSubmit={submit} className="space-y-4">
-            <label className="block text-sm font-semibold">
-              {t("type")}
-              {kind === "leave" && leaveTypes.length ? (
-                <select
-                  required
-                  value={form.type}
-                  onChange={(event) =>
-                    setForm({ ...form, type: event.target.value })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-secondary/55 px-3 py-4 backdrop-blur-[3px] sm:px-6 sm:py-6">
+          <div className="flex min-h-full items-center justify-center">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="request-dialog-title"
+              aria-describedby="request-dialog-description"
+              dir={locale === "ar" ? "rtl" : "ltr"}
+              className="flex max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_24px_70px_hsl(214_84%_10%_/_0.22)] animate-in fade-in zoom-in-95 duration-200"
+            >
+              <header className="shrink-0 border-b border-border px-5 pb-4 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-3.5">
+                    <div className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
+                      {kind === "leave" ? (
+                        <CalendarDays
+                          size={20}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Clock3 size={20} aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-primary-dark">
+                        {t("requestsTitle")} · {t("newRequest")}
+                      </p>
+                      <h2
+                        id="request-dialog-title"
+                        className="mt-1 font-display text-xl font-bold leading-tight text-foreground sm:text-[22px]"
+                      >
+                        {tr("newKindRequest", { kind: t(kind) })}
+                      </h2>
+                      <p
+                        id="request-dialog-description"
+                        className="mt-1.5 max-w-sm text-xs leading-5 text-muted-foreground sm:text-[13px]"
+                      >
+                        {t("requestFormIntro")}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShow(false)}
+                    aria-label={t("closeDialog")}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <X size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                <form
+                  id="requests-request-form"
+                  onSubmit={submit}
+                  className="space-y-5"
                 >
-                  {leaveTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {requestTypeLabel(type, t)}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  required
-                  value={form.type}
-                  onChange={(event) =>
-                    setForm({ ...form, type: event.target.value })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                />
-              )}
-            </label>
-            {kind === "leave" ? (
-              <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-                <Field
-                  label={t("from")}
-                  type="date"
-                  value={form.from}
-                  onChange={(value) => setForm({ ...form, from: value })}
-                  required
-                />
-                <Field
-                  label={t("to")}
-                  type="date"
-                  value={form.to}
-                  onChange={(value) => setForm({ ...form, to: value })}
-                  required
-                />
+                  <label className="block text-sm font-semibold">
+                    <span className="mb-2 block text-[13px]">
+                      {kind === "leave"
+                        ? t("requestLeaveType")
+                        : t("requestPermissionType")}
+                    </span>
+                    {kind === "leave" && leaveTypes.length ? (
+                      <select
+                        required
+                        value={form.type}
+                        onChange={(event) =>
+                          setForm({ ...form, type: event.target.value })
+                        }
+                        className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                      >
+                        {leaveTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {requestTypeLabel(type, t)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        required
+                        value={form.type}
+                        onChange={(event) =>
+                          setForm({ ...form, type: event.target.value })
+                        }
+                        className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                      />
+                    )}
+                  </label>
+
+                  {kind === "leave" ? (
+                    <section className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                          <CalendarDays size={18} aria-hidden="true" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold">
+                            {t("leavePeriod")}
+                          </h3>
+                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                            {t("leavePeriodHint")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field
+                          label={t("from")}
+                          type="date"
+                          value={form.from}
+                          onChange={(value) => setForm({ ...form, from: value })}
+                          required
+                        />
+                        <Field
+                          label={t("to")}
+                          type="date"
+                          min={form.from || undefined}
+                          value={form.to}
+                          onChange={(value) => setForm({ ...form, to: value })}
+                          required
+                        />
+                      </div>
+                    </section>
+                  ) : (
+                    <section className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                          <Clock3 size={18} aria-hidden="true" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold">
+                            {t("permissionTime")}
+                          </h3>
+                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                            {t("permissionTimeHint")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <Field
+                            label={t("date")}
+                            type="date"
+                            value={form.date}
+                            onChange={(value) =>
+                              setForm({ ...form, date: value })
+                            }
+                            required
+                          />
+                        </div>
+                        <Field
+                          label={t("start")}
+                          type="time"
+                          value={form.startTime}
+                          onChange={(value) =>
+                            setForm({ ...form, startTime: value })
+                          }
+                          required
+                        />
+                        <Field
+                          label={t("end")}
+                          type="time"
+                          min={form.startTime || undefined}
+                          value={form.endTime}
+                          onChange={(value) =>
+                            setForm({ ...form, endTime: value })
+                          }
+                          required
+                        />
+                      </div>
+                    </section>
+                  )}
+
+                  <div>
+                    <label
+                      htmlFor="request-reason"
+                      className="mb-2 block text-[13px] font-semibold"
+                    >
+                      {t("requestReasonLabel")}
+                    </label>
+                    <textarea
+                      id="request-reason"
+                      required
+                      value={form.reason}
+                      onChange={(event) =>
+                        setForm({ ...form, reason: event.target.value })
+                      }
+                      placeholder={
+                        kind === "leave"
+                          ? t("requestLeaveReasonPlaceholder")
+                          : t("requestPermissionReasonPlaceholder")
+                      }
+                      className="min-h-28 w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                    />
+                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                      {t("requestReasonHint")}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3 text-xs leading-5 text-muted-foreground">
+                    <ShieldCheck
+                      size={16}
+                      className="mt-0.5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    <span>{t("requestPendingReview")}</span>
+                  </div>
+                </form>
               </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field
-                  label={t("date")}
-                  type="date"
-                  value={form.date}
-                  onChange={(value) => setForm({ ...form, date: value })}
-                  required
-                />
-                <Field
-                  label={t("start")}
-                  type="time"
-                  value={form.startTime}
-                  onChange={(value) => setForm({ ...form, startTime: value })}
-                  required
-                />
-                <Field
-                  label={t("end")}
-                  type="time"
-                  value={form.endTime}
-                  onChange={(value) => setForm({ ...form, endTime: value })}
-                  required
-                />
-              </div>
-            )}
-            <label className="block text-sm font-semibold">
-              {t("reason")}
-              <textarea
-                required
-                value={form.reason}
-                onChange={(event) =>
-                  setForm({ ...form, reason: event.target.value })
-                }
-                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setShow(false)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  kind === "leave"
-                    ? createLeave.isPending
-                    : createPermission.isPending
-                }
-              >
-                {t("submitRequest")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+
+              <footer className="shrink-0 border-t border-border bg-card px-5 py-4 sm:px-7">
+                <div className="flex flex-col-reverse gap-2.5 min-[390px]:flex-row min-[390px]:justify-between">
+                  <Button
+                    type="submit"
+                    form="requests-request-form"
+                    disabled={
+                      kind === "leave"
+                        ? createLeave.isPending
+                        : createPermission.isPending
+                    }
+                    className="min-h-11 rounded-xl px-5"
+                  >
+                    <span>{t("submitRequest")}</span>
+                    <ArrowLeft size={16} aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    className="min-h-11 rounded-xl px-4"
+                    onClick={() => setShow(false)}
+                  >
+                    {t("cancel")}
+                  </Button>
+                </div>
+              </footer>
+            </section>
+          </div>
+        </div>
       )}
       {decision && (
         <Modal title={t("confirmDecision")} onClose={() => setDecision(null)}>
