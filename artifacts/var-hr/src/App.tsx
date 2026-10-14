@@ -13638,8 +13638,36 @@ function Employees() {
       },
     );
   }
+  const employeeRows = q.data ?? [];
+  const departmentCount = new Set(
+    employeeRows
+      .map((item: any) => item.department?.id ?? item.department?.name)
+      .filter(Boolean),
+  ).size;
+  const branchCount = new Set(
+    employeeRows
+      .map((item: any) => item.branch?.id ?? item.branch?.name)
+      .filter(Boolean),
+  ).size;
+  const summary = [
+    {
+      label: t("employeesTitle"),
+      value: employeeRows.length,
+      icon: <Users size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("department"),
+      value: departmentCount,
+      icon: <Building2 size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("branch"),
+      value: branchCount,
+      icon: <MapPin size={18} aria-hidden="true" />,
+    },
+  ];
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={t("employeesEyebrow")}
         title={t("employeesTitle")}
@@ -13648,230 +13676,353 @@ function Employees() {
           canCreateEmployees ? (
             <Button
               onClick={() => setLocation("/employees/new")}
+              className="min-h-11 rounded-xl px-4 shadow-sm"
               data-testid="button-create-employee"
             >
-              <Plus size={16} />
+              <Plus size={16} aria-hidden="true" />
               {t("addEmployee")}
             </Button>
           ) : undefined
         }
       />
-      <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
+      <Card className="p-4 sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
           <div className="relative flex-1">
             <Search
-              className="absolute start-3 top-2.5 text-muted-foreground"
+              className="absolute start-3 top-3 text-muted-foreground"
               size={16}
+              aria-hidden="true"
             />
             <input
               data-testid="input-employee-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label={t("searchEmployees")}
               placeholder={t("searchEmployees")}
-              className="h-10 w-full rounded-lg border border-input bg-background ps-9 pe-3 text-sm outline-none focus:border-primary"
+              className="h-11 w-full rounded-xl border border-input bg-background ps-10 pe-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <select
-            data-testid="select-employee-status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
-          >
-            <option value="all">{t("allStatuses")}</option>
-            <option value="active">{t("active")}</option>
-            <option value="inactive">{t("inactive")}</option>
-          </select>
-        </div>
-        {q.isLoading ? (
-          <div className="space-y-3 p-5">
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
+          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-input bg-background px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+            <SlidersHorizontal
+              size={16}
+              className="shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <label htmlFor="employee-status-filter" className="sr-only">
+              {t("status")}
+            </label>
+            <select
+              id="employee-status-filter"
+              data-testid="select-employee-status"
+              aria-label={t("status")}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
+            >
+              <option value="all">{t("allStatuses")}</option>
+              <option value="active">{t("active")}</option>
+              <option value="inactive">{t("inactive")}</option>
+            </select>
           </div>
-        ) : q.isError ? (
-          <ErrorState retry={() => q.refetch()} />
-        ) : q.data?.length ? (
-          <>
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-[1450px] text-left text-sm rtl:text-right">
-              <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-5 py-4">{t("employeeNumber")}</th>
-                  <th className="px-4 py-4">{t("employee")}</th>
-                  <th className="px-4 py-4">{t("nationalId")}</th>
-                  <th className="px-4 py-4">{t("phoneNumber")}</th>
-                  <th className="px-4 py-4">{t("department")}</th>
-                  <th className="px-4 py-4">{t("branch")}</th>
-                  <th className="px-4 py-4">{t("shift")}</th>
-                  <th className="px-4 py-4">{t("monthlySalary")}</th>
-                  <th className="px-4 py-4">{t("workingHours")}</th>
-                  <th className="px-4 py-4">{t("biometricCode")}</th>
-                  <th className="px-4 py-4">{t("employmentStartDate")}</th>
-                  <th className="px-5 py-4">{t("status")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {q.data.map((item: any) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => setLocation(`/employees/${item.id}`)}
-                    className="cursor-pointer transition-colors hover:bg-muted/40"
-                    data-testid={`row-employee-${item.id}`}
-                  >
-                    <td className="px-5 py-4">
-                      <span
-                        className="inline-flex rounded-lg bg-secondary/5 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-secondary"
-                        data-testid={`text-list-employee-number-${item.id}`}
-                      >
-                        {item.employeeNumber}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
-                          {item.avatarInitials ||
-                            `${item.firstName[0]}${item.lastName[0]}`}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="whitespace-nowrap font-semibold">
-                            {employeeDisplayName(locale, item)}
-                          </div>
-                          <div className="max-w-[190px] truncate text-xs text-muted-foreground">
-                            {item.phone || t("notAvailable")}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 font-mono text-xs">
-                      {item.nationalId || t("notAvailable")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      {item.phone || t("notAvailable")}
-                    </td>
-                    <td className="px-4 py-4">
-                      {departmentLabel(item.department?.name, t, locale, item.department?.nameEn)}
-                    </td>
-                    <td className="px-4 py-4">{branchLabel(item.branch?.name, t, locale, item.branch?.nameEn)}</td>
-                    <td className="px-4 py-4">
-                      {effectiveScheduleName(
-                        scheduleAssignments.data,
-                        schedules.data,
-                        item.id,
-                      ) || t("notAvailable")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 font-semibold">
-                      {money(item.salary, currency)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      {item.workingHours ?? t("notAvailable")}
-                      {item.workingHours != null && ` ${t("hours").toLowerCase()}`}
-                    </td>
-                    <td className="px-4 py-4 font-mono text-xs">
-                      {item.biometricCode || t("notAvailable")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
-                      {date(item.joinedOn)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Status value={item.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              </table>
-            </div>
-            <div className="grid gap-3 p-3 lg:hidden sm:grid-cols-2 sm:p-4">
-              {q.data.map((item: any) => {
-                const shift =
-                  effectiveScheduleName(
-                    scheduleAssignments.data,
-                    schedules.data,
-                    item.id,
-                  ) || t("notAvailable");
-                return (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={() => setLocation(`/employees/${item.id}`)}
-                    className="group rounded-2xl border border-border bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] rtl:text-right"
-                    data-testid={`card-employee-${item.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
-                          {item.avatarInitials ||
-                            `${item.firstName[0]}${item.lastName[0]}`}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold">
-                            {employeeDisplayName(locale, item)}
-                          </div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            {item.phone || t("notAvailable")}
-                          </div>
-                        </div>
-                      </div>
-                      <Status value={item.status} />
-                    </div>
-                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                      <span className="font-mono text-xs font-bold tracking-wide text-secondary">
-                        {item.employeeNumber}
-                      </span>
-                      <ArrowUpRight
-                        size={16}
-                        className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                      />
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                      <Info label={t("nationalId")} value={item.nationalId || t("notAvailable")} />
-                      <Info label={t("phoneNumber")} value={item.phone || t("notAvailable")} />
-                      <Info
-                        label={t("department")}
-                        value={departmentLabel(item.department?.name, t, locale, item.department?.nameEn)}
-                      />
-                      <Info label={t("branch")} value={branchLabel(item.branch?.name, t, locale, item.branch?.nameEn)} />
-                      <Info label={t("shift")} value={shift} />
-                      <Info label={t("monthlySalary")} value={money(item.salary, currency)} />
-                      <Info
-                        label={t("workingHours")}
-                        value={
-                          item.workingHours != null
-                            ? `${item.workingHours} ${t("hours").toLowerCase()}`
-                            : t("notAvailable")
-                        }
-                      />
-                      <Info
-                        label={t("biometricCode")}
-                        value={item.biometricCode || t("notAvailable")}
-                      />
-                      <Info
-                        label={t("employmentStartDate")}
-                        value={date(item.joinedOn)}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <Empty
-            title={t("noEmployeesMatch")}
-            detail={t("adjustEmployeeSearch")}
-            action={
-              canCreateEmployees ? (
-                <Button
-                  onClick={() => setLocation("/employees/new")}
-                  data-testid="button-empty-create-employee"
-                >
-                  <Plus size={15} />
-                  {t("addEmployee")}
-                </Button>
-              ) : undefined
-            }
-          />
-        )}
+        </div>
       </Card>
+
+      {q.isLoading ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {summary.map((item) => (
+              <Skeleton
+                key={item.label}
+                className="h-24 rounded-2xl"
+              />
+            ))}
+          </div>
+          <Card className="space-y-3 p-5">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </Card>
+        </>
+      ) : q.isError ? (
+        <ErrorState retry={() => q.refetch()} />
+      ) : (
+        <>
+          <section
+            aria-label={t("employeesTitle")}
+            className="grid gap-3 sm:grid-cols-3"
+          >
+            {summary.map((item, index) => (
+              <Card
+                key={item.label}
+                className="relative overflow-hidden p-4 sm:p-5"
+              >
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute inset-y-0 start-0 w-1",
+                    index === 0
+                      ? "bg-primary"
+                      : index === 1
+                        ? "bg-emerald-500"
+                        : "bg-secondary",
+                  )}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                      {item.value}
+                    </p>
+                  </div>
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                    {item.icon}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </section>
+
+          {employeeRows.length ? (
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+                <h2 className="font-display text-base font-semibold">
+                  {t("employeesTitle")}
+                </h2>
+                <span
+                  className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"
+                  data-testid="text-employee-result-count"
+                >
+                  {employeeRows.length}
+                </span>
+              </div>
+              <div className="hidden overflow-x-auto 2xl:block">
+                <table className="w-full min-w-[1300px] text-left text-sm rtl:text-right">
+                  <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-5 py-4">{t("employeeNumber")}</th>
+                      <th className="px-4 py-4">{t("employee")}</th>
+                      <th className="px-4 py-4">{t("nationalId")}</th>
+                      <th className="px-4 py-4">{t("phoneNumber")}</th>
+                      <th className="px-4 py-4">{t("department")}</th>
+                      <th className="px-4 py-4">{t("branch")}</th>
+                      <th className="px-4 py-4">{t("shift")}</th>
+                      <th className="px-4 py-4">{t("monthlySalary")}</th>
+                      <th className="px-4 py-4">{t("workingHours")}</th>
+                      <th className="px-4 py-4">{t("biometricCode")}</th>
+                      <th className="px-4 py-4">{t("employmentStartDate")}</th>
+                      <th className="px-5 py-4">{t("status")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {employeeRows.map((item: any) => (
+                      <tr
+                        key={item.id}
+                        role="link"
+                        tabIndex={0}
+                        aria-label={employeeDisplayName(locale, item)}
+                        onClick={() => setLocation(`/employees/${item.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            setLocation(`/employees/${item.id}`);
+                          }
+                        }}
+                        className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+                        data-testid={`row-employee-${item.id}`}
+                      >
+                        <td className="px-5 py-4">
+                          <span
+                            className="inline-flex rounded-lg bg-secondary/5 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-secondary"
+                            data-testid={`text-list-employee-number-${item.id}`}
+                          >
+                            {item.employeeNumber}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
+                              {item.avatarInitials ||
+                                `${item.firstName[0]}${item.lastName[0]}`}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="whitespace-nowrap font-semibold">
+                                {employeeDisplayName(locale, item)}
+                              </div>
+                              <div className="max-w-[190px] truncate text-xs text-muted-foreground">
+                                {item.phone || t("notAvailable")}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 font-mono text-xs">
+                          {item.nationalId || t("notAvailable")}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4">
+                          {item.phone || t("notAvailable")}
+                        </td>
+                        <td className="px-4 py-4">
+                          {departmentLabel(
+                            item.department?.name,
+                            t,
+                            locale,
+                            item.department?.nameEn,
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          {branchLabel(
+                            item.branch?.name,
+                            t,
+                            locale,
+                            item.branch?.nameEn,
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          {effectiveScheduleName(
+                            scheduleAssignments.data,
+                            schedules.data,
+                            item.id,
+                          ) || t("notAvailable")}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 font-semibold">
+                          {money(item.salary, currency)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4">
+                          {item.workingHours ?? t("notAvailable")}
+                          {item.workingHours != null &&
+                            ` ${t("hours").toLowerCase()}`}
+                        </td>
+                        <td className="px-4 py-4 font-mono text-xs">
+                          {item.biometricCode || t("notAvailable")}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
+                          {date(item.joinedOn)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <Status value={item.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 2xl:hidden">
+                {employeeRows.map((item: any) => {
+                  const shift =
+                    effectiveScheduleName(
+                      scheduleAssignments.data,
+                      schedules.data,
+                      item.id,
+                    ) || t("notAvailable");
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => setLocation(`/employees/${item.id}`)}
+                      aria-label={employeeDisplayName(locale, item)}
+                      className="group rounded-2xl border border-border bg-background p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rtl:text-right"
+                      data-testid={`card-employee-${item.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                            {item.avatarInitials ||
+                              `${item.firstName[0]}${item.lastName[0]}`}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold">
+                              {employeeDisplayName(locale, item)}
+                            </div>
+                            <div className="truncate text-xs text-muted-foreground">
+                              {item.phone || t("notAvailable")}
+                            </div>
+                          </div>
+                        </div>
+                        <Status value={item.status} />
+                      </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                        <span className="font-mono text-xs font-bold tracking-wide text-secondary">
+                          {item.employeeNumber}
+                        </span>
+                        <ArrowUpRight
+                          size={16}
+                          className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <Info
+                          label={t("nationalId")}
+                          value={item.nationalId || t("notAvailable")}
+                        />
+                        <Info
+                          label={t("phoneNumber")}
+                          value={item.phone || t("notAvailable")}
+                        />
+                        <Info
+                          label={t("department")}
+                          value={departmentLabel(
+                            item.department?.name,
+                            t,
+                            locale,
+                            item.department?.nameEn,
+                          )}
+                        />
+                        <Info
+                          label={t("branch")}
+                          value={branchLabel(
+                            item.branch?.name,
+                            t,
+                            locale,
+                            item.branch?.nameEn,
+                          )}
+                        />
+                        <Info label={t("shift")} value={shift} />
+                        <Info
+                          label={t("monthlySalary")}
+                          value={money(item.salary, currency)}
+                        />
+                        <Info
+                          label={t("workingHours")}
+                          value={
+                            item.workingHours != null
+                              ? `${item.workingHours} ${t("hours").toLowerCase()}`
+                              : t("notAvailable")
+                          }
+                        />
+                        <Info
+                          label={t("biometricCode")}
+                          value={item.biometricCode || t("notAvailable")}
+                        />
+                        <Info
+                          label={t("employmentStartDate")}
+                          value={date(item.joinedOn)}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          ) : (
+            <Empty
+              title={t("noEmployeesMatch")}
+              detail={t("adjustEmployeeSearch")}
+              action={
+                canCreateEmployees ? (
+                  <Button
+                    onClick={() => setLocation("/employees/new")}
+                    data-testid="button-empty-create-employee"
+                  >
+                    <Plus size={15} aria-hidden="true" />
+                    {t("addEmployee")}
+                  </Button>
+                ) : undefined
+              }
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
