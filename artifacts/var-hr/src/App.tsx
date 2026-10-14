@@ -1179,6 +1179,7 @@ const copy = {
     selectManager: "Select manager",
     noDepartments: "No departments yet",
     noDepartmentsDetail: "Create the first department for this company.",
+    departmentStatus: "Department status",
     departmentEmployees: "Department employees",
     departmentSaved: "Department saved",
     branchesEyebrow: "Organization",
@@ -1517,6 +1518,7 @@ const copy = {
     selectManager: "اختر المدير",
     noDepartments: "لا توجد أقسام بعد",
     noDepartmentsDetail: "أنشئ أول قسم لهذه الشركة.",
+    departmentStatus: "حالة القسم",
     departmentEmployees: "موظفو القسم",
     departmentSaved: "تم حفظ القسم",
     branchesEyebrow: "التنظيم",
@@ -11282,165 +11284,477 @@ function Departments() {
     );
   }
   const activeDetail = detail.data as any;
+  const departmentRows = departments.data ?? [];
+  const activeDepartmentCount = departmentRows.filter(
+    (item: any) => item.active !== false,
+  ).length;
+  const employeeTotal = departmentRows.reduce(
+    (total: number, item: any) =>
+      total + (Number(item.employeeCount) || 0),
+    0,
+  );
+  const summary = [
+    {
+      label: t("departmentsTitle"),
+      value: departmentRows.length,
+      icon: <Building2 size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("branchActive"),
+      value: activeDepartmentCount,
+      icon: <Activity size={18} aria-hidden="true" />,
+    },
+    {
+      label: t("employees"),
+      value: employeeTotal,
+      icon: <Users size={18} aria-hidden="true" />,
+    },
+  ];
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={t("departmentsEyebrow")}
         title={t("departmentsTitle")}
         detail={t("departmentsDetail")}
         action={
           canManage ? (
-            <Button onClick={openCreate}>
-              <Plus size={16} />
+            <Button
+              onClick={openCreate}
+              className="min-h-11 rounded-xl px-4 shadow-sm"
+              data-testid="button-add-department"
+            >
+              <Plus size={16} aria-hidden="true" />
               {t("addDepartment")}
             </Button>
           ) : undefined
         }
       />
       {departments.isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {summary.map((item) => (
+              <Skeleton
+                key={item.label}
+                className="h-24 rounded-2xl"
+              />
+            ))}
+          </div>
+          <div className="grid gap-5 xl:grid-cols-[minmax(280px,.82fr)_minmax(0,1.18fr)]">
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
         </div>
       ) : departments.isError ? (
         <ErrorState retry={() => departments.refetch()} />
-      ) : departments.data?.length ? (
-        <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
-          <div className="space-y-3">
-            {departments.data.map((item: any) => (
+      ) : (
+        <>
+          <section
+            aria-label={t("departmentsTitle")}
+            className="grid gap-3 sm:grid-cols-3"
+          >
+            {summary.map((item, index) => (
               <Card
-                key={item.id}
-                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
-                  selected === item.id ? "border-primary bg-primary/5" : ""
-                }`}
-                onClick={() => setSelected(item.id)}
+                key={item.label}
+                className="relative overflow-hidden p-4 sm:p-5"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-display text-lg font-semibold">
-                      {localizedName(locale, item.name, item.nameEn)}
-                    </div>
-                  </div>
-                  <Status value={item.active ? "active" : "inactive"} />
-                </div>
-                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{item.employeeCount} {t("employees").toLowerCase()}</span>
-                  {canManage && (
-                    <Button
-                      variant="outline"
-                      className="h-8 px-3"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openEdit(item);
-                      }}
-                    >
-                      {t("edit")}
-                    </Button>
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute inset-y-0 start-0 w-1",
+                    index === 0
+                      ? "bg-primary"
+                      : index === 1
+                        ? "bg-emerald-500"
+                        : "bg-secondary",
                   )}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                      {item.value}
+                    </p>
+                  </div>
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                    {item.icon}
+                  </div>
                 </div>
               </Card>
             ))}
-          </div>
-          <Card className="min-h-[360px] p-6">
-            {activeDetail ? (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {t("department")}
-                    </div>
-                    <h2 className="mt-1 font-display text-2xl font-semibold">
-                      {localizedName(locale, activeDetail.name, activeDetail.nameEn)}
-                    </h2>
-                    {activeDetail.description && (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {activeDetail.description}
-                      </p>
-                    )}
-                  </div>
-                  <Status value={activeDetail.active ? "active" : "inactive"} />
+          </section>
+
+          {departmentRows.length ? (
+            <div className="grid gap-5 xl:grid-cols-[minmax(280px,.82fr)_minmax(0,1.18fr)]">
+              <section
+                aria-label={t("departmentsTitle")}
+                className="min-w-0 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <h2 className="font-display text-base font-semibold">
+                    {t("departmentsTitle")}
+                  </h2>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                    {departmentRows.length}
+                  </span>
                 </div>
-                <div className="mt-6 rounded-xl border border-border p-4">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {t("manager")}
-                  </div>
-                  <div className="mt-1 font-medium">
-                    {activeDetail.manager?.name ?? "—"}
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <h3 className="font-display text-lg font-semibold">
-                    {t("departmentEmployees")}
-                  </h3>
-                  <div className="mt-3 space-y-2">
-                    {activeDetail.employees?.map((employee: any) => (
-                      <div
-                        key={employee.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
-                      >
-                        <div className="min-w-0">
-                           <div className="truncate font-medium">
-                             {employee.name}
-                           </div>
-                           <div className="text-xs text-muted-foreground">
-                             {employee.department}
-                           </div>
-                        </div>
-                        {canManage && (
-                           <select
-                             value={selected ?? ""}
-                            onChange={(event) =>
-                              setMembership(employee.id, event.target.value)
-                            }
-                            className="h-9 max-w-[180px] rounded-lg border border-input bg-background px-2 text-xs"
-                          >
-                            <option value="">{t("selectOption")}</option>
-                            {departments.data.map((department: any) => (
-                              <option key={department.id} value={department.id}>
-                                 {localizedName(locale, department.name, department.nameEn)}
-                              </option>
-                            ))}
-                          </select>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  {departmentRows.map((item: any) => {
+                    const isSelected = selected === item.id;
+                    return (
+                      <Card
+                        key={item.id}
+                        className={cn(
+                          "overflow-hidden transition duration-200 hover:shadow-[var(--shadow-md)]",
+                          isSelected
+                            ? "border-primary/60 bg-primary/[.04] ring-1 ring-primary/20"
+                            : "hover:border-primary/40",
                         )}
-                      </div>
-                    ))}
-                     {!activeDetail.employees?.length && (
-                      <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
-                        {t("noEmployeesMatch")}
-                      </div>
-                    )}
-                  </div>
+                        data-testid={`card-department-${item.id}`}
+                      >
+                        <div className="flex items-center gap-2 p-3 sm:p-4">
+                          <button
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => setSelected(item.id)}
+                            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            data-testid={`button-select-department-${item.id}`}
+                          >
+                            <span
+                              className={cn(
+                                "grid size-10 shrink-0 place-items-center rounded-xl transition-colors",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              <Building2 size={18} aria-hidden="true" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-display text-base font-semibold">
+                                {localizedName(
+                                  locale,
+                                  item.name,
+                                  item.nameEn,
+                                )}
+                              </span>
+                              <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Users
+                                  size={13}
+                                  className="shrink-0"
+                                  aria-hidden="true"
+                                />
+                                {item.employeeCount ?? 0}{" "}
+                                {t("employees").toLowerCase()}
+                              </span>
+                            </span>
+                          </button>
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            <Status
+                              value={
+                                item.active === false ? "inactive" : "active"
+                              }
+                            />
+                            {canManage && (
+                              <Button
+                                variant="outline"
+                                className="min-h-9 rounded-xl px-3"
+                                onClick={() => openEdit(item)}
+                                data-testid={`button-edit-department-${item.id}`}
+                              >
+                                <Pencil size={14} aria-hidden="true" />
+                                {t("edit")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
-              </>
-            ) : (
-              <Empty
-                title={t("departmentEmployees")}
-                detail={t("noDepartmentsDetail")}
-                action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
-              />
-            )}
-          </Card>
-        </div>
-      ) : (
-        <Empty
-          title={t("noDepartments")}
-          detail={t("noDepartmentsDetail")}
-          action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
-        />
+              </section>
+
+              <div className="min-w-0">
+                {selected ? (
+                  detail.isLoading ? (
+                    <Card className="space-y-4 p-5 sm:p-6">
+                      <Skeleton className="h-16 rounded-xl" />
+                      <Skeleton className="h-20 rounded-xl" />
+                      <Skeleton className="h-40 rounded-xl" />
+                    </Card>
+                  ) : detail.isError ? (
+                    <Card className="flex min-h-[320px] items-center justify-center p-6">
+                      <ErrorState retry={() => detail.refetch()} />
+                    </Card>
+                  ) : activeDetail ? (
+                    <Card className="min-w-0 self-start overflow-hidden">
+                      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:p-6">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
+                            <Building2 size={21} aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                              {t("department")}
+                            </p>
+                            <h2
+                              className="mt-1 truncate font-display text-xl font-bold sm:text-2xl"
+                              data-testid={`text-department-name-${activeDetail.id}`}
+                            >
+                              {localizedName(
+                                locale,
+                                activeDetail.name,
+                                activeDetail.nameEn,
+                              )}
+                            </h2>
+                            {activeDetail.description && (
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                {activeDetail.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Status
+                            value={
+                              activeDetail.active === false
+                                ? "inactive"
+                                : "active"
+                            }
+                          />
+                          {canManage && (
+                            <Button
+                              variant="outline"
+                              className="min-h-9 rounded-xl px-3"
+                              onClick={() => openEdit(activeDetail)}
+                              data-testid={`button-edit-selected-department-${activeDetail.id}`}
+                            >
+                              <Pencil size={14} aria-hidden="true" />
+                              {t("edit")}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6">
+                        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
+                            <UserRound size={17} aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">
+                              {t("manager")}
+                            </p>
+                            <p
+                              className="mt-0.5 truncate text-sm font-semibold"
+                              data-testid={`text-department-manager-${activeDetail.id}`}
+                            >
+                              {activeDetail.manager?.name ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
+                            <Users size={17} aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">
+                              {t("departmentEmployees")}
+                            </p>
+                            <p
+                              className="mt-0.5 text-sm font-semibold tabular-nums"
+                              data-testid={`text-department-employee-count-${activeDetail.id}`}
+                            >
+                              {activeDetail.employeeCount ??
+                                activeDetail.employees?.length ??
+                                0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <section className="px-4 pb-4 sm:px-6 sm:pb-6">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="font-display text-lg font-semibold">
+                            {t("departmentEmployees")}
+                          </h3>
+                          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                            {activeDetail.employees?.length ?? 0}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {activeDetail.employees?.map((employee: any) => (
+                            <div
+                              key={employee.id}
+                              className="flex flex-col gap-3 rounded-xl border border-border/80 p-3 sm:flex-row sm:items-center sm:justify-between"
+                              data-testid={`row-department-employee-${employee.id}`}
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                                  <UserRound
+                                    size={16}
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold">
+                                    {employee.name}
+                                  </div>
+                                  <div className="truncate text-xs text-muted-foreground">
+                                    {employee.department ?? "—"}
+                                  </div>
+                                </div>
+                              </div>
+                              {canManage && (
+                                <select
+                                  aria-label={`${t("departmentEmployees")}: ${employee.name}`}
+                                  data-testid={`select-department-membership-${employee.id}`}
+                                  value={selected ?? ""}
+                                  onChange={(event) =>
+                                    setMembership(
+                                      employee.id,
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-[220px]"
+                                >
+                                  <option value="">
+                                    {t("selectOption")}
+                                  </option>
+                                  {departmentRows.map((department: any) => (
+                                    <option
+                                      key={department.id}
+                                      value={department.id}
+                                    >
+                                      {localizedName(
+                                        locale,
+                                        department.name,
+                                        department.nameEn,
+                                      )}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          ))}
+                          {!activeDetail.employees?.length && (
+                            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-center text-sm text-muted-foreground">
+                              {t("noEmployeesMatch")}
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    </Card>
+                  ) : (
+                    <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
+                      <Building2
+                        size={24}
+                        className="text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {t("departmentEmployees")}
+                      </p>
+                    </Card>
+                  )
+                ) : (
+                  <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
+                    <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
+                      <Building2 size={24} aria-hidden="true" />
+                    </div>
+                    <h2 className="mt-4 font-display text-lg font-semibold">
+                      {t("departmentEmployees")}
+                    </h2>
+                    <p className="mt-1 max-w-xs text-sm leading-6 text-muted-foreground">
+                      {t("selectOption")}
+                    </p>
+                  </Card>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Card className="overflow-hidden border-dashed">
+              <div className="grid gap-5 p-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-8">
+                <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
+                  <Building2 size={24} aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-semibold">
+                    {t("noDepartments")}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {t("noDepartmentsDetail")}
+                  </p>
+                </div>
+                {canManage && (
+                  <Button
+                    onClick={openCreate}
+                    className="min-h-11 rounded-xl px-4"
+                    data-testid="button-add-first-department"
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {t("addDepartment")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          )}
+        </>
       )}
       {showCreate && (
         <Modal
           title={selected ? t("edit") : t("addDepartment")}
-          onClose={() => {
-            setShowCreate(false);
-            setSelected(null);
-          }}
+          onClose={() => setShowCreate(false)}
+          className="max-w-xl"
+          footer={
+            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+              <div>
+                {selected && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={deleteDepartment}
+                    disabled={remove.isPending}
+                    data-testid="button-delete-department"
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    {t("remove")}
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="quiet"
+                  onClick={() => setShowCreate(false)}
+                  data-testid="button-cancel-department"
+                >
+                  {t("cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  form="department-editor-form"
+                  disabled={
+                    create.isPending || update.isPending || remove.isPending
+                  }
+                  data-testid="button-save-department"
+                >
+                  {selected ? t("saveChanges") : t("createDepartment")}
+                </Button>
+              </div>
+            </div>
+          }
         >
-          <form onSubmit={save} className="space-y-6">
+          <form
+            id="department-editor-form"
+            onSubmit={save}
+            className="space-y-5"
+          >
             <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
               <div className="mb-5 flex items-start gap-3">
                 <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Building2 size={19} />
+                  <Building2 size={19} aria-hidden="true" />
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
@@ -11451,53 +11765,43 @@ function Departments() {
                   </p>
                 </div>
               </div>
-              <Field
-                label={t("arabicName")}
-                name="departmentName"
-                required
-                autoComplete="organization"
-                value={form.name}
-                onChange={(value) => setForm({ ...form, name: value })}
-              />
-              <Field
-                label={t("englishName")}
-                value={form.nameEn}
-                onChange={(value) => setForm({ ...form, nameEn: value })}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label={t("arabicName")}
+                  name="departmentName"
+                  required
+                  autoComplete="organization"
+                  value={form.name}
+                  onChange={(value) => setForm({ ...form, name: value })}
+                />
+                <Field
+                  label={t("englishName")}
+                  name="departmentNameEn"
+                  value={form.nameEn}
+                  onChange={(value) => setForm({ ...form, nameEn: value })}
+                />
+              </div>
               {selected && (
-                <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={form.active}
-                    onChange={(event) =>
-                      setForm({ ...form, active: event.target.checked })
-                    }
+                <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-background p-3.5 transition-colors hover:border-primary/35">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.active}
+                      onChange={(event) =>
+                        setForm({ ...form, active: event.target.checked })
+                      }
+                      className="size-4 shrink-0 accent-primary"
+                      data-testid="input-department-active"
+                    />
+                    <span className="text-sm font-semibold">
+                      {t("departmentStatus")}
+                    </span>
+                  </span>
+                  <Status
+                    value={form.active ? "active" : "inactive"}
                   />
-                  {form.active ? t("activateDepartment") : t("deactivateDepartment")}
                 </label>
               )}
-            </div>
-            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreate(false)}
-              >
-                {t("cancel")}
-              </Button>
-               {selected && (
-                 <Button
-                   type="button"
-                   variant="danger"
-                   onClick={deleteDepartment}
-                   disabled={remove.isPending}
-                 >
-                   {t("remove")}
-                 </Button>
-               )}
-                <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>
-                 {t("saveChanges")}
-               </Button>
             </div>
           </form>
         </Modal>
