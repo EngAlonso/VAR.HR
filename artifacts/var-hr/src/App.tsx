@@ -14582,6 +14582,181 @@ function Requests() {
   }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
+  if (show) {
+    return (
+      <div
+        className="animate-in mx-auto max-w-5xl"
+        dir={locale === "ar" ? "rtl" : "ltr"}
+      >
+        <header className="mb-3 flex items-center gap-2.5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary-dark">
+            {kind === "leave" ? (
+              <CalendarDays size={17} aria-hidden="true" />
+            ) : (
+              <Clock3 size={17} aria-hidden="true" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold text-primary-dark">
+              {t("requestsTitle")}
+            </p>
+            <h1 className="font-display text-lg font-bold leading-tight">
+              {tr("newKindRequest", { kind: t(kind) })}
+            </h1>
+          </div>
+        </header>
+        <Card className="p-3 sm:p-4">
+          <form onSubmit={submit}>
+            <div
+              className={`grid gap-4 ${
+                kind === "leave"
+                  ? "sm:grid-cols-3"
+                  : "sm:grid-cols-2 lg:grid-cols-4"
+              }`}
+            >
+              <label className="block text-sm font-semibold">
+                <span className="mb-2 block text-[13px]">
+                  {kind === "leave"
+                    ? t("requestLeaveType")
+                    : t("requestPermissionType")}
+                </span>
+                {kind === "leave" && leaveTypes.length ? (
+                  <select
+                    required
+                    value={form.type}
+                    onChange={(event) =>
+                      setForm({ ...form, type: event.target.value })
+                    }
+                    className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  >
+                    {leaveTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {requestTypeLabel(type, t)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    required
+                    value={form.type}
+                    onChange={(event) =>
+                      setForm({ ...form, type: event.target.value })
+                    }
+                    className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  />
+                )}
+              </label>
+              {kind === "leave" ? (
+                <>
+                  <Field
+                    label={t("from")}
+                    type="date"
+                    value={form.from}
+                    onChange={(value) => setForm({ ...form, from: value })}
+                    required
+                  />
+                  <Field
+                    label={t("to")}
+                    type="date"
+                    min={form.from || undefined}
+                    value={form.to}
+                    onChange={(value) => setForm({ ...form, to: value })}
+                    required
+                  />
+                </>
+              ) : (
+                <>
+                  <Field
+                    label={t("date")}
+                    type="date"
+                    value={form.date}
+                    onChange={(value) => setForm({ ...form, date: value })}
+                    required
+                  />
+                  <Field
+                    label={t("start")}
+                    type="time"
+                    value={form.startTime}
+                    onChange={(value) =>
+                      setForm({ ...form, startTime: value })
+                    }
+                    required
+                  />
+                  <Field
+                    label={t("end")}
+                    type="time"
+                    min={form.startTime || undefined}
+                    value={form.endTime}
+                    onChange={(value) => setForm({ ...form, endTime: value })}
+                    required
+                  />
+                </>
+              )}
+            </div>
+            <div className="mt-3 grid gap-3 border-t border-border pt-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div>
+                <label
+                  htmlFor="request-reason"
+                  className="mb-1.5 block text-[13px] font-semibold"
+                >
+                  {t("requestReasonLabel")}
+                </label>
+                <textarea
+                  id="request-reason"
+                  required
+                  rows={2}
+                  value={form.reason}
+                  onChange={(event) =>
+                    setForm({ ...form, reason: event.target.value })
+                  }
+                  placeholder={
+                    kind === "leave"
+                      ? t("requestLeaveReasonPlaceholder")
+                      : t("requestPermissionReasonPlaceholder")
+                  }
+                  className="min-h-16 w-full resize-none rounded-xl border border-input bg-background px-3.5 py-2 text-sm leading-6 outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                />
+                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                  {t("requestReasonHint")}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 lg:items-end">
+                <div className="flex items-start gap-2 text-[10px] leading-4 text-muted-foreground">
+                  <ShieldCheck
+                    size={14}
+                    className="mt-0.5 shrink-0 text-primary"
+                    aria-hidden="true"
+                  />
+                  <span>{t("requestPendingReview")}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-10 rounded-xl px-4"
+                    onClick={() => setShow(false)}
+                  >
+                    {t("cancel")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      kind === "leave"
+                        ? createLeave.isPending
+                        : createPermission.isPending
+                    }
+                    className="min-h-10 rounded-xl px-4"
+                  >
+                    {t("submitRequest")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="animate-in">
       <SectionTitle
