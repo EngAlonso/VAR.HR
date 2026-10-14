@@ -8457,7 +8457,7 @@ function Overview() {
         </Card>
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border p-5">
             <div>
               <h2 className="font-display text-lg font-semibold">
@@ -18339,34 +18339,105 @@ function EmployeePayrollStatement({
   const currency = workspace.data?.company?.currency ?? "EGP";
   const item = query.data?.items?.[0];
   return (
-    <div className="animate-in">
-      <SectionTitle eyebrow={c.payroll} title={c.payroll} detail={c.payrollDetail} />
+    <div className="animate-in space-y-6">
+      <SectionTitle
+        eyebrow={c.payroll}
+        title={c.payroll}
+        detail={c.payrollDetail}
+      />
       {query.isLoading ? (
-        <Card className="p-6"><Skeleton className="h-48" /></Card>
+        <Card className="space-y-5 p-5 sm:p-6">
+          <Skeleton className="h-20 rounded-2xl" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+          </div>
+        </Card>
       ) : query.isError ? (
         <Card><ErrorState retry={() => query.refetch()} /></Card>
       ) : query.data && item ? (
-        <Card className="p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">{c.period}</p>
-              <h2 className="mt-1 font-display text-2xl font-semibold">
-                {query.data.period?.label}
-              </h2>
+        <Card className="overflow-hidden">
+          <div className="flex flex-col justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:flex-row sm:items-center sm:p-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
+                <Coins size={21} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
+                  {c.period}
+                </p>
+                <h2 className="mt-1 truncate font-display text-xl font-bold sm:text-2xl">
+                  {query.data.period?.label}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {query.data.period?.from} – {query.data.period?.to}
+                </p>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {c.calculatedAt}: {date(query.data.calculatedAt)}
-            </p>
+            <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+              {query.data.period?.status && (
+                <Status value={query.data.period.status} />
+              )}
+              <div className="rounded-xl border border-border/80 bg-background/80 px-3.5 py-2.5">
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  {c.calculatedAt}
+                </p>
+                <p className="mt-0.5 text-sm font-semibold">
+                  {date(query.data.calculatedAt)}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <Info label={c.gross} value={money(item.grossSalary ?? item.gross ?? 0, currency)} />
-            <Info label={c.additions} value={money(item.additions ?? item.overtime ?? 0, currency)} />
-            <Info label={c.deductions} value={money(item.deductions ?? 0, currency)} />
-            <Info label={c.net} value={money(item.netSalary ?? item.net ?? 0, currency)} />
-            <Info label={c.period} value={`${query.data.period?.from} – ${query.data.period?.to}`} />
+          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+            {[
+              {
+                label: c.gross,
+                value: money(item.grossSalary ?? item.gross ?? 0, currency),
+                featured: false,
+              },
+              {
+                label: c.additions,
+                value: money(item.additions ?? item.overtime ?? 0, currency),
+                featured: false,
+              },
+              {
+                label: c.deductions,
+                value: money(item.deductions ?? 0, currency),
+                featured: false,
+              },
+              {
+                label: c.net,
+                value: money(item.netSalary ?? item.net ?? 0, currency),
+                featured: true,
+              },
+            ].map((metric) => (
+              <div
+                key={metric.label}
+                className={cn(
+                  "rounded-xl border p-4",
+                  metric.featured
+                    ? "border-primary/25 bg-primary/[.07]"
+                    : "border-border bg-muted/25",
+                )}
+              >
+                <p className="text-xs font-medium text-muted-foreground">
+                  {metric.label}
+                </p>
+                <p
+                  className={cn(
+                    "mt-2 font-mono text-base font-bold tabular-nums",
+                    metric.featured && "text-primary-dark",
+                  )}
+                >
+                  {metric.value}
+                </p>
+              </div>
+            ))}
           </div>
           {query.data.explanation && (
-            <p className="mt-5 rounded-lg bg-muted/60 p-3 text-sm leading-6 text-muted-foreground">
+            <p className="mx-4 mb-4 rounded-xl border border-border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground sm:mx-6 sm:mb-6">
               {query.data.explanation}
             </p>
           )}
@@ -18691,20 +18762,24 @@ function Payroll() {
     return <EmployeePayrollStatement query={myPayroll} />;
   }
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={t("generalPayroll")}
         title={t("payrollTitle")}
         detail={t("payrollDetail")}
         action={
-          <Button onClick={() => setShowPeriod(true)}>
-            <Plus size={16} />
+          <Button
+            onClick={() => setShowPeriod(true)}
+            className="min-h-11 rounded-xl px-4 shadow-sm"
+            data-testid="button-create-payroll-period"
+          >
+            <Plus size={16} aria-hidden="true" />
             {t("createPeriod")}
           </Button>
         }
       />
-      <Card className="mb-6">
-        <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-start sm:justify-between">
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-4 border-b border-border bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h2 className="font-display text-lg font-semibold">
               {t("payrollCycles")}
@@ -18713,8 +18788,13 @@ function Payroll() {
               {t("payrollCyclesDetail")}
             </p>
           </div>
-          <Button variant="outline" onClick={() => openCycleEditor()}>
-            <Plus size={16} />
+          <Button
+            variant="outline"
+            onClick={() => openCycleEditor()}
+            className="min-h-10 rounded-xl px-4"
+            data-testid="button-add-payroll-cycle"
+          >
+            <Plus size={16} aria-hidden="true" />
             {t("addPayrollCycle")}
           </Button>
         </div>
@@ -18723,44 +18803,55 @@ function Payroll() {
             <Skeleton className="h-16" />
           </div>
         ) : cycles.data?.length ? (
-          <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
             {cycles.data.map((cycle: any) => (
-              <div key={cycle.id} className="rounded-xl border border-border p-4">
+              <Card
+                key={cycle.id}
+                className="p-4 transition-colors hover:border-primary/30"
+                data-testid={`card-payroll-cycle-${cycle.id}`}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold">{cycle.name}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {t("cycleStartDay")} {cycle.startDay} · {t("cyclePayDay")}{" "}
-                      {cycle.payDay}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                      <CalendarDays size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{cycle.name}</div>
+                      <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {t("cycleStartDay")} {cycle.startDay} ·{" "}
+                        {t("cyclePayDay")} {cycle.payDay}
+                      </div>
                     </div>
                   </div>
                   <Status value={cycle.active ? "active" : "inactive"} />
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span className="rounded-lg bg-muted/60 px-2.5 py-1.5">
                     {cycle.employeeCount} {t("cycleEmployees").toLowerCase()}
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="quiet"
-                      className="px-2 py-1 text-xs"
+                      className="min-h-9 rounded-lg px-3 text-xs"
                       onClick={() => openCycleEditor(cycle)}
+                      data-testid={`button-edit-payroll-cycle-${cycle.id}`}
                     >
                       {t("edit")}
                     </Button>
                     {cycle.active && (
                       <Button
                         variant="danger"
-                        className="px-2 py-1 text-xs"
+                        className="min-h-9 rounded-lg px-3 text-xs"
                         onClick={() => deactivateCycle(cycle)}
                         disabled={deleteCycle.isPending}
+                        data-testid={`button-deactivate-payroll-cycle-${cycle.id}`}
                       >
                         {t("cycleInactive")}
                       </Button>
                     )}
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         ) : (
@@ -18769,13 +18860,22 @@ function Payroll() {
           </div>
         )}
       </Card>
-      <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
-        <Card>
-          <div className="border-b border-border p-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(290px,.82fr)_minmax(0,1.18fr)]">
+        <Card className="min-w-0 overflow-hidden">
+          <div className="border-b border-border bg-muted/20 p-5 sm:p-6">
             <h2 className="font-display text-lg font-semibold">
               {t("periods")}
             </h2>
-            <p className="text-sm text-muted-foreground">{t("selectPeriod")}</p>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                {t("selectPeriod")}
+              </p>
+              {q.data && (
+                <span className="rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  {q.data.length}
+                </span>
+              )}
+            </div>
           </div>
           {q.isLoading ? (
             <div className="space-y-3 p-5">
@@ -18790,42 +18890,57 @@ function Payroll() {
                 <div
                   key={p.id}
                   className={cn(
-                    "p-5 transition-colors hover:bg-muted/40",
-                    selectedPeriodId === p.id && "bg-primary/5",
+                    "border-s-2 transition-colors",
+                    selectedPeriodId === p.id
+                      ? "border-s-primary bg-primary/[.035]"
+                      : "border-s-transparent hover:bg-muted/30",
                   )}
                 >
                   <button
                     aria-label={`${t("selectPeriod")}: ${periodLabel(p.label)}`}
-                    className="block w-full text-left"
+                    aria-pressed={selectedPeriodId === p.id}
+                    className="block w-full p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 sm:p-5"
                     onClick={() => selectPeriod(p.id)}
+                    data-testid={`button-select-payroll-period-${p.id}`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-semibold">
-                          {periodLabel(p.label)}
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {date(p.from)} – {date(p.to)} · {p.employeeCount}{" "}
-                          {t("employeeCount")}
-                        </div>
-                        {p.cycleName && (
-                          <div className="mt-1 text-xs font-medium text-primary">
-                            {p.cycleName}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                          <CalendarDays size={17} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate font-display font-semibold">
+                            {periodLabel(p.label)}
                           </div>
-                        )}
+                          <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {date(p.from)} – {date(p.to)} · {p.employeeCount}{" "}
+                            {t("employeeCount")}
+                          </div>
+                          {p.cycleName && (
+                            <div className="mt-1 truncate text-xs font-medium text-primary-dark">
+                              {p.cycleName}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <Status value={p.status} />
                     </div>
-                    <div className="mt-3 text-sm font-mono">
-                      {money(p.totalNet)}
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
+                      <span className="text-xs text-muted-foreground">
+                        {t("netSalary")}
+                      </span>
+                      <span className="font-mono text-sm font-semibold tabular-nums">
+                        {money(p.totalNet)}
+                      </span>
                     </div>
                   </button>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5 sm:pb-5">
                     <Button
                       type="button"
                       variant="outline"
-                      className="px-2 py-1 text-xs"
+                      className="min-h-9 rounded-lg px-3 text-xs"
                       onClick={() => selectPeriod(p.id)}
+                      data-testid={`button-view-payroll-period-${p.id}`}
                     >
                       {t("viewPeriod")}
                     </Button>
@@ -18833,9 +18948,10 @@ function Payroll() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="px-2 py-1 text-xs"
+                        className="min-h-9 rounded-lg px-3 text-xs"
                         onClick={() => calculate(p.id)}
                         disabled={calc.isPending}
+                        data-testid={`button-calculate-payroll-period-${p.id}`}
                       >
                         {calc.isPending
                           ? t("calculating")
@@ -18848,9 +18964,10 @@ function Payroll() {
                       <Button
                         type="button"
                         variant="danger"
-                        className="px-2 py-1 text-xs"
+                        className="min-h-9 rounded-lg px-3 text-xs"
                         onClick={() => removePeriod(p.id)}
                         disabled={deletePeriod.isPending}
+                        data-testid={`button-delete-payroll-period-${p.id}`}
                       >
                         {t("deletePeriod")}
                       </Button>
@@ -18896,7 +19013,7 @@ function Payroll() {
             />
           ) : (
             <div>
-              <div className="flex flex-col justify-between gap-3 border-b border-border p-5 sm:flex-row sm:items-start">
+              <div className="flex flex-col justify-between gap-3 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:flex-row sm:items-start sm:p-6">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-primary">
                     {t("calculationHistory")}
@@ -18912,59 +19029,89 @@ function Payroll() {
                   <Status value={calculation.data.period.status} />
                   {calculation.data.period.status === "calculated" && (
                     <Button
-                      className="px-2 py-1 text-xs"
+                      className="min-h-9 rounded-lg px-3 text-xs"
                       onClick={finalizePeriod}
                       disabled={finalize.isPending}
+                      data-testid="button-finalize-payroll-period"
                     >
                       {t("finalize")}
                     </Button>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 p-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 p-4 min-[360px]:grid-cols-2 sm:p-5 2xl:grid-cols-4">
                 {[
-                  [t("basic"), calculation.data.totals.basicSalary],
-                  [t("additions"), calculation.data.totals.additions],
-                  [t("overtime"), calculation.data.totals.overtime],
-                  [t("netSalary"), calculation.data.totals.netSalary],
-                ].map(([label, value]) => (
+                  {
+                    key: "basic",
+                    label: t("basic"),
+                    value: calculation.data.totals.basicSalary,
+                  },
+                  {
+                    key: "additions",
+                    label: t("additions"),
+                    value: calculation.data.totals.additions,
+                  },
+                  {
+                    key: "overtime",
+                    label: t("overtime"),
+                    value: calculation.data.totals.overtime,
+                  },
+                  {
+                    key: "net",
+                    label: t("netSalary"),
+                    value: calculation.data.totals.netSalary,
+                    featured: true,
+                  },
+                ].map((item) => (
                   <div
-                    key={String(label)}
-                    className="rounded-lg bg-muted/60 p-3"
+                    key={item.key}
+                    className={cn(
+                      "rounded-xl border p-3.5",
+                      item.featured
+                        ? "border-primary/25 bg-primary/[.07]"
+                        : "border-border bg-muted/30",
+                    )}
                   >
-                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {label}
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {item.label}
                     </div>
-                    <div className="mt-1 font-mono text-sm font-semibold">
-                      {money(Number(value))}
+                    <div
+                      className={cn(
+                        "mt-2 font-mono text-sm font-bold tabular-nums",
+                        item.featured && "text-primary-dark",
+                      )}
+                    >
+                      {money(Number(item.value))}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="border-t border-border p-5">
+              <div className="border-t border-border bg-muted/10 p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-semibold">
                       {t("calculationExplanation")}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
                       {calculation.data.explanation ||
                         t("payrollFoundationExplanation")}
                     </p>
                   </div>
                   <Button
                     variant="outline"
+                    className="min-h-10 shrink-0 rounded-xl px-4"
                     onClick={() => setShowAdjustment(true)}
                     disabled={isPayrollPeriodImmutableStatus(
                       calculation.data.period.status,
                     )}
+                    data-testid="button-add-payroll-adjustment"
                   >
-                    <Plus size={15} />
+                    <Plus size={15} aria-hidden="true" />
                     {t("addAdjustment")}
                   </Button>
                 </div>
               </div>
-              <div className="border-t border-border p-5">
+              <div className="border-t border-border p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">
                     {t("employeeDetails")}
@@ -18973,7 +19120,7 @@ function Payroll() {
                     {calculation.data.items.length} {t("employeeCount")}
                   </span>
                 </div>
-                <div className="mt-4 overflow-x-auto">
+                <div className="mt-4 hidden overflow-x-auto lg:block">
                   <table className="w-full min-w-[700px] text-sm">
                     <thead className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                       <tr>
@@ -19015,6 +19162,7 @@ function Payroll() {
                               onClick={() =>
                                 setSelectedEmployeeId(item.employee.id)
                               }
+                              data-testid={`button-payroll-employee-details-${item.employee.id}`}
                             >
                               {t("details")}
                             </Button>
@@ -19023,6 +19171,66 @@ function Payroll() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="mt-4 space-y-3 lg:hidden">
+                  {calculation.data.items.map((item: any) => (
+                    <Card
+                      key={item.employee.id}
+                      className="p-4"
+                      data-testid={`card-payroll-employee-${item.employee.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {item.employee.name}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {item.employee.department}
+                          </p>
+                        </div>
+                        <div className="shrink-0 rounded-lg bg-primary/[.07] px-3 py-2 text-end">
+                          <p className="text-[11px] text-muted-foreground">
+                            {t("netSalary")}
+                          </p>
+                          <p className="mt-0.5 font-mono text-sm font-bold text-primary-dark">
+                            {money(item.netSalary)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {[
+                          [t("basic"), item.basicSalary],
+                          [
+                            t("attendanceDeductions"),
+                            item.attendanceDeductions,
+                          ],
+                          [t("otherDeductions"), item.otherDeductions],
+                        ].map(([label, value]) => (
+                          <div
+                            key={String(label)}
+                            className="min-w-0 rounded-lg bg-muted/40 p-2.5"
+                          >
+                            <p className="truncate text-[11px] text-muted-foreground">
+                              {label}
+                            </p>
+                            <p className="mt-1 truncate font-mono text-xs font-semibold">
+                              {money(Number(value))}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="quiet"
+                        className="mt-3 min-h-9 rounded-lg px-3 text-xs"
+                        onClick={() =>
+                          setSelectedEmployeeId(item.employee.id)
+                        }
+                        data-testid={`button-payroll-employee-details-mobile-${item.employee.id}`}
+                      >
+                        {t("details")}
+                      </Button>
+                    </Card>
+                  ))}
                 </div>
               </div>
               {selectedEmployee && (
@@ -19054,7 +19262,7 @@ function Payroll() {
                     ].map(([label, value]) => (
                       <div
                         key={String(label)}
-                        className="rounded-lg bg-card p-3"
+                        className="rounded-xl border border-border bg-card p-3"
                       >
                         <div className="text-[11px] text-muted-foreground">
                           {label}
@@ -19123,31 +19331,32 @@ function Payroll() {
                   </div>
                 </div>
               )}
-              <div className="border-t border-border p-5">
-                <div className="flex items-center justify-between gap-3">
+              <div className="border-t border-border p-4 sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h3 className="text-sm font-semibold">{t("adjustments")}</h3>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs leading-5 text-muted-foreground">
                     {t("recalculateAfterAdjustment")}
                   </span>
                 </div>
                 {adjustments.isLoading ? (
                   <Skeleton className="mt-4 h-16" />
                 ) : adjustments.data?.length ? (
-                  <div className="mt-4 divide-y divide-border rounded-lg border border-border">
+                  <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
                     {adjustments.data.map((item: any) => (
                       <div
-                          className="flex items-start gap-3 p-3 sm:items-center"
+                        className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                         key={item.id}
+                        data-testid={`row-payroll-adjustment-${item.id}`}
                       >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="font-semibold">
-                                {item.employee.name}
-                              </span>
-                              <span className="break-words text-xs text-muted-foreground">
-                                {item.reason}
-                              </span>
-                            </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-semibold">
+                              {item.employee.name}
+                            </span>
+                            <span className="break-words text-xs text-muted-foreground">
+                              {item.reason}
+                            </span>
+                          </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {item.category === "fixed"
                               ? t("fixed")
@@ -19158,8 +19367,15 @@ function Payroll() {
                               : t("deduction")}
                           </div>
                         </div>
-                          <div className="flex shrink-0 items-center gap-3">
-                            <span className="whitespace-nowrap font-mono">
+                        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                          <span
+                            className={cn(
+                              "whitespace-nowrap font-mono font-semibold",
+                              item.type === "deduction"
+                                ? "text-destructive"
+                                : "text-primary-dark",
+                            )}
+                          >
                             {money(
                               item.type === "deduction"
                                 ? -item.amount
@@ -19169,15 +19385,16 @@ function Payroll() {
                           {!isPayrollPeriodImmutableStatus(
                             calculation.data.period.status,
                           ) && (
-                              <Button
-                                variant="danger"
-                                className="px-2 py-1 text-xs"
-                                onClick={() => removeAdjustment(item.id)}
-                                disabled={deleteAdjustment.isPending}
-                              >
-                                {t("remove")}
-                              </Button>
-                            )}
+                            <Button
+                              variant="danger"
+                              className="min-h-9 rounded-lg px-3 text-xs"
+                              onClick={() => removeAdjustment(item.id)}
+                              disabled={deleteAdjustment.isPending}
+                              data-testid={`button-delete-payroll-adjustment-${item.id}`}
+                            >
+                              {t("remove")}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -24514,13 +24731,35 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
     permissions.every((permission) =>
       editForm.permissions.includes(permission.key),
     );
+  const accountSummary = [
+    {
+      label: isPlatformOwner
+        ? text("All accounts", "كل الحسابات")
+        : authLabel(locale, "staffAccounts"),
+      value: filteredAccounts.length,
+      icon: <Users size={18} aria-hidden="true" />,
+      testId: "text-account-count",
+    },
+    {
+      label: authLabel(locale, "active"),
+      value: filteredAccounts.filter((account) => account.active).length,
+      icon: <Activity size={18} aria-hidden="true" />,
+      testId: "text-active-account-count",
+    },
+    {
+      label: authLabel(locale, "inactive"),
+      value: filteredAccounts.filter((account) => !account.active).length,
+      icon: <ShieldCheck size={18} aria-hidden="true" />,
+      testId: "text-inactive-account-count",
+    },
+  ];
   if (
     workspace.data?.role !== "company_owner" &&
     workspace.data?.role !== "platform_owner"
   )
     return <WorkspaceState kind="unauthorized" />;
   return (
-    <div className="animate-in">
+    <div className="animate-in space-y-6">
       <SectionTitle
         eyebrow={
           embedded
@@ -24543,12 +24782,65 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             : authLabel(locale, "managementDetail")
         }
         action={
-          <Button variant="outline" onClick={() => void load()}>
-            <RefreshCw size={15} />
+          <Button
+            variant="outline"
+            onClick={() => void load()}
+            className="min-h-10 rounded-xl px-4"
+            data-testid="button-refresh-accounts"
+          >
+            <RefreshCw size={15} aria-hidden="true" />
             {tSafe(locale, "refresh")}
           </Button>
         }
       />
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+      ) : (
+        <section
+          aria-label={
+            isPlatformOwner
+              ? text("All accounts", "كل الحسابات")
+              : authLabel(locale, "staffAccounts")
+          }
+          className="grid gap-3 sm:grid-cols-3"
+        >
+          {accountSummary.map((item, index) => (
+            <Card key={item.testId} className="relative overflow-hidden p-4 sm:p-5">
+              <div
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-y-0 start-0 w-1",
+                  index === 0
+                    ? "bg-primary"
+                    : index === 1
+                      ? "bg-emerald-500"
+                      : "bg-secondary",
+                )}
+              />
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p
+                    className="mt-1 font-display text-2xl font-bold tabular-nums"
+                    data-testid={item.testId}
+                  >
+                    {item.value}
+                  </p>
+                </div>
+                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                  {item.icon}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </section>
+      )}
       <div
         className={cn(
           "grid gap-6",
@@ -24556,16 +24848,22 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
         )}
       >
         {!isPlatformOwner && (
-        <Card>
-          <div className="border-b border-border p-5">
+        <Card className="min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-border bg-muted/20 p-5 sm:p-6">
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+              <UserPlus size={19} aria-hidden="true" />
+            </div>
+            <div>
             <h2 className="font-display text-lg font-semibold">
               {authLabel(locale, "createStaff")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {authLabel(locale, "managementDetail")}
             </p>
+            </div>
           </div>
-          <form onSubmit={submit} className="space-y-4 p-5">
+          <form onSubmit={submit} className="space-y-5 p-4 sm:p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
               value={form.fullName}
@@ -24618,6 +24916,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
               error={fieldErrors.password}
               required
             />
+            </div>
             <div>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold">
@@ -24626,7 +24925,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                 <Button
                   type="button"
                   variant="quiet"
-                  className="px-2 py-1 text-xs"
+                  className="min-h-8 rounded-lg px-3 text-xs"
                   disabled={permissions.length === 0}
                   onClick={() =>
                     setForm({
@@ -24643,15 +24942,16 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   )}
                 </Button>
               </div>
-              <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
+              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-xl border border-border bg-muted/20 p-3">
                 {permissions.map((permission) => (
                   <label
-                    className="flex items-start gap-2 text-sm"
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent bg-background p-3 text-sm transition-colors hover:border-primary/30"
                     key={permission.key}
                   >
                     <input
                       type="checkbox"
                       checked={form.permissions.includes(permission.key)}
+                      className="mt-0.5 size-4 shrink-0 accent-primary"
                       onChange={(event) =>
                         setForm({
                           ...form,
@@ -24663,23 +24963,29 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                         })
                       }
                     />
-                    <span>
-                      {permissionLabel(locale, permission)}
+                    <span className="min-w-0">
+                      <span className="font-medium">
+                        {permissionLabel(locale, permission)}
+                      </span>
                       {permissionDescription(locale, permission) && (
-                        <span className="block text-xs text-muted-foreground">
+                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
                           {permissionDescription(locale, permission)}
                         </span>
                       )}
-                      <span className="block text-xs text-muted-foreground">
+                      <code className="mt-1 block break-all text-[10px] text-muted-foreground/80">
                         {permission.key}
-                      </span>
+                      </code>
                     </span>
                   </label>
                 ))}
               </div>
             </div>
-            <Button type="submit" disabled={saving}>
-              <UserPlus size={15} />
+            <Button
+              type="submit"
+              disabled={saving}
+              className="min-h-11 w-full rounded-xl sm:w-auto"
+            >
+              <UserPlus size={15} aria-hidden="true" />
               {saving
                 ? authLabel(locale, "signingIn")
                 : authLabel(locale, "createStaff")}
@@ -24687,32 +24993,43 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
           </form>
         </Card>
         )}
-        <Card>
-          <div className="border-b border-border p-5">
-            <h2 className="font-display text-lg font-semibold">
-              {isPlatformOwner
-                ? text("All user accounts", "كل حسابات المستخدمين")
-                : authLabel(locale, "staffAccounts")}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {loading
-                ? authLabel(locale, "loading")
-                : authLabel(locale, "accountsCount").replace(
-                    "{count}",
-                    String(
-                      isPlatformOwner
-                        ? filteredAccounts.length
-                        : accounts.length,
-                    ),
-                  )}
-            </p>
+        <Card className="min-w-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/20 p-5 sm:p-6">
+            <div>
+              <h2 className="font-display text-lg font-semibold">
+                {isPlatformOwner
+                  ? text("All user accounts", "كل حسابات المستخدمين")
+                  : authLabel(locale, "staffAccounts")}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {loading
+                  ? authLabel(locale, "loading")
+                  : authLabel(locale, "accountsCount").replace(
+                      "{count}",
+                      String(filteredAccounts.length),
+                    )}
+              </p>
+            </div>
+            {!loading && (
+              <span className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                {filteredAccounts.length}
+              </span>
+            )}
           </div>
-          {isPlatformOwner && (
-            <div className="grid gap-3 border-b border-border bg-muted/20 p-4 md:grid-cols-[minmax(200px,.8fr)_minmax(260px,1.2fr)]">
+          <div
+            className={cn(
+              "grid gap-3 border-b border-border bg-muted/10 p-4 sm:p-5",
+              isPlatformOwner &&
+                "md:grid-cols-[minmax(200px,.8fr)_minmax(260px,1.2fr)]",
+            )}
+          >
+            {isPlatformOwner && (
               <label className="text-sm font-semibold">
                 {text("Company", "الشركة")}
                 <select
-                  className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
+                  id="account-company-filter"
+                  data-testid="select-account-company"
+                  className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                   value={companyFilter}
                   onChange={(event) => setCompanyFilter(event.target.value)}
                 >
@@ -24724,27 +25041,31 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   ))}
                 </select>
               </label>
-              <label className="text-sm font-semibold">
-                {text("Search accounts", "البحث عن حساب")}
-                <div className="relative mt-2">
-                  <Search
-                    className="absolute left-3 top-3 text-muted-foreground rtl:left-auto rtl:right-3"
-                    size={16}
-                  />
-                  <input
-                    className="h-11 w-full rounded-lg border border-input bg-background px-9 font-normal"
-                    value={accountSearch}
-                    onChange={(event) => setAccountSearch(event.target.value)}
-                    placeholder={text(
-                      "Search by name or phone / username",
-                      "ابحث بالاسم أو رقم الهاتف أو اسم المستخدم",
-                    )}
-                    type="search"
-                  />
-                </div>
-              </label>
-            </div>
-          )}
+            )}
+            <label className="text-sm font-semibold">
+              {text("Search accounts", "البحث عن حساب")}
+              <div className="relative mt-2">
+                <Search
+                  className="absolute start-3 top-3 text-muted-foreground"
+                  size={16}
+                  aria-hidden="true"
+                />
+                <input
+                  id="account-search"
+                  data-testid="input-account-search"
+                  aria-label={text("Search accounts", "البحث عن حساب")}
+                  className="h-11 w-full rounded-xl border border-input bg-background ps-10 pe-3 font-normal outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  value={accountSearch}
+                  onChange={(event) => setAccountSearch(event.target.value)}
+                  placeholder={text(
+                    "Search by name or phone / username",
+                    "ابحث بالاسم أو رقم الهاتف أو اسم المستخدم",
+                  )}
+                  type="search"
+                />
+              </div>
+            </label>
+          </div>
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-16" />
@@ -24754,56 +25075,78 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             <div className="divide-y divide-border">
               {filteredAccounts.map((account) => (
                 <div
-                  className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
+                  className="flex min-w-0 flex-col gap-4 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between sm:p-5"
                   key={account.id}
+                  data-testid={`row-auth-account-${account.id}`}
                 >
-                  <div>
-                    <div className="flex items-center gap-2 font-semibold">
-                      {accountDisplayName(locale, account) || account.username}
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
+                      <UserRound size={19} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="break-words font-semibold">
+                          {accountDisplayName(locale, account) ||
+                            account.username}
+                        </span>
                       <Badge tone={account.active ? "good" : "neutral"}>
                         {account.active
                           ? authLabel(locale, "active")
                           : authLabel(locale, "inactive")}
                       </Badge>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        <span>{account.primaryPhone || account.username}</span>
+                        <span>{account.displayRole}</span>
+                        <span>
+                          {account.permissions.length}{" "}
+                          {authLabel(locale, "permissionsCount")}
+                        </span>
+                      </div>
+                      {isPlatformOwner && (
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                          <span>{account.accountType}</span>
+                          <span aria-hidden="true">·</span>
+                          <span>
+                            {account.companyId
+                              ? localizedName(
+                                  locale,
+                                  account.companyName || account.companyId,
+                                  account.companyNameEn,
+                                )
+                              : text("Platform account", "حساب المنصة")}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <KeyRound size={12} aria-hidden="true" />
+                            {account.passwordSet
+                              ? text("Password set", "كلمة المرور معيّنة")
+                              : text(
+                                  "No password set",
+                                  "لا توجد كلمة مرور معيّنة",
+                                )}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {account.primaryPhone || account.username} ·{" "}
-                      {account.displayRole} · {account.permissions.length}{" "}
-                      {authLabel(locale, "permissionsCount")}
-                    </p>
-                    {isPlatformOwner && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {account.accountType} ·{" "}
-                        {account.companyId
-                          ? localizedName(
-                              locale,
-                              account.companyName || account.companyId,
-                              account.companyNameEn,
-                            )
-                          : text("Platform account", "حساب المنصة")}{" "}
-                        ·{" "}
-                        {account.passwordSet
-                          ? text("Password set", "كلمة المرور معيّنة")
-                          : text(
-                              "No password set",
-                              "لا توجد كلمة مرور معيّنة",
-                            )}
-                      </p>
-                    )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                     <Button
                       variant="outline"
+                      className="min-h-10 rounded-xl px-3"
                       onClick={() => selectAccount(account)}
+                      data-testid={`button-view-account-${account.id}`}
                     >
-                      <Eye size={15} />
+                      <Eye size={15} aria-hidden="true" />
                       {authLabel(locale, "viewAccount")}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="quiet"
+                      className="min-h-10 rounded-xl px-3"
                       onClick={() => selectAccount(account)}
+                      data-testid={`button-edit-account-${account.id}`}
                     >
-                      <ShieldCheck size={15} />
+                      <ShieldCheck size={15} aria-hidden="true" />
                       {authLabel(locale, "editAccount")}
                     </Button>
                   </div>
@@ -24839,10 +25182,39 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             setFieldErrors({});
           }}
           className="max-w-2xl"
+          footer={
+            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
+              <Button
+                type="button"
+                variant="quiet"
+                className="min-h-10 rounded-xl px-4"
+                onClick={() => {
+                  setEditingAccount(null);
+                  setFieldErrors({});
+                }}
+                data-testid="button-cancel-edit-account"
+              >
+                {tSafe(locale, "refresh") === "Refresh" ? "Cancel" : "إلغاء"}
+              </Button>
+              <Button
+                type="submit"
+                form="edit-account-form"
+                disabled={saving}
+                className="min-h-10 rounded-xl px-4"
+                data-testid="button-save-account"
+              >
+                {saving ? "…" : authLabel(locale, "saveAccount")}
+              </Button>
+            </div>
+          }
         >
-          <form onSubmit={saveAccount} className="space-y-4">
+          <form
+            id="edit-account-form"
+            onSubmit={saveAccount}
+            className="space-y-5"
+          >
             {isPlatformOwner && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+              <div className="rounded-xl border border-primary/20 bg-primary/[.06] p-4 text-sm leading-6">
                 <p className="font-medium">
                   {editingAccount.passwordSet
                     ? text(
@@ -24854,7 +25226,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                         "لم يتم تعيين كلمة مرور لهذا الحساب.",
                       )}
                 </p>
-                <p className="mt-1 text-muted-foreground">
+                <p className="mt-1.5 text-muted-foreground">
                   {text(
                     "The current password cannot be viewed. Enter a new password below to replace it.",
                     "لا يمكن عرض كلمة المرور الحالية. أدخل كلمة مرور جديدة أدناه لاستبدالها.",
@@ -24870,7 +25242,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                 )}
               </div>
             )}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 rounded-2xl border border-border bg-muted/15 p-4 sm:grid-cols-2 sm:p-5">
               <Field
                 label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
                 value={editForm.fullName}
@@ -24933,28 +25305,42 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
               error={fieldErrors.password}
               placeholder={authLabel(locale, "optional")}
             />
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={editForm.active}
-                onChange={(event) =>
-                  setEditForm({ ...editForm, active: event.target.checked })
-                }
-              />
-              {authLabel(locale, "accountStatus")}:{" "}
-              {editForm.active
-                ? authLabel(locale, "active")
-                : authLabel(locale, "inactive")}
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/20">
+              <span className="flex min-w-0 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={editForm.active}
+                  disabled={
+                    isPlatformOwner && editingAccount.isCurrentAccount
+                  }
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, active: event.target.checked })
+                  }
+                  className="size-4 shrink-0 accent-primary"
+                  data-testid="input-account-active"
+                />
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary-dark">
+                  <ShieldCheck size={16} aria-hidden="true" />
+                </span>
+                <span className="text-sm font-semibold">
+                  {authLabel(locale, "accountStatus")}
+                </span>
+              </span>
+              <Badge tone={editForm.active ? "good" : "neutral"}>
+                {editForm.active
+                  ? authLabel(locale, "active")
+                  : authLabel(locale, "inactive")}
+              </Badge>
             </label>
             <div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-semibold">
                   {authLabel(locale, "permissions")}
                 </p>
                 <Button
                   type="button"
                   variant="quiet"
-                  className="px-2 py-1 text-xs"
+                  className="min-h-8 rounded-lg px-3 text-xs"
                   disabled={permissions.length === 0}
                   onClick={() =>
                     setEditForm({
@@ -24971,15 +25357,16 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   )}
                 </Button>
               </div>
-              <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
+              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-xl border border-border bg-muted/20 p-3">
                 {permissions.map((permission) => (
                   <label
-                    className="flex items-start gap-2 text-sm"
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent bg-background p-3 text-sm transition-colors hover:border-primary/30"
                     key={`edit-${permission.key}`}
                   >
                     <input
                       type="checkbox"
                       checked={editForm.permissions.includes(permission.key)}
+                      className="mt-0.5 size-4 shrink-0 accent-primary"
                       onChange={(event) =>
                         setEditForm({
                           ...editForm,
@@ -24991,10 +25378,12 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                         })
                       }
                     />
-                    <span>
-                      {permissionLabel(locale, permission)}
+                    <span className="min-w-0">
+                      <span className="font-medium">
+                        {permissionLabel(locale, permission)}
+                      </span>
                       {permissionDescription(locale, permission) && (
-                        <span className="block text-xs text-muted-foreground">
+                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
                           {permissionDescription(locale, permission)}
                         </span>
                       )}
@@ -25002,18 +25391,6 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   </label>
                 ))}
               </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setEditingAccount(null)}
-              >
-                {tSafe(locale, "refresh") === "Refresh" ? "Cancel" : "إلغاء"}
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "…" : authLabel(locale, "saveAccount")}
-              </Button>
             </div>
           </form>
         </Modal>

@@ -1,5 +1,5 @@
 const basePath = new URL("./", self.location.href).pathname;
-const SHELL_CACHE = "var-hr-shell-v26";
+const SHELL_CACHE = "var-hr-shell-v28";
 const SHELL_ASSETS = [
   basePath,
   `${basePath}index.html`,
