@@ -2033,6 +2033,7 @@ const pageCopy = {
     reject: "Reject",
     newKindRequest: "New {kind} request",
     requestLeaveType: "Leave type",
+    noLeaveTypesAvailable: "No leave types are available.",
     requestPermissionType: "Permission type",
     requestReasonLabel: "Reason or additional notes",
     requestLeaveReasonPlaceholder: "Briefly explain your leave request.",
@@ -2542,6 +2543,7 @@ const pageCopy = {
     reject: "رفض",
     newKindRequest: "طلب {kind} جديد",
     requestLeaveType: "نوع الإجازة",
+    noLeaveTypesAvailable: "لا توجد أنواع إجازات متاحة.",
     requestPermissionType: "نوع الاستئذان",
     requestReasonLabel: "السبب أو ملاحظات إضافية",
     requestLeaveReasonPlaceholder: "اكتب سبب طلب الإجازة باختصار.",
@@ -3360,6 +3362,7 @@ const pageCopy = {
     reject: "Refuser",
     newKindRequest: "Nouvelle demande de {kind}",
     requestLeaveType: "Type de congé",
+    noLeaveTypesAvailable: "Aucun type de congé n’est disponible.",
     requestPermissionType: "Type d’autorisation",
     requestReasonLabel: "Motif ou informations complémentaires",
     requestLeaveReasonPlaceholder: "Expliquez brièvement votre demande de congé.",
@@ -3842,6 +3845,7 @@ const pageCopy = {
     reject: "Ablehnen",
     newKindRequest: "Neue {kind}-Anfrage",
     requestLeaveType: "Urlaubsart",
+    noLeaveTypesAvailable: "Es sind keine Urlaubsarten verfügbar.",
     requestPermissionType: "Art der Genehmigung",
     requestReasonLabel: "Grund oder zusätzliche Hinweise",
     requestLeaveReasonPlaceholder: "Begründen Sie Ihren Urlaubsantrag kurz.",
@@ -14471,9 +14475,23 @@ function Requests() {
     startTime: "",
     endTime: "",
   });
-  const leaveTypes = Array.from(
-    new Set((balances.data || []).map((balance: any) => balance.type)),
-  ) as string[];
+  const leaveTypes = useMemo(
+    () =>
+      Array.from(
+        new Set((balances.data || []).map((balance: any) => balance.type)),
+      ) as string[],
+    [balances.data],
+  );
+  useEffect(() => {
+    if (
+      show &&
+      kind === "leave" &&
+      leaveTypes.length > 0 &&
+      !leaveTypes.includes(form.type)
+    ) {
+      setForm((current: any) => ({ ...current, type: leaveTypes[0] }));
+    }
+  }, [show, kind, leaveTypes, form.type]);
   const canCreateCurrent =
     kind === "leave" ? canCreateLeave : canCreatePermissions;
   function openRequest() {
@@ -14588,21 +14606,37 @@ function Requests() {
         className="animate-in mx-auto max-w-5xl"
         dir={locale === "ar" ? "rtl" : "ltr"}
       >
-        <header className="mb-3 flex items-center gap-2.5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary-dark">
-            {kind === "leave" ? (
-              <CalendarDays size={17} aria-hidden="true" />
+        <header className="mb-3 flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-9 shrink-0 rounded-xl px-3"
+            onClick={() => setShow(false)}
+            aria-label={t("goBack")}
+          >
+            {locale === "ar" ? (
+              <ArrowRight size={15} aria-hidden="true" />
             ) : (
-              <Clock3 size={17} aria-hidden="true" />
+              <ArrowLeft size={15} aria-hidden="true" />
             )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold text-primary-dark">
-              {t("requestsTitle")}
-            </p>
-            <h1 className="font-display text-lg font-bold leading-tight">
-              {tr("newKindRequest", { kind: t(kind) })}
-            </h1>
+            {t("back")}
+          </Button>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary-dark">
+              {kind === "leave" ? (
+                <CalendarDays size={17} aria-hidden="true" />
+              ) : (
+                <Clock3 size={17} aria-hidden="true" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-primary-dark">
+                {t("requestsTitle")}
+              </p>
+              <h1 className="font-display text-lg font-bold leading-tight">
+                {tr("newKindRequest", { kind: t(kind) })}
+              </h1>
+            </div>
           </div>
         </header>
         <Card className="p-3 sm:p-4">
@@ -14620,20 +14654,29 @@ function Requests() {
                     ? t("requestLeaveType")
                     : t("requestPermissionType")}
                 </span>
-                {kind === "leave" && leaveTypes.length ? (
+                {kind === "leave" ? (
                   <select
                     required
-                    value={form.type}
+                    disabled={!leaveTypes.length}
+                    value={leaveTypes.includes(form.type) ? form.type : ""}
                     onChange={(event) =>
                       setForm({ ...form, type: event.target.value })
                     }
                     className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                   >
-                    {leaveTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {requestTypeLabel(type, t)}
+                    {leaveTypes.length ? (
+                      leaveTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {requestTypeLabel(type, t)}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">
+                        {balances.isLoading
+                          ? t("loading")
+                          : t("noLeaveTypesAvailable")}
                       </option>
-                    ))}
+                    )}
                   </select>
                 ) : (
                   <input
@@ -14742,7 +14785,7 @@ function Requests() {
                     type="submit"
                     disabled={
                       kind === "leave"
-                        ? createLeave.isPending
+                        ? createLeave.isPending || !leaveTypes.length
                         : createPermission.isPending
                     }
                     className="min-h-10 rounded-xl px-4"
