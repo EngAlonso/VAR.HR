@@ -17,6 +17,14 @@ The user chose Aiven for VAR HR's Vercel production PostgreSQL after Neon quota 
 
 **How to apply:** After the user confirms the restore, verify Aiven's schema and important data before changing Vercel's production `DATABASE_URL`. Replit's managed `DATABASE_URL` is separate and must not be replaced for this Vercel cutover.
 
+## Schema changes during builds
+
+Do not run `drizzle-kit push` as part of Vercel's build command. Keep builds independent of database availability and apply schema changes explicitly to a verified target.
+
+**Why:** Vercel and Replit may use different database credentials; an automatic build-time push can fail before deployment or mutate the wrong environment.
+
+**How to apply:** Keep schema synchronization as a deliberate operation, then build and deploy without a database write step.
+
 ## Scheduled work across hosting environments
 
 Keep schedule policy in the database and make the work itself callable independently of the hosting provider. Long-running Node servers can run a local polling loop; serverless environments need a provider cron or external scheduler to invoke a protected endpoint. Use `CRON_SECRET` to authenticate those invocations. Replit development and production Vercel may use different databases, so a scheduler running in the wrong environment does not protect production data.
