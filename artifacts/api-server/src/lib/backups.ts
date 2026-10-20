@@ -28,10 +28,11 @@ type BackupEnvelope = {
 
 // Keep this order aligned with the foreign keys in lib/db/src/schema. The
 // coverage test ensures every persisted table is included or explicitly
-// excluded. Auth sessions, backup records, and the encrypted Google Drive
-// connection are intentionally omitted:
+// excluded. Auth sessions, backup records, scheduler status, and the encrypted
+// Google Drive connection are intentionally omitted:
 // sessions must never be restored and backups must not recursively contain
-// other backup payloads.
+// other backup payloads. Scheduler status belongs to the target runtime and
+// must not be replaced with stale observations from another environment.
 const insertOrder = [
   "var_hr_permissions",
   "var_hr_plans",
@@ -539,20 +540,26 @@ async function reconcilePlatformAccountEmployees(
   client: QueryClient,
   data: Record<string, JsonRecord[]>,
 ): Promise<void> {
-  for (const row of data[companyUserTable] ?? []) {
-    if (typeof row.username !== "string" || typeof row.employee_id !== "string") {
-      continue;
-    }
-    // Existing accounts are preserved by username. New accounts already carry
-    // their restored employee_id from insertScope; this also safely updates
-    // preserved accounts to the employee id from the uploaded snapshot.
-    await client.query(
-      `UPDATE "${companyUserTable}"
-       SET employee_id = $1
-       WHERE username = $2`,
-      [row.employee_id, row.username],
-    );
-  }
+  const updates = (data[companyUserTable] ?? [])
+    .filter(
+      (row) =>
+        typeof row.username === "string" &&
+        typeof row.employee_id === "string",
+    )
+    .map(({ username, employee_id }) => ({ username, employee_id }));
+  if (!updates.length) return;
+
+  // Existing accounts are preserved by username. New accounts already carry
+  // their restored employee_id from insertScope; this single update also
+  // safely reconciles preserved accounts to the uploaded snapshot.
+  await client.query(
+    `UPDATE "${companyUserTable}" AS account
+     SET employee_id = restored.employee_id
+     FROM jsonb_to_recordset($1::jsonb)
+       AS restored(username text, employee_id uuid)
+     WHERE account.username = restored.username`,
+    [JSON.stringify(updates)],
+  );
 }
 
 async function reconcilePlatformCompanies(
@@ -750,6 +757,8 @@ async function insertScope(
     if (scope === "company" && table === "var_hr_permissions") continue;
     if (scope === "company" && table === "var_hr_plans") continue;
     if (scope === "company" && platformOnlyTables.has(table)) continue;
+    const rows = data[table] ?? [];
+    if (!rows.length) continue;
     if (table === "var_hr_auth_audit_events") {
       const accounts = await client.query(
         `SELECT id::text AS id FROM "${companyUserTable}"`,
@@ -760,7 +769,8 @@ async function insertScope(
           .filter((id: unknown): id is string => typeof id === "string"),
       );
     }
-    for (const row of data[table] ?? []) {
+    const restoreRows: JsonRecord[] = [];
+    for (const row of rows) {
       if (scope === "company" && table === companyUserTable && row.company_id !== companyId) {
         throw new Error("Backup contains an account outside its company.");
       }
@@ -789,12 +799,14 @@ async function insertScope(
       ) {
         restoreRow.account_id = null;
       }
-      const json = JSON.stringify(restoreRow);
-      await client.query(
-        `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM jsonb_populate_record(NULL::${quoteIdentifier(table)}, $1::jsonb) ON CONFLICT DO NOTHING`,
-        [json],
-      );
+      restoreRows.push(restoreRow);
     }
+    await client.query(
+      `INSERT INTO ${quoteIdentifier(table)}
+       SELECT * FROM jsonb_populate_recordset(NULL::${quoteIdentifier(table)}, $1::jsonb)
+       ON CONFLICT DO NOTHING`,
+      [JSON.stringify(restoreRows)],
+    );
   }
 }
 

@@ -43,6 +43,7 @@ test("every persisted database table is backed up or explicitly excluded", () =>
   const intentionallyExcluded = new Set([
     "var_hr_auth_sessions",
     "var_hr_backup_records",
+    "var_hr_backup_scheduler_status",
     "var_hr_google_drive_connection",
   ]);
   const includedTables = new Set(tableOrder);
@@ -101,5 +102,22 @@ test("restore preserves audit events when their optional actor account is missin
   assert.match(
     backups,
     /table === "var_hr_auth_audit_events"[\s\S]*typeof restoreRow\.account_id === "string"[\s\S]*!knownAccountIds\?\.has\(restoreRow\.account_id\)[\s\S]*restoreRow\.account_id = null/,
+  );
+});
+
+test("restore inserts each table's rows as a batch", () => {
+  assert.match(backups, /const restoreRows: JsonRecord\[\] = \[\]/);
+  assert.match(
+    backups,
+    /jsonb_populate_recordset\(NULL::\$\{quoteIdentifier\(table\)\}, \$1::jsonb\)/,
+  );
+  assert.match(backups, /\[JSON\.stringify\(restoreRows\)\]/);
+});
+
+test("platform account employee links are reconciled in a batch", () => {
+  assert.match(backups, /jsonb_to_recordset\(\$1::jsonb\)/);
+  assert.match(
+    backups,
+    /SET employee_id = restored\.employee_id[\s\S]*WHERE account\.username = restored\.username/,
   );
 });

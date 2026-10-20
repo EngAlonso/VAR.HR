@@ -41,3 +41,23 @@ an otherwise valid company restore.
 **How to apply:** After restoring user accounts and before inserting
 authentication audit events, compare actor IDs with the accounts present in the
 target. Keep valid IDs and set missing optional IDs to null on the row copy.
+
+Large restores are initiated through an HTTP request, so insert rows in batches
+per table rather than making one database round trip per row. Keep the complete
+restore transactional and retain the pre-restore safety snapshot.
+
+**Why:** A large snapshot exceeded the Replit request lifetime after 120 seconds
+when each row required a separate insert.
+
+**How to apply:** Preserve foreign-key table order and row normalization, then
+send each table's validated rows in a single bulk insert. Do not treat a client
+timeout as proof that the restore committed.
+
+Backup scheduler status is runtime observability for the target environment and
+must not be imported from another environment's snapshot.
+
+**Why:** Restoring an older scheduler snapshot could misrepresent the target's
+actual recent backup attempts.
+
+**How to apply:** Explicitly exclude the scheduler status table from backup
+coverage and restore operations, while preserving its current target-side rows.
