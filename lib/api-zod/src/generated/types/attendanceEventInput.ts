@@ -17,4 +17,9 @@ export interface AttendanceEventInput {
   /** @nullable */
   capturedAt?: string | null;
   source?: AttendanceEventInputSource;
+  /**
+     * @minLength 32
+     * @maxLength 256
+     */
+  deviceToken?: string;
 }

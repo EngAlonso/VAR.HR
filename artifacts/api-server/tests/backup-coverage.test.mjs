@@ -60,6 +60,7 @@ test("tenant-owned additions are scoped and legacy backups may omit new tables",
   const companyScopedTables = readSet("companyScopedTables");
   const optionalLegacyTables = readSet("optionalTablesForLegacyBackups");
   const newlyCoveredCompanyTables = [
+    "var_hr_employee_attendance_devices",
     "var_hr_employee_schedule_assignments",
     "var_hr_attendance_punch_requests",
     "var_hr_attendance_calculations",

@@ -882,6 +882,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendancePunchRequest"
+  /attendance/device-registration:
+    post:
+      operationId: registerAttendanceDevice
+      tags: [attendance]
+      summary: Request or inspect the current employee attendance device registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceDeviceRegistrationInput"
+      responses:
+        "200":
+          description: Current browser device registration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceDeviceRegistration"
+  /employees/{employeeId}/attendance-devices:
+    parameters:
+      - $ref: "#/components/parameters/EmployeeId"
+    get:
+      operationId: listEmployeeAttendanceDevices
+      tags: [employees]
+      summary: List an employee's attendance device registrations
+      responses:
+        "200":
+          description: Employee attendance devices, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceDeviceRegistration"
+  /employees/{employeeId}/attendance-devices/{deviceId}/decision:
+    parameters:
+      - $ref: "#/components/parameters/EmployeeId"
+      - name: deviceId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: decideEmployeeAttendanceDevice
+      tags: [employees]
+      summary: Approve, reject, or revoke an employee attendance device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceDeviceDecisionInput"
+      responses:
+        "200":
+          description: Updated attendance device registration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceDeviceRegistration"
   /employees/{employeeId}/work-locations:
     parameters:
       - $ref: "#/components/parameters/EmployeeId"
@@ -3019,6 +3077,28 @@ components:
           type: string
           enum: [web, mobile, biometric, manual]
           default: web
+        deviceToken: { type: string, minLength: 32, maxLength: 256 }
+    AttendanceDeviceRegistrationInput:
+      type: object
+      required: [deviceToken, deviceLabel]
+      properties:
+        deviceToken: { type: string, minLength: 32, maxLength: 256 }
+        deviceLabel: { type: string, minLength: 1, maxLength: 256 }
+    AttendanceDeviceRegistration:
+      type: object
+      required: [id, deviceLabel, status, requestedAt, approvedAt, lastSeenAt]
+      properties:
+        id: { type: string, format: uuid }
+        deviceLabel: { type: string }
+        status: { type: string, enum: [pending, active, rejected, revoked] }
+        requestedAt: { type: string, format: date-time }
+        approvedAt: { type: ["string", "null"], format: date-time }
+        lastSeenAt: { type: ["string", "null"], format: date-time }
+    AttendanceDeviceDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve, reject, revoke] }
     EmployeeWorkLocationInput:
       type: object
       required: [latitude, longitude, comment]

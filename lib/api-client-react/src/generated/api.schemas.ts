@@ -692,6 +692,58 @@ export interface AttendanceEventInput {
   /** @nullable */
   capturedAt?: string | null;
   source?: AttendanceEventInputSource;
+  /**
+     * @minLength 32
+     * @maxLength 256
+     */
+  deviceToken?: string;
+}
+
+export interface AttendanceDeviceRegistrationInput {
+  /**
+     * @minLength 32
+     * @maxLength 256
+     */
+  deviceToken: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  deviceLabel: string;
+}
+
+export type AttendanceDeviceRegistrationStatus = typeof AttendanceDeviceRegistrationStatus[keyof typeof AttendanceDeviceRegistrationStatus];
+
+
+export const AttendanceDeviceRegistrationStatus = {
+  pending: 'pending',
+  active: 'active',
+  rejected: 'rejected',
+  revoked: 'revoked',
+} as const;
+
+export interface AttendanceDeviceRegistration {
+  id: string;
+  deviceLabel: string;
+  status: AttendanceDeviceRegistrationStatus;
+  requestedAt: string;
+  /** @nullable */
+  approvedAt: string | null;
+  /** @nullable */
+  lastSeenAt: string | null;
+}
+
+export type AttendanceDeviceDecisionInputDecision = typeof AttendanceDeviceDecisionInputDecision[keyof typeof AttendanceDeviceDecisionInputDecision];
+
+
+export const AttendanceDeviceDecisionInputDecision = {
+  approve: 'approve',
+  reject: 'reject',
+  revoke: 'revoke',
+} as const;
+
+export interface AttendanceDeviceDecisionInput {
+  decision: AttendanceDeviceDecisionInputDecision;
 }
 
 export interface EmployeeWorkLocationInput {

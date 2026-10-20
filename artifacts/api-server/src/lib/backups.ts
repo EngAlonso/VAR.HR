@@ -68,6 +68,7 @@ const insertOrder = [
   "var_hr_biometric_device_commands",
   "var_hr_attendance_locations",
   "var_hr_user_accounts",
+  "var_hr_employee_attendance_devices",
   "var_hr_account_permissions",
   "var_hr_notifications",
   "var_hr_notification_subscriptions",
@@ -80,6 +81,7 @@ const insertOrder = [
 
 const optionalTablesForLegacyBackups = new Set([
   "var_hr_platform_settings",
+  "var_hr_employee_attendance_devices",
   "var_hr_employee_schedule_assignments",
   "var_hr_attendance_punch_requests",
   "var_hr_attendance_calculations",
@@ -98,6 +100,7 @@ const companyScopedTables = new Set([
   "var_hr_departments",
   "var_hr_branches",
   "var_hr_employees",
+  "var_hr_employee_attendance_devices",
   "var_hr_payroll_cycles",
   "var_hr_employee_payroll_cycle_assignments",
   "var_hr_employee_hr_records",

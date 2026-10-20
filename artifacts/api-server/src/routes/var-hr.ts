@@ -33,6 +33,13 @@ import {
   CheckInResponse,
   CheckOutBody,
   CheckOutResponse,
+  RegisterAttendanceDeviceBody,
+  RegisterAttendanceDeviceResponse,
+  ListEmployeeAttendanceDevicesParams,
+  ListEmployeeAttendanceDevicesResponse,
+  DecideEmployeeAttendanceDeviceParams,
+  DecideEmployeeAttendanceDeviceBody,
+  DecideEmployeeAttendanceDeviceResponse,
   CorrectAttendanceBody,
   CorrectAttendanceParams,
   CorrectAttendanceResponse,
@@ -226,6 +233,7 @@ import {
   attendanceRulesTable,
   attendanceRuleChangesTable,
   attendanceLocationsTable,
+  employeeAttendanceDevicesTable,
   attendancePunchRequestsTable,
   attendanceTable,
   attendanceCalculationsTable,
@@ -4404,6 +4412,341 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
   res.json(GetEmployeeResponse.parse(employeeResponse(row)));
 });
 
+function attendanceDeviceResponse(row: typeof employeeAttendanceDevicesTable.$inferSelect) {
+  return {
+    id: row.id,
+    deviceLabel: row.deviceLabel,
+    status: row.status,
+    requestedAt: row.requestedAt.toISOString(),
+    approvedAt: row.approvedAt?.toISOString() ?? null,
+    lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+  };
+}
+
+router.post(
+  "/attendance/device-registration",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (
+      !context.employeeId ||
+      !["employee", "manager"].includes(context.role)
+    ) {
+      res.status(403).json({
+        error: "Only an employee can register a personal attendance device.",
+        code: "ATTENDANCE_DEVICE_EMPLOYEE_REQUIRED",
+      });
+      return;
+    }
+    const parsed = RegisterAttendanceDeviceBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+
+    const [employee] = await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, context.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "noActiveEmployee") });
+      return;
+    }
+
+    const tokenHash = createHash("sha256")
+      .update(parsed.data.deviceToken)
+      .digest("hex");
+    const now = new Date();
+    let shouldAuditRequest = false;
+    let [device] = await db
+      .select()
+      .from(employeeAttendanceDevicesTable)
+      .where(
+        and(
+          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+          eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+          eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+        ),
+      )
+      .limit(1);
+
+    if (device && ["rejected", "revoked"].includes(device.status)) {
+      shouldAuditRequest = true;
+      [device] = await db
+        .update(employeeAttendanceDevicesTable)
+        .set({
+          deviceLabel: parsed.data.deviceLabel.trim(),
+          status: "pending",
+          requestedAt: now,
+          approvedAt: null,
+          approvedBy: null,
+          updatedAt: now,
+        })
+        .where(eq(employeeAttendanceDevicesTable.id, device.id))
+        .returning();
+    } else if (device?.status === "pending") {
+      [device] = await db
+        .update(employeeAttendanceDevicesTable)
+        .set({
+          deviceLabel: parsed.data.deviceLabel.trim(),
+          updatedAt: now,
+        })
+        .where(eq(employeeAttendanceDevicesTable.id, device.id))
+        .returning();
+    } else if (!device) {
+      shouldAuditRequest = true;
+      [device] = await db
+        .insert(employeeAttendanceDevicesTable)
+        .values({
+          companyId: context.companyId,
+          employeeId: employee.id,
+          tokenHash,
+          deviceLabel: parsed.data.deviceLabel.trim(),
+          status: "pending",
+        })
+        .onConflictDoNothing({
+          target: [
+            employeeAttendanceDevicesTable.companyId,
+            employeeAttendanceDevicesTable.employeeId,
+            employeeAttendanceDevicesTable.tokenHash,
+          ],
+        })
+        .returning();
+      if (!device) {
+        [device] = await db
+          .select()
+          .from(employeeAttendanceDevicesTable)
+          .where(
+            and(
+              eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+              eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+              eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+            ),
+          )
+          .limit(1);
+      }
+    }
+
+    if (!device) {
+      res.status(500).json({ error: "Could not register this device." });
+      return;
+    }
+    if (shouldAuditRequest && device.status === "pending") {
+      await recordAudit(
+        context.companyId,
+        "attendance_device_registration_requested",
+        "employee_attendance_device",
+        device.id,
+        {
+          employeeId: employee.id,
+          deviceLabel: device.deviceLabel,
+          status: device.status,
+        },
+      );
+    }
+    res.json(RegisterAttendanceDeviceResponse.parse(attendanceDeviceResponse(device)));
+  },
+);
+
+router.get(
+  "/employees/:employeeId/attendance-devices",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = ListEmployeeAttendanceDevicesParams.safeParse(req.params);
+    if (!params.success || !isUuid(params.data.employeeId)) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    if (!canUseCapability(context, "employees.edit")) {
+      denyCapability(res, req, "employees.edit");
+      return;
+    }
+    const [employee] = await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+          employeeScopeCondition(context),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+    const devices = await db
+      .select()
+      .from(employeeAttendanceDevicesTable)
+      .where(
+        and(
+          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+          eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+        ),
+      )
+      .orderBy(desc(employeeAttendanceDevicesTable.requestedAt));
+    res.json(
+      ListEmployeeAttendanceDevicesResponse.parse(
+        devices.map(attendanceDeviceResponse),
+      ),
+    );
+  },
+);
+
+router.post(
+  "/employees/:employeeId/attendance-devices/:deviceId/decision",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const params = DecideEmployeeAttendanceDeviceParams.safeParse(req.params);
+    const parsed = DecideEmployeeAttendanceDeviceBody.safeParse(req.body);
+    if (!params.success || !parsed.success) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    if (!canUseCapability(context, "employees.edit")) {
+      denyCapability(res, req, "employees.edit");
+      return;
+    }
+
+    const [employee] = await db
+      .select({ id: employeesTable.id })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, params.data.employeeId),
+          eq(employeesTable.companyId, context.companyId),
+          employeeScopeCondition(context),
+        ),
+      )
+      .limit(1);
+    if (!employee) {
+      res.status(404).json({ error: message(req, "employeeNotFound") });
+      return;
+    }
+
+    const now = new Date();
+    const updated = await db.transaction(async (tx) => {
+      await tx
+        .select({ id: employeesTable.id })
+        .from(employeesTable)
+        .where(
+          and(
+            eq(employeesTable.id, employee.id),
+            eq(employeesTable.companyId, context.companyId),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      const [current] = await tx
+        .select()
+        .from(employeeAttendanceDevicesTable)
+        .where(
+          and(
+            eq(employeeAttendanceDevicesTable.id, params.data.deviceId),
+            eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+            eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+          ),
+        )
+        .limit(1);
+      if (!current) return { error: "not_found" as const };
+
+      if (parsed.data.decision === "approve") {
+        if (current.status !== "pending") return { error: "conflict" as const };
+        await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({ status: "revoked", updatedAt: now })
+          .where(
+            and(
+              eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+              eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+              eq(employeeAttendanceDevicesTable.status, "active"),
+            ),
+          );
+        const [approved] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({
+            status: "active",
+            approvedAt: now,
+            approvedBy: context.accountId,
+            updatedAt: now,
+          })
+          .where(eq(employeeAttendanceDevicesTable.id, current.id))
+          .returning();
+        return { device: approved, before: current };
+      }
+
+      if (
+        parsed.data.decision === "reject" &&
+        current.status === "pending"
+      ) {
+        const [rejected] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({ status: "rejected", updatedAt: now })
+          .where(eq(employeeAttendanceDevicesTable.id, current.id))
+          .returning();
+        return { device: rejected, before: current };
+      }
+
+      if (
+        parsed.data.decision === "revoke" &&
+        current.status === "active"
+      ) {
+        const [revoked] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({ status: "revoked", updatedAt: now })
+          .where(eq(employeeAttendanceDevicesTable.id, current.id))
+          .returning();
+        return { device: revoked, before: current };
+      }
+      return { error: "conflict" as const };
+    });
+
+    if ("error" in updated) {
+      res
+        .status(updated.error === "not_found" ? 404 : 409)
+        .json({
+          error:
+            updated.error === "not_found"
+              ? message(req, "employeeNotFound")
+              : "This device registration has already changed.",
+        });
+      return;
+    }
+    await recordAudit(
+      context.companyId,
+      `attendance_device_${
+        parsed.data.decision === "approve"
+          ? "approved"
+          : parsed.data.decision === "reject"
+            ? "rejected"
+            : "revoked"
+      }`,
+      "employee_attendance_device",
+      updated.device.id,
+      {
+        employeeId: employee.id,
+        deviceLabel: updated.device.deviceLabel,
+        status: updated.device.status,
+      },
+      {
+        deviceLabel: updated.before.deviceLabel,
+        status: updated.before.status,
+      },
+    );
+    res.json(
+      DecideEmployeeAttendanceDeviceResponse.parse(
+        attendanceDeviceResponse(updated.device),
+      ),
+    );
+  },
+);
+
 router.get(
   "/employees/:employeeId/work-locations",
   async (req, res): Promise<void> => {
@@ -4874,6 +5217,14 @@ router.delete("/employees/:employeeId", async (req, res): Promise<void> => {
     return;
   }
   await db.transaction(async (tx) => {
+    await tx
+      .delete(employeeAttendanceDevicesTable)
+      .where(
+        and(
+          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+          eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+        ),
+      );
     const [account] = await tx
       .select({ id: userAccountsTable.id })
       .from(userAccountsTable)
@@ -5786,6 +6137,45 @@ async function recordCurrentAttendance(
   if (!parsed.success) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
+  }
+  if (["employee", "manager"].includes(context.role)) {
+    const token = parsed.data.deviceToken?.trim();
+    if (!token) {
+      res.status(403).json({
+        error: "Register and get approval for this attendance device first.",
+        code: "ATTENDANCE_DEVICE_REGISTRATION_REQUIRED",
+      });
+      return;
+    }
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const [device] = await db
+      .select()
+      .from(employeeAttendanceDevicesTable)
+      .where(
+        and(
+          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+          eq(employeeAttendanceDevicesTable.employeeId, currentEmployee.id),
+          eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+        ),
+      )
+      .limit(1);
+    if (!device || device.status !== "active") {
+      res.status(403).json({
+        error:
+          device?.status === "pending"
+            ? "This device is waiting for administrator approval."
+            : "This device is not approved for attendance.",
+        code:
+          device?.status === "pending"
+            ? "ATTENDANCE_DEVICE_PENDING"
+            : "ATTENDANCE_DEVICE_NOT_APPROVED",
+      });
+      return;
+    }
+    await db
+      .update(employeeAttendanceDevicesTable)
+      .set({ lastSeenAt: new Date(), updatedAt: new Date() })
+      .where(eq(employeeAttendanceDevicesTable.id, device.id));
   }
   const hasLatitude = parsed.data.latitude != null;
   const hasLongitude = parsed.data.longitude != null;

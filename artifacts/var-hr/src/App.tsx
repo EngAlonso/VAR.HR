@@ -115,6 +115,9 @@ import {
   useDecideAttendancePunchRequest,
   useCheckIn,
   useCheckOut,
+  useRegisterAttendanceDevice,
+  useListEmployeeAttendanceDevices,
+  useDecideEmployeeAttendanceDevice,
   useCreateManualAttendanceEvent,
   useConvertAbsenceToAnnualLeave,
   useCorrectAttendance,
@@ -201,6 +204,7 @@ import {
   getGetAttendanceTodayQueryKey,
   getListAttendanceHistoryQueryKey,
   getListAttendancePunchRequestsQueryKey,
+  getListEmployeeAttendanceDevicesQueryKey,
   getPreviewAttendanceCalculationQueryKey,
   getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
@@ -12380,6 +12384,167 @@ function AddEmployeePage() {
   );
 }
 
+function EmployeeAttendanceDevicesPanel({
+  employeeId,
+  locale,
+}: {
+  employeeId: string;
+  locale: Locale;
+}) {
+  const qc = useQueryClient();
+  const devices = useListEmployeeAttendanceDevices(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getListEmployeeAttendanceDevicesQueryKey(employeeId),
+      refetchInterval: 15_000,
+    },
+  });
+  const decide = useDecideEmployeeAttendanceDevice();
+  const hasActiveDevice = devices.data?.some((device) => device.status === "active");
+  const copy = attendanceDeviceCopy(locale);
+
+  function decideDevice(deviceId: string, decision: "approve" | "reject" | "revoke") {
+    if (
+      decision === "approve" &&
+      hasActiveDevice &&
+      !window.confirm(copy.replaceConfirm)
+    ) {
+      return;
+    }
+    if (
+      decision === "revoke" &&
+      !window.confirm(copy.revokeConfirm)
+    ) {
+      return;
+    }
+    decide.mutate(
+      { employeeId, deviceId, data: { decision } },
+      {
+        onSuccess: () => {
+          toast.success(
+            decision === "approve"
+              ? copy.approveSuccess
+              : decision === "reject"
+                ? copy.rejectSuccess
+                : copy.unlinkSuccess,
+          );
+          qc.invalidateQueries({
+            queryKey: getListEmployeeAttendanceDevicesQueryKey(employeeId),
+          });
+        },
+        onError: (error: unknown) =>
+          toast.error(
+            apiErrorMessage(
+              error,
+              copy.updateFailed,
+            ),
+          ),
+      },
+    );
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+            <Fingerprint size={18} className="text-primary" />
+            {copy.title}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {copy.description}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3 p-4">
+        {devices.isLoading ? (
+          <Skeleton className="h-20" />
+        ) : devices.isError ? (
+          <Empty
+            title={copy.loadFailed}
+            detail={copy.retry}
+            action={
+              <Button variant="outline" onClick={() => devices.refetch()}>
+                {copy.retry}
+              </Button>
+            }
+          />
+        ) : devices.data?.length ? (
+          devices.data.map((device) => (
+            <div
+              key={device.id}
+              className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <div className="break-words text-sm font-medium">
+                  {device.deviceLabel}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {copy.requested}
+                  {date(device.requestedAt)}
+                  {device.approvedAt
+                    ? ` · ${copy.approvedAt}${date(device.approvedAt)}`
+                    : ""}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Badge
+                  tone={
+                    device.status === "active"
+                      ? "good"
+                      : device.status === "pending"
+                        ? "warn"
+                        : "neutral"
+                  }
+                >
+                  {device.status === "active"
+                    ? copy.approved
+                    : device.status === "pending"
+                      ? copy.pending
+                      : device.status === "rejected"
+                        ? copy.rejected
+                        : copy.unlinked}
+                </Badge>
+                {device.status === "pending" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      disabled={decide.isPending}
+                      onClick={() => decideDevice(device.id, "approve")}
+                    >
+                      {copy.approve}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={decide.isPending}
+                      onClick={() => decideDevice(device.id, "reject")}
+                    >
+                      {copy.reject}
+                    </Button>
+                  </>
+                ) : null}
+                {device.status === "active" ? (
+                  <Button
+                    variant="outline"
+                    disabled={decide.isPending}
+                    onClick={() => decideDevice(device.id, "revoke")}
+                  >
+                    {copy.unlink}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {copy.noDevices}
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function EmployeeProfilePage() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
@@ -13194,6 +13359,13 @@ function EmployeeProfilePage() {
               </div>
             </EmployeeProfileSection>
           </div>
+
+          {canEditEmployees ? (
+            <EmployeeAttendanceDevicesPanel
+              employeeId={employee.data.id}
+              locale={locale}
+            />
+          ) : null}
 
           <div className="border-t border-border pt-1">
             <EmployeeHrPanel
@@ -14148,14 +14320,198 @@ function AttendanceLocationLinks({
   );
 }
 
+const ATTENDANCE_DEVICE_TOKEN_KEY = "var-hr:attendance-device-token";
+
+function getAttendanceDeviceToken(): string {
+  const existing = window.localStorage.getItem(ATTENDANCE_DEVICE_TOKEN_KEY);
+  if (existing && existing.length >= 32) return existing;
+  const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+  const token = Array.from(bytes, (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+  window.localStorage.setItem(ATTENDANCE_DEVICE_TOKEN_KEY, token);
+  return token;
+}
+
+function attendanceDeviceLabel(): string {
+  return window.navigator.userAgent.slice(0, 256) || "Browser device";
+}
+
+function attendanceDeviceCopy(locale: Locale) {
+  const copy = {
+    en: {
+      title: "Attendance devices",
+      registered: "This device is approved for attendance check-in and check-out.",
+      approvalRequired:
+        "An administrator must approve this device before you can record attendance. Approving a new device replaces the previous one.",
+      checking: "Checking",
+      approved: "Approved",
+      pending: "Awaiting approval",
+      notApproved: "Not approved",
+      refresh: "Refresh status",
+      sending: "Sending...",
+      requestFailed: "Could not request device registration.",
+      description:
+        "Approving a new device unlinks the current one. A rejected device can request approval again.",
+      loadFailed: "Could not load devices",
+      retry: "Retry",
+      requested: "Requested: ",
+      approvedAt: "Approved: ",
+      rejected: "Rejected",
+      unlinked: "Unlinked",
+      approve: "Approve",
+      reject: "Reject",
+      unlink: "Unlink",
+      replaceConfirm:
+        "Approving this device will unlink the current device. Continue?",
+      revokeConfirm:
+        "Unlinking this device will prevent attendance from it. Continue?",
+      approveSuccess: "Device approved.",
+      rejectSuccess: "Device request rejected.",
+      unlinkSuccess: "Device unlinked.",
+      updateFailed: "Could not update device registration.",
+      noDevices: "No linked devices or approval requests for this employee yet.",
+    },
+    ar: {
+      title: "أجهزة تسجيل الحضور",
+      registered: "هذا الجهاز معتمد لتسجيل الحضور والانصراف.",
+      approvalRequired:
+        "يجب اعتماد الجهاز من الإدارة قبل تسجيل الحضور. اعتماد جهاز جديد يلغي ربط الجهاز السابق.",
+      checking: "جارٍ التحقق",
+      approved: "معتمد",
+      pending: "بانتظار اعتماد الإدارة",
+      notApproved: "غير معتمد",
+      refresh: "تحديث الحالة",
+      sending: "جارٍ الإرسال...",
+      requestFailed: "تعذر إرسال طلب ربط الجهاز.",
+      description:
+        "اعتماد جهاز جديد يلغي ربط الجهاز الحالي. الجهاز المرفوض يمكنه إرسال طلب جديد.",
+      loadFailed: "تعذر تحميل الأجهزة",
+      retry: "إعادة المحاولة",
+      requested: "طلب الربط: ",
+      approvedAt: "اعتمد في: ",
+      rejected: "مرفوض",
+      unlinked: "ملغي",
+      approve: "اعتماد",
+      reject: "رفض",
+      unlink: "إلغاء الربط",
+      replaceConfirm:
+        "اعتماد هذا الجهاز سيلغي ربط الجهاز الحالي. هل تريد المتابعة؟",
+      revokeConfirm:
+        "إلغاء ربط هذا الجهاز سيمنع تسجيل الحضور منه. هل تريد المتابعة؟",
+      approveSuccess: "تم اعتماد الجهاز.",
+      rejectSuccess: "تم رفض طلب ربط الجهاز.",
+      unlinkSuccess: "تم إلغاء ربط الجهاز.",
+      updateFailed: "تعذر تحديث ربط الجهاز.",
+      noDevices: "لا توجد أجهزة مرتبطة أو طلبات اعتماد لهذا الموظف بعد.",
+    },
+    fr: {
+      title: "Appareils de présence",
+      registered: "Cet appareil est autorisé pour les arrivées et les départs.",
+      approvalRequired:
+        "Un administrateur doit autoriser cet appareil avant tout pointage. L’autorisation d’un nouvel appareil remplace l’ancien.",
+      checking: "Vérification",
+      approved: "Autorisé",
+      pending: "En attente d’approbation",
+      notApproved: "Non autorisé",
+      refresh: "Actualiser le statut",
+      sending: "Envoi...",
+      requestFailed: "Impossible de demander l’enregistrement de l’appareil.",
+      description:
+        "L’autorisation d’un nouvel appareil déconnecte l’appareil actuel. Un appareil refusé peut soumettre une nouvelle demande.",
+      loadFailed: "Impossible de charger les appareils",
+      retry: "Réessayer",
+      requested: "Demandé : ",
+      approvedAt: "Autorisé : ",
+      rejected: "Refusé",
+      unlinked: "Déconnecté",
+      approve: "Autoriser",
+      reject: "Refuser",
+      unlink: "Déconnecter",
+      replaceConfirm:
+        "Autoriser cet appareil déconnectera l’appareil actuel. Continuer ?",
+      revokeConfirm:
+        "Déconnecter cet appareil empêchera le pointage. Continuer ?",
+      approveSuccess: "Appareil autorisé.",
+      rejectSuccess: "Demande refusée.",
+      unlinkSuccess: "Appareil déconnecté.",
+      updateFailed: "Impossible de modifier l’enregistrement de l’appareil.",
+      noDevices: "Aucun appareil ni aucune demande en attente pour cet employé.",
+    },
+    de: {
+      title: "Anwesenheitsgeräte",
+      registered: "Dieses Gerät ist für Kommen und Gehen freigegeben.",
+      approvalRequired:
+        "Die Verwaltung muss dieses Gerät freigeben, bevor Sie Anwesenheit erfassen können. Ein neues Gerät ersetzt das bisherige.",
+      checking: "Wird geprüft",
+      approved: "Freigegeben",
+      pending: "Wartet auf Freigabe",
+      notApproved: "Nicht freigegeben",
+      refresh: "Status aktualisieren",
+      sending: "Wird gesendet...",
+      requestFailed: "Geräteregistrierung konnte nicht angefordert werden.",
+      description:
+        "Die Freigabe eines neuen Geräts trennt das aktuelle Gerät. Für abgelehnte Geräte kann erneut eine Freigabe beantragt werden.",
+      loadFailed: "Geräte konnten nicht geladen werden",
+      retry: "Erneut versuchen",
+      requested: "Angefordert: ",
+      approvedAt: "Freigegeben: ",
+      rejected: "Abgelehnt",
+      unlinked: "Getrennt",
+      approve: "Freigeben",
+      reject: "Ablehnen",
+      unlink: "Trennen",
+      replaceConfirm:
+        "Dieses Gerät ersetzt das aktuelle Gerät. Fortfahren?",
+      revokeConfirm:
+        "Das Trennen dieses Geräts verhindert die Anwesenheitserfassung. Fortfahren?",
+      approveSuccess: "Gerät freigegeben.",
+      rejectSuccess: "Geräteanfrage abgelehnt.",
+      unlinkSuccess: "Gerät getrennt.",
+      updateFailed: "Geräteregistrierung konnte nicht aktualisiert werden.",
+      noDevices: "Für diesen Mitarbeiter gibt es noch keine Geräte oder Anfragen.",
+    },
+  } satisfies Record<Locale, Record<string, string>>;
+  return copy[locale];
+}
+
 function Attendance() {
   const { t, locale } = useI18n();
+  const deviceCopy = attendanceDeviceCopy(locale);
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const selfEmployeeId =
-    workspace.data?.role === "employee"
+    workspace.data?.role === "employee" || workspace.data?.role === "manager"
       ? workspace.data.employeeId ?? ""
       : "";
+  const isSelfAttendanceUser = Boolean(selfEmployeeId);
+  const [deviceToken] = useState(() => getAttendanceDeviceToken());
+  const registerDevice = useRegisterAttendanceDevice();
+  const requestDeviceRegistration = () => {
+    registerDevice.mutate(
+      {
+        data: {
+          deviceToken,
+          deviceLabel: attendanceDeviceLabel(),
+        },
+      },
+      {
+        onError: (error: unknown) =>
+          toast.error(
+            apiErrorMessage(
+              error,
+              deviceCopy.requestFailed,
+            ),
+          ),
+      },
+    );
+  };
+  const registrationRequested = useRef(false);
+  useEffect(() => {
+    if (!isSelfAttendanceUser || registrationRequested.current) return;
+    registrationRequested.current = true;
+    requestDeviceRegistration();
+  }, [isSelfAttendanceUser, selfEmployeeId, deviceToken]);
   const selfEmployee = useGetEmployee(selfEmployeeId, {
     query: {
       enabled: Boolean(selfEmployeeId),
@@ -14235,6 +14591,8 @@ function Attendance() {
   );
   const action = record?.checkIn && !record.checkOut ? "out" : "in";
   const canPunch = action === "in" || Boolean(record);
+  const deviceReady =
+    !isSelfAttendanceUser || registerDevice.data?.status === "active";
   const employeeDepartment = record?.employee?.department
     ? departmentLabel(record.employee.department, t)
     : t("companyAttendanceView");
@@ -14296,6 +14654,9 @@ function Attendance() {
       toast.warning(t("gpsUnavailable"));
     }
     const data = location ? { source: "web", ...location } : { source: "web" };
+    if (isSelfAttendanceUser) {
+      Object.assign(data, { deviceToken });
+    }
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
        onSuccess: (result: any) => {
         setGpsState(location ? "captured" : "unavailable");
@@ -14552,6 +14913,52 @@ function Attendance() {
           </div>
         }
       />
+      {isSelfAttendanceUser ? (
+        <Card className="mb-4 border-primary/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold">
+                {locale === "ar"
+                  ? "جهاز تسجيل الحضور"
+                  : "Attendance device"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {registerDevice.data?.status === "active"
+                  ? deviceCopy.registered
+                  : deviceCopy.approvalRequired}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge
+                tone={
+                  registerDevice.data?.status === "active"
+                    ? "good"
+                    : registerDevice.data?.status === "pending"
+                      ? "warn"
+                      : "neutral"
+                }
+              >
+                {registerDevice.isPending
+                  ? deviceCopy.checking
+                  : registerDevice.data?.status === "active"
+                    ? deviceCopy.approved
+                    : registerDevice.data?.status === "pending"
+                      ? deviceCopy.pending
+                      : deviceCopy.notApproved}
+              </Badge>
+              <Button
+                variant="outline"
+                disabled={registerDevice.isPending}
+                onClick={requestDeviceRegistration}
+              >
+                {registerDevice.isPending
+                  ? deviceCopy.sending
+                  : deviceCopy.refresh}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
       {canApproveLocation && punchRequests.data?.length ? (
         <Card className="mb-6 border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10">
           <div className="flex items-start justify-between gap-4 border-b border-amber-200/70 p-5">
@@ -14664,6 +15071,7 @@ function Attendance() {
                 <Button
                   disabled={
                     !canPunch ||
+                    !deviceReady ||
                     (action === "in"
                       ? checkIn.isPending
                       : checkOut.isPending) ||

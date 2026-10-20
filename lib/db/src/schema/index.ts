@@ -30,3 +30,4 @@ export * from "./notifications";
 export * from "./platform";
 export * from "./google-drive";
 export * from "./work-locations";
+export * from "./attendance-devices";

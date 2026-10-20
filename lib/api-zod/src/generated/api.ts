@@ -1676,13 +1676,18 @@ export const ReverseAttendanceTimeAdjustmentResponse = zod.object({
  * @summary Record a current user's check-in
  */
 export const checkInBodySourceDefault = `web`;
+export const checkInBodyDeviceTokenMin = 32;
+export const checkInBodyDeviceTokenMax = 256;
+
+
 
 export const CheckInBody = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "accuracyMeters": zod.number().nullish(),
   "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkInBodySourceDefault)
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkInBodySourceDefault),
+  "deviceToken": zod.string().min(checkInBodyDeviceTokenMin).max(checkInBodyDeviceTokenMax).optional()
 })
 
 export const CheckInResponse = zod.object({
@@ -1713,13 +1718,18 @@ export const CheckInResponse = zod.object({
  * @summary Record a current user's check-out
  */
 export const checkOutBodySourceDefault = `web`;
+export const checkOutBodyDeviceTokenMin = 32;
+export const checkOutBodyDeviceTokenMax = 256;
+
+
 
 export const CheckOutBody = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
   "accuracyMeters": zod.number().nullish(),
   "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
-  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkOutBodySourceDefault)
+  "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkOutBodySourceDefault),
+  "deviceToken": zod.string().min(checkOutBodyDeviceTokenMin).max(checkOutBodyDeviceTokenMax).optional()
 })
 
 export const CheckOutResponse = zod.object({
@@ -1743,6 +1753,71 @@ export const CheckOutResponse = zod.object({
   "explanation": zod.string().optional(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "approvalStatus": zod.enum(['not_required', 'approved']).optional()
+})
+
+
+/**
+ * @summary Request or inspect the current employee attendance device registration
+ */
+export const registerAttendanceDeviceBodyDeviceTokenMin = 32;
+export const registerAttendanceDeviceBodyDeviceTokenMax = 256;
+
+export const registerAttendanceDeviceBodyDeviceLabelMax = 256;
+
+
+
+export const RegisterAttendanceDeviceBody = zod.object({
+  "deviceToken": zod.string().min(registerAttendanceDeviceBodyDeviceTokenMin).max(registerAttendanceDeviceBodyDeviceTokenMax),
+  "deviceLabel": zod.string().min(1).max(registerAttendanceDeviceBodyDeviceLabelMax)
+})
+
+export const RegisterAttendanceDeviceResponse = zod.object({
+  "id": zod.uuid(),
+  "deviceLabel": zod.string(),
+  "status": zod.enum(['pending', 'active', 'rejected', 'revoked']),
+  "requestedAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastSeenAt": zod.iso.datetime({"offset":true}).nullable()
+})
+
+
+/**
+ * @summary List an employee's attendance device registrations
+ */
+export const ListEmployeeAttendanceDevicesParams = zod.object({
+  "employeeId": zod.coerce.string()
+})
+
+export const ListEmployeeAttendanceDevicesResponseItem = zod.object({
+  "id": zod.uuid(),
+  "deviceLabel": zod.string(),
+  "status": zod.enum(['pending', 'active', 'rejected', 'revoked']),
+  "requestedAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastSeenAt": zod.iso.datetime({"offset":true}).nullable()
+})
+export const ListEmployeeAttendanceDevicesResponse = zod.array(ListEmployeeAttendanceDevicesResponseItem)
+
+
+/**
+ * @summary Approve, reject, or revoke an employee attendance device
+ */
+export const DecideEmployeeAttendanceDeviceParams = zod.object({
+  "employeeId": zod.coerce.string(),
+  "deviceId": zod.uuid()
+})
+
+export const DecideEmployeeAttendanceDeviceBody = zod.object({
+  "decision": zod.enum(['approve', 'reject', 'revoke'])
+})
+
+export const DecideEmployeeAttendanceDeviceResponse = zod.object({
+  "id": zod.uuid(),
+  "deviceLabel": zod.string(),
+  "status": zod.enum(['pending', 'active', 'rejected', 'revoked']),
+  "requestedAt": zod.iso.datetime({"offset":true}),
+  "approvedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastSeenAt": zod.iso.datetime({"offset":true}).nullable()
 })
 
 
