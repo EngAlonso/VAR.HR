@@ -26,12 +26,20 @@ export function getDatabaseCredentials(): DatabaseCredentials {
     return { url: databaseUrl };
   }
 
-  const ca = process.env.AIVEN_CA_CERT;
-  if (!ca?.includes("-----BEGIN CERTIFICATE-----")) {
+  const rawCa = process.env.AIVEN_CA_CERT;
+  if (!rawCa?.includes("-----BEGIN CERTIFICATE-----")) {
     throw new Error(
       "AIVEN_CA_CERT must contain Aiven's CA certificate; TLS certificate verification stays enabled.",
     );
   }
+  const ca = rawCa
+    .replace(/\\n/g, "\n")
+    .trim()
+    .replace(
+      /-----BEGIN CERTIFICATE-----\s*/g,
+      "-----BEGIN CERTIFICATE-----\n",
+    )
+    .replace(/\s*-----END CERTIFICATE-----/g, "\n-----END CERTIFICATE-----\n");
 
   const parsed = new URL(externalUrl);
   if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
