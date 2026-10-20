@@ -22,7 +22,14 @@ export function getDatabaseCredentials(): DatabaseCredentials {
     );
   }
 
-  if (!externalUrl) {
+  const parsed = new URL(databaseUrl);
+  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
+    throw new Error("Database URL must use the PostgreSQL protocol.");
+  }
+
+  const usesAiven =
+    externalUrl !== undefined || parsed.hostname.endsWith(".aivencloud.com");
+  if (!usesAiven) {
     return { url: databaseUrl };
   }
 
@@ -40,11 +47,6 @@ export function getDatabaseCredentials(): DatabaseCredentials {
       "-----BEGIN CERTIFICATE-----\n",
     )
     .replace(/\s*-----END CERTIFICATE-----/g, "\n-----END CERTIFICATE-----\n");
-
-  const parsed = new URL(externalUrl);
-  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
-    throw new Error("EXTERNAL_DATABASE_URL must use the PostgreSQL protocol.");
-  }
 
   return {
     host: parsed.hostname,
