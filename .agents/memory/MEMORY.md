@@ -1,6 +1,6 @@
 - [Database driver compatibility](database-driver-compatibility.md) — choose Neon HTTP only for Neon hosts; use node-postgres for Replit PostgreSQL.
 - [API artifact routing](api-artifact-routing.md) — keep the runnable Express API under artifacts/api-server; root api/ is only for Vercel function entrypoints.
-- [Vercel and Replit data separation](vercel-replit-data-separation.md) — align live data and remember Vercel Cron is production-only and does not retry missed calls.
+- [Vercel and Replit data separation](vercel-replit-data-separation.md) — keep Vercel data separate; do not cut over Neon→Aiven until the backup is restored and verified.
 - [Biometric out-of-order metrics](biometric-out-of-order-metrics.md) — recalculate all derived attendance values when an earlier movement arrives after a later one.
 - [Attendance calculation schedule](attendance-calculation-schedule.md) — refresh explicit shift changes outside immutable payroll periods, including dates not covered by a payroll period.
 - [Localization rules](localized-names.md) — use locale-specific employee names and fully translate the employee profile UI.
