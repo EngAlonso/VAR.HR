@@ -6,6 +6,10 @@ const source = readFileSync(
   new URL("../src/lib/google-drive-backups.ts", import.meta.url),
   "utf8",
 );
+const authSource = readFileSync(
+  new URL("../src/lib/google-drive-auth.ts", import.meta.url),
+  "utf8",
+);
 const folderLookup = source.slice(
   source.indexOf("async function findExistingBackupFolder"),
   source.indexOf("async function ensureBackupFolder"),
@@ -33,5 +37,12 @@ test("duplicate backup folders are not selected arbitrarily", () => {
   assert.match(
     folderLookup,
     /MULTIPLE_MATCHING_BACKUP_FOLDERS/,
+  );
+});
+
+test("Google Drive authorization can find existing backup folders", () => {
+  assert.match(
+    authSource,
+    /const DRIVE_SCOPE = "https:\/\/www\.googleapis\.com\/auth\/drive";/,
   );
 });

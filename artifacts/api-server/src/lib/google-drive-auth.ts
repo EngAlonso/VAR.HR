@@ -9,7 +9,7 @@ import { db, googleDriveConnectionTable } from "@workspace/db";
 
 const CONNECTION_ID = "default";
 const OAUTH_STATE_TTL_MS = 10 * 60_000;
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const USER_INFO_SCOPE = "openid email";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
