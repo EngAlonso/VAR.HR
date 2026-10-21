@@ -25,3 +25,4 @@
 - [Drizzle migration snapshots](drizzle-migration-snapshots.md) — use relative output paths and review generated SQL; stale snapshots can include unrelated tables.
 - [Workspace dependency installation](workspace-dependency-installation.md) — package callbacks cannot restore an existing workspace with an empty package list.
 - [Request form layout](request-form-layout.md) — keep leave and permission forms on-page, without a dimmed modal or nested scrolling.
+- [Attendance device binding](attendance-device-binding.md) — bind punches to an admin-approved browser token, not a permanent hardware ID.
