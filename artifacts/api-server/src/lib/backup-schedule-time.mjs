@@ -1,9 +1,11 @@
 const CAIRO_TIME_ZONE = "Africa/Cairo";
 const DAILY_INTERVAL_MINUTES = 24 * 60;
 const DAILY_RUN_MINUTE = 13 * 60;
-const PLATFORM_INTERVAL_MINUTES = 6 * 60;
-const PLATFORM_FIRST_RUN_MINUTE = 60;
-const PLATFORM_SLOT_INTERVAL_MINUTES = 6 * 60;
+const PLATFORM_SLOTS_BY_FREQUENCY = {
+  1: [13 * 60],
+  2: [60, 13 * 60],
+  4: [60, 7 * 60, 13 * 60, 19 * 60],
+};
 
 function cairoTimeParts(date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -27,32 +29,33 @@ function cairoTimeParts(date) {
   };
 }
 
-function platformSlotKey(date) {
+function platformSlotKey(date, slots) {
   const current = cairoTimeParts(date);
-  if (current.minuteOfDay < PLATFORM_FIRST_RUN_MINUTE) {
+  let slotIndex = -1;
+  for (let index = 0; index < slots.length; index += 1) {
+    if (current.minuteOfDay >= slots[index]) slotIndex = index;
+  }
+  if (slotIndex < 0) {
     const previousDay = new Date(`${current.dayKey}T00:00:00.000Z`);
     previousDay.setUTCDate(previousDay.getUTCDate() - 1);
-    return `${previousDay.toISOString().slice(0, 10)}:3`;
+    return `${previousDay.toISOString().slice(0, 10)}:${slots.length - 1}`;
   }
-  const slot = Math.floor(
-    (current.minuteOfDay - PLATFORM_FIRST_RUN_MINUTE) /
-      PLATFORM_SLOT_INTERVAL_MINUTES,
-  );
-  return `${current.dayKey}:${slot}`;
+  return `${current.dayKey}:${slotIndex}`;
+}
+
+export function isPlatformBackupDue(runsPerDay, lastCreatedAt, now) {
+  const slots = PLATFORM_SLOTS_BY_FREQUENCY[runsPerDay];
+  if (!slots) return false;
+
+  const last = lastCreatedAt ? new Date(lastCreatedAt) : null;
+  if (!last) return cairoTimeParts(now).minuteOfDay >= slots[0];
+  return platformSlotKey(last, slots) < platformSlotKey(now, slots);
 }
 
 export function isBackupDue(intervalMinutes, lastCreatedAt, now) {
   if (intervalMinutes <= 0) return false;
 
   const last = lastCreatedAt ? new Date(lastCreatedAt) : null;
-  if (intervalMinutes === PLATFORM_INTERVAL_MINUTES) {
-    const currentCairoTime = cairoTimeParts(now);
-    if (!last) {
-      return currentCairoTime.minuteOfDay >= PLATFORM_FIRST_RUN_MINUTE;
-    }
-    return platformSlotKey(last) < platformSlotKey(now);
-  }
-
   if (intervalMinutes === DAILY_INTERVAL_MINUTES) {
     const currentCairoTime = cairoTimeParts(now);
     if (currentCairoTime.minuteOfDay < DAILY_RUN_MINUTE) return false;

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { isBackupDue } from "../src/lib/backup-schedule-time.mjs";
+import {
+  isBackupDue,
+  isPlatformBackupDue,
+} from "../src/lib/backup-schedule-time.mjs";
 
 const read = (path) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
@@ -29,13 +32,20 @@ test("backup schedule settings are restricted to platform owners", () => {
   );
   assert.match(settingsRoute, /z\.literal\(1440\)/);
   assert.match(settingsRoute, /z\.literal\(10080\)/);
-  assert.match(settingsRoute, /z\.literal\(360\)/);
-  assert.match(settingsRoute, /platformScheduleEnabled \? 360 : 0/);
+  assert.match(settingsRoute, /platformBackupRunsPerDay: z\.union/);
+  assert.match(settingsRoute, /z\.literal\(1\)/);
+  assert.match(settingsRoute, /z\.literal\(2\)/);
+  assert.match(settingsRoute, /z\.literal\(4\)/);
+  assert.match(settingsRoute, /storedPlatformRunsPerDay > 0\s*\? 4\s*:\s*0/);
   assert.match(
     scheduler,
-    /\(settings\?\.platformIntervalMinutes \?\? 0\) > 0 \? 360 : 0/,
+    /storedPlatformRunsPerDay > 0\s*\? 4\s*:\s*0/,
   );
+  assert.match(scheduler, /isPlatformBackupDue\(platformRunsPerDay, lastCreatedAt, now\)/);
   assert.match(webApp, /isPlatformOwner && \([\s\S]*?data-testid="save-backup-schedule"/);
+  assert.match(webApp, /<option value=\{1\}>\{labels\.onceDaily\}<\/option>/);
+  assert.match(webApp, /<option value=\{2\}>\{labels\.twiceDaily\}<\/option>/);
+  assert.match(webApp, /<option value=\{4\}>\{labels\.fourTimesDaily\}<\/option>/);
 });
 
 test("automatic backups use their own marker and a shared scheduler lock", () => {
@@ -45,6 +55,7 @@ test("automatic backups use their own marker and a shared scheduler lock", () =>
   assert.match(scheduler, /scope: "company"/);
   assert.match(backupLibrary, /input\.creationMode \? \{ creationMode: input\.creationMode \}/);
   assert.match(backupLibrary, /scheduleIntervalMinutes/);
+  assert.match(backupLibrary, /scheduleFrequencyPerDay/);
 });
 
 test("daily backups run once per Cairo day at or after 13:00 local time", () => {
@@ -62,33 +73,40 @@ test("daily backups run once per Cairo day at or after 13:00 local time", () => 
   assert.equal(isBackupDue(daily, previousDayLate, atRun), true);
 });
 
-test("platform backups follow fixed six-hour Cairo slots", () => {
-  const sixHours = 360;
-  const beforeFirstSummerSlot = new Date("2026-07-11T21:59:00.000Z"); // 00:59 Cairo
-  const firstSummerSlot = new Date("2026-07-11T22:00:00.000Z"); // 01:00 Cairo
-  const firstBackup = new Date("2026-07-11T22:02:00.000Z");
-  const sevenAm = new Date("2026-07-12T04:00:00.000Z");
+test("platform frequency choices use fixed Cairo times", () => {
+  const beforeOnePm = new Date("2026-07-12T09:59:00.000Z"); // 12:59 Cairo
   const onePm = new Date("2026-07-12T10:00:00.000Z");
+  const onePmBackup = new Date("2026-07-12T10:02:00.000Z");
   const sevenPm = new Date("2026-07-12T16:00:00.000Z");
-  const afterOnePmBackup = new Date("2026-07-12T10:02:00.000Z");
+  const nextDayOnePm = new Date("2026-07-13T10:00:00.000Z");
 
-  assert.equal(isBackupDue(sixHours, undefined, beforeFirstSummerSlot), false);
-  assert.equal(isBackupDue(sixHours, undefined, firstSummerSlot), true);
-  assert.equal(isBackupDue(sixHours, firstBackup, firstSummerSlot), false);
-  assert.equal(isBackupDue(sixHours, firstBackup, sevenAm), true);
-  assert.equal(isBackupDue(sixHours, new Date("2026-07-12T04:02:00.000Z"), onePm), true);
-  assert.equal(isBackupDue(sixHours, afterOnePmBackup, sevenPm), true);
-  assert.equal(
-    isBackupDue(
-      sixHours,
-      new Date("2026-07-12T16:02:00.000Z"),
-      new Date("2026-07-12T22:00:00.000Z"),
-    ),
-    true,
-  );
+  assert.equal(isPlatformBackupDue(1, undefined, beforeOnePm), false);
+  assert.equal(isPlatformBackupDue(1, undefined, onePm), true);
+  assert.equal(isPlatformBackupDue(1, onePmBackup, sevenPm), false);
+  assert.equal(isPlatformBackupDue(1, onePmBackup, nextDayOnePm), true);
 
-  const firstWinterSlot = new Date("2026-01-11T23:00:00.000Z"); // 01:00 Cairo
-  assert.equal(isBackupDue(sixHours, undefined, firstWinterSlot), true);
+  const oneAm = new Date("2026-07-11T22:00:00.000Z");
+  const oneAmBackup = new Date("2026-07-11T22:02:00.000Z");
+  const sevenAm = new Date("2026-07-12T04:00:00.000Z");
+  const sevenAmBackup = new Date("2026-07-12T04:02:00.000Z");
+  const onePmBackupNext = new Date("2026-07-12T10:02:00.000Z");
+  const sevenPmBackup = new Date("2026-07-12T16:02:00.000Z");
+  const nextDayOneAm = new Date("2026-07-12T22:00:00.000Z");
+
+  assert.equal(isPlatformBackupDue(2, undefined, oneAm), true);
+  assert.equal(isPlatformBackupDue(2, oneAmBackup, sevenAm), false);
+  assert.equal(isPlatformBackupDue(2, oneAmBackup, onePm), true);
+  assert.equal(isPlatformBackupDue(2, onePmBackupNext, sevenPm), false);
+  assert.equal(isPlatformBackupDue(2, onePmBackupNext, nextDayOneAm), true);
+
+  assert.equal(isPlatformBackupDue(4, undefined, oneAm), true);
+  assert.equal(isPlatformBackupDue(4, oneAmBackup, sevenAm), true);
+  assert.equal(isPlatformBackupDue(4, sevenAmBackup, onePm), true);
+  assert.equal(isPlatformBackupDue(4, onePmBackupNext, sevenPm), true);
+  assert.equal(isPlatformBackupDue(4, sevenPmBackup, nextDayOneAm), true);
+
+  const winterOneAm = new Date("2026-01-11T23:00:00.000Z");
+  assert.equal(isPlatformBackupDue(4, undefined, winterOneAm), true);
 });
 
 test("weekly backups retain their elapsed-interval behavior", () => {
@@ -165,11 +183,11 @@ test("Vercel cron checks cover all four Cairo slots in both standard and dayligh
   ]);
 
   assert.equal(
-    isBackupDue(360, new Date("2026-07-12T04:02:00.000Z"), new Date("2026-07-12T10:00:00.000Z")),
+    isPlatformBackupDue(4, new Date("2026-07-12T04:02:00.000Z"), new Date("2026-07-12T10:00:00.000Z")),
     true,
   );
   assert.equal(
-    isBackupDue(360, new Date("2026-01-12T05:02:00.000Z"), new Date("2026-01-12T11:00:00.000Z")),
+    isPlatformBackupDue(4, new Date("2026-01-12T05:02:00.000Z"), new Date("2026-01-12T11:00:00.000Z")),
     true,
   );
 });

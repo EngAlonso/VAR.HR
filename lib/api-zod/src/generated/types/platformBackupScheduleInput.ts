@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PlatformBackupScheduleInputCompanyBackupIntervalMinutes } from './platformBackupScheduleInputCompanyBackupIntervalMinutes';
-import type { PlatformBackupScheduleInputPlatformBackupIntervalMinutes } from './platformBackupScheduleInputPlatformBackupIntervalMinutes';
+import type { PlatformBackupScheduleInputPlatformBackupRunsPerDay } from './platformBackupScheduleInputPlatformBackupRunsPerDay';
 
 export interface PlatformBackupScheduleInput {
-  /** 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time. */
-  platformBackupIntervalMinutes: PlatformBackupScheduleInputPlatformBackupIntervalMinutes;
+  /** Number of platform backups per day; 1, 2, or 4. Legacy positive interval values are treated as 4. */
+  platformBackupRunsPerDay: PlatformBackupScheduleInputPlatformBackupRunsPerDay;
   companyBackupIntervalMinutes: PlatformBackupScheduleInputCompanyBackupIntervalMinutes;
 }

@@ -15,7 +15,7 @@
 - [Regular hours vs actual attendance](regular-hours-vs-actual-attendance.md) — basic hours must be clipped to the assigned schedule; raw check-in/out duration remains separate.
 - [Annual-leave deduction](annual-leave-deduction.md) — deduct only for approved annual-leave requests or an explicit manager grant, never for absence or permission alone.
 - [PWA shell cache updates](pwa-shell-cache-updates.md) — bump the shell cache version when UI assets change so installed clients receive the new interface.
-- [Backup schedule time](backup-schedule-time.md) — platform backups run at 01:00, 07:00, 13:00, and 19:00 Cairo time; company daily runs remain at 13:00.
+- [Backup schedule time](backup-schedule-time.md) — platform owners can choose 1/2/4 Cairo-time runs daily; company daily runs remain at 13:00.
 - [Backup scheduler observability](backup-scheduler-observability.md) — record no-op Cron runs separately from each target's last actual backup attempt.
 - [Google Drive backup scope](google-drive-backup-scope.md) — only platform-scope scheduled backups belong in the platform owner's connected Drive.
 - [Google Drive folder access](google-drive-folder-access-scope.md) — Drive backup lookup must access pre-existing folders after database changes; reconnect after scope changes.

@@ -21334,7 +21334,7 @@ type BackupSummary = {
 };
 
 type BackupSchedule = {
-  platformBackupIntervalMinutes: number;
+  platformBackupRunsPerDay: number;
   companyBackupIntervalMinutes: number;
   schedulerReady: boolean;
 };
@@ -21393,7 +21393,7 @@ function BackupRestore() {
   );
   const [selectedFilename, setSelectedFilename] = useState("");
   const [schedule, setSchedule] = useState<BackupSchedule>({
-    platformBackupIntervalMinutes: 0,
+    platformBackupRunsPerDay: 0,
     companyBackupIntervalMinutes: 0,
     schedulerReady: false,
   });
@@ -21454,14 +21454,16 @@ function BackupRestore() {
         size: "الحجم",
         scheduleTitle: "النسخ الاحتياطي التلقائي",
         scheduleDetail:
-          "تُنشأ نسخة المنصة الكاملة أربع مرات يوميًا: 1 صباحًا و7 صباحًا و1 ظهرًا و7 مساءً بتوقيت القاهرة. تظل جدولة الشركات مستقلة.",
+          "اختر عدد النسخ الكاملة للمنصة: مرة الساعة 1 ظهرًا، أو مرتين الساعة 1 صباحًا و1 ظهرًا، أو 4 مرات الساعة 1 و7 صباحًا و1 ظهرًا و7 مساءً. المواعيد بتوقيت القاهرة، وجدولة الشركات مستقلة.",
         scheduleLoading: "جارٍ تحميل إعدادات الجدولة…",
         scheduleRuntime:
-          "على Replit يفحص الخادم كل دقيقة. على Vercel، دقة Hobby قد تؤخر التشغيل حتى 59 دقيقة؛ خطة Pro تدعم دقة الدقيقة. تظل جدولة الشركات مستقلة.",
+          "على Replit يفحص الخادم الجدولة كل دقيقة. على Vercel، قد تؤخر خطة Hobby التشغيل حتى 59 دقيقة، بينما تدعم Pro دقة الدقيقة.",
         platformFrequency: "تكرار نسخة المنصة",
         companyFrequency: "تكرار نسخة كل شركة",
         off: "متوقف",
-        fourTimesDaily: "4 مرات يوميًا (كل 6 ساعات)",
+        onceDaily: "مرة يوميًا (1 ظهرًا)",
+        twiceDaily: "مرتان يوميًا (1 صباحًا، 1 ظهرًا)",
+        fourTimesDaily: "4 مرات يوميًا (1 و7 صباحًا، 1 ظهرًا، 7 مساءً)",
         daily: "يوميًا",
         weekly: "أسبوعيًا",
         saveSchedule: "حفظ الجدولة",
@@ -21546,7 +21548,7 @@ function BackupRestore() {
         driveCancelled: "تم إلغاء ربط Google Drive.",
         driveError: "تعذر إكمال إجراء Google Drive.",
         driveNeedsSchedule:
-          "فعّل نسخ المنصة أربع مرات يوميًا أو نسخة يومية/أسبوعية للشركات كي تُنشأ النسخ التي ستُرفع.",
+          "فعّل جدولة للمنصة أو للشركات كي تُنشأ النسخ التي ستُرفع.",
         driveUploaded: "نسخة محفوظة في Google Drive",
         driveUploadPending: "بانتظار الرفع إلى Google Drive",
         driveUploadFailed: "تعذر رفع هذه النسخة إلى Google Drive",
@@ -21593,14 +21595,16 @@ function BackupRestore() {
         size: "Size",
         scheduleTitle: "Automatic backup schedule",
         scheduleDetail:
-          "The complete platform backup runs four times daily at 1 AM, 7 AM, 1 PM, and 7 PM Cairo time. Company schedules remain separate.",
+          "Choose the complete platform backup frequency: once at 1 PM, twice at 1 AM and 1 PM, or four times at 1 AM, 7 AM, 1 PM, and 7 PM. Times are Cairo local time; company schedules are separate.",
         scheduleLoading: "Loading schedule settings…",
         scheduleRuntime:
-          "Replit checks every minute. Vercel Hobby can delay a run by up to 59 minutes; Pro supports minute-level precision. Company schedules remain separate.",
+          "Replit checks every minute. Vercel Hobby may delay a run by up to 59 minutes; Pro supports minute-level precision.",
         platformFrequency: "Platform backup frequency",
         companyFrequency: "Company backup frequency",
         off: "Off",
-        fourTimesDaily: "Four times daily (every 6 hours)",
+        onceDaily: "Once daily (1 PM)",
+        twiceDaily: "Twice daily (1 AM, 1 PM)",
+        fourTimesDaily: "Four times daily (1 AM, 7 AM, 1 PM, 7 PM)",
         daily: "Daily",
         weekly: "Weekly",
         saveSchedule: "Save schedule",
@@ -21685,7 +21689,7 @@ function BackupRestore() {
         driveCancelled: "Google Drive connection was cancelled.",
         driveError: "Could not complete the Google Drive action.",
         driveNeedsSchedule:
-          "Enable four-times-daily platform backups or a daily/weekly company schedule to create backups for Drive.",
+          "Enable a platform or company schedule to create backups for Drive.",
         driveUploaded: "Copy saved in Google Drive",
         driveUploadPending: "Waiting to upload to Google Drive",
         driveUploadFailed: "This backup could not be uploaded to Google Drive",
@@ -21713,7 +21717,7 @@ function BackupRestore() {
         "/api/platform/backup-schedule",
       );
       setSchedule({
-        platformBackupIntervalMinutes: result.platformBackupIntervalMinutes,
+        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
         companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
         schedulerReady: result.schedulerReady,
       });
@@ -21797,15 +21801,14 @@ function BackupRestore() {
         {
           method: "PATCH",
           body: JSON.stringify({
-            platformBackupIntervalMinutes:
-              schedule.platformBackupIntervalMinutes,
+            platformBackupRunsPerDay: schedule.platformBackupRunsPerDay,
             companyBackupIntervalMinutes:
               schedule.companyBackupIntervalMinutes,
           }),
         },
       );
       setSchedule({
-        platformBackupIntervalMinutes: result.platformBackupIntervalMinutes,
+        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
         companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
         schedulerReady: result.schedulerReady,
       });
@@ -22245,19 +22248,21 @@ function BackupRestore() {
                   aria-label={labels.platformFrequency}
                   data-testid="platform-backup-frequency"
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  value={schedule.platformBackupIntervalMinutes}
+                  value={schedule.platformBackupRunsPerDay}
                   disabled={!scheduleLoaded || scheduleSaving}
                   onChange={(event) =>
                     setSchedule((current) => ({
                       ...current,
-                      platformBackupIntervalMinutes: Number(
+                      platformBackupRunsPerDay: Number(
                         event.target.value,
                       ),
                     }))
                   }
                 >
                   <option value={0}>{labels.off}</option>
-                  <option value={360}>{labels.fourTimesDaily}</option>
+                  <option value={1}>{labels.onceDaily}</option>
+                  <option value={2}>{labels.twiceDaily}</option>
+                  <option value={4}>{labels.fourTimesDaily}</option>
                 </select>
               </label>
               <label className="block">
@@ -22414,7 +22419,7 @@ function BackupRestore() {
             )}
             {driveStatus &&
               scheduleLoaded &&
-              schedule.platformBackupIntervalMinutes <= 0 &&
+              schedule.platformBackupRunsPerDay <= 0 &&
               schedule.companyBackupIntervalMinutes <= 0 && (
                 <p className="text-xs text-muted-foreground">
                   {labels.driveNeedsSchedule}

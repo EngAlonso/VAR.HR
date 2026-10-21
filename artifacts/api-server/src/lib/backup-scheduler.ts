@@ -11,7 +11,10 @@ import {
   userAccountsTable,
 } from "@workspace/db";
 import { createBackup } from "./backups";
-import { isBackupDue as isDue } from "./backup-schedule-time.mjs";
+import {
+  isBackupDue as isDue,
+  isPlatformBackupDue,
+} from "./backup-schedule-time.mjs";
 import { logger } from "./logger";
 import {
   retryPendingGoogleDriveBackups,
@@ -252,8 +255,7 @@ export async function runAutomaticBackupScheduler(options = {}) {
 
     const [settings] = await db
       .select({
-        platformIntervalMinutes:
-          platformSettingsTable.platformBackupIntervalMinutes,
+        platformRunsPerDay: platformSettingsTable.platformBackupRunsPerDay,
         companyIntervalMinutes:
           platformSettingsTable.companyBackupIntervalMinutes,
       })
@@ -261,12 +263,19 @@ export async function runAutomaticBackupScheduler(options = {}) {
       .where(eq(platformSettingsTable.id, "default"))
       .limit(1);
 
-    // Any previously enabled platform cadence now follows the requested
-    // four-times-daily Cairo schedule. Company backup cadence is unchanged.
-    const platformIntervalMinutes =
-      (settings?.platformIntervalMinutes ?? 0) > 0 ? 360 : 0;
+    // Values 1, 2, and 4 are new run counts. Previously saved positive minute
+    // intervals map to four daily runs, preserving the current platform setup.
+    const storedPlatformRunsPerDay = settings?.platformRunsPerDay ?? 0;
+    const platformRunsPerDay =
+      storedPlatformRunsPerDay === 1 ||
+      storedPlatformRunsPerDay === 2 ||
+      storedPlatformRunsPerDay === 4
+        ? storedPlatformRunsPerDay
+        : storedPlatformRunsPerDay > 0
+          ? 4
+          : 0;
     const companyIntervalMinutes = settings?.companyIntervalMinutes ?? 0;
-    if (platformIntervalMinutes <= 0 && companyIntervalMinutes <= 0) {
+    if (platformRunsPerDay <= 0 && companyIntervalMinutes <= 0) {
       const result = {
         started: true,
         reason: "disabled",
@@ -320,7 +329,7 @@ export async function runAutomaticBackupScheduler(options = {}) {
 
     const now = new Date();
 
-    if (platformIntervalMinutes > 0) {
+    if (platformRunsPerDay > 0) {
       const target = {
         targetKey: "platform",
         targetType: "platform" as const,
@@ -331,7 +340,7 @@ export async function runAutomaticBackupScheduler(options = {}) {
       let due = false;
       try {
         const lastCreatedAt = await lastPlatformScheduledBackup();
-        due = isDue(platformIntervalMinutes, lastCreatedAt, now);
+        due = isPlatformBackupDue(platformRunsPerDay, lastCreatedAt, now);
       } catch (err) {
         failures += 1;
         const message = storedBackupSchedulerError(err);
@@ -353,7 +362,7 @@ export async function runAutomaticBackupScheduler(options = {}) {
             companyId: null,
             createdBy: owner.id,
             creationMode: "scheduled",
-            scheduleIntervalMinutes: platformIntervalMinutes,
+            scheduleFrequencyPerDay: platformRunsPerDay,
           });
           platformCreated += 1;
           const driveResult = await uploadCreatedBackup(
@@ -371,7 +380,7 @@ export async function runAutomaticBackupScheduler(options = {}) {
             errorMessage: driveResult.errorMessage,
           });
           logger.info(
-            { intervalMinutes: platformIntervalMinutes },
+            { runsPerDay: platformRunsPerDay },
             "Scheduled platform backup created",
           );
         } catch (err) {

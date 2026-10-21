@@ -259,6 +259,7 @@ export async function createBackup(input: {
   status?: string;
   creationMode?: "scheduled";
   scheduleIntervalMinutes?: number;
+  scheduleFrequencyPerDay?: number;
 }) {
   const built = await buildBackupPayload(input.scope, input.companyId);
   const [record] = await db
@@ -279,6 +280,9 @@ export async function createBackup(input: {
         ...(input.creationMode ? { creationMode: input.creationMode } : {}),
         ...(input.scheduleIntervalMinutes != null
           ? { scheduleIntervalMinutes: input.scheduleIntervalMinutes }
+          : {}),
+        ...(input.scheduleFrequencyPerDay != null
+          ? { scheduleFrequencyPerDay: input.scheduleFrequencyPerDay }
           : {}),
         tableCounts: Object.fromEntries(
           Object.entries(built.payload.data).map(([table, rows]) => [

@@ -5082,12 +5082,12 @@ components:
           description: Retry immediately even when a backup's backoff period has not elapsed.
     PlatformBackupScheduleInput:
       type: object
-      required: [platformBackupIntervalMinutes, companyBackupIntervalMinutes]
+      required: [platformBackupRunsPerDay, companyBackupIntervalMinutes]
       properties:
-        platformBackupIntervalMinutes:
+        platformBackupRunsPerDay:
           type: integer
-          description: 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time.
-          enum: [0, 360]
+          description: Number of platform backups per day; 1, 2, or 4. Legacy positive interval values are treated as 4.
+          enum: [0, 1, 2, 4]
         companyBackupIntervalMinutes:
           type: integer
           enum: [0, 1440, 10080]
@@ -5095,13 +5095,15 @@ components:
       type: object
       required:
         [
-          platformBackupIntervalMinutes,
+          platformBackupRunsPerDay,
           companyBackupIntervalMinutes,
           schedulerReady,
           schedulerStatus,
         ]
       properties:
-        platformBackupIntervalMinutes: { type: integer }
+        platformBackupRunsPerDay:
+          type: integer
+          enum: [0, 1, 2, 4]
         companyBackupIntervalMinutes: { type: integer }
         schedulerReady: { type: boolean }
         schedulerStatus:

@@ -498,9 +498,11 @@ const siteSettingsSchema = z.object({
 });
 const backupScheduleSchema = z
   .object({
-    platformBackupIntervalMinutes: z.union([
+    platformBackupRunsPerDay: z.union([
       z.literal(0),
-      z.literal(360),
+      z.literal(1),
+      z.literal(2),
+      z.literal(4),
     ]),
     companyBackupIntervalMinutes: z.union([
       z.literal(0),
@@ -902,10 +904,18 @@ async function loadBackupSchedule() {
         (settings?.companyBackupIntervalMinutes ?? 0) > 0,
       ),
     );
-  const platformScheduleEnabled =
-    (settings?.platformBackupIntervalMinutes ?? 0) > 0;
+  const storedPlatformRunsPerDay = settings?.platformBackupRunsPerDay ?? 0;
+  const platformBackupRunsPerDay =
+    storedPlatformRunsPerDay === 1 ||
+    storedPlatformRunsPerDay === 2 ||
+    storedPlatformRunsPerDay === 4
+      ? storedPlatformRunsPerDay
+      : storedPlatformRunsPerDay > 0
+        ? 4
+        : 0;
+  const platformScheduleEnabled = platformBackupRunsPerDay > 0;
   return {
-    platformBackupIntervalMinutes: platformScheduleEnabled ? 360 : 0,
+    platformBackupRunsPerDay,
     companyBackupIntervalMinutes:
       settings?.companyBackupIntervalMinutes ?? 0,
     schedulerReady:
@@ -950,7 +960,7 @@ router.patch("/platform/backup-schedule", async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({
       error:
-        "Platform backups must be off or four times daily; company backups must be off, daily, or weekly.",
+        "Platform backups must run 1, 2, or 4 times daily, or be off; company backups must be off, daily, or weekly.",
     });
     return;
   }
@@ -959,16 +969,14 @@ router.patch("/platform/backup-schedule", async (req, res): Promise<void> => {
     .insert(platformSettingsTable)
     .values({
       id: "default",
-      platformBackupIntervalMinutes:
-        parsed.data.platformBackupIntervalMinutes,
+      platformBackupRunsPerDay: parsed.data.platformBackupRunsPerDay,
       companyBackupIntervalMinutes:
         parsed.data.companyBackupIntervalMinutes,
     })
     .onConflictDoUpdate({
       target: platformSettingsTable.id,
       set: {
-        platformBackupIntervalMinutes:
-          parsed.data.platformBackupIntervalMinutes,
+        platformBackupRunsPerDay: parsed.data.platformBackupRunsPerDay,
         companyBackupIntervalMinutes:
           parsed.data.companyBackupIntervalMinutes,
         updatedAt: new Date(),
@@ -982,8 +990,7 @@ router.patch("/platform/backup-schedule", async (req, res): Promise<void> => {
     entityType: "platform_settings",
     entityId: "default",
     metadata: {
-      platformBackupIntervalMinutes:
-        parsed.data.platformBackupIntervalMinutes,
+      platformBackupRunsPerDay: parsed.data.platformBackupRunsPerDay,
       companyBackupIntervalMinutes:
         parsed.data.companyBackupIntervalMinutes,
     },

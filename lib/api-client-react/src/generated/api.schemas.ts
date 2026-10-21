@@ -3046,14 +3046,16 @@ export interface GoogleDriveRetryRequest {
 }
 
 /**
- * 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time.
+ * Number of platform backups per day; 1, 2, or 4. Legacy positive interval values are treated as 4.
  */
-export type PlatformBackupScheduleInputPlatformBackupIntervalMinutes = typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes];
+export type PlatformBackupScheduleInputPlatformBackupRunsPerDay = typeof PlatformBackupScheduleInputPlatformBackupRunsPerDay[keyof typeof PlatformBackupScheduleInputPlatformBackupRunsPerDay];
 
 
-export const PlatformBackupScheduleInputPlatformBackupIntervalMinutes = {
+export const PlatformBackupScheduleInputPlatformBackupRunsPerDay = {
   NUMBER_0: 0,
-  NUMBER_360: 360,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_4: 4,
 } as const;
 
 export type PlatformBackupScheduleInputCompanyBackupIntervalMinutes = typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes];
@@ -3066,10 +3068,20 @@ export const PlatformBackupScheduleInputCompanyBackupIntervalMinutes = {
 } as const;
 
 export interface PlatformBackupScheduleInput {
-  /** 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time. */
-  platformBackupIntervalMinutes: PlatformBackupScheduleInputPlatformBackupIntervalMinutes;
+  /** Number of platform backups per day; 1, 2, or 4. Legacy positive interval values are treated as 4. */
+  platformBackupRunsPerDay: PlatformBackupScheduleInputPlatformBackupRunsPerDay;
   companyBackupIntervalMinutes: PlatformBackupScheduleInputCompanyBackupIntervalMinutes;
 }
+
+export type PlatformBackupSchedulePlatformBackupRunsPerDay = typeof PlatformBackupSchedulePlatformBackupRunsPerDay[keyof typeof PlatformBackupSchedulePlatformBackupRunsPerDay];
+
+
+export const PlatformBackupSchedulePlatformBackupRunsPerDay = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_4: 4,
+} as const;
 
 export interface PlatformBackupSchedulerRun {
   startedAt: string;
@@ -3128,7 +3140,7 @@ export interface PlatformBackupSchedulerStatus {
 }
 
 export interface PlatformBackupSchedule {
-  platformBackupIntervalMinutes: number;
+  platformBackupRunsPerDay: PlatformBackupSchedulePlatformBackupRunsPerDay;
   companyBackupIntervalMinutes: number;
   schedulerReady: boolean;
   schedulerStatus: PlatformBackupSchedulerStatus;

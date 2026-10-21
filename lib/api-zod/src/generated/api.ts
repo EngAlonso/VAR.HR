@@ -4885,7 +4885,7 @@ export const DisconnectPlatformGoogleDriveResponse = zod.void()
  * @summary Get automatic backup schedule and scheduler status
  */
 export const GetPlatformBackupScheduleResponse = zod.object({
-  "platformBackupIntervalMinutes": zod.int(),
+  "platformBackupRunsPerDay": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(4)]),
   "companyBackupIntervalMinutes": zod.int(),
   "schedulerReady": zod.boolean(),
   "schedulerStatus": zod.object({
@@ -4927,12 +4927,12 @@ export const GetPlatformBackupScheduleResponse = zod.object({
  * @summary Update automatic backup intervals
  */
 export const UpdatePlatformBackupScheduleBody = zod.object({
-  "platformBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(360)]).describe('360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa\/Cairo time.'),
+  "platformBackupRunsPerDay": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(4)]).describe('Number of platform backups per day; 1, 2, or 4. Legacy positive interval values are treated as 4.'),
   "companyBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(1440),zod.literal(10080)])
 })
 
 export const UpdatePlatformBackupScheduleResponse = zod.object({
-  "platformBackupIntervalMinutes": zod.int(),
+  "platformBackupRunsPerDay": zod.union([zod.literal(0),zod.literal(1),zod.literal(2),zod.literal(4)]),
   "companyBackupIntervalMinutes": zod.int(),
   "schedulerReady": zod.boolean(),
   "schedulerStatus": zod.object({

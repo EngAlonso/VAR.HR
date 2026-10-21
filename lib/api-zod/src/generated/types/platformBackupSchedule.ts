@@ -5,10 +5,11 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlatformBackupSchedulePlatformBackupRunsPerDay } from './platformBackupSchedulePlatformBackupRunsPerDay';
 import type { PlatformBackupSchedulerStatus } from './platformBackupSchedulerStatus';
 
 export interface PlatformBackupSchedule {
-  platformBackupIntervalMinutes: number;
+  platformBackupRunsPerDay: PlatformBackupSchedulePlatformBackupRunsPerDay;
   companyBackupIntervalMinutes: number;
   schedulerReady: boolean;
   schedulerStatus: PlatformBackupSchedulerStatus;
