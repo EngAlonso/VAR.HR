@@ -159,6 +159,69 @@ async function createBackupFolder(accessToken: string): Promise<DriveFile> {
   return folder;
 }
 
+async function folderHasBackupFiles(
+  accessToken: string,
+  folderId: string,
+): Promise<boolean> {
+  const query = [
+    `'${escapeDriveQuery(folderId)}' in parents`,
+    "name contains 'VAR-HR-'",
+    "mimeType = 'application/json'",
+    "trashed = false",
+  ].join(" and ");
+  const params = new URLSearchParams({
+    q: query,
+    pageSize: "1",
+    fields: "files(id)",
+  });
+  const result = await driveJson<{ files?: DriveFile[] }>(
+    accessToken,
+    `${DRIVE_API}/files?${params.toString()}`,
+    "FIND_BACKUP_FOLDER_CONTENTS",
+  );
+  return Boolean(result.files?.some((file) => file.id));
+}
+
+async function findExistingBackupFolder(
+  accessToken: string,
+): Promise<DriveFile | null> {
+  const query = [
+    `name = '${escapeDriveQuery(BACKUP_FOLDER_NAME)}'`,
+    "mimeType = 'application/vnd.google-apps.folder'",
+    "trashed = false",
+  ].join(" and ");
+  const params = new URLSearchParams({
+    q: query,
+    pageSize: "100",
+    fields: "files(id,name,webViewLink,mimeType)",
+  });
+  const result = await driveJson<{ files?: DriveFile[] }>(
+    accessToken,
+    `${DRIVE_API}/files?${params.toString()}`,
+    "FIND_BACKUP_FOLDER",
+  );
+  const folders = (result.files ?? []).filter(
+    (file) =>
+      Boolean(file.id) &&
+      file.mimeType === "application/vnd.google-apps.folder",
+  );
+  if (folders.length === 0) return null;
+  if (folders.length === 1) return folders[0];
+
+  const foldersWithBackups: DriveFile[] = [];
+  for (const folder of folders) {
+    if (folder.id && (await folderHasBackupFiles(accessToken, folder.id))) {
+      foldersWithBackups.push(folder);
+    }
+  }
+  if (foldersWithBackups.length === 1) return foldersWithBackups[0];
+  throw new GoogleDriveApiError(
+    409,
+    "FIND_BACKUP_FOLDER",
+    "MULTIPLE_MATCHING_BACKUP_FOLDERS",
+  );
+}
+
 async function ensureBackupFolder(
   accessToken: string,
 ): Promise<DriveFile> {
@@ -185,6 +248,11 @@ async function ensureBackupFolder(
         throw error;
       }
     }
+  }
+  const existingFolder = await findExistingBackupFolder(accessToken);
+  if (existingFolder) {
+    await persistFolder(existingFolder);
+    return existingFolder;
   }
   return createBackupFolder(accessToken);
 }
