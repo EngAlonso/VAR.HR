@@ -261,7 +261,10 @@ export async function runAutomaticBackupScheduler(options = {}) {
       .where(eq(platformSettingsTable.id, "default"))
       .limit(1);
 
-    const platformIntervalMinutes = settings?.platformIntervalMinutes ?? 0;
+    // Any previously enabled platform cadence now follows the requested
+    // four-times-daily Cairo schedule. Company backup cadence is unchanged.
+    const platformIntervalMinutes =
+      (settings?.platformIntervalMinutes ?? 0) > 0 ? 360 : 0;
     const companyIntervalMinutes = settings?.companyIntervalMinutes ?? 0;
     if (platformIntervalMinutes <= 0 && companyIntervalMinutes <= 0) {
       const result = {

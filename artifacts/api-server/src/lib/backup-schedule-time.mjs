@@ -1,6 +1,9 @@
 const CAIRO_TIME_ZONE = "Africa/Cairo";
 const DAILY_INTERVAL_MINUTES = 24 * 60;
 const DAILY_RUN_MINUTE = 13 * 60;
+const PLATFORM_INTERVAL_MINUTES = 6 * 60;
+const PLATFORM_FIRST_RUN_MINUTE = 60;
+const PLATFORM_SLOT_INTERVAL_MINUTES = 6 * 60;
 
 function cairoTimeParts(date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -24,10 +27,32 @@ function cairoTimeParts(date) {
   };
 }
 
+function platformSlotKey(date) {
+  const current = cairoTimeParts(date);
+  if (current.minuteOfDay < PLATFORM_FIRST_RUN_MINUTE) {
+    const previousDay = new Date(`${current.dayKey}T00:00:00.000Z`);
+    previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+    return `${previousDay.toISOString().slice(0, 10)}:3`;
+  }
+  const slot = Math.floor(
+    (current.minuteOfDay - PLATFORM_FIRST_RUN_MINUTE) /
+      PLATFORM_SLOT_INTERVAL_MINUTES,
+  );
+  return `${current.dayKey}:${slot}`;
+}
+
 export function isBackupDue(intervalMinutes, lastCreatedAt, now) {
   if (intervalMinutes <= 0) return false;
 
   const last = lastCreatedAt ? new Date(lastCreatedAt) : null;
+  if (intervalMinutes === PLATFORM_INTERVAL_MINUTES) {
+    const currentCairoTime = cairoTimeParts(now);
+    if (!last) {
+      return currentCairoTime.minuteOfDay >= PLATFORM_FIRST_RUN_MINUTE;
+    }
+    return platformSlotKey(last) < platformSlotKey(now);
+  }
+
   if (intervalMinutes === DAILY_INTERVAL_MINUTES) {
     const currentCairoTime = cairoTimeParts(now);
     if (currentCairoTime.minuteOfDay < DAILY_RUN_MINUTE) return false;

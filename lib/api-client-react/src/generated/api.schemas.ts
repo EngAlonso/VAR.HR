@@ -3045,13 +3045,15 @@ export interface GoogleDriveRetryRequest {
   force?: boolean;
 }
 
+/**
+ * 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time.
+ */
 export type PlatformBackupScheduleInputPlatformBackupIntervalMinutes = typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputPlatformBackupIntervalMinutes];
 
 
 export const PlatformBackupScheduleInputPlatformBackupIntervalMinutes = {
   NUMBER_0: 0,
-  NUMBER_1440: 1440,
-  NUMBER_10080: 10080,
+  NUMBER_360: 360,
 } as const;
 
 export type PlatformBackupScheduleInputCompanyBackupIntervalMinutes = typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes[keyof typeof PlatformBackupScheduleInputCompanyBackupIntervalMinutes];
@@ -3064,6 +3066,7 @@ export const PlatformBackupScheduleInputCompanyBackupIntervalMinutes = {
 } as const;
 
 export interface PlatformBackupScheduleInput {
+  /** 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time. */
   platformBackupIntervalMinutes: PlatformBackupScheduleInputPlatformBackupIntervalMinutes;
   companyBackupIntervalMinutes: PlatformBackupScheduleInputCompanyBackupIntervalMinutes;
 }

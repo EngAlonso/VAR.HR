@@ -4927,7 +4927,7 @@ export const GetPlatformBackupScheduleResponse = zod.object({
  * @summary Update automatic backup intervals
  */
 export const UpdatePlatformBackupScheduleBody = zod.object({
-  "platformBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(1440),zod.literal(10080)]),
+  "platformBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(360)]).describe('360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa\/Cairo time.'),
   "companyBackupIntervalMinutes": zod.union([zod.literal(0),zod.literal(1440),zod.literal(10080)])
 })
 

@@ -9,6 +9,7 @@ import type { PlatformBackupScheduleInputCompanyBackupIntervalMinutes } from './
 import type { PlatformBackupScheduleInputPlatformBackupIntervalMinutes } from './platformBackupScheduleInputPlatformBackupIntervalMinutes';
 
 export interface PlatformBackupScheduleInput {
+  /** 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time. */
   platformBackupIntervalMinutes: PlatformBackupScheduleInputPlatformBackupIntervalMinutes;
   companyBackupIntervalMinutes: PlatformBackupScheduleInputCompanyBackupIntervalMinutes;
 }

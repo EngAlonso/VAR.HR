@@ -500,8 +500,7 @@ const backupScheduleSchema = z
   .object({
     platformBackupIntervalMinutes: z.union([
       z.literal(0),
-      z.literal(1440),
-      z.literal(10080),
+      z.literal(360),
     ]),
     companyBackupIntervalMinutes: z.union([
       z.literal(0),
@@ -903,9 +902,10 @@ async function loadBackupSchedule() {
         (settings?.companyBackupIntervalMinutes ?? 0) > 0,
       ),
     );
+  const platformScheduleEnabled =
+    (settings?.platformBackupIntervalMinutes ?? 0) > 0;
   return {
-    platformBackupIntervalMinutes:
-      settings?.platformBackupIntervalMinutes ?? 0,
+    platformBackupIntervalMinutes: platformScheduleEnabled ? 360 : 0,
     companyBackupIntervalMinutes:
       settings?.companyBackupIntervalMinutes ?? 0,
     schedulerReady:
@@ -931,7 +931,7 @@ async function loadBackupSchedule() {
         serializeTarget(
           "platform",
           null,
-          (settings?.platformBackupIntervalMinutes ?? 0) > 0,
+          platformScheduleEnabled,
         ),
         ...serializedCompanies,
       ],
@@ -949,7 +949,8 @@ router.patch("/platform/backup-schedule", async (req, res): Promise<void> => {
   const parsed = backupScheduleSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
-      error: "Backup intervals must be disabled, daily, or weekly.",
+      error:
+        "Platform backups must be off or four times daily; company backups must be off, daily, or weekly.",
     });
     return;
   }

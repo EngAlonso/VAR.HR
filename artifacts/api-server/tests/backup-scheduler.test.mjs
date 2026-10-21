@@ -29,6 +29,12 @@ test("backup schedule settings are restricted to platform owners", () => {
   );
   assert.match(settingsRoute, /z\.literal\(1440\)/);
   assert.match(settingsRoute, /z\.literal\(10080\)/);
+  assert.match(settingsRoute, /z\.literal\(360\)/);
+  assert.match(settingsRoute, /platformScheduleEnabled \? 360 : 0/);
+  assert.match(
+    scheduler,
+    /\(settings\?\.platformIntervalMinutes \?\? 0\) > 0 \? 360 : 0/,
+  );
   assert.match(webApp, /isPlatformOwner && \([\s\S]*?data-testid="save-backup-schedule"/);
 });
 
@@ -54,6 +60,35 @@ test("daily backups run once per Cairo day at or after 13:00 local time", () => 
   assert.equal(isBackupDue(daily, earlierToday, atRun), true);
   assert.equal(isBackupDue(daily, alreadyRunToday, atRun), false);
   assert.equal(isBackupDue(daily, previousDayLate, atRun), true);
+});
+
+test("platform backups follow fixed six-hour Cairo slots", () => {
+  const sixHours = 360;
+  const beforeFirstSummerSlot = new Date("2026-07-11T21:59:00.000Z"); // 00:59 Cairo
+  const firstSummerSlot = new Date("2026-07-11T22:00:00.000Z"); // 01:00 Cairo
+  const firstBackup = new Date("2026-07-11T22:02:00.000Z");
+  const sevenAm = new Date("2026-07-12T04:00:00.000Z");
+  const onePm = new Date("2026-07-12T10:00:00.000Z");
+  const sevenPm = new Date("2026-07-12T16:00:00.000Z");
+  const afterOnePmBackup = new Date("2026-07-12T10:02:00.000Z");
+
+  assert.equal(isBackupDue(sixHours, undefined, beforeFirstSummerSlot), false);
+  assert.equal(isBackupDue(sixHours, undefined, firstSummerSlot), true);
+  assert.equal(isBackupDue(sixHours, firstBackup, firstSummerSlot), false);
+  assert.equal(isBackupDue(sixHours, firstBackup, sevenAm), true);
+  assert.equal(isBackupDue(sixHours, new Date("2026-07-12T04:02:00.000Z"), onePm), true);
+  assert.equal(isBackupDue(sixHours, afterOnePmBackup, sevenPm), true);
+  assert.equal(
+    isBackupDue(
+      sixHours,
+      new Date("2026-07-12T16:02:00.000Z"),
+      new Date("2026-07-12T22:00:00.000Z"),
+    ),
+    true,
+  );
+
+  const firstWinterSlot = new Date("2026-01-11T23:00:00.000Z"); // 01:00 Cairo
+  assert.equal(isBackupDue(sixHours, undefined, firstWinterSlot), true);
 });
 
 test("weekly backups retain their elapsed-interval behavior", () => {
@@ -114,21 +149,29 @@ test("only scheduled platform backups can be uploaded or retried through Google 
   );
 });
 
-test("Vercel cron checks at 13:00 Cairo in both standard and daylight time", () => {
+test("Vercel cron checks cover all four Cairo slots in both standard and daylight time", () => {
   const schedules = [
     ...vercelConfig.matchAll(/"schedule":\s*"([^"]+)"/g),
   ].map((match) => match[1]);
-  assert.deepEqual(schedules, ["0 10 * * *", "0 11 * * *"]);
+  assert.deepEqual(schedules, [
+    "0 22 * * *",
+    "0 23 * * *",
+    "0 4 * * *",
+    "0 5 * * *",
+    "0 10 * * *",
+    "0 11 * * *",
+    "0 16 * * *",
+    "0 17 * * *",
+  ]);
 
-  const summerAtThirteen = new Date("2026-07-12T10:00:00.000Z");
-  const summerAtFourteen = new Date("2026-07-12T11:00:00.000Z");
-  const winterAtTwelve = new Date("2026-01-12T10:00:00.000Z");
-  const winterAtThirteen = new Date("2026-01-12T11:00:00.000Z");
-
-  assert.equal(isBackupDue(1440, undefined, summerAtThirteen), true);
-  assert.equal(isBackupDue(1440, summerAtThirteen, summerAtFourteen), false);
-  assert.equal(isBackupDue(1440, undefined, winterAtTwelve), false);
-  assert.equal(isBackupDue(1440, undefined, winterAtThirteen), true);
+  assert.equal(
+    isBackupDue(360, new Date("2026-07-12T04:02:00.000Z"), new Date("2026-07-12T10:00:00.000Z")),
+    true,
+  );
+  assert.equal(
+    isBackupDue(360, new Date("2026-01-12T05:02:00.000Z"), new Date("2026-01-12T11:00:00.000Z")),
+    true,
+  );
 });
 
 test("opening backup settings automatically retries connected Drive backlog", () => {

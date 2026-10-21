@@ -5086,7 +5086,8 @@ components:
       properties:
         platformBackupIntervalMinutes:
           type: integer
-          enum: [0, 1440, 10080]
+          description: 360 means four platform backups daily at 01:00, 07:00, 13:00, and 19:00 Africa/Cairo time.
+          enum: [0, 360]
         companyBackupIntervalMinutes:
           type: integer
           enum: [0, 1440, 10080]

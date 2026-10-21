@@ -21454,13 +21454,14 @@ function BackupRestore() {
         size: "الحجم",
         scheduleTitle: "النسخ الاحتياطي التلقائي",
         scheduleDetail:
-          "عند اختيار التكرار اليومي، تُنشأ نسخة المنصة ونسخة كل شركة الساعة 13:00 بتوقيت القاهرة.",
+          "تُنشأ نسخة المنصة الكاملة أربع مرات يوميًا: 1 صباحًا و7 صباحًا و1 ظهرًا و7 مساءً بتوقيت القاهرة. تظل جدولة الشركات مستقلة.",
         scheduleLoading: "جارٍ تحميل إعدادات الجدولة…",
         scheduleRuntime:
-          "على Replit، يفحص الخادم الجدولة كل دقيقة وينشئ النسخ ابتداءً من 13:00 بتوقيت القاهرة. على الخوادم serverless، اضبط Cron بعد 13:00 بتوقيت القاهرة وأرسل CRON_SECRET في ترويسة Authorization.",
+          "على Replit يفحص الخادم كل دقيقة. على Vercel، دقة Hobby قد تؤخر التشغيل حتى 59 دقيقة؛ خطة Pro تدعم دقة الدقيقة. تظل جدولة الشركات مستقلة.",
         platformFrequency: "تكرار نسخة المنصة",
         companyFrequency: "تكرار نسخة كل شركة",
         off: "متوقف",
+        fourTimesDaily: "4 مرات يوميًا (كل 6 ساعات)",
         daily: "يوميًا",
         weekly: "أسبوعيًا",
         saveSchedule: "حفظ الجدولة",
@@ -21545,7 +21546,7 @@ function BackupRestore() {
         driveCancelled: "تم إلغاء ربط Google Drive.",
         driveError: "تعذر إكمال إجراء Google Drive.",
         driveNeedsSchedule:
-          "فعّل نسخة يومية أو أسبوعية واحدة على الأقل كي تُنشأ النسخ التي ستُرفع.",
+          "فعّل نسخ المنصة أربع مرات يوميًا أو نسخة يومية/أسبوعية للشركات كي تُنشأ النسخ التي ستُرفع.",
         driveUploaded: "نسخة محفوظة في Google Drive",
         driveUploadPending: "بانتظار الرفع إلى Google Drive",
         driveUploadFailed: "تعذر رفع هذه النسخة إلى Google Drive",
@@ -21592,13 +21593,14 @@ function BackupRestore() {
         size: "Size",
         scheduleTitle: "Automatic backup schedule",
         scheduleDetail:
-          "When daily is selected, platform and company backups run at 13:00 Africa/Cairo time.",
+          "The complete platform backup runs four times daily at 1 AM, 7 AM, 1 PM, and 7 PM Cairo time. Company schedules remain separate.",
         scheduleLoading: "Loading schedule settings…",
         scheduleRuntime:
-          "On Replit, the server checks every minute and creates backups at or after 13:00 Africa/Cairo time. On serverless hosts, schedule the authenticated endpoint after 13:00 Cairo time.",
+          "Replit checks every minute. Vercel Hobby can delay a run by up to 59 minutes; Pro supports minute-level precision. Company schedules remain separate.",
         platformFrequency: "Platform backup frequency",
         companyFrequency: "Company backup frequency",
         off: "Off",
+        fourTimesDaily: "Four times daily (every 6 hours)",
         daily: "Daily",
         weekly: "Weekly",
         saveSchedule: "Save schedule",
@@ -21683,7 +21685,7 @@ function BackupRestore() {
         driveCancelled: "Google Drive connection was cancelled.",
         driveError: "Could not complete the Google Drive action.",
         driveNeedsSchedule:
-          "Enable at least one daily or weekly schedule to create backups for Drive.",
+          "Enable four-times-daily platform backups or a daily/weekly company schedule to create backups for Drive.",
         driveUploaded: "Copy saved in Google Drive",
         driveUploadPending: "Waiting to upload to Google Drive",
         driveUploadFailed: "This backup could not be uploaded to Google Drive",
@@ -22255,8 +22257,7 @@ function BackupRestore() {
                   }
                 >
                   <option value={0}>{labels.off}</option>
-                  <option value={1440}>{labels.daily}</option>
-                  <option value={10080}>{labels.weekly}</option>
+                  <option value={360}>{labels.fourTimesDaily}</option>
                 </select>
               </label>
               <label className="block">
