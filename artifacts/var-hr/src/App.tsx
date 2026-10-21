@@ -92,6 +92,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import NotFound from "@/pages/not-found";
+import PublicLanding from "./PublicLanding";
 import {
   useGetWorkspace,
   useGetDashboardSummary,
@@ -7614,6 +7615,9 @@ function AuthGate() {
   const [authError, setAuthError] = useState(false);
   const [authCheckKey, setAuthCheckKey] = useState(0);
   const [location, setLocation] = useLocation();
+  const { locale, setLocale } = useI18n();
+  const branding = useSiteBranding();
+  const landingLocale = locale === "ar" ? "ar" : "en";
   const signOut = async () => {
     await authRequest("/api/auth/logout", { method: "POST" }).catch(
       () => undefined,
@@ -7622,6 +7626,59 @@ function AuthGate() {
     setAccount(null);
     setLocation("/login");
   };
+  useEffect(() => {
+    const isPublicHome = location === "/" && !account;
+    const isLogin = location === "/login";
+    const title =
+      isPublicHome
+        ? locale === "ar"
+          ? `${branding.siteName} | الموارد البشرية والحضور والرواتب`
+          : `${branding.siteName} | HR, attendance and payroll`
+        : isLogin
+          ? locale === "ar"
+            ? `تسجيل الدخول | ${branding.siteName}`
+            : `Sign in | ${branding.siteName}`
+          : branding.siteName;
+    const description = isPublicHome
+      ? locale === "ar"
+        ? "أدر سجلات الموظفين والحضور والرواتب والجداول وطلبات الموظفين من منصة واحدة واضحة للموارد البشرية."
+        : "Manage employee records, attendance, payroll, schedules, and employee requests in one clear HR operations platform."
+      : isLogin
+        ? locale === "ar"
+          ? `سجّل الدخول إلى مساحة عمل ${branding.siteName} الآمنة.`
+          : `Sign in to your secure ${branding.siteName} workspace.`
+        : branding.siteName;
+    document.title = title;
+    const setMetaContent = (
+      selector: string,
+      attribute: "name" | "property",
+      key: string,
+      content: string,
+    ) => {
+      let meta = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute(attribute, key);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+    setMetaContent('meta[name="description"]', "name", "description", description);
+    setMetaContent('meta[property="og:title"]', "property", "og:title", title);
+    setMetaContent(
+      'meta[property="og:description"]',
+      "property",
+      "og:description",
+      description,
+    );
+    setMetaContent('meta[name="twitter:title"]', "name", "twitter:title", title);
+    setMetaContent(
+      'meta[name="twitter:description"]',
+      "name",
+      "twitter:description",
+      description,
+    );
+  }, [account, branding.siteName, location, locale]);
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -7667,7 +7724,7 @@ function AuthGate() {
     }
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
-  if (authError)
+  if (authError && location !== "/")
     return (
       <WorkspaceState
         kind="error"
@@ -7684,6 +7741,15 @@ function AuthGate() {
           }}
         />
       );
+  if (!account && location === "/")
+    return (
+      <PublicLanding
+        locale={landingLocale}
+        onLocaleChange={(nextLocale) => setLocale(nextLocale)}
+        siteName={branding.siteName}
+        logoSrc={siteLogoSource(branding.logoVariant, "horizontal")}
+      />
+    );
   if (!account)
     return (
       <Login
@@ -31565,7 +31631,6 @@ function App() {
     };
   }, []);
   useEffect(() => {
-    document.title = siteSettings.siteName;
     let favicon = document.querySelector<HTMLLinkElement>(
       'link[rel~="icon"]',
     );
