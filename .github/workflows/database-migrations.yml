@@ -1,0 +1,209 @@
+name: Safe database migrations
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  verify-migrations:
+    name: Test database migrations
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: var_hr_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d var_hr_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    outputs:
+      database_changed: ${{ steps.changes.outputs.database_changed }}
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect database changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed_files="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          if printf '%s\n' "$changed_files" | grep -Eq '^(lib/db/src/schema/|lib/db/migrations/|lib/db/scripts/migration-control\.mjs$|lib/db/drizzle(\.aiven)?\.config\.ts$|lib/db/package\.json$|pnpm-lock\.yaml$)'; then
+            echo "database_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "database_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Typecheck the project
+        run: pnpm run typecheck
+
+      - name: Check that schema changes have committed migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/var_hr_ci
+        run: |
+          pnpm --filter @workspace/db run generate
+          if [ -n "$(git status --porcelain -- lib/db/migrations)" ]; then
+            echo "::error::The Drizzle schema produces uncommitted migration or snapshot changes. Review and commit the generated files."
+            git status --short -- lib/db/migrations
+            exit 1
+          fi
+
+      - name: Apply migrations to a disposable development database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/var_hr_ci
+        run: pnpm --filter @workspace/db run migrate:dev
+
+      - name: Verify the migrated development schema
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/var_hr_ci
+        run: pnpm --filter @workspace/db run inspect:dev
+
+      - name: Mark pull requests without database changes as ready
+        if: >-
+          steps.changes.outputs.database_changed != 'true' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api --method POST "repos/$REPOSITORY/statuses/$PR_HEAD_SHA" \
+            -f state=success \
+            -f context="Aiven migration approved" \
+            -f description="Migration checks passed; no database change is required." \
+            -f target_url="$RUN_URL"
+
+  apply-aiven-migration:
+    name: Apply Aiven migration (verify backup before approval)
+    needs: verify-migrations
+    if: >-
+      needs.verify-migrations.outputs.database_changed == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: aiven-production
+    concurrency:
+      group: aiven-production-migrations
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      statuses: write
+    steps:
+      - name: Check out the reviewed pull request
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Confirm the reviewed pull request has not changed
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          current_sha="$(git ls-remote origin "refs/heads/${PR_HEAD_REF}" | awk '{print $1}')"
+          if [ "$current_sha" != "$PR_HEAD_SHA" ]; then
+            echo "::error::The pull request changed while production approval was pending. Rerun the workflow for the latest revision."
+            exit 1
+          fi
+
+      - name: Apply and verify the migration on Replit development
+        env:
+          DATABASE_URL: ${{ secrets.REPLIT_DEV_DATABASE_URL }}
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::Add the REPLIT_DEV_DATABASE_URL secret to the aiven-production GitHub environment."
+            exit 1
+          fi
+          pnpm --filter @workspace/db run migrate:dev
+          pnpm --filter @workspace/db run inspect:dev
+
+      - name: Apply the reviewed migration to Aiven
+        env:
+          DATABASE_URL: ${{ secrets.REPLIT_DEV_DATABASE_URL }}
+          AIVEN_MIGRATION_DATABASE_URL: ${{ secrets.AIVEN_MIGRATION_DATABASE_URL }}
+          AIVEN_CA_CERT: ${{ secrets.AIVEN_CA_CERT }}
+        run: |
+          for key in DATABASE_URL AIVEN_MIGRATION_DATABASE_URL AIVEN_CA_CERT; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Required protected GitHub environment secret is missing: $key"
+              exit 1
+            fi
+          done
+          pnpm --filter @workspace/db run migrate:aiven -- --confirm-aiven-production
+
+      - name: Save the updated Aiven report to the pull request
+        id: report
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/db/migrations/meta/aiven-baseline-report.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Record verified Aiven migration state"
+            git push origin "HEAD:refs/heads/${PR_HEAD_REF}"
+          fi
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Mark the migrated pull request revision as ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ steps.report.outputs.commit_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api --method POST "repos/$REPOSITORY/statuses/$COMMIT_SHA" \
+            -f state=success \
+            -f context="Aiven migration approved" \
+            -f description="Development and Aiven migrations passed after protected approval." \
+            -f target_url="$RUN_URL"

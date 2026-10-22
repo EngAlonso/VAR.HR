@@ -16,7 +16,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/db run migrate:aiven -- --confirm-aiven-production` — apply migrations already tested in development
 - Replit provides `DATABASE_URL` for development. Development migration commands reject Aiven and `EXTERNAL_DATABASE_URL`.
 - Aiven migration commands use the separate `AIVEN_MIGRATION_DATABASE_URL` and `AIVEN_CA_CERT` secrets, require verified TLS, and never fall back to `DATABASE_URL`.
-- The API startup and `vercel.json` build do not run database DDL. Post-merge setup applies only committed migrations to the development database; Aiven requires an explicit, reviewed command.
+- The API startup and `vercel.json` build do not run database DDL. Post-merge setup applies only committed migrations to development. The protected GitHub pull-request workflow tests migrations and waits for approval before applying them to Aiven, before the PR can merge to `main`.
 
 ## Stack
 

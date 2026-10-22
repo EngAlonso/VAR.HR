@@ -41,6 +41,12 @@ Vercel Cron expressions are always UTC, while Cairo alternates between UTC+2 and
 
 **How to apply:** Verify which database contains live data before enabling automatic backups. On Vercel, configure `CRON_SECRET` in the production environment and activate cron changes with a production deployment; on another serverless host, connect its cron service to the same authenticated endpoint. Keep cadence choices within the trigger frequency supported by the host.
 
+For database migrations, the user chose an automated pull-request test followed by explicit approval before Aiven changes. Apply migrations before merging to `main`, so Vercel's automatic deployment cannot ship code before its schema is ready.
+
+**Why:** The user wants future schema updates automated without running DDL in the Vercel build or application startup.
+
+**How to apply:** Keep CI schema tests separate from Vercel deployment, use a protected GitHub production environment and backup review, then migrate Aiven before merging the feature PR.
+
 Vercel registers Cron Jobs from the production deployment's `vercel.json`. Delivery is best-effort, and Vercel does not retry a failed invocation; a missing invocation log means the backup handler did not run.
 
 **Why:** Changing backup execution code cannot repair a Cron Job that is absent, disabled, or not part of the active production deployment.
