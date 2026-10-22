@@ -46,3 +46,11 @@ Vercel registers Cron Jobs from the production deployment's `vercel.json`. Deliv
 **Why:** Changing backup execution code cannot repair a Cron Job that is absent, disabled, or not part of the active production deployment.
 
 **How to apply:** Check the production Cron Jobs list and invocation logs before debugging backup logic. Redeploy after changing Cron configuration, and keep the handler idempotent so a later successful invocation can catch up safely. See [Vercel Cron management](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+
+## Future Aiven schema migrations
+
+The user wants new schema changes to reach Vercel's Aiven production database automatically and safely, with migrations tested against development first. Vercel redeploys after changes are pushed to GitHub. Do not run DDL in the Vercel build or application startup. Aiven currently has existing application tables but no Drizzle migration-history table; do not replay the existing migration history before verifying the live schema and establishing a baseline.
+
+**Why:** Replaying old migrations against a populated database with no migration ledger can modify or conflict with existing tables. The Replit databases are separate from Aiven.
+
+**How to apply:** Verify the exact Aiven target and compare its schema with the latest Drizzle snapshot before baselining. Test each new migration on development first, then apply through a separate migration workflow. Verify database-role permissions rather than trusting a connection's "read-only" label; use a read-only transaction for schema audits and keep Vercel builds/startup free of DDL.
