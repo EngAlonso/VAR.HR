@@ -5,7 +5,7 @@ This repository has two separate PostgreSQL targets:
 - Replit's `DATABASE_URL` is the development database.
 - Vercel production uses Aiven. Its migration-only connection is `AIVEN_MIGRATION_DATABASE_URL`, with `AIVEN_CA_CERT` for verified TLS.
 
-Never use `drizzle-kit push` for schema changes. It bypasses the committed migration history and is not part of app startup or the Vercel build.
+For normal schema changes, never use `drizzle-kit push`: it bypasses the committed migration history. It is used only by a guarded, one-time bootstrap when the Replit development database has no application tables or migration history. That bootstrap creates the known `0009` development schema, records the matching migration baseline, and then applies pending migrations through Drizzle. It never runs against Aiven, Vercel, or a non-empty development schema.
 
 ## Make and test a schema change
 
@@ -23,16 +23,16 @@ Never use `drizzle-kit push` for schema changes. It bypasses the committed migra
    pnpm --filter @workspace/db run migrate:dev
    ```
 
-   Post-merge setup runs this same development-only command. The command reads only `DATABASE_URL`; it rejects `EXTERNAL_DATABASE_URL`, Aiven hosts, and Vercel.
+    Post-merge setup runs this same development-only command. The command reads only `DATABASE_URL`; it rejects `EXTERNAL_DATABASE_URL`, Aiven hosts, and Vercel. On a completely empty development database it bootstraps the checked-in `0009` schema, records that baseline, and then runs the pending committed migrations. Existing application tables without migration history require an explicit inspection and baseline; they are never auto-synchronized.
 5. Run the app checks and exercise the feature against development before production.
 
-The first development migration run needs a one-time baseline if the database already has the schema but no `drizzle.__drizzle_migrations` table. Compare it to the latest snapshot first, then run:
+If a development database already has application tables but no migration history, compare it to the newest matching snapshot first, then run:
 
 ```sh
 pnpm --filter @workspace/db run baseline:dev -- --confirm-dev-baseline
 ```
 
-The baseline writes one Drizzle history row for the latest migration. It does not replay historical SQL or change application tables.
+The baseline writes one Drizzle history row for the matching migration. It does not replay historical SQL or change application tables. Do not baseline an empty database with an application migration version; the guarded empty-database bootstrap handles that case.
 
 ## Inspect and baseline existing Aiven production
 

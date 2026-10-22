@@ -9,7 +9,7 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate --config ./drizzle.config.ts",
-    "migrate:dev": "drizzle-kit migrate --config ./drizzle.config.ts",
+    "migrate:dev": "node ./scripts/migration-control.mjs migrate:dev",
     "inspect:dev": "node ./scripts/migration-control.mjs inspect:dev",
     "inspect:aiven": "node ./scripts/migration-control.mjs inspect:aiven",
     "baseline:dev": "node ./scripts/migration-control.mjs baseline:dev",
