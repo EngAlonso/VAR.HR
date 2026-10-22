@@ -3019,6 +3019,60 @@ export interface PlatformSummary {
   alerts: PlatformAlert[];
 }
 
+export interface PlatformSocialLinks {
+  /** @maxLength 500 */
+  facebook: string;
+  /** @maxLength 500 */
+  instagram: string;
+  /** @maxLength 500 */
+  linkedin: string;
+  /** @maxLength 500 */
+  x: string;
+  /** @maxLength 500 */
+  youtube: string;
+  /** @maxLength 500 */
+  tiktok: string;
+  /** @maxLength 500 */
+  whatsapp: string;
+}
+
+export type PlatformSiteSettingsLogoVariant = typeof PlatformSiteSettingsLogoVariant[keyof typeof PlatformSiteSettingsLogoVariant];
+
+
+export const PlatformSiteSettingsLogoVariant = {
+  square: 'square',
+  short: 'short',
+  horizontal: 'horizontal',
+  arabic: 'arabic',
+} as const;
+
+export interface PlatformSiteSettings {
+  /** @maxLength 120 */
+  siteName: string;
+  logoVariant: PlatformSiteSettingsLogoVariant;
+  socialLinks: PlatformSocialLinks;
+}
+
+export type PlatformSiteSettingsInputLogoVariant = typeof PlatformSiteSettingsInputLogoVariant[keyof typeof PlatformSiteSettingsInputLogoVariant];
+
+
+export const PlatformSiteSettingsInputLogoVariant = {
+  square: 'square',
+  short: 'short',
+  horizontal: 'horizontal',
+  arabic: 'arabic',
+} as const;
+
+export interface PlatformSiteSettingsInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  siteName: string;
+  logoVariant: PlatformSiteSettingsInputLogoVariant;
+  socialLinks?: PlatformSocialLinks;
+}
+
 export interface GoogleDriveStatus {
   configured: boolean;
   connected: boolean;

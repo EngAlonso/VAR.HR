@@ -2293,6 +2293,38 @@ paths:
         "400": { description: Invalid balance values or non-annual leave balance }
         "403": { description: Platform Owner access required }
         "404": { description: Balance not found in the selected company }
+  /platform/site-settings:
+    get:
+      operationId: getPlatformSiteSettings
+      tags: [platform]
+      summary: Get public site branding and social links
+      responses:
+        "200":
+          description: Site branding and footer social links
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSiteSettings"
+    patch:
+      operationId: updatePlatformSiteSettings
+      tags: [platform]
+      summary: Update site branding and footer social links
+      description: Requires Platform Owner access.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformSiteSettingsInput"
+      responses:
+        "200":
+          description: Updated site settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSiteSettings"
+        "400": { description: Invalid site settings or social link URL }
+        "403": { description: Platform Owner access required }
   /platform/google-drive:
     get:
       operationId: getPlatformGoogleDriveStatus
@@ -5044,6 +5076,40 @@ components:
         severity: { type: string, enum: [info, warning, critical] }
         title: { type: string }
         detail: { type: string }
+    PlatformSocialLinks:
+      type: object
+      additionalProperties: false
+      required: [facebook, instagram, linkedin, x, youtube, tiktok, whatsapp]
+      properties:
+        facebook: { type: string, maxLength: 500 }
+        instagram: { type: string, maxLength: 500 }
+        linkedin: { type: string, maxLength: 500 }
+        x: { type: string, maxLength: 500 }
+        youtube: { type: string, maxLength: 500 }
+        tiktok: { type: string, maxLength: 500 }
+        whatsapp: { type: string, maxLength: 500 }
+    PlatformSiteSettings:
+      type: object
+      additionalProperties: false
+      required: [siteName, logoVariant, socialLinks]
+      properties:
+        siteName: { type: string, maxLength: 120 }
+        logoVariant:
+          type: string
+          enum: [square, short, horizontal, arabic]
+        socialLinks:
+          $ref: "#/components/schemas/PlatformSocialLinks"
+    PlatformSiteSettingsInput:
+      type: object
+      additionalProperties: false
+      required: [siteName, logoVariant]
+      properties:
+        siteName: { type: string, minLength: 1, maxLength: 120 }
+        logoVariant:
+          type: string
+          enum: [square, short, horizontal, arabic]
+        socialLinks:
+          $ref: "#/components/schemas/PlatformSocialLinks"
     GoogleDriveStatus:
       type: object
       required:

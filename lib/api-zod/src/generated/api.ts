@@ -4863,6 +4863,111 @@ export const SupportPlatformAnnualLeaveBalanceResponse = zod.object({
 
 
 /**
+ * @summary Get public site branding and social links
+ */
+export const getPlatformSiteSettingsResponseSiteNameMax = 120;
+
+export const getPlatformSiteSettingsResponseSocialLinksFacebookMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksInstagramMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksLinkedinMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksXMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksYoutubeMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksTiktokMax = 500;
+
+export const getPlatformSiteSettingsResponseSocialLinksWhatsappMax = 500;
+
+
+
+export const GetPlatformSiteSettingsResponse = zod.object({
+  "siteName": zod.string().max(getPlatformSiteSettingsResponseSiteNameMax),
+  "logoVariant": zod.enum(['square', 'short', 'horizontal', 'arabic']),
+  "socialLinks": zod.object({
+  "facebook": zod.string().max(getPlatformSiteSettingsResponseSocialLinksFacebookMax),
+  "instagram": zod.string().max(getPlatformSiteSettingsResponseSocialLinksInstagramMax),
+  "linkedin": zod.string().max(getPlatformSiteSettingsResponseSocialLinksLinkedinMax),
+  "x": zod.string().max(getPlatformSiteSettingsResponseSocialLinksXMax),
+  "youtube": zod.string().max(getPlatformSiteSettingsResponseSocialLinksYoutubeMax),
+  "tiktok": zod.string().max(getPlatformSiteSettingsResponseSocialLinksTiktokMax),
+  "whatsapp": zod.string().max(getPlatformSiteSettingsResponseSocialLinksWhatsappMax)
+})
+})
+
+
+/**
+ * Requires Platform Owner access.
+ * @summary Update site branding and footer social links
+ */
+export const updatePlatformSiteSettingsBodySiteNameMax = 120;
+
+export const updatePlatformSiteSettingsBodySocialLinksFacebookMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksInstagramMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksLinkedinMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksXMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksYoutubeMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksTiktokMax = 500;
+
+export const updatePlatformSiteSettingsBodySocialLinksWhatsappMax = 500;
+
+
+
+export const UpdatePlatformSiteSettingsBody = zod.object({
+  "siteName": zod.string().min(1).max(updatePlatformSiteSettingsBodySiteNameMax),
+  "logoVariant": zod.enum(['square', 'short', 'horizontal', 'arabic']),
+  "socialLinks": zod.object({
+  "facebook": zod.string().max(updatePlatformSiteSettingsBodySocialLinksFacebookMax),
+  "instagram": zod.string().max(updatePlatformSiteSettingsBodySocialLinksInstagramMax),
+  "linkedin": zod.string().max(updatePlatformSiteSettingsBodySocialLinksLinkedinMax),
+  "x": zod.string().max(updatePlatformSiteSettingsBodySocialLinksXMax),
+  "youtube": zod.string().max(updatePlatformSiteSettingsBodySocialLinksYoutubeMax),
+  "tiktok": zod.string().max(updatePlatformSiteSettingsBodySocialLinksTiktokMax),
+  "whatsapp": zod.string().max(updatePlatformSiteSettingsBodySocialLinksWhatsappMax)
+}).optional()
+})
+
+export const updatePlatformSiteSettingsResponseSiteNameMax = 120;
+
+export const updatePlatformSiteSettingsResponseSocialLinksFacebookMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksInstagramMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksLinkedinMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksXMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksYoutubeMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksTiktokMax = 500;
+
+export const updatePlatformSiteSettingsResponseSocialLinksWhatsappMax = 500;
+
+
+
+export const UpdatePlatformSiteSettingsResponse = zod.object({
+  "siteName": zod.string().max(updatePlatformSiteSettingsResponseSiteNameMax),
+  "logoVariant": zod.enum(['square', 'short', 'horizontal', 'arabic']),
+  "socialLinks": zod.object({
+  "facebook": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksFacebookMax),
+  "instagram": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksInstagramMax),
+  "linkedin": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksLinkedinMax),
+  "x": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksXMax),
+  "youtube": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksYoutubeMax),
+  "tiktok": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksTiktokMax),
+  "whatsapp": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksWhatsappMax)
+})
+})
+
+
+/**
  * @summary Get Google Drive backup connection status
  */
 export const GetPlatformGoogleDriveStatusResponse = zod.object({

@@ -8,20 +8,49 @@ import {
   Check,
   ChevronDown,
   Clock3,
+  Facebook,
   FileText,
+  Instagram,
+  Linkedin,
+  MessageCircle,
   Menu,
+  Music2,
+  Twitter,
+  Youtube,
   WalletCards,
   UsersRound,
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { normalizeSocialLinks, type PlatformSocialLinks } from "./social-links";
 
 type PublicLandingProps = {
   locale: "ar" | "en";
   onLocaleChange: (locale: "ar" | "en") => void;
   siteName: string;
   logoSrc: string;
+  socialLinks: PlatformSocialLinks;
 };
+
+function SocialIcon({ platform }: { platform: keyof PlatformSocialLinks }) {
+  const props = { size: 18, strokeWidth: 1.8, "aria-hidden": true as const };
+  switch (platform) {
+    case "facebook":
+      return <Facebook {...props} />;
+    case "instagram":
+      return <Instagram {...props} />;
+    case "linkedin":
+      return <Linkedin {...props} />;
+    case "x":
+      return <Twitter {...props} />;
+    case "youtube":
+      return <Youtube {...props} />;
+    case "tiktok":
+      return <Music2 {...props} />;
+    case "whatsapp":
+      return <MessageCircle {...props} />;
+  }
+}
 
 const copy = {
   en: {
@@ -81,6 +110,8 @@ const copy = {
     finalTitle: "Bring your people operations into focus.",
     finalBody: "Sign in to continue to your VAR HR workspace.",
     footerLine: "People operations, with room for everyone.",
+    socialHeading: "Connect with us",
+    madeInEgypt: "صنع بـ♥️ في مصر",
     backTop: "Back to top",
     menuOpen: "Open navigation menu",
     menuClose: "Close navigation menu",
@@ -151,6 +182,8 @@ const copy = {
     finalTitle: "امنح عمليات فريقك رؤية أوضح.",
     finalBody: "سجّل الدخول للمتابعة إلى مساحة VAR HR الخاصة بك.",
     footerLine: "عمليات الموارد البشرية، بمساحة تتسع للجميع.",
+    socialHeading: "تابعنا على",
+    madeInEgypt: "صنع بـ♥️ في مصر",
     backTop: "العودة إلى الأعلى",
     menuOpen: "فتح قائمة التنقل",
     menuClose: "إغلاق قائمة التنقل",
@@ -171,11 +204,28 @@ export default function PublicLanding({
   onLocaleChange,
   siteName,
   logoSrc,
+  socialLinks,
 }: PublicLandingProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isArabic = locale === "ar";
   const t = copy[locale];
   const Arrow = isArabic ? ArrowUpLeft : ArrowUpRight;
+  const safeSocialLinks = normalizeSocialLinks(socialLinks);
+  const socialChannels: Array<{
+    key: keyof PlatformSocialLinks;
+    label: string;
+  }> = [
+    { key: "facebook", label: "Facebook" },
+    { key: "instagram", label: "Instagram" },
+    { key: "linkedin", label: "LinkedIn" },
+    { key: "x", label: "X" },
+    { key: "youtube", label: "YouTube" },
+    { key: "tiktok", label: "TikTok" },
+    { key: "whatsapp", label: "WhatsApp" },
+  ];
+  const activeSocialChannels = socialChannels.filter(
+    ({ key }) => safeSocialLinks[key],
+  );
 
   const closeMenu = () => setMenuOpen(false);
   const navItems = [
@@ -502,19 +552,49 @@ export default function PublicLanding({
       </main>
 
       <footer className="bg-[#10243a] text-[#c6cdd1]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-7 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span
-              className="text-sm font-semibold tracking-wide text-[#fffdf7]"
-              data-testid="text-footer-site-name"
-            >
-              {siteName}
-            </span>
-            <span className="text-xs text-[#aeb8bf]">{t.footerLine}</span>
+        <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 lg:px-12">
+          <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <span
+                className="text-base font-semibold tracking-wide text-[#fffdf7]"
+                data-testid="text-footer-site-name"
+              >
+                {siteName}
+              </span>
+              <span className="text-sm text-[#aeb8bf]">{t.footerLine}</span>
+            </div>
+            {activeSocialChannels.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[.12em] text-[#e2c275]">
+                  {t.socialHeading}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {activeSocialChannels.map(({ key, label }) => (
+                    <a
+                      key={key}
+                      href={safeSocialLinks[key]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      title={label}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-[#fffdf7] transition hover:border-[#e2c275] hover:bg-white/10 hover:text-[#f1d995] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e2c275]"
+                    >
+                      <SocialIcon platform={key} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center justify-between gap-5 text-xs">
-            <a href="#home" className="inline-flex items-center gap-2 font-medium text-[#e2c275] hover:text-[#f1d995]" data-testid="link-back-to-top">
-              {t.backTop}<ArrowUp size={13} />
+          <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-medium text-[#fffdf7]">{t.madeInEgypt}</span>
+            <a
+              href="#home"
+              className="inline-flex items-center gap-2 font-medium text-[#e2c275] hover:text-[#f1d995]"
+              data-testid="link-back-to-top"
+            >
+              {t.backTop}
+              <ArrowUp size={13} />
             </a>
           </div>
         </div>

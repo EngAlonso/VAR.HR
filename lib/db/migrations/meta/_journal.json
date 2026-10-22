@@ -57,6 +57,13 @@
       "when": 1791830488993,
       "tag": "0007_conscious_network",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792628926084,
+      "tag": "0008_neat_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

@@ -143,6 +143,8 @@ import type {
   PlatformCompanyUpdate,
   PlatformLeaveBalanceSupportInput,
   PlatformLeaveBalanceSupportResponse,
+  PlatformSiteSettings,
+  PlatformSiteSettingsInput,
   PlatformSummary,
   Report,
   RequestCancellationInput,
@@ -10024,6 +10026,155 @@ export const useSupportPlatformAnnualLeaveBalance = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getSupportPlatformAnnualLeaveBalanceMutationOptions(options));
+    }
+
+export const getGetPlatformSiteSettingsUrl = () => {
+
+
+
+
+  return `/api/platform/site-settings`
+}
+
+/**
+ * @summary Get public site branding and social links
+ */
+export const getPlatformSiteSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<PlatformSiteSettings> => {
+
+  return customFetch<PlatformSiteSettings>(getGetPlatformSiteSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformSiteSettingsQueryKey = () => {
+    return [
+    `/api/platform/site-settings`
+    ] as const;
+    }
+
+
+export const getGetPlatformSiteSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformSiteSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformSiteSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformSiteSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformSiteSettings>>> = ({ signal }) => getPlatformSiteSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformSiteSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformSiteSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformSiteSettings>>>
+export type GetPlatformSiteSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get public site branding and social links
+ */
+
+export function useGetPlatformSiteSettings<TData = Awaited<ReturnType<typeof getPlatformSiteSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformSiteSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformSiteSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePlatformSiteSettingsUrl = () => {
+
+
+
+
+  return `/api/platform/site-settings`
+}
+
+/**
+ * Requires Platform Owner access.
+ * @summary Update site branding and footer social links
+ */
+export const updatePlatformSiteSettings = async (platformSiteSettingsInput: PlatformSiteSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformSiteSettings> => {
+
+  return customFetch<PlatformSiteSettings>(getUpdatePlatformSiteSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformSiteSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePlatformSiteSettingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformSiteSettings>>, TError,{data: BodyType<PlatformSiteSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformSiteSettings>>, TError,{data: BodyType<PlatformSiteSettingsInput>}, TContext> => {
+
+const mutationKey = ['updatePlatformSiteSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformSiteSettings>>, {data: BodyType<PlatformSiteSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlatformSiteSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformSiteSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformSiteSettings>>>
+    export type UpdatePlatformSiteSettingsMutationBody = BodyType<PlatformSiteSettingsInput>
+    export type UpdatePlatformSiteSettingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Update site branding and footer social links
+ */
+export const useUpdatePlatformSiteSettings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformSiteSettings>>, TError,{data: BodyType<PlatformSiteSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformSiteSettings>>,
+        TError,
+        {data: BodyType<PlatformSiteSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformSiteSettingsMutationOptions(options));
     }
 
 export const getGetPlatformGoogleDriveStatusUrl = () => {

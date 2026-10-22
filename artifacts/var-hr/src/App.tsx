@@ -22,7 +22,10 @@ import {
 import type {
   GoogleDriveRetryResult,
   GoogleDriveStatus,
+  PlatformSiteSettings,
+  PlatformSocialLinks,
 } from "@workspace/api-client-react";
+import { EMPTY_SOCIAL_LINKS, normalizeSocialLinks } from "./social-links";
 import {
   Link,
   Redirect,
@@ -436,17 +439,15 @@ function useAuth() {
   if (!value) throw new Error("Auth context is unavailable.");
   return value;
 }
-type SiteLogoVariant = "square" | "short" | "horizontal" | "arabic";
-type SiteSettings = {
-  siteName: string;
-  logoVariant: SiteLogoVariant;
-};
+type SiteLogoVariant = PlatformSiteSettings["logoVariant"];
+type SiteSettings = PlatformSiteSettings;
 type SiteBrandingContextValue = SiteSettings & {
   setSiteSettings: (settings: SiteSettings) => void;
 };
 const defaultSiteSettings: SiteSettings = {
   siteName: "VAR HR",
   logoVariant: "horizontal",
+  socialLinks: EMPTY_SOCIAL_LINKS,
 };
 const SiteBrandingContext = createContext<SiteBrandingContextValue>({
   ...defaultSiteSettings,
@@ -778,9 +779,9 @@ const copy = {
     companyNavSubscription: "Subscription",
     databaseAdministration: "Database Administration",
     accountSettings: "Account Settings",
-    siteBranding: "Site name & logo",
+    siteBranding: "Site name, logo & footer",
     siteBrandingDetail:
-      "Choose the site name and the logo variant used across the app and browser tab.",
+      "Choose the site name and logo, and manage the social links shown in the public footer.",
     siteName: "Site name",
     siteLogo: "Site logo",
     siteLogoSquare: "Square logo",
@@ -789,8 +790,11 @@ const copy = {
     siteLogoArabic: "Arabic logo",
     changeLogo: "Change logo",
     selected: "Selected",
+    socialLinksHeading: "Social media links",
+    socialLinksDetail:
+      "Add a secure link for each channel you want visitors to see in the public footer.",
     saveSiteBranding: "Save site branding",
-    siteBrandingUpdated: "Site branding updated.",
+    siteBrandingUpdated: "Site branding and social links updated.",
     couldNotUpdateSiteBranding: "Could not update site branding.",
     platformOwnerOnly: "Platform Owner only",
     databaseAdminDetail:
@@ -2979,9 +2983,9 @@ const pageCopy = {
     accountManagement: "إدارة الحسابات",
     databaseAdministration: "إدارة قاعدة البيانات",
     accountSettings: "إعدادات الحساب",
-    siteBranding: "اسم ولوجو الموقع",
+    siteBranding: "اسم ولوجو وتذييل الموقع",
     siteBrandingDetail:
-      "تحكم في اسم الموقع ونوع اللوجو المستخدم داخل النظام وفي تبويب المتصفح.",
+      "تحكم في اسم الموقع واللوجو، وأضف روابط التواصل التي تظهر في الفوتر العام.",
     siteName: "اسم الموقع",
     siteLogo: "لوجو الموقع",
     siteLogoSquare: "اللوجو المربع",
@@ -2990,8 +2994,11 @@ const pageCopy = {
     siteLogoArabic: "اللوجو العربي",
     changeLogo: "تغيير اللوجو",
     selected: "محدد",
-    saveSiteBranding: "حفظ اسم ولوجو الموقع",
-    siteBrandingUpdated: "تم تحديث اسم ولوجو الموقع.",
+    socialLinksHeading: "روابط التواصل الاجتماعي",
+    socialLinksDetail:
+      "أضف رابطاً آمناً لكل قناة تريد أن تظهر لزوار الموقع في الفوتر.",
+    saveSiteBranding: "حفظ إعدادات الموقع",
+    siteBrandingUpdated: "تم تحديث إعدادات الموقع وروابط التواصل.",
     couldNotUpdateSiteBranding: "تعذر تحديث اسم ولوجو الموقع.",
     platformOwnerOnly: "للمالك فقط",
     databaseAdminDetail:
@@ -7748,6 +7755,7 @@ function AuthGate() {
         onLocaleChange={(nextLocale) => setLocale(nextLocale)}
         siteName={branding.siteName}
         logoSrc={siteLogoSource(branding.logoVariant, "horizontal")}
+        socialLinks={branding.socialLinks}
       />
     );
   if (!account)
@@ -24820,6 +24828,9 @@ function PlatformSiteBranding() {
   const [logoVariant, setLogoVariant] = useState<SiteLogoVariant>(
     branding.logoVariant,
   );
+  const [socialLinks, setSocialLinks] = useState<PlatformSocialLinks>(
+    branding.socialLinks,
+  );
   const [pending, setPending] = useState(false);
   const logoOptions: Array<{
     value: SiteLogoVariant;
@@ -24847,11 +24858,49 @@ function PlatformSiteBranding() {
       source: arabicLoginLogo,
     },
   ];
+  const socialFields: Array<{
+    key: keyof PlatformSocialLinks;
+    label: string;
+    placeholder: string;
+  }> = [
+    {
+      key: "facebook",
+      label: "Facebook",
+      placeholder: "https://facebook.com/your-page",
+    },
+    {
+      key: "instagram",
+      label: "Instagram",
+      placeholder: "https://instagram.com/your-account",
+    },
+    {
+      key: "linkedin",
+      label: "LinkedIn",
+      placeholder: "https://linkedin.com/company/your-company",
+    },
+    { key: "x", label: "X", placeholder: "https://x.com/your-account" },
+    {
+      key: "youtube",
+      label: "YouTube",
+      placeholder: "https://youtube.com/@your-channel",
+    },
+    {
+      key: "tiktok",
+      label: "TikTok",
+      placeholder: "https://tiktok.com/@your-account",
+    },
+    {
+      key: "whatsapp",
+      label: "WhatsApp",
+      placeholder: "https://wa.me/201000000000",
+    },
+  ];
 
   useEffect(() => {
     setSiteName(branding.siteName);
     setLogoVariant(branding.logoVariant);
-  }, [branding.siteName, branding.logoVariant]);
+    setSocialLinks(normalizeSocialLinks(branding.socialLinks));
+  }, [branding.siteName, branding.logoVariant, branding.socialLinks]);
 
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
@@ -24863,7 +24912,7 @@ function PlatformSiteBranding() {
     try {
       const result = await authRequest<SiteSettings>("/api/platform/site-settings", {
         method: "PATCH",
-        body: JSON.stringify({ siteName, logoVariant }),
+        body: JSON.stringify({ siteName, logoVariant, socialLinks }),
       });
       branding.setSiteSettings(result);
       toast.success(t("siteBrandingUpdated"));
@@ -24930,6 +24979,35 @@ function PlatformSiteBranding() {
                 })}
               </div>
             </div>
+            <section className="space-y-4 border-t border-border pt-5">
+              <div>
+                <h2 className="text-sm font-semibold">
+                  {t("socialLinksHeading")}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("socialLinksDetail")}
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {socialFields.map(({ key, label, placeholder }) => (
+                  <Field
+                    key={key}
+                    label={label}
+                    name={`social-link-${key}`}
+                    type="url"
+                    inputMode="url"
+                    placeholder={placeholder}
+                    value={socialLinks[key]}
+                    onChange={(value) =>
+                      setSocialLinks((current) => ({
+                        ...current,
+                        [key]: value,
+                      }))
+                    }
+                  />
+                ))}
+              </div>
+            </section>
             <div className="flex justify-end">
               <Button type="submit" disabled={pending || !siteName.trim()}>
                 {pending ? "…" : t("saveSiteBranding")}
@@ -31623,6 +31701,7 @@ function App() {
             logoVariant === "arabic"
               ? logoVariant
               : defaultSiteSettings.logoVariant,
+          socialLinks: normalizeSocialLinks(settings.socialLinks),
         });
       })
       .catch(() => undefined);

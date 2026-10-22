@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { createHash, randomUUID } from "node:crypto";
-import { backupRecordsTable, db, pool } from "@workspace/db";
+import {
+  backupRecordsTable,
+  db,
+  emptyPlatformSocialLinks,
+  pool,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 export const BACKUP_FORMAT_VERSION = 1;
@@ -659,6 +664,7 @@ function normalizeRestoreRow(
     case "var_hr_platform_settings":
       return {
         ...row,
+        social_links: row.social_links ?? emptyPlatformSocialLinks,
         platform_backup_interval_minutes:
           row.platform_backup_interval_minutes ?? 0,
         company_backup_interval_minutes:

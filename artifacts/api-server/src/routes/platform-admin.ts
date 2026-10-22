@@ -7,6 +7,7 @@ import {
   companiesTable,
   db,
   departmentsTable,
+  emptyPlatformSocialLinks,
   employeesTable,
   employeeScheduleAssignmentsTable,
   leaveBalanceTransactionsTable,
@@ -14,9 +15,11 @@ import {
   authAuditEventsTable,
   backupSchedulerStatusTable,
   platformSettingsTable,
+  type PlatformSocialLinks,
   userAccountsTable,
   workSchedulesTable,
 } from "@workspace/db";
+import { UpdatePlatformSiteSettingsBody } from "@workspace/api-zod";
 import {
   hashPassword,
   loadAuthenticatedAccount,
@@ -492,10 +495,54 @@ const entities: Record<string, EntityConfig> = {
 
 const idSchema = z.string().uuid();
 const logoVariantSchema = z.enum(["square", "short", "horizontal", "arabic"]);
-const siteSettingsSchema = z.object({
-  siteName: z.string().trim().min(1).max(120),
-  logoVariant: logoVariantSchema,
-});
+const siteSettingsSchema = UpdatePlatformSiteSettingsBody;
+const socialLinkUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => !value || isSafeSocialLink(value));
+const socialLinksSchema = z
+  .object({
+    facebook: socialLinkUrlSchema,
+    instagram: socialLinkUrlSchema,
+    linkedin: socialLinkUrlSchema,
+    x: socialLinkUrlSchema,
+    youtube: socialLinkUrlSchema,
+    tiktok: socialLinkUrlSchema,
+    whatsapp: socialLinkUrlSchema,
+  })
+  .strict();
+
+function isSafeSocialLink(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.hostname) && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+function normalizePlatformSocialLinks(value: unknown): PlatformSocialLinks {
+  const stored =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const normalize = (key: keyof PlatformSocialLinks): string => {
+    const candidate = typeof stored[key] === "string" ? stored[key].trim() : "";
+    return candidate && isSafeSocialLink(candidate) ? candidate : "";
+  };
+
+  return {
+    facebook: normalize("facebook"),
+    instagram: normalize("instagram"),
+    linkedin: normalize("linkedin"),
+    x: normalize("x"),
+    youtube: normalize("youtube"),
+    tiktok: normalize("tiktok"),
+    whatsapp: normalize("whatsapp"),
+  };
+}
+
 const backupScheduleSchema = z
   .object({
     platformBackupRunsPerDay: z.union([
@@ -806,6 +853,7 @@ async function loadPlatformSettings() {
     logoVariant: logoVariantSchema.safeParse(settings?.logoVariant).success
       ? settings.logoVariant
       : "horizontal",
+    socialLinks: normalizePlatformSocialLinks(settings?.socialLinks),
   };
 }
 
@@ -820,18 +868,31 @@ router.patch("/platform/site-settings", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid site branding settings." });
     return;
   }
+  const socialLinksResult =
+    parsed.data.socialLinks === undefined
+      ? undefined
+      : socialLinksSchema.safeParse(parsed.data.socialLinks);
+  if (socialLinksResult && !socialLinksResult.success) {
+    res.status(400).json({ error: "Social links must be secure HTTPS URLs." });
+    return;
+  }
+  const socialLinks = socialLinksResult?.success
+    ? (socialLinksResult.data as PlatformSocialLinks)
+    : undefined;
   await db
     .insert(platformSettingsTable)
     .values({
       id: "default",
       siteName: parsed.data.siteName,
       logoVariant: parsed.data.logoVariant,
+      socialLinks: socialLinks ?? emptyPlatformSocialLinks,
     })
     .onConflictDoUpdate({
       target: platformSettingsTable.id,
       set: {
         siteName: parsed.data.siteName,
         logoVariant: parsed.data.logoVariant,
+        ...(socialLinks ? { socialLinks } : {}),
         updatedAt: new Date(),
       },
     });
@@ -841,7 +902,9 @@ router.patch("/platform/site-settings", async (req, res): Promise<void> => {
     action: "platform_site_settings_updated",
     entityType: "platform_settings",
     entityId: "default",
-    metadata: { fields: ["siteName", "logoVariant"] },
+    metadata: {
+      fields: ["siteName", "logoVariant", ...(socialLinks ? ["socialLinks"] : [])],
+    },
   });
   res.json(await loadPlatformSettings());
 });
