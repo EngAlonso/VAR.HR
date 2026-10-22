@@ -754,6 +754,12 @@ function normalizeRestoreRow(
         employee_id: row.employee_id ?? null,
         active: row.active ?? true,
       };
+    case "var_hr_attendance_rules":
+      return {
+        ...row,
+        attendance_device_approval_required:
+          row.attendance_device_approval_required ?? false,
+      };
     default:
       return row;
   }

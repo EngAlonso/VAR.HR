@@ -135,5 +135,9 @@ test("restore normalizes required columns added after older backups", () => {
     backups,
     /company_backup_interval_minutes:\s*row\.company_backup_interval_minutes\s*\?\?\s*0/,
   );
+  assert.match(
+    backups,
+    /attendance_device_approval_required:\s*row\.attendance_device_approval_required\s*\?\?\s*false/,
+  );
   assert.match(backups, /const restoreRow = normalizeRestoreRow\(table, row\)/);
 });
