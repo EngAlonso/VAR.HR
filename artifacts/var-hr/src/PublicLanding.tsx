@@ -191,14 +191,14 @@ export default function PublicLanding({
   ];
 
   return (
-    <main
+    <div
       dir={isArabic ? "rtl" : "ltr"}
       lang={locale}
       className="min-h-[100dvh] overflow-hidden bg-[#f7f5ef] text-[#142c45] selection:bg-[#e8c879] selection:text-[#142c45]"
     >
       <header className="relative z-20 border-b border-[#142c45]/10 bg-[#f7f5ef]/95">
         <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
-          <a href="#home" aria-label={siteName} className="flex min-w-0 items-center gap-3">
+          <a href="#home" aria-label={siteName} className="flex min-w-0 items-center gap-3" data-testid="link-home">
             <img
               src={logoSrc}
               alt={`${siteName} logo`}
@@ -264,6 +264,7 @@ export default function PublicLanding({
         )}
       </header>
 
+      <main id="main-content">
       <section id="home" className="relative">
         <div className="pointer-events-none absolute -top-20 end-[-10rem] h-[34rem] w-[34rem] rounded-full bg-[#ebdfc4]/35 blur-3xl" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 sm:px-8 sm:pb-24 sm:pt-20 lg:grid-cols-[.94fr_1.06fr] lg:gap-16 lg:px-12 lg:pb-28 lg:pt-24">
@@ -498,21 +499,26 @@ export default function PublicLanding({
           </Link>
         </div>
       </section>
+      </main>
 
       <footer className="bg-[#10243a] text-[#c6cdd1]">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-7 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <div className="flex items-center gap-3">
-            <img src={logoSrc} alt={`${siteName} logo`} className="h-8 max-w-[120px] object-contain brightness-0 invert" />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span
+              className="text-sm font-semibold tracking-wide text-[#fffdf7]"
+              data-testid="text-footer-site-name"
+            >
+              {siteName}
+            </span>
             <span className="text-xs text-[#aeb8bf]">{t.footerLine}</span>
           </div>
           <div className="flex items-center justify-between gap-5 text-xs">
-            <span>{siteName}</span>
             <a href="#home" className="inline-flex items-center gap-2 font-medium text-[#e2c275] hover:text-[#f1d995]" data-testid="link-back-to-top">
               {t.backTop}<ArrowUp size={13} />
             </a>
           </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
