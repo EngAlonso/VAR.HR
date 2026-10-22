@@ -1170,6 +1170,8 @@ export const GetAttendanceTodayResponse = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
@@ -1186,6 +1188,26 @@ export const GetAttendanceTodayResponse = zod.object({
   "onLeave": zod.int(),
   "overtimeHours": zod.number()
 })
+})
+
+
+/**
+ * @summary Get the company's employee attendance device approval policy
+ */
+export const GetAttendanceDeviceApprovalResponse = zod.object({
+  "requireApproval": zod.boolean()
+})
+
+
+/**
+ * @summary Update the company's employee attendance device approval policy
+ */
+export const UpdateAttendanceDeviceApprovalBody = zod.object({
+  "requireApproval": zod.boolean()
+})
+
+export const UpdateAttendanceDeviceApprovalResponse = zod.object({
+  "requireApproval": zod.boolean()
 })
 
 
@@ -1211,6 +1233,8 @@ export const ListAttendanceHistoryResponseItem = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
@@ -1251,6 +1275,8 @@ export const CreateManualAttendanceEventResponse = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
@@ -1703,6 +1729,8 @@ export const CheckInResponse = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
@@ -1745,6 +1773,8 @@ export const CheckOutResponse = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),
@@ -1894,6 +1924,7 @@ export const ListAttendancePunchRequestsResponseItem = zod.object({
   "direction": zod.enum(['in', 'out']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "source": zod.enum(['web', 'mobile']),
+  "deviceType": zod.string().nullable(),
   "locationStatus": zod.string(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
   "explanation": zod.string(),
@@ -1933,6 +1964,7 @@ export const DecideAttendancePunchRequestResponse = zod.object({
   "direction": zod.enum(['in', 'out']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "source": zod.enum(['web', 'mobile']),
+  "deviceType": zod.string().nullable(),
   "locationStatus": zod.string(),
   "location": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
   "explanation": zod.string(),
@@ -1973,6 +2005,8 @@ export const CorrectAttendanceResponse = zod.object({
   "scheduledStart": zod.string(),
   "checkIn": zod.iso.datetime({"offset":true}).nullable(),
   "checkOut": zod.iso.datetime({"offset":true}).nullable(),
+  "checkInDeviceType": zod.string().nullable(),
+  "checkOutDeviceType": zod.string().nullable(),
   "workedHours": zod.number(),
   "overtimeHours": zod.number(),
   "lateMinutes": zod.int(),

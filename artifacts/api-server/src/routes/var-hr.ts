@@ -33,6 +33,9 @@ import {
   CheckInResponse,
   CheckOutBody,
   CheckOutResponse,
+  GetAttendanceDeviceApprovalResponse,
+  UpdateAttendanceDeviceApprovalBody,
+  UpdateAttendanceDeviceApprovalResponse,
   RegisterAttendanceDeviceBody,
   RegisterAttendanceDeviceResponse,
   ListEmployeeAttendanceDevicesParams,
@@ -3183,6 +3186,8 @@ function attendanceResponse(
     scheduledStart: row.attendance.scheduledStart,
     checkIn: asDate(row.attendance.checkIn),
     checkOut: asDate(row.attendance.checkOut),
+    checkInDeviceType: row.attendance.checkInDeviceType,
+    checkOutDeviceType: row.attendance.checkOutDeviceType,
     workedHours: row.attendance.workedHours,
     overtimeHours: row.attendance.overtimeHours,
     lateMinutes: row.attendance.lateMinutes,
@@ -3229,6 +3234,7 @@ function attendancePunchRequestResponseFrom(
     direction: request.direction as "in" | "out",
     occurredAt: request.occurredAt.toISOString(),
     source: request.source as "web" | "mobile",
+    deviceType: request.deviceType,
     locationStatus: request.locationStatus,
     location: request.location,
     explanation: request.explanation,
@@ -4423,6 +4429,78 @@ function attendanceDeviceResponse(row: typeof employeeAttendanceDevicesTable.$in
   };
 }
 
+function attendanceDeviceTypeFromUserAgent(
+  source: string,
+  userAgent: string | undefined,
+): string | null {
+  if (source !== "web" && source !== "mobile") return null;
+  if (!userAgent?.trim()) return "unknown";
+  const agent = userAgent.toLowerCase();
+  if (/iphone|ipod/.test(agent)) return "ios";
+  if (/ipad|tablet/.test(agent)) return "tablet";
+  if (/android/.test(agent)) {
+    return /mobile/.test(agent) ? "android" : "tablet";
+  }
+  if (/windows phone|mobile|phone/.test(agent)) return "other";
+  return "desktop";
+}
+
+router.get(
+  "/attendance/device-approval",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    const rules = await ensureAttendanceRules(context.companyId);
+    res.json(
+      GetAttendanceDeviceApprovalResponse.parse({
+        requireApproval: rules.attendanceDeviceApprovalRequired,
+      }),
+    );
+  },
+);
+
+router.put(
+  "/attendance/device-approval",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (context.role !== "company_owner") {
+      res.status(403).json({ error: message(req, "attendanceRulesUpdate") });
+      return;
+    }
+    const parsed = UpdateAttendanceDeviceApprovalBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const current = await ensureAttendanceRules(context.companyId);
+    const [updated] = await db
+      .update(attendanceRulesTable)
+      .set({
+        attendanceDeviceApprovalRequired: parsed.data.requireApproval,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(attendanceRulesTable.id, current.id),
+          eq(attendanceRulesTable.companyId, context.companyId),
+        ),
+      )
+      .returning();
+    await recordAudit(
+      context.companyId,
+      "attendance_device_approval_policy_updated",
+      "attendance_rules",
+      updated.id,
+      { requireApproval: updated.attendanceDeviceApprovalRequired },
+      { requireApproval: current.attendanceDeviceApprovalRequired },
+    );
+    res.json(
+      UpdateAttendanceDeviceApprovalResponse.parse({
+        requireApproval: updated.attendanceDeviceApprovalRequired,
+      }),
+    );
+  },
+);
+
 router.post(
   "/attendance/device-registration",
   async (req, res): Promise<void> => {
@@ -5474,6 +5552,7 @@ router.post(
             scheduledEnd: resolvedSchedule.endTime,
             requiredHours: resolvedSchedule.requiredHours,
             checkIn: row.request.occurredAt,
+            checkInDeviceType: row.request.deviceType,
             workedHours: 0,
             overtimeHours: 0,
             lateMinutes: metrics.lateMinutes,
@@ -5514,6 +5593,7 @@ router.post(
           .update(attendanceTable)
           .set({
             checkOut: row.request.occurredAt,
+            checkOutDeviceType: row.request.deviceType,
             workedHours: metrics.workedHours,
             overtimeHours: metrics.overtimeHours,
             earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,
@@ -6138,7 +6218,11 @@ async function recordCurrentAttendance(
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  if (["employee", "manager"].includes(context.role)) {
+  const attendanceSettings = await ensureAttendanceRules(context.companyId);
+  if (
+    attendanceSettings.attendanceDeviceApprovalRequired &&
+    ["employee", "manager"].includes(context.role)
+  ) {
     const token = parsed.data.deviceToken?.trim();
     if (!token) {
       res.status(403).json({
@@ -6214,6 +6298,10 @@ async function recordCurrentAttendance(
     return;
   }
   const rules = await attendanceRulesFor(context.companyId, eventDate || TODAY);
+  const deviceType = attendanceDeviceTypeFromUserAgent(
+    parsed.data.source,
+    req.get("user-agent"),
+  );
   const holidays = await holidaysForCompany(context.companyId);
   const location: AttendanceLocationInput | null =
     hasLatitude && hasLongitude
@@ -6365,6 +6453,7 @@ async function recordCurrentAttendance(
           direction: "in",
           occurredAt: eventAt,
           source: parsed.data.source,
+          deviceType,
           locationStatus: locationValidation.status,
           location: {
             checkIn: { ...location, capturedAt: eventAt.toISOString() },
@@ -6386,6 +6475,7 @@ async function recordCurrentAttendance(
         direction: request.direction,
         occurredAt: request.occurredAt.toISOString(),
         source: request.source,
+        deviceType: request.deviceType,
         locationStatus: request.locationStatus,
         location: request.location,
         explanation: request.explanation,
@@ -6420,6 +6510,7 @@ async function recordCurrentAttendance(
         scheduledEnd: schedule.endTime,
         requiredHours: schedule.requiredHours,
         checkIn: eventAt,
+        checkInDeviceType: deviceType,
         workedHours: 0,
         overtimeHours: 0,
         lateMinutes: metrics.lateMinutes,
@@ -6537,6 +6628,7 @@ async function recordCurrentAttendance(
         direction: "out",
         occurredAt: eventAt,
         source: parsed.data.source,
+          deviceType,
         locationStatus: locationValidation.status,
         location: {
           checkOut: { ...location, capturedAt: eventAt.toISOString() },
@@ -6558,6 +6650,7 @@ async function recordCurrentAttendance(
       direction: request.direction,
       occurredAt: request.occurredAt.toISOString(),
       source: request.source,
+      deviceType: request.deviceType,
       locationStatus: request.locationStatus,
       location: request.location,
       explanation: request.explanation,
@@ -6583,6 +6676,7 @@ async function recordCurrentAttendance(
     .update(attendanceTable)
     .set({
       checkOut: eventAt,
+      checkOutDeviceType: deviceType,
       workedHours: metrics.workedHours,
       overtimeHours: metrics.overtimeHours,
       earlyCheckoutMinutes: metrics.earlyCheckoutMinutes,

@@ -670,6 +670,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceToday"
+  /attendance/device-approval:
+    get:
+      operationId: getAttendanceDeviceApproval
+      tags: [attendance]
+      summary: Get the company's employee attendance device approval policy
+      responses:
+        "200":
+          description: Attendance device approval policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceDeviceApproval"
+    put:
+      operationId: updateAttendanceDeviceApproval
+      tags: [attendance]
+      summary: Update the company's employee attendance device approval policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceDeviceApprovalInput"
+      responses:
+        "200":
+          description: Updated attendance device approval policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceDeviceApproval"
   /attendance/history:
     get:
       operationId: listAttendanceHistory
@@ -3116,6 +3145,16 @@ components:
       properties:
         deviceToken: { type: string, minLength: 32, maxLength: 256 }
         deviceLabel: { type: string, minLength: 1, maxLength: 256 }
+    AttendanceDeviceApproval:
+      type: object
+      required: [requireApproval]
+      properties:
+        requireApproval: { type: boolean }
+    AttendanceDeviceApprovalInput:
+      type: object
+      required: [requireApproval]
+      properties:
+        requireApproval: { type: boolean }
     AttendanceDeviceRegistration:
       type: object
       required: [id, deviceLabel, status, requestedAt, approvedAt, lastSeenAt]
@@ -3195,6 +3234,8 @@ components:
           scheduledStart,
           checkIn,
           checkOut,
+          checkInDeviceType,
+          checkOutDeviceType,
           workedHours,
           overtimeHours,
           lateMinutes,
@@ -3211,6 +3252,8 @@ components:
         scheduledStart: { type: string }
         checkIn: { type: ["string", "null"], format: date-time }
         checkOut: { type: ["string", "null"], format: date-time }
+        checkInDeviceType: { type: ["string", "null"] }
+        checkOutDeviceType: { type: ["string", "null"] }
         workedHours: { type: number }
         overtimeHours: { type: number }
         lateMinutes: { type: integer }
@@ -3232,7 +3275,7 @@ components:
           enum: [not_required, approved]
     AttendancePunchRequest:
       type: object
-      required: [id, employee, attendanceDate, direction, occurredAt, source, locationStatus, location, explanation, status, requestedAt]
+      required: [id, employee, attendanceDate, direction, occurredAt, source, deviceType, locationStatus, location, explanation, status, requestedAt]
       properties:
         id: { type: string }
         employee: { $ref: "#/components/schemas/EmployeeReference" }
@@ -3240,6 +3283,7 @@ components:
         direction: { type: string, enum: [in, out] }
         occurredAt: { type: string, format: date-time }
         source: { type: string, enum: [web, mobile] }
+        deviceType: { type: ["string", "null"] }
         locationStatus: { type: string }
         location:
           oneOf:

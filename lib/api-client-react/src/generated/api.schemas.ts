@@ -712,6 +712,14 @@ export interface AttendanceDeviceRegistrationInput {
   deviceLabel: string;
 }
 
+export interface AttendanceDeviceApproval {
+  requireApproval: boolean;
+}
+
+export interface AttendanceDeviceApprovalInput {
+  requireApproval: boolean;
+}
+
 export type AttendanceDeviceRegistrationStatus = typeof AttendanceDeviceRegistrationStatus[keyof typeof AttendanceDeviceRegistrationStatus];
 
 
@@ -877,6 +885,10 @@ export interface AttendanceRecord {
   checkIn: string | null;
   /** @nullable */
   checkOut: string | null;
+  /** @nullable */
+  checkInDeviceType: string | null;
+  /** @nullable */
+  checkOutDeviceType: string | null;
   workedHours: number;
   overtimeHours: number;
   lateMinutes: number;
@@ -927,6 +939,8 @@ export interface AttendancePunchRequest {
   direction: AttendancePunchRequestDirection;
   occurredAt: string;
   source: AttendancePunchRequestSource;
+  /** @nullable */
+  deviceType: string | null;
   locationStatus: string;
   location: AttendancePunchRequestLocation;
   explanation: string;

@@ -120,6 +120,8 @@ import {
   useCheckIn,
   useCheckOut,
   useRegisterAttendanceDevice,
+  useGetAttendanceDeviceApproval,
+  useUpdateAttendanceDeviceApproval,
   useListEmployeeAttendanceDevices,
   useDecideEmployeeAttendanceDevice,
   useCreateManualAttendanceEvent,
@@ -209,6 +211,7 @@ import {
   getListAttendanceHistoryQueryKey,
   getListAttendancePunchRequestsQueryKey,
   getListEmployeeAttendanceDevicesQueryKey,
+  getGetAttendanceDeviceApprovalQueryKey,
   getPreviewAttendanceCalculationQueryKey,
   getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
@@ -8296,27 +8299,20 @@ function Shell({ children }: { children: ReactNode }) {
         </header>
         <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
           {children}
-          {canInstallPwa && (
-            <div
-              className={cn(
-                "mt-8 flex",
-                isArabic ? "justify-start" : "justify-end",
-              )}
-            >
-              <Button
-                variant="primary"
-                className="min-h-12 rounded-full px-5 shadow-lg transition-transform hover:-translate-y-0.5"
-                onClick={() => void installPwa()}
-                title={t("pwaInstall")}
-                aria-label={t("pwaInstall")}
-                data-testid="button-install-pwa"
-              >
-                <Download size={17} />
-                <span>{t("pwaInstall")}</span>
-              </Button>
-            </div>
-          )}
         </main>
+        {canInstallPwa && (
+          <Button
+            variant="primary"
+            className="fixed bottom-24 end-4 z-40 min-h-12 rounded-full px-5 shadow-xl transition-transform hover:-translate-y-0.5 md:bottom-6 md:end-6"
+            onClick={() => void installPwa()}
+            title={t("pwaInstall")}
+            aria-label={t("pwaInstall")}
+            data-testid="button-install-pwa"
+          >
+            <Download size={17} />
+            <span>{t("pwaInstall")}</span>
+          </Button>
+        )}
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
@@ -14408,7 +14404,61 @@ function getAttendanceDeviceToken(): string {
 }
 
 function attendanceDeviceLabel(): string {
-  return window.navigator.userAgent.slice(0, 256) || "Browser device";
+  return attendanceDeviceTypeLabel(
+    attendanceDeviceTypeFromUserAgent(window.navigator.userAgent),
+    "en",
+  );
+}
+
+function attendanceDeviceTypeFromUserAgent(userAgent: string): string {
+  const agent = userAgent.toLowerCase();
+  if (/iphone|ipod/.test(agent)) return "ios";
+  if (/ipad|tablet/.test(agent)) return "tablet";
+  if (/android/.test(agent)) return /mobile/.test(agent) ? "android" : "tablet";
+  if (/windows phone|mobile|phone/.test(agent)) return "other";
+  return agent ? "desktop" : "unknown";
+}
+
+function attendanceDeviceTypeLabel(
+  deviceType: string | null | undefined,
+  locale: Locale,
+): string {
+  if (!deviceType) return "";
+  const labels: Record<Locale, Record<string, string>> = {
+    en: {
+      android: "Android",
+      ios: "iPhone / iPod",
+      tablet: "Tablet",
+      desktop: "Computer",
+      other: "Other mobile device",
+      unknown: "Unknown device",
+    },
+    ar: {
+      android: "أندرويد",
+      ios: "iPhone / iPod",
+      tablet: "جهاز لوحي",
+      desktop: "كمبيوتر",
+      other: "هاتف آخر",
+      unknown: "جهاز غير معروف",
+    },
+    fr: {
+      android: "Android",
+      ios: "iPhone / iPod",
+      tablet: "Tablette",
+      desktop: "Ordinateur",
+      other: "Autre appareil mobile",
+      unknown: "Appareil inconnu",
+    },
+    de: {
+      android: "Android",
+      ios: "iPhone / iPod",
+      tablet: "Tablet",
+      desktop: "Computer",
+      other: "Anderes Mobilgerät",
+      unknown: "Unbekanntes Gerät",
+    },
+  };
+  return labels[locale][deviceType] ?? deviceType;
 }
 
 function attendanceDeviceCopy(locale: Locale) {
@@ -14418,6 +14468,15 @@ function attendanceDeviceCopy(locale: Locale) {
       registered: "This device is approved for attendance check-in and check-out.",
       approvalRequired:
         "An administrator must approve this device before you can record attendance. Approving a new device replaces the previous one.",
+      approvalSettingTitle: "Require approval for employee attendance devices",
+      approvalSettingDetail:
+        "When enabled, an administrator must approve each browser before an employee can punch. When disabled, employees can punch without browser approval and the phone type is still recorded.",
+      approvalSettingSaved: "Attendance device approval setting saved.",
+      approvalSettingFailed: "Could not update attendance device approval.",
+      approvalSettingLoadFailed: "Could not load attendance device settings.",
+      approvalSettingOff: "Browser approval is off",
+      approvalSettingOn: "Browser approval is on",
+      phoneType: "Device type",
       checking: "Checking",
       approved: "Approved",
       pending: "Awaiting approval",
@@ -14451,6 +14510,15 @@ function attendanceDeviceCopy(locale: Locale) {
       registered: "هذا الجهاز معتمد لتسجيل الحضور والانصراف.",
       approvalRequired:
         "يجب اعتماد الجهاز من الإدارة قبل تسجيل الحضور. اعتماد جهاز جديد يلغي ربط الجهاز السابق.",
+      approvalSettingTitle: "اشتراط اعتماد متصفح الموظف قبل تسجيل الحضور",
+      approvalSettingDetail:
+        "عند التفعيل، يجب اعتماد كل متصفح قبل بصمة الموظف. عند الإيقاف، يستطيع الموظفون تسجيل الحضور دون اعتماد المتصفح، مع حفظ نوع الهاتف لكل بصمة.",
+      approvalSettingSaved: "تم حفظ إعداد اعتماد أجهزة الحضور.",
+      approvalSettingFailed: "تعذر تحديث إعداد اعتماد أجهزة الحضور.",
+      approvalSettingLoadFailed: "تعذر تحميل إعدادات أجهزة الحضور.",
+      approvalSettingOff: "اعتماد المتصفح متوقف",
+      approvalSettingOn: "اعتماد المتصفح مفعّل",
+      phoneType: "نوع الجهاز",
       checking: "جارٍ التحقق",
       approved: "معتمد",
       pending: "بانتظار اعتماد الإدارة",
@@ -14484,6 +14552,15 @@ function attendanceDeviceCopy(locale: Locale) {
       registered: "Cet appareil est autorisé pour les arrivées et les départs.",
       approvalRequired:
         "Un administrateur doit autoriser cet appareil avant tout pointage. L’autorisation d’un nouvel appareil remplace l’ancien.",
+      approvalSettingTitle: "Exiger l’approbation du navigateur de présence",
+      approvalSettingDetail:
+        "Si l’option est activée, chaque navigateur doit être approuvé avant le pointage. Sinon, les employés peuvent pointer sans approbation et le type d’appareil est enregistré.",
+      approvalSettingSaved: "Le paramètre d’approbation est enregistré.",
+      approvalSettingFailed: "Impossible de modifier le paramètre d’approbation.",
+      approvalSettingLoadFailed: "Impossible de charger les paramètres des appareils.",
+      approvalSettingOff: "Approbation du navigateur désactivée",
+      approvalSettingOn: "Approbation du navigateur activée",
+      phoneType: "Type d’appareil",
       checking: "Vérification",
       approved: "Autorisé",
       pending: "En attente d’approbation",
@@ -14517,6 +14594,15 @@ function attendanceDeviceCopy(locale: Locale) {
       registered: "Dieses Gerät ist für Kommen und Gehen freigegeben.",
       approvalRequired:
         "Die Verwaltung muss dieses Gerät freigeben, bevor Sie Anwesenheit erfassen können. Ein neues Gerät ersetzt das bisherige.",
+      approvalSettingTitle: "Freigabe des Anwesenheitsbrowsers verlangen",
+      approvalSettingDetail:
+        "Wenn aktiviert, muss jeder Browser vor der Zeiterfassung freigegeben werden. Wenn deaktiviert, können Beschäftigte ohne Browserfreigabe buchen; der Gerätetyp wird trotzdem gespeichert.",
+      approvalSettingSaved: "Die Freigabeeinstellung wurde gespeichert.",
+      approvalSettingFailed: "Die Freigabeeinstellung konnte nicht geändert werden.",
+      approvalSettingLoadFailed: "Geräteeinstellungen konnten nicht geladen werden.",
+      approvalSettingOff: "Browserfreigabe ist deaktiviert",
+      approvalSettingOn: "Browserfreigabe ist aktiviert",
+      phoneType: "Gerätetyp",
       checking: "Wird geprüft",
       approved: "Freigegeben",
       pending: "Wartet auf Freigabe",
@@ -14559,6 +14645,15 @@ function Attendance() {
       ? workspace.data.employeeId ?? ""
       : "";
   const isSelfAttendanceUser = Boolean(selfEmployeeId);
+  const deviceApprovalPolicy = useGetAttendanceDeviceApproval({
+    query: {
+      queryKey: getGetAttendanceDeviceApprovalQueryKey(),
+      enabled: isSelfAttendanceUser,
+      refetchInterval: 15_000,
+    },
+  });
+  const requireDeviceApproval =
+    deviceApprovalPolicy.data?.requireApproval ?? false;
   const [deviceToken] = useState(() => getAttendanceDeviceToken());
   const registerDevice = useRegisterAttendanceDevice();
   const requestDeviceRegistration = () => {
@@ -14582,10 +14677,23 @@ function Attendance() {
   };
   const registrationRequested = useRef(false);
   useEffect(() => {
-    if (!isSelfAttendanceUser || registrationRequested.current) return;
+    if (
+      !isSelfAttendanceUser ||
+      !deviceApprovalPolicy.isSuccess ||
+      !requireDeviceApproval ||
+      registrationRequested.current
+    ) {
+      return;
+    }
     registrationRequested.current = true;
     requestDeviceRegistration();
-  }, [isSelfAttendanceUser, selfEmployeeId, deviceToken]);
+  }, [
+    isSelfAttendanceUser,
+    selfEmployeeId,
+    deviceToken,
+    deviceApprovalPolicy.isSuccess,
+    requireDeviceApproval,
+  ]);
   const selfEmployee = useGetEmployee(selfEmployeeId, {
     query: {
       enabled: Boolean(selfEmployeeId),
@@ -14666,7 +14774,9 @@ function Attendance() {
   const action = record?.checkIn && !record.checkOut ? "out" : "in";
   const canPunch = action === "in" || Boolean(record);
   const deviceReady =
-    !isSelfAttendanceUser || registerDevice.data?.status === "active";
+    !isSelfAttendanceUser ||
+    (deviceApprovalPolicy.isSuccess &&
+      (!requireDeviceApproval || registerDevice.data?.status === "active"));
   const employeeDepartment = record?.employee?.department
     ? departmentLabel(record.employee.department, t)
     : t("companyAttendanceView");
@@ -14728,7 +14838,7 @@ function Attendance() {
       toast.warning(t("gpsUnavailable"));
     }
     const data = location ? { source: "web", ...location } : { source: "web" };
-    if (isSelfAttendanceUser) {
+    if (isSelfAttendanceUser && requireDeviceApproval) {
       Object.assign(data, { deviceToken });
     }
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
@@ -14987,7 +15097,25 @@ function Attendance() {
           </div>
         }
       />
-      {isSelfAttendanceUser ? (
+      {isSelfAttendanceUser && deviceApprovalPolicy.isLoading ? (
+        <Card className="mb-4 border-primary/20 p-4 text-sm text-muted-foreground">
+          {deviceCopy.checking}
+        </Card>
+      ) : null}
+      {isSelfAttendanceUser && deviceApprovalPolicy.isError ? (
+        <Card className="mb-4 flex flex-col gap-3 border-destructive/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            {deviceCopy.approvalSettingLoadFailed}
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => void deviceApprovalPolicy.refetch()}
+          >
+            {deviceCopy.retry}
+          </Button>
+        </Card>
+      ) : null}
+      {isSelfAttendanceUser && requireDeviceApproval ? (
         <Card className="mb-4 border-primary/20">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -15063,6 +15191,12 @@ function Attendance() {
                         : "Check-out"}{" "}
                     · {date(request.attendanceDate)} · {displayTime(request.occurredAt)}
                   </div>
+                  {request.deviceType ? (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {deviceCopy.phoneType}:{" "}
+                      {attendanceDeviceTypeLabel(request.deviceType, locale)}
+                    </div>
+                  ) : null}
                   <AttendanceLocationLinks location={request.location} locale={locale} />
                 </div>
                 <div className="flex gap-2">
@@ -15206,6 +15340,24 @@ function Attendance() {
                           {displayTime(x.checkIn)} → {displayTime(x.checkOut)} ·{" "}
                           {x.workedHours}h
                         </div>
+                        {x.checkInDeviceType || x.checkOutDeviceType ? (
+                          <div className="mt-1 text-[10px] text-muted-foreground">
+                            {deviceCopy.phoneType}:{" "}
+                            {x.checkInDeviceType
+                              ? attendanceDeviceTypeLabel(
+                                  x.checkInDeviceType,
+                                  locale,
+                                )
+                              : "—"}
+                            {" → "}
+                            {x.checkOutDeviceType
+                              ? attendanceDeviceTypeLabel(
+                                  x.checkOutDeviceType,
+                                  locale,
+                                )
+                              : "—"}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -15306,8 +15458,30 @@ function Attendance() {
                         <td className="px-4 py-4 font-semibold">
                           {x.employee.name}
                         </td>
-                        <td className="px-4 py-4">{displayTime(x.checkIn)}</td>
-                        <td className="px-4 py-4">{displayTime(x.checkOut)}</td>
+                        <td className="px-4 py-4">
+                          <div>{displayTime(x.checkIn)}</div>
+                          {x.checkInDeviceType ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {deviceCopy.phoneType}:{" "}
+                              {attendanceDeviceTypeLabel(
+                                x.checkInDeviceType,
+                                locale,
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div>{displayTime(x.checkOut)}</div>
+                          {x.checkOutDeviceType ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {deviceCopy.phoneType}:{" "}
+                              {attendanceDeviceTypeLabel(
+                                x.checkOutDeviceType,
+                                locale,
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-4 font-mono">{x.workedHours}</td>
                         <td className="px-5 py-4">
                           <Status value={x.status} />
@@ -17124,6 +17298,14 @@ function Rules() {
   const qc = useQueryClient();
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
+  const deviceApprovalPolicy = useGetAttendanceDeviceApproval({
+    query: {
+      queryKey: getGetAttendanceDeviceApprovalQueryKey(),
+      refetchInterval: 30_000,
+    },
+  });
+  const updateDeviceApproval = useUpdateAttendanceDeviceApproval();
+  const isCompanyOwner = account.accountType === "company_owner";
   const canViewRuleHistory = account.accountType === "company_owner";
   const changes = useListAttendanceRuleChanges({
     query: { enabled: canViewRuleHistory } as any,
@@ -17251,6 +17433,68 @@ function Rules() {
           </Badge>
         }
       />
+      {isCompanyOwner ? (
+        <Card className="mb-6 border-primary/20 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="font-semibold">
+                {attendanceDeviceCopy(locale).approvalSettingTitle}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {attendanceDeviceCopy(locale).approvalSettingDetail}
+              </p>
+            </div>
+            {deviceApprovalPolicy.isError ? (
+              <Button
+                variant="outline"
+                onClick={() => void deviceApprovalPolicy.refetch()}
+              >
+                {locale === "ar" ? "إعادة المحاولة" : "Retry"}
+              </Button>
+            ) : (
+              <label className="flex shrink-0 items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={Boolean(deviceApprovalPolicy.data?.requireApproval)}
+                  disabled={
+                    deviceApprovalPolicy.isLoading ||
+                    updateDeviceApproval.isPending
+                  }
+                  onChange={(event) =>
+                    updateDeviceApproval.mutate(
+                      { data: { requireApproval: event.target.checked } },
+                      {
+                        onSuccess: () => {
+                          toast.success(
+                            attendanceDeviceCopy(locale).approvalSettingSaved,
+                          );
+                          void qc.invalidateQueries({
+                            queryKey: getGetAttendanceDeviceApprovalQueryKey(),
+                          });
+                        },
+                        onError: (error: unknown) =>
+                          toast.error(
+                            apiErrorMessage(
+                              error,
+                              attendanceDeviceCopy(locale)
+                                .approvalSettingFailed,
+                            ),
+                          ),
+                      },
+                    )
+                  }
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span>
+                  {deviceApprovalPolicy.data?.requireApproval
+                    ? attendanceDeviceCopy(locale).approvalSettingOn
+                    : attendanceDeviceCopy(locale).approvalSettingOff}
+                </span>
+              </label>
+            )}
+          </div>
+        </Card>
+      ) : null}
       <div className="flex flex-col gap-6">
         <div className="contents">
           <Card className="order-1 p-6">

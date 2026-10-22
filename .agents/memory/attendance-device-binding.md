@@ -3,8 +3,8 @@ name: Attendance device binding
 description: Product boundary for employee attendance devices and admin reassignment.
 ---
 
-Employee web attendance is linked to a random token stored in that browser's local storage. The server stores only its SHA-256 hash. New browser tokens remain pending until an administrator approves them; approving one replaces the employee's previous active token.
+Browser approval for employee attendance is a company-owner setting and is disabled by default. When enabled, browser tokens must be approved by an administrator before an employee or manager can punch; approving a new token replaces the previous active token. When disabled, punches do not require a browser token. Each web/mobile check-in and check-out records a coarse device type derived from the User-Agent, including location-pending punches after approval.
 
-**Why:** Browser apps cannot reliably read a permanent hardware identifier. This flow avoids collecting employee photos while blocking attendance from a different browser unless an administrator approves it. It does not prove who is holding the approved phone, and the token can be copied or lost when browser storage is cleared.
+**Why:** The company asked for approval to be optional rather than the default, while retaining phone-type visibility on each punch. Browsers cannot reliably read an immutable phone model or hardware identifier; User-Agent classification is only a best-effort category such as Android, iPhone/iOS, tablet, or desktop.
 
-**How to apply:** Describe this as browser/device registration, not immutable hardware locking or identity verification. If stronger device identity is required, evaluate a native app with platform device attestation. Keep admin approval and reassignment available.
+**How to apply:** Describe the setting as optional browser approval and the logged value as a broad device type, not the exact phone model or identity proof. When explaining the toggle, direct company owners to Attendance Rules. Keep approval and reassignment available when the setting is enabled.

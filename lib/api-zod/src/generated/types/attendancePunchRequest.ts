@@ -18,6 +18,8 @@ export interface AttendancePunchRequest {
   direction: AttendancePunchRequestDirection;
   occurredAt: string;
   source: AttendancePunchRequestSource;
+  /** @nullable */
+  deviceType: string | null;
   locationStatus: string;
   location: AttendancePunchRequestLocation;
   explanation: string;
