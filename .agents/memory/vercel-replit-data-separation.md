@@ -54,3 +54,11 @@ The user wants new schema changes to reach Vercel's Aiven production database au
 **Why:** Replaying old migrations against a populated database with no migration ledger can modify or conflict with existing tables. The Replit databases are separate from Aiven.
 
 **How to apply:** Verify the exact Aiven target and compare its schema with the latest Drizzle snapshot before baselining. Test each new migration on development first, then apply through a separate migration workflow. Verify database-role permissions rather than trusting a connection's "read-only" label; use a read-only transaction for schema audits and keep Vercel builds/startup free of DDL.
+
+### Drizzle migration ledger schema
+
+Drizzle Kit's PostgreSQL migration ledger belongs in `drizzle.__drizzle_migrations` by default, not `public.__drizzle_migrations`. Baseline tooling and both migration configs must use that exact schema and table.
+
+**Why:** A baseline marker in `public` is invisible to Drizzle; it then treats the full old migration history as pending.
+
+**How to apply:** Explicitly pin the migration schema/table in Drizzle config and have inspection, baseline, and migration commands read and write `drizzle.__drizzle_migrations`.

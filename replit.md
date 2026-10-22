@@ -8,8 +8,15 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Database env: Replit provides `DATABASE_URL`; set `EXTERNAL_DATABASE_URL` to use a separate PostgreSQL service. Aiven connections also require `AIVEN_CA_CERT` and verify the server certificate.
+- `pnpm --filter @workspace/db run generate` — generate a reviewed SQL migration from schema changes
+- `pnpm --filter @workspace/db run migrate:dev` — apply committed migrations to Replit development
+- `pnpm --filter @workspace/db run inspect:dev` — read-only check before the one-time development baseline
+- `pnpm --filter @workspace/db run inspect:aiven` — read-only Aiven schema and migration-history report
+- `pnpm --filter @workspace/db run baseline:aiven -- --confirm-aiven-baseline` — record a reviewed Aiven baseline without replaying old migrations
+- `pnpm --filter @workspace/db run migrate:aiven -- --confirm-aiven-production` — apply migrations already tested in development
+- Replit provides `DATABASE_URL` for development. Development migration commands reject Aiven and `EXTERNAL_DATABASE_URL`.
+- Aiven migration commands use the separate `AIVEN_MIGRATION_DATABASE_URL` and `AIVEN_CA_CERT` secrets, require verified TLS, and never fall back to `DATABASE_URL`.
+- The API startup and `vercel.json` build do not run database DDL. Post-merge setup applies only committed migrations to the development database; Aiven requires an explicit, reviewed command.
 
 ## Stack
 
