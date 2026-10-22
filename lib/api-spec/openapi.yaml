@@ -4071,6 +4071,8 @@ components:
         to: { type: ["string", "null"], format: date }
         checkIn: { type: ["string", "null"], format: date-time }
         checkOut: { type: ["string", "null"], format: date-time }
+        checkInDeviceType: { type: ["string", "null"] }
+        checkOutDeviceType: { type: ["string", "null"] }
         workedHours: { type: number }
         lateMinutes: { type: integer }
         earlyCheckoutMinutes: { type: integer }

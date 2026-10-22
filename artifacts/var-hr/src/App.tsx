@@ -9691,6 +9691,7 @@ function EmployeeAttendanceMovement({
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const deviceCopy = attendanceDeviceCopy(locale);
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const workspaceCapabilities = workspace.data?.capabilities ?? [];
@@ -9976,8 +9977,8 @@ function EmployeeAttendanceMovement({
             <td>${escapeHtml(row.source === "biometric" ? row.biometricCode || biometricCode || "—" : row.source || "—")}</td>
             <td>${escapeHtml(row.scheduledStart || "—")}</td>
             <td>${escapeHtml(row.scheduledEnd || "—")}</td>
-            <td>${escapeHtml(time(row.checkIn))}</td>
-            <td>${escapeHtml(time(row.checkOut))}</td>
+            <td>${escapeHtml(time(row.checkIn))}${row.checkInDeviceType ? `<br><span>${escapeHtml(deviceCopy.phoneType)}: ${escapeHtml(attendanceDeviceTypeLabel(row.checkInDeviceType, locale))}</span>` : ""}</td>
+            <td>${escapeHtml(time(row.checkOut))}${row.checkOutDeviceType ? `<br><span>${escapeHtml(deviceCopy.phoneType)}: ${escapeHtml(attendanceDeviceTypeLabel(row.checkOutDeviceType, locale))}</span>` : ""}</td>
             <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
             <td>${escapeHtml(minutes(row.overtimeMinutes))}</td>
             <td>${escapeHtml(Number(row.overtimeHours || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
@@ -10302,8 +10303,30 @@ function EmployeeAttendanceMovement({
                       <Status value={row.attendanceStatus || "—"} />
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <Info label={t("checkIn")} value={time(row.checkIn)} />
-                      <Info label={t("checkOut")} value={time(row.checkOut)} />
+                      <div>
+                        <Info label={t("checkIn")} value={time(row.checkIn)} />
+                        {row.checkInDeviceType ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {deviceCopy.phoneType}:{" "}
+                            {attendanceDeviceTypeLabel(
+                              row.checkInDeviceType,
+                              locale,
+                            )}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <Info label={t("checkOut")} value={time(row.checkOut)} />
+                        {row.checkOutDeviceType ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {deviceCopy.phoneType}:{" "}
+                            {attendanceDeviceTypeLabel(
+                              row.checkOutDeviceType,
+                              locale,
+                            )}
+                          </p>
+                        ) : null}
+                      </div>
                       <Info
                         label={t("basicWorkingHours")}
                         value={hours(row.regularHours)}
@@ -10382,8 +10405,30 @@ function EmployeeAttendanceMovement({
                         <td className="px-4 py-3 font-mono">
                           {row.scheduledEnd || "—"}
                         </td>
-                        <td className="px-4 py-3">{time(row.checkIn)}</td>
-                        <td className="px-4 py-3">{time(row.checkOut)}</td>
+                        <td className="px-4 py-3">
+                          <div>{time(row.checkIn)}</div>
+                          {row.checkInDeviceType ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {deviceCopy.phoneType}:{" "}
+                              {attendanceDeviceTypeLabel(
+                                row.checkInDeviceType,
+                                locale,
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>{time(row.checkOut)}</div>
+                          {row.checkOutDeviceType ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {deviceCopy.phoneType}:{" "}
+                              {attendanceDeviceTypeLabel(
+                                row.checkOutDeviceType,
+                                locale,
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-3 font-mono">
                           {minutes(row.deductedMinutes)}
                         </td>

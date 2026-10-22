@@ -1969,6 +1969,10 @@ export interface ReportRow {
   checkIn?: string | null;
   /** @nullable */
   checkOut?: string | null;
+  /** @nullable */
+  checkInDeviceType?: string | null;
+  /** @nullable */
+  checkOutDeviceType?: string | null;
   workedHours?: number;
   lateMinutes?: number;
   earlyCheckoutMinutes?: number;

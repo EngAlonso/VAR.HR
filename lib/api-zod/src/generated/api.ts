@@ -3431,6 +3431,8 @@ export const GetReportResponse = zod.object({
   "to": zod.iso.date().nullish(),
   "checkIn": zod.iso.datetime({"offset":true}).nullish(),
   "checkOut": zod.iso.datetime({"offset":true}).nullish(),
+  "checkInDeviceType": zod.string().nullish(),
+  "checkOutDeviceType": zod.string().nullish(),
   "workedHours": zod.number().optional(),
   "lateMinutes": zod.int().optional(),
   "earlyCheckoutMinutes": zod.int().optional(),

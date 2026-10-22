@@ -10176,6 +10176,8 @@ router.get("/reports/data", async (req, res): Promise<void> => {
           source: row.attendance.source,
           checkIn: asDate(row.attendance.checkIn),
           checkOut: asDate(row.attendance.checkOut),
+          checkInDeviceType: row.attendance.checkInDeviceType,
+          checkOutDeviceType: row.attendance.checkOutDeviceType,
           locationStatus: row.attendance.locationStatus,
         };
       }),
