@@ -9,13 +9,13 @@ The ADMS Bridge currently targets the Vercel site, while the Replit workspace us
 
 **How to apply:** Before debugging biometric ingestion, verify the Bridge target, the UI/API deployment, and the database connection belong to the same environment. Do not change the Bridge key or URL as a first step; first align the deployed app/database.
 
-## Neon-to-Aiven production cutover
+## Vercel production database
 
-The user chose Aiven for VAR HR's Vercel production PostgreSQL after Neon quota limits blocked database queries. They have an older backup and plan to restore it to Aiven. Keep Neon unchanged and do not point Vercel production at the empty Aiven database until the backup has been restored and verified.
+The user confirmed that Vercel production currently uses Aiven. Replit development and production databases are separate from this external database.
 
-**Why:** The user wants to leave Neon while retaining historical data; switching production to an empty database would make the app's accounts and HR records unavailable.
+**Why:** Vercel production reported missing columns that were already present in the Replit workspace schema.
 
-**How to apply:** After the user confirms the restore, verify Aiven's schema and important data before changing Vercel's production `DATABASE_URL`. Replit's managed `DATABASE_URL` is separate and must not be replaced for this Vercel cutover.
+**How to apply:** For Vercel schema issues, verify and migrate the confirmed Aiven database through its approved access path. Never assume a Replit schema push or deployment changes Aiven, and never point Vercel at another database without an explicit, verified cutover.
 
 ## Schema changes during builds
 
