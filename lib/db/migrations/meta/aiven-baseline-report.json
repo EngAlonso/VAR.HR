@@ -1,23 +1,34 @@
 {
   "reportVersion": 1,
   "target": "Aiven production",
-  "status": "inspected",
-  "inspectedAt": "2026-10-22T10:03:41.884Z",
+  "status": "baselined",
+  "inspectedAt": "2026-10-22T10:05:34.838Z",
   "databaseName": "defaultdb",
   "serverVersion": "18.6",
-  "currentSchemaFingerprint": "a4f84ad925af4b03bfb297673398017f855ee1b8c052ac59bc9787821bada81a",
-  "columnsMatchKnownSnapshot": true,
-  "matchingSnapshotMigration": {
+  "currentSchemaFingerprint": "017754076a11ae65d169fb8f41771b3c074b987f448ea03c067911dde621fd36",
+  "baselinedAt": "2026-10-22T10:04:38.066Z",
+  "baselineMigration": {
     "tag": "0009_mixed_stepford_cuckoos",
     "createdAt": 1792653847229,
     "hash": "81bca87ca14ca43d28c379be1c57a7807fb9b2ee47e4e0fc6f8039d5aa2145a4"
+  },
+  "lastMigrationRunAt": "2026-10-22T10:04:52.278Z",
+  "lastAppliedMigration": {
+    "hash": "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2",
+    "created_at": "1792661662565"
+  },
+  "columnsMatchKnownSnapshot": true,
+  "matchingSnapshotMigration": {
+    "tag": "0010_acoustic_sway",
+    "createdAt": 1792661662565,
+    "hash": "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2"
   },
   "comparison": {
     "matches": true,
     "expectedTableCount": 47,
     "actualTableCount": 47,
-    "expectedColumnCount": 606,
-    "actualColumnCount": 606,
+    "expectedColumnCount": 609,
+    "actualColumnCount": 609,
     "missing": [],
     "unexpected": [],
     "mismatched": []
@@ -25,16 +36,12 @@
   "latestSnapshotComparison": {
     "tag": "0010_acoustic_sway",
     "comparison": {
-      "matches": false,
+      "matches": true,
       "expectedTableCount": 47,
       "actualTableCount": 47,
       "expectedColumnCount": 609,
-      "actualColumnCount": 606,
-      "missing": [
-        "var_hr_platform_settings.pwa_icon_180_path",
-        "var_hr_platform_settings.pwa_icon_192_path",
-        "var_hr_platform_settings.pwa_icon_512_path"
-      ],
+      "actualColumnCount": 609,
+      "missing": [],
       "unexpected": [],
       "mismatched": []
     }
@@ -45,8 +52,17 @@
     "hash": "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2"
   },
   "migrationLedger": {
-    "exists": false,
-    "entries": []
+    "exists": true,
+    "entries": [
+      {
+        "hash": "81bca87ca14ca43d28c379be1c57a7807fb9b2ee47e4e0fc6f8039d5aa2145a4",
+        "created_at": "1792653847229"
+      },
+      {
+        "hash": "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2",
+        "created_at": "1792661662565"
+      }
+    ]
   },
   "columns": [
     {
@@ -3982,6 +3998,27 @@
       "data_type": "jsonb",
       "not_null": true,
       "default_value": "'{\"x\": \"\", \"tiktok\": \"\", \"youtube\": \"\", \"facebook\": \"\", \"linkedin\": \"\", \"whatsapp\": \"\", \"instagram\": \"\"}'::jsonb"
+    },
+    {
+      "table_name": "var_hr_platform_settings",
+      "column_name": "pwa_icon_180_path",
+      "data_type": "text",
+      "not_null": false,
+      "default_value": null
+    },
+    {
+      "table_name": "var_hr_platform_settings",
+      "column_name": "pwa_icon_192_path",
+      "data_type": "text",
+      "not_null": false,
+      "default_value": null
+    },
+    {
+      "table_name": "var_hr_platform_settings",
+      "column_name": "pwa_icon_512_path",
+      "data_type": "text",
+      "not_null": false,
+      "default_value": null
     },
     {
       "table_name": "var_hr_subscriptions",

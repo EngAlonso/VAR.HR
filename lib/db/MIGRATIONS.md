@@ -54,7 +54,7 @@ The old SQL history must not be replayed against an Aiven database whose current
    ```
 
    This operation creates only `drizzle.__drizzle_migrations` and inserts the hash and timestamp for the matched snapshot migration. It does not apply migrations `0000` through the baseline migration or alter application tables. It refuses a stale inspection, schema mismatch, or existing migration ledger.
-5. Keep the resulting report with the project. It records the baseline migration and the fingerprint that later migration runs must match.
+5. Keep the resulting report with the project. It records the baseline migration and the fingerprint that later migration runs must match. A later inspection preserves the baseline state only when the database, schema fingerprint, and baseline ledger entry remain unchanged.
 
 The baseline does not have to be the newest migration in the repository. For example, if production matches `0009` while development already has `0010`, the baseline records `0009`; the tested `0010` remains pending for the explicit Aiven migration step.
 
