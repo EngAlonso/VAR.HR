@@ -226,6 +226,10 @@ export default function PublicLanding({
   const activeSocialChannels = socialChannels.filter(
     ({ key }) => safeSocialLinks[key],
   );
+  const socialHref = (key: keyof PlatformSocialLinks) =>
+    key === "whatsapp"
+      ? `https://wa.me/${safeSocialLinks.whatsapp}`
+      : safeSocialLinks[key];
 
   const closeMenu = () => setMenuOpen(false);
   const navItems = [
@@ -246,13 +250,13 @@ export default function PublicLanding({
       lang={locale}
       className="min-h-[100dvh] overflow-hidden bg-[#f7f5ef] text-[#142c45] selection:bg-[#e8c879] selection:text-[#142c45]"
     >
-      <header className="relative z-20 border-b border-[#142c45]/10 bg-[#f7f5ef]/95">
+      <header className="relative z-20 border-b border-[#142c45]/15 bg-[#e6e2d7]">
         <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
           <a href="#home" aria-label={siteName} className="flex min-w-0 items-center gap-3" data-testid="link-home">
             <img
               src={logoSrc}
               alt={`${siteName} logo`}
-              className="h-10 max-w-[145px] object-contain object-start sm:h-11"
+              className="h-10 max-w-[145px] rounded-md object-contain object-start sm:h-11"
               data-testid="img-brand-logo"
             />
             <span className="sr-only" data-testid="text-site-name">{siteName}</span>
@@ -302,7 +306,7 @@ export default function PublicLanding({
           </div>
         </div>
         {menuOpen && (
-          <nav className="absolute inset-x-0 top-full border-b border-[#142c45]/10 bg-[#f7f5ef] px-5 py-4 shadow-lg lg:hidden" aria-label={isArabic ? "التنقل الرئيسي" : "Main navigation"}>
+          <nav className="absolute inset-x-0 top-full border-b border-[#142c45]/15 bg-[#e6e2d7] px-5 py-4 shadow-lg lg:hidden" aria-label={isArabic ? "التنقل الرئيسي" : "Main navigation"}>
             <div className="mx-auto flex max-w-7xl flex-col">
               {navItems.map((item) => (
                 <a key={item.href} href={item.href} onClick={closeMenu} className="border-b border-[#142c45]/[.08] py-3 text-sm font-medium text-[#344b60]" data-testid={`link-mobile-${item.href.slice(1)}`}>
@@ -572,7 +576,7 @@ export default function PublicLanding({
                   {activeSocialChannels.map(({ key, label }) => (
                     <a
                       key={key}
-                      href={safeSocialLinks[key]}
+                      href={socialHref(key)}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={label}

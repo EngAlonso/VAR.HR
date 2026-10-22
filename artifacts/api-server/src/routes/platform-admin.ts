@@ -501,6 +501,11 @@ const socialLinkUrlSchema = z
   .trim()
   .max(500)
   .refine((value) => !value || isSafeSocialLink(value));
+const whatsAppPhoneSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => !value || Boolean(normalizeWhatsAppPhone(value)));
 const socialLinksSchema = z
   .object({
     facebook: socialLinkUrlSchema,
@@ -509,7 +514,7 @@ const socialLinksSchema = z
     x: socialLinkUrlSchema,
     youtube: socialLinkUrlSchema,
     tiktok: socialLinkUrlSchema,
-    whatsapp: socialLinkUrlSchema,
+    whatsapp: whatsAppPhoneSchema,
   })
   .strict();
 
@@ -520,6 +525,46 @@ function isSafeSocialLink(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function normalizeWhatsAppPhone(value: unknown): string {
+  if (typeof value !== "string") return "";
+
+  let candidate = value.trim();
+  if (!candidate) return "";
+
+  if (/^https?:\/\//i.test(candidate)) {
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== "https:" || url.username || url.password) return "";
+
+      if (url.hostname === "wa.me") {
+        candidate = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+      } else if (
+        (url.hostname === "api.whatsapp.com" ||
+          url.hostname === "web.whatsapp.com") &&
+        url.pathname === "/send"
+      ) {
+        candidate = url.searchParams.get("phone") ?? "";
+      } else {
+        return "";
+      }
+    } catch {
+      return "";
+    }
+  }
+
+  if (!/^\+?[\d\s().-]+$/.test(candidate)) return "";
+  const digits = candidate.replace(/\D/g, "");
+  const normalizedInput = digits.startsWith("00") ? digits.slice(2) : digits;
+  if (/^01[0125]\d{8}$/.test(normalizedInput)) {
+    return `20${normalizedInput.slice(1)}`;
+  }
+  if (/^201[0125]\d{8}$/.test(normalizedInput)) return normalizedInput;
+  return /^\d{8,15}$/.test(normalizedInput) &&
+    !normalizedInput.startsWith("0")
+    ? normalizedInput
+    : "";
 }
 
 function normalizePlatformSocialLinks(value: unknown): PlatformSocialLinks {
@@ -539,7 +584,7 @@ function normalizePlatformSocialLinks(value: unknown): PlatformSocialLinks {
     x: normalize("x"),
     youtube: normalize("youtube"),
     tiktok: normalize("tiktok"),
-    whatsapp: normalize("whatsapp"),
+    whatsapp: normalizeWhatsAppPhone(stored.whatsapp),
   };
 }
 
@@ -873,11 +918,17 @@ router.patch("/platform/site-settings", async (req, res): Promise<void> => {
       ? undefined
       : socialLinksSchema.safeParse(parsed.data.socialLinks);
   if (socialLinksResult && !socialLinksResult.success) {
-    res.status(400).json({ error: "Social links must be secure HTTPS URLs." });
+    res.status(400).json({
+      error:
+        "Social links must be secure HTTPS URLs. WhatsApp must be an international phone number.",
+    });
     return;
   }
   const socialLinks = socialLinksResult?.success
-    ? (socialLinksResult.data as PlatformSocialLinks)
+    ? ({
+        ...socialLinksResult.data,
+        whatsapp: normalizeWhatsAppPhone(socialLinksResult.data.whatsapp),
+      } as PlatformSocialLinks)
     : undefined;
   await db
     .insert(platformSettingsTable)

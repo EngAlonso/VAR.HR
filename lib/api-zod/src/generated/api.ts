@@ -4929,7 +4929,7 @@ export const GetPlatformSiteSettingsResponse = zod.object({
   "x": zod.string().max(getPlatformSiteSettingsResponseSocialLinksXMax),
   "youtube": zod.string().max(getPlatformSiteSettingsResponseSocialLinksYoutubeMax),
   "tiktok": zod.string().max(getPlatformSiteSettingsResponseSocialLinksTiktokMax),
-  "whatsapp": zod.string().max(getPlatformSiteSettingsResponseSocialLinksWhatsappMax)
+  "whatsapp": zod.string().max(getPlatformSiteSettingsResponseSocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
 })
 })
 
@@ -4966,7 +4966,7 @@ export const UpdatePlatformSiteSettingsBody = zod.object({
   "x": zod.string().max(updatePlatformSiteSettingsBodySocialLinksXMax),
   "youtube": zod.string().max(updatePlatformSiteSettingsBodySocialLinksYoutubeMax),
   "tiktok": zod.string().max(updatePlatformSiteSettingsBodySocialLinksTiktokMax),
-  "whatsapp": zod.string().max(updatePlatformSiteSettingsBodySocialLinksWhatsappMax)
+  "whatsapp": zod.string().max(updatePlatformSiteSettingsBodySocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
 }).optional()
 })
 
@@ -4998,7 +4998,7 @@ export const UpdatePlatformSiteSettingsResponse = zod.object({
   "x": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksXMax),
   "youtube": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksYoutubeMax),
   "tiktok": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksTiktokMax),
-  "whatsapp": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksWhatsappMax)
+  "whatsapp": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
 })
 })
 

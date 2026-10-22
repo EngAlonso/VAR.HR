@@ -5133,7 +5133,10 @@ components:
         x: { type: string, maxLength: 500 }
         youtube: { type: string, maxLength: 500 }
         tiktok: { type: string, maxLength: 500 }
-        whatsapp: { type: string, maxLength: 500 }
+        whatsapp:
+          type: string
+          maxLength: 500
+          description: International phone number for WhatsApp; the website constructs the wa.me URL.
     PlatformSiteSettings:
       type: object
       additionalProperties: false

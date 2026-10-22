@@ -7343,13 +7343,17 @@ function Login({
     >
       <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-5xl items-center gap-8 lg:min-h-[calc(100dvh-4rem)] lg:gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
-          <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
+          <Link
+            href="/"
+            aria-label={locale === "ar" ? "الصفحة الرئيسية" : "Home"}
+            className="block w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+          >
             <BrandLogo
               variant="horizontal"
               className="w-full"
               alt={authLabel(locale, "brandName")}
             />
-          </div>
+          </Link>
           <div className="mt-12 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
               {authLabel(locale, "brandHeading")}
@@ -7364,13 +7368,17 @@ function Login({
             className="flex flex-row items-center justify-between"
             dir={locale === "ar" ? "rtl" : "ltr"}
           >
-            <div className="lg:hidden">
+            <Link
+              href="/"
+              aria-label={locale === "ar" ? "الصفحة الرئيسية" : "Home"}
+              className="block lg:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+            >
               <BrandLogo
                 variant="horizontal"
                 className="w-[168px]"
                 alt={authLabel(locale, "brandName")}
               />
-            </div>
+            </Link>
             <button
               type="button"
               className="ms-auto shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
@@ -25110,7 +25118,7 @@ function PlatformAccountSettings() {
 }
 
 function PlatformSiteBranding() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const auth = useAuth();
   const branding = useSiteBranding();
   const [siteName, setSiteName] = useState(branding.siteName);
@@ -25181,7 +25189,7 @@ function PlatformSiteBranding() {
     {
       key: "whatsapp",
       label: "WhatsApp",
-      placeholder: "https://wa.me/201000000000",
+      placeholder: "+201000000000",
     },
   ];
 
@@ -25278,23 +25286,40 @@ function PlatformSiteBranding() {
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                {socialFields.map(({ key, label, placeholder }) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    name={`social-link-${key}`}
-                    type="url"
-                    inputMode="url"
-                    placeholder={placeholder}
-                    value={socialLinks[key]}
-                    onChange={(value) =>
-                      setSocialLinks((current) => ({
-                        ...current,
-                        [key]: value,
-                      }))
-                    }
-                  />
-                ))}
+                {socialFields.map(({ key, label, placeholder }) => {
+                  const isWhatsApp = key === "whatsapp";
+                  return (
+                    <div key={key}>
+                      <Field
+                        label={
+                          isWhatsApp
+                            ? locale === "ar"
+                              ? "رقم هاتف واتساب"
+                              : "WhatsApp phone number"
+                            : label
+                        }
+                        name={`social-link-${key}`}
+                        type={isWhatsApp ? "tel" : "url"}
+                        inputMode={isWhatsApp ? "tel" : "url"}
+                        placeholder={placeholder}
+                        value={socialLinks[key]}
+                        onChange={(value) =>
+                          setSocialLinks((current) => ({
+                            ...current,
+                            [key]: value,
+                          }))
+                        }
+                      />
+                      {isWhatsApp && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {locale === "ar"
+                            ? "اكتب الرقم مع مفتاح الدولة، من غير رابط. يمكن كتابة الرقم المصري المحلي أيضًا. مثال: ‎+201000000000"
+                            : "Enter a phone number, not a link. Include the country code; Egyptian local numbers are also accepted. Example: +201000000000"}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
             <div className="flex justify-end">

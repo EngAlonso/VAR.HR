@@ -3050,7 +3050,10 @@ export interface PlatformSocialLinks {
   youtube: string;
   /** @maxLength 500 */
   tiktok: string;
-  /** @maxLength 500 */
+  /**
+     * International phone number for WhatsApp; the website constructs the wa.me URL.
+     * @maxLength 500
+     */
   whatsapp: string;
 }
 

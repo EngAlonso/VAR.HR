@@ -26,6 +26,46 @@ function isSafeSocialUrl(value: string): boolean {
   }
 }
 
+function normalizeWhatsAppPhone(value: unknown): string {
+  if (typeof value !== "string") return "";
+
+  let candidate = value.trim();
+  if (!candidate) return "";
+
+  if (/^https?:\/\//i.test(candidate)) {
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== "https:" || url.username || url.password) return "";
+
+      if (url.hostname === "wa.me") {
+        candidate = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+      } else if (
+        (url.hostname === "api.whatsapp.com" ||
+          url.hostname === "web.whatsapp.com") &&
+        url.pathname === "/send"
+      ) {
+        candidate = url.searchParams.get("phone") ?? "";
+      } else {
+        return "";
+      }
+    } catch {
+      return "";
+    }
+  }
+
+  if (!/^\+?[\d\s().-]+$/.test(candidate)) return "";
+  const digits = candidate.replace(/\D/g, "");
+  const normalizedInput = digits.startsWith("00") ? digits.slice(2) : digits;
+  if (/^01[0125]\d{8}$/.test(normalizedInput)) {
+    return `20${normalizedInput.slice(1)}`;
+  }
+  if (/^201[0125]\d{8}$/.test(normalizedInput)) return normalizedInput;
+  return /^\d{8,15}$/.test(normalizedInput) &&
+    !normalizedInput.startsWith("0")
+    ? normalizedInput
+    : "";
+}
+
 export function normalizeSocialLinks(value: unknown): PlatformSocialLinks {
   const stored =
     value && typeof value === "object" && !Array.isArray(value)
@@ -43,6 +83,6 @@ export function normalizeSocialLinks(value: unknown): PlatformSocialLinks {
     x: normalize("x"),
     youtube: normalize("youtube"),
     tiktok: normalize("tiktok"),
-    whatsapp: normalize("whatsapp"),
+    whatsapp: normalizeWhatsAppPhone(stored.whatsapp),
   };
 }
