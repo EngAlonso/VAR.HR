@@ -17,6 +17,12 @@ The user confirmed that Vercel production currently uses Aiven. Replit developme
 
 **How to apply:** For Vercel schema issues, verify and migrate the confirmed Aiven database through its approved access path. Never assume a Replit schema push or deployment changes Aiven, and never point Vercel at another database without an explicit, verified cutover.
 
+As of 2026-10-22, Aiven production had no Drizzle migration-history table. Node TLS also required the Aiven CA PEM to be normalized into standard wrapped lines before connecting.
+
+**Why:** Replaying Drizzle migrations without a known baseline could apply the entire history, and weakening TLS verification would make a production schema change unsafe.
+
+**How to apply:** Inspect the current Aiven schema before any migration; do not run `drizzle-kit migrate` until a valid migration baseline exists. Keep TLS certificate verification enabled and normalize PEM formatting rather than bypassing it.
+
 ## Schema changes during builds
 
 Do not run `drizzle-kit push` as part of Vercel's build command. Keep builds independent of database availability and apply schema changes explicitly to a verified target.
