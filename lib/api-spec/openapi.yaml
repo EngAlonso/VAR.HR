@@ -2354,6 +2354,82 @@ paths:
                 $ref: "#/components/schemas/PlatformSiteSettings"
         "400": { description: Invalid site settings or social link URL }
         "403": { description: Platform Owner access required }
+  /platform/site-settings/pwa-icons/upload-url:
+    post:
+      operationId: createPlatformPwaIconUploadUrl
+      tags: [platform]
+      summary: Create a platform-owner upload URL for a PWA icon
+      description: Requires Platform Owner access. The icon image uploads directly to object storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformPwaIconUploadInput"
+      responses:
+        "200":
+          description: Presigned object-storage upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPwaIconUpload"
+        "400": { description: Invalid icon size or file size }
+        "403": { description: Platform Owner access required }
+  /platform/site-settings/pwa-icons:
+    patch:
+      operationId: updatePlatformPwaIcons
+      tags: [platform]
+      summary: Save or clear platform PWA icons
+      description: Requires Platform Owner access. Null paths restore the built-in icons.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformPwaIconPathsInput"
+      responses:
+        "200":
+          description: Updated site settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSiteSettings"
+        "400": { description: "Invalid, missing, or unsupported icon files" }
+        "403": { description: Platform Owner access required }
+  /platform/pwa-manifest:
+    get:
+      operationId: getPlatformPwaManifest
+      tags: [platform]
+      summary: Get the PWA manifest using current platform branding
+      responses:
+        "200":
+          description: PWA manifest
+          content:
+            application/manifest+json:
+              schema:
+                type: object
+                additionalProperties: true
+  /platform/pwa-icon/{size}:
+    get:
+      operationId: getPlatformPwaIcon
+      tags: [platform]
+      summary: Serve a configured public PWA icon
+      parameters:
+        - name: size
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: ["180", "192", "512"]
+      responses:
+        "200":
+          description: PNG icon
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "404": { description: Icon not found }
   /platform/google-drive:
     get:
       operationId: getPlatformGoogleDriveStatus
@@ -5140,7 +5216,7 @@ components:
     PlatformSiteSettings:
       type: object
       additionalProperties: false
-      required: [siteName, logoVariant, socialLinks]
+      required: [siteName, logoVariant, socialLinks, pwaIconUrls]
       properties:
         siteName: { type: string, maxLength: 120 }
         logoVariant:
@@ -5148,6 +5224,8 @@ components:
           enum: [square, short, horizontal, arabic]
         socialLinks:
           $ref: "#/components/schemas/PlatformSocialLinks"
+        pwaIconUrls:
+          $ref: "#/components/schemas/PlatformPwaIconUrls"
     PlatformSiteSettingsInput:
       type: object
       additionalProperties: false
@@ -5159,6 +5237,41 @@ components:
           enum: [square, short, horizontal, arabic]
         socialLinks:
           $ref: "#/components/schemas/PlatformSocialLinks"
+    PlatformPwaIconUrls:
+      type: object
+      additionalProperties: false
+      required: [icon180, icon192, icon512]
+      properties:
+        icon180: { type: ["string", "null"] }
+        icon192: { type: ["string", "null"] }
+        icon512: { type: ["string", "null"] }
+    PlatformPwaIconUploadInput:
+      type: object
+      additionalProperties: false
+      required: [iconSize, fileSize]
+      properties:
+        iconSize:
+          type: integer
+          enum: [180, 192, 512]
+        fileSize:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+    PlatformPwaIconUpload:
+      type: object
+      additionalProperties: false
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+    PlatformPwaIconPathsInput:
+      type: object
+      additionalProperties: false
+      required: [icon180Path, icon192Path, icon512Path]
+      properties:
+        icon180Path: { type: ["string", "null"] }
+        icon192Path: { type: ["string", "null"] }
+        icon512Path: { type: ["string", "null"] }
     GoogleDriveStatus:
       type: object
       required:

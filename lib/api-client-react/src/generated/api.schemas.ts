@@ -3067,11 +3067,21 @@ export const PlatformSiteSettingsLogoVariant = {
   arabic: 'arabic',
 } as const;
 
+export interface PlatformPwaIconUrls {
+  /** @nullable */
+  icon180: string | null;
+  /** @nullable */
+  icon192: string | null;
+  /** @nullable */
+  icon512: string | null;
+}
+
 export interface PlatformSiteSettings {
   /** @maxLength 120 */
   siteName: string;
   logoVariant: PlatformSiteSettingsLogoVariant;
   socialLinks: PlatformSocialLinks;
+  pwaIconUrls: PlatformPwaIconUrls;
 }
 
 export type PlatformSiteSettingsInputLogoVariant = typeof PlatformSiteSettingsInputLogoVariant[keyof typeof PlatformSiteSettingsInputLogoVariant];
@@ -3092,6 +3102,38 @@ export interface PlatformSiteSettingsInput {
   siteName: string;
   logoVariant: PlatformSiteSettingsInputLogoVariant;
   socialLinks?: PlatformSocialLinks;
+}
+
+export type PlatformPwaIconUploadInputIconSize = typeof PlatformPwaIconUploadInputIconSize[keyof typeof PlatformPwaIconUploadInputIconSize];
+
+
+export const PlatformPwaIconUploadInputIconSize = {
+  NUMBER_180: 180,
+  NUMBER_192: 192,
+  NUMBER_512: 512,
+} as const;
+
+export interface PlatformPwaIconUploadInput {
+  iconSize: PlatformPwaIconUploadInputIconSize;
+  /**
+     * @minimum 1
+     * @maximum 5242880
+     */
+  fileSize: number;
+}
+
+export interface PlatformPwaIconUpload {
+  uploadURL: string;
+  objectPath: string;
+}
+
+export interface PlatformPwaIconPathsInput {
+  /** @nullable */
+  icon180Path: string | null;
+  /** @nullable */
+  icon192Path: string | null;
+  /** @nullable */
+  icon512Path: string | null;
 }
 
 export interface GoogleDriveStatus {
@@ -3419,6 +3461,8 @@ page?: number;
  */
 pageSize?: number;
 };
+
+export type GetPlatformPwaManifest200 = { [key: string]: unknown };
 
 export type StartPlatformGoogleDriveOAuthParams = {
 returnTo?: string;

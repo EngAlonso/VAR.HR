@@ -19,7 +19,11 @@ import {
   userAccountsTable,
   workSchedulesTable,
 } from "@workspace/db";
-import { UpdatePlatformSiteSettingsBody } from "@workspace/api-zod";
+import {
+  CreatePlatformPwaIconUploadUrlBody,
+  UpdatePlatformPwaIconsBody,
+  UpdatePlatformSiteSettingsBody,
+} from "@workspace/api-zod";
 import {
   hashPassword,
   loadAuthenticatedAccount,
@@ -30,6 +34,7 @@ import {
   calculateAnnualLeaveSupportAdjustmentAmounts,
 } from "../lib/annual-leave-balance.mjs";
 import { requirePlatformOwner } from "../lib/tenant-context";
+import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { z } from "zod";
 import {
   ensureLeaveAccruals,
@@ -496,6 +501,26 @@ const entities: Record<string, EntityConfig> = {
 const idSchema = z.string().uuid();
 const logoVariantSchema = z.enum(["square", "short", "horizontal", "arabic"]);
 const siteSettingsSchema = UpdatePlatformSiteSettingsBody;
+const platformPwaIconUploadResponseSchema = z.object({
+  uploadURL: z.url(),
+  objectPath: z.string(),
+});
+const PWA_ICON_SIZES = [180, 192, 512] as const;
+type PwaIconSize = (typeof PWA_ICON_SIZES)[number];
+const pwaIconSizeSchema = z.enum(["180", "192", "512"]);
+const PWA_ICON_OBJECT_PATH = /^\/objects\/uploads\/[0-9a-f-]{36}$/i;
+const MAX_PWA_ICON_SIZE_BYTES = 5 * 1024 * 1024;
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const objectStorageService = new ObjectStorageService();
+
+function isPngIcon(buffer: Buffer, expectedSize: PwaIconSize) {
+  return (
+    buffer.length >= 24 &&
+    buffer.subarray(0, 8).equals(PNG_SIGNATURE) &&
+    buffer.readUInt32BE(16) === expectedSize &&
+    buffer.readUInt32BE(20) === expectedSize
+  );
+}
 const socialLinkUrlSchema = z
   .string()
   .trim()
@@ -899,7 +924,32 @@ async function loadPlatformSettings() {
       ? settings.logoVariant
       : "horizontal",
     socialLinks: normalizePlatformSocialLinks(settings?.socialLinks),
+    pwaIconUrls: {
+      icon180: settings?.pwaIcon180Path
+        ? platformPwaIconUrl(180, settings.updatedAt)
+        : null,
+      icon192: settings?.pwaIcon192Path
+        ? platformPwaIconUrl(192, settings.updatedAt)
+        : null,
+      icon512: settings?.pwaIcon512Path
+        ? platformPwaIconUrl(512, settings.updatedAt)
+        : null,
+    },
   };
+}
+
+function platformPwaIconUrl(size: PwaIconSize, updatedAt?: Date) {
+  const version = updatedAt?.getTime() ?? Date.now();
+  return `/api/platform/pwa-icon/${size}?v=${version}`;
+}
+
+function platformPwaIconPath(
+  settings: typeof platformSettingsTable.$inferSelect | undefined,
+  size: PwaIconSize,
+) {
+  if (size === 180) return settings?.pwaIcon180Path ?? null;
+  if (size === 192) return settings?.pwaIcon192Path ?? null;
+  return settings?.pwaIcon512Path ?? null;
 }
 
 router.get("/platform/site-settings", async (_req, res): Promise<void> => {
@@ -958,6 +1008,221 @@ router.patch("/platform/site-settings", async (req, res): Promise<void> => {
     },
   });
   res.json(await loadPlatformSettings());
+});
+
+router.post(
+  "/platform/site-settings/pwa-icons/upload-url",
+  async (req, res): Promise<void> => {
+    await requirePlatformOwner(req);
+    const parsed = CreatePlatformPwaIconUploadUrlBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid PWA icon upload request." });
+      return;
+    }
+
+    try {
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      res.json(
+        platformPwaIconUploadResponseSchema.parse({ uploadURL, objectPath }),
+      );
+    } catch (error) {
+      req.log.error({ err: error }, "Could not create PWA icon upload URL");
+      res.status(500).json({ error: "Could not prepare PWA icon upload." });
+    }
+  },
+);
+
+router.patch(
+  "/platform/site-settings/pwa-icons",
+  async (req, res): Promise<void> => {
+    const context = await requirePlatformOwner(req);
+    const parsed = UpdatePlatformPwaIconsBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid PWA icon settings." });
+      return;
+    }
+
+    const iconPaths = [
+      { path: parsed.data.icon180Path, size: 180 as const },
+      { path: parsed.data.icon192Path, size: 192 as const },
+      { path: parsed.data.icon512Path, size: 512 as const },
+    ];
+    const hasPartialIconSet =
+      iconPaths.some(({ path }) => path === null) &&
+      iconPaths.some(({ path }) => path !== null);
+    if (hasPartialIconSet) {
+      res.status(400).json({
+        error: "Upload all PWA icon sizes together or clear them all.",
+      });
+      return;
+    }
+    if (
+      iconPaths.some(
+        ({ path }) => path !== null && !PWA_ICON_OBJECT_PATH.test(path),
+      )
+    ) {
+      res.status(400).json({ error: "Invalid PWA icon object path." });
+      return;
+    }
+
+    try {
+      for (const { path: objectPath, size } of iconPaths) {
+        if (!objectPath) continue;
+        const file = await objectStorageService.getObjectEntityFile(objectPath);
+        const [metadata] = await file.getMetadata();
+        const contentLength = Number(metadata.size);
+        if (
+          String(metadata.contentType || "").toLowerCase() !== "image/png" ||
+          !Number.isSafeInteger(contentLength) ||
+          contentLength < 1 ||
+          contentLength > MAX_PWA_ICON_SIZE_BYTES
+        ) {
+          res.status(400).json({
+            error: "PWA icons must be PNG files no larger than 5 MB.",
+          });
+          return;
+        }
+        const [contents] = await file.download();
+        if (!isPngIcon(contents, size)) {
+          res.status(400).json({
+            error: "PWA icons must be valid square PNG images in the expected size.",
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        res.status(400).json({ error: "An uploaded PWA icon could not be found." });
+        return;
+      }
+      req.log.error({ err: error }, "Could not validate uploaded PWA icons");
+      res.status(500).json({ error: "Could not validate PWA icon uploads." });
+      return;
+    }
+
+    await db
+      .insert(platformSettingsTable)
+      .values({
+        id: "default",
+        pwaIcon180Path: parsed.data.icon180Path,
+        pwaIcon192Path: parsed.data.icon192Path,
+        pwaIcon512Path: parsed.data.icon512Path,
+      })
+      .onConflictDoUpdate({
+        target: platformSettingsTable.id,
+        set: {
+          pwaIcon180Path: parsed.data.icon180Path,
+          pwaIcon192Path: parsed.data.icon192Path,
+          pwaIcon512Path: parsed.data.icon512Path,
+          updatedAt: new Date(),
+        },
+      });
+
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId: null,
+      action: "platform_pwa_icons_updated",
+      entityType: "platform_settings",
+      entityId: "default",
+      metadata: {
+        fields: ["pwaIcon180Path", "pwaIcon192Path", "pwaIcon512Path"],
+        restoredDefaults: iconPaths.every(({ path }) => path === null),
+      },
+    });
+    res.json(await loadPlatformSettings());
+  },
+);
+
+router.get("/platform/pwa-manifest", async (_req, res): Promise<void> => {
+  const [settings] = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(eq(platformSettingsTable.id, "default"))
+    .limit(1);
+  const name = settings?.siteName || "VAR HR";
+  const iconSrc = (size: PwaIconSize, fallback: string) =>
+    platformPwaIconPath(settings, size)
+      ? `${platformPwaIconUrl(size, settings?.updatedAt)}`
+      : fallback;
+
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.type("application/manifest+json").json({
+    id: "/",
+    name,
+    short_name: name,
+    description:
+      "VAR HR workforce, attendance, leave, and payroll operations.",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#fffaf7",
+    theme_color: "#071a33",
+    lang: "en",
+    dir: "auto",
+    categories: ["business", "productivity"],
+    icons: [
+      {
+        src: iconSrc(192, "/icons/icon-192.png"),
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: iconSrc(512, "/icons/icon-512.png"),
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+    ],
+  });
+});
+
+router.get("/platform/pwa-icon/:size", async (req, res): Promise<void> => {
+  const size = pwaIconSizeSchema.safeParse(req.params.size);
+  if (!size.success) {
+    res.status(404).end();
+    return;
+  }
+  const iconSize = Number(size.data) as PwaIconSize;
+  const [settings] = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(eq(platformSettingsTable.id, "default"))
+    .limit(1);
+  const objectPath = platformPwaIconPath(settings, iconSize);
+  if (!objectPath || !PWA_ICON_OBJECT_PATH.test(objectPath)) {
+    res.status(404).end();
+    return;
+  }
+
+  try {
+    const file = await objectStorageService.getObjectEntityFile(objectPath);
+    const [metadata] = await file.getMetadata();
+    if (
+      String(metadata.contentType || "").toLowerCase() !== "image/png" ||
+      Number(metadata.size) < 1 ||
+      Number(metadata.size) > MAX_PWA_ICON_SIZE_BYTES
+    ) {
+      res.status(404).end();
+      return;
+    }
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Length", String(metadata.size));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    file.createReadStream().on("error", () => {
+      if (!res.headersSent) res.status(404).end();
+      else res.destroy();
+    }).pipe(res);
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).end();
+      return;
+    }
+    req.log.error({ err: error }, "Could not serve platform PWA icon");
+    res.status(500).end();
+  }
 });
 
 async function loadBackupSchedule() {

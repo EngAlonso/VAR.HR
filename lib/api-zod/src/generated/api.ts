@@ -4930,6 +4930,11 @@ export const GetPlatformSiteSettingsResponse = zod.object({
   "youtube": zod.string().max(getPlatformSiteSettingsResponseSocialLinksYoutubeMax),
   "tiktok": zod.string().max(getPlatformSiteSettingsResponseSocialLinksTiktokMax),
   "whatsapp": zod.string().max(getPlatformSiteSettingsResponseSocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
+}),
+  "pwaIconUrls": zod.object({
+  "icon180": zod.string().nullable(),
+  "icon192": zod.string().nullable(),
+  "icon512": zod.string().nullable()
 })
 })
 
@@ -4999,8 +5004,96 @@ export const UpdatePlatformSiteSettingsResponse = zod.object({
   "youtube": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksYoutubeMax),
   "tiktok": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksTiktokMax),
   "whatsapp": zod.string().max(updatePlatformSiteSettingsResponseSocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
+}),
+  "pwaIconUrls": zod.object({
+  "icon180": zod.string().nullable(),
+  "icon192": zod.string().nullable(),
+  "icon512": zod.string().nullable()
 })
 })
+
+
+/**
+ * Requires Platform Owner access. The icon image uploads directly to object storage.
+ * @summary Create a platform-owner upload URL for a PWA icon
+ */
+export const createPlatformPwaIconUploadUrlBodyFileSizeMax = 5242880;
+
+
+
+export const CreatePlatformPwaIconUploadUrlBody = zod.object({
+  "iconSize": zod.union([zod.literal(180),zod.literal(192),zod.literal(512)]),
+  "fileSize": zod.int().min(1).max(createPlatformPwaIconUploadUrlBodyFileSizeMax)
+})
+
+export const CreatePlatformPwaIconUploadUrlResponse = zod.object({
+  "uploadURL": zod.url(),
+  "objectPath": zod.string()
+})
+
+
+/**
+ * Requires Platform Owner access. Null paths restore the built-in icons.
+ * @summary Save or clear platform PWA icons
+ */
+export const UpdatePlatformPwaIconsBody = zod.object({
+  "icon180Path": zod.string().nullable(),
+  "icon192Path": zod.string().nullable(),
+  "icon512Path": zod.string().nullable()
+})
+
+export const updatePlatformPwaIconsResponseSiteNameMax = 120;
+
+export const updatePlatformPwaIconsResponseSocialLinksFacebookMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksInstagramMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksLinkedinMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksXMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksYoutubeMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksTiktokMax = 500;
+
+export const updatePlatformPwaIconsResponseSocialLinksWhatsappMax = 500;
+
+
+
+export const UpdatePlatformPwaIconsResponse = zod.object({
+  "siteName": zod.string().max(updatePlatformPwaIconsResponseSiteNameMax),
+  "logoVariant": zod.enum(['square', 'short', 'horizontal', 'arabic']),
+  "socialLinks": zod.object({
+  "facebook": zod.string().max(updatePlatformPwaIconsResponseSocialLinksFacebookMax),
+  "instagram": zod.string().max(updatePlatformPwaIconsResponseSocialLinksInstagramMax),
+  "linkedin": zod.string().max(updatePlatformPwaIconsResponseSocialLinksLinkedinMax),
+  "x": zod.string().max(updatePlatformPwaIconsResponseSocialLinksXMax),
+  "youtube": zod.string().max(updatePlatformPwaIconsResponseSocialLinksYoutubeMax),
+  "tiktok": zod.string().max(updatePlatformPwaIconsResponseSocialLinksTiktokMax),
+  "whatsapp": zod.string().max(updatePlatformPwaIconsResponseSocialLinksWhatsappMax).describe('International phone number for WhatsApp; the website constructs the wa.me URL.')
+}),
+  "pwaIconUrls": zod.object({
+  "icon180": zod.string().nullable(),
+  "icon192": zod.string().nullable(),
+  "icon512": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary Get the PWA manifest using current platform branding
+ */
+export const GetPlatformPwaManifestResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Serve a configured public PWA icon
+ */
+export const GetPlatformPwaIconParams = zod.object({
+  "size": zod.enum(['180', '192', '512'])
+})
+
+export const GetPlatformPwaIconResponse = zod.unknown()
 
 
 /**

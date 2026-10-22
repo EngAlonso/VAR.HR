@@ -30,6 +30,9 @@ export const platformSettingsTable = pgTable("var_hr_platform_settings", {
   id: text("id").primaryKey().default("default"),
   siteName: text("site_name").notNull().default("VAR HR"),
   logoVariant: text("logo_variant").notNull().default("horizontal"),
+  pwaIcon180Path: text("pwa_icon_180_path"),
+  pwaIcon192Path: text("pwa_icon_192_path"),
+  pwaIcon512Path: text("pwa_icon_512_path"),
   socialLinks: jsonb("social_links")
     .$type<PlatformSocialLinks>()
     .notNull()

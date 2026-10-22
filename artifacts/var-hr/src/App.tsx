@@ -451,6 +451,7 @@ const defaultSiteSettings: SiteSettings = {
   siteName: "VAR HR",
   logoVariant: "horizontal",
   socialLinks: EMPTY_SOCIAL_LINKS,
+  pwaIconUrls: { icon180: null, icon192: null, icon512: null },
 };
 const SiteBrandingContext = createContext<SiteBrandingContextValue>({
   ...defaultSiteSettings,
@@ -787,6 +788,19 @@ const copy = {
       "Choose the site name and logo, and manage the social links shown in the public footer.",
     siteName: "Site name",
     siteLogo: "Site logo",
+    pwaIconHeading: "PWA app icon",
+    pwaIconDetail:
+      "Choose the icon shown when users install this app. One image is prepared for iOS, Android, and the browser.",
+    pwaIconCurrent: "Current app icon",
+    pwaIconChoose: "Upload a new icon",
+    pwaIconReset: "Restore default icon",
+    pwaIconUpdated: "PWA app icon updated.",
+    pwaIconRestored: "Default PWA app icon restored.",
+    couldNotUpdatePwaIcon: "Could not update the PWA app icon.",
+    pwaIconInvalidFile: "Choose a PNG, JPG, or WebP image smaller than 10 MB.",
+    pwaIconUploading: "Preparing and uploading icons…",
+    pwaIconFileHelp:
+      "A square logo with some empty space around it works best. This changes the installed app icon, not the logo inside pages.",
     siteLogoSquare: "Square logo",
     siteLogoShort: "Short logo",
     siteLogoHorizontal: "Horizontal logo",
@@ -2991,6 +3005,19 @@ const pageCopy = {
       "تحكم في اسم الموقع واللوجو، وأضف روابط التواصل التي تظهر في الفوتر العام.",
     siteName: "اسم الموقع",
     siteLogo: "لوجو الموقع",
+    pwaIconHeading: "أيقونة تطبيق PWA",
+    pwaIconDetail:
+      "اختاري الأيقونة التي تظهر عند تثبيت التطبيق. سيتم تجهيز الصورة تلقائيًا لأجهزة iOS وAndroid والمتصفح.",
+    pwaIconCurrent: "أيقونة التطبيق الحالية",
+    pwaIconChoose: "رفع أيقونة جديدة",
+    pwaIconReset: "استعادة الأيقونة الافتراضية",
+    pwaIconUpdated: "تم تحديث أيقونة تطبيق PWA.",
+    pwaIconRestored: "تمت استعادة أيقونة تطبيق PWA الافتراضية.",
+    couldNotUpdatePwaIcon: "تعذر تحديث أيقونة تطبيق PWA.",
+    pwaIconInvalidFile: "اختاري صورة PNG أو JPG أو WebP، وحجمها أقل من 10 ميجابايت.",
+    pwaIconUploading: "جارٍ تجهيز الأيقونات ورفعها…",
+    pwaIconFileHelp:
+      "الأفضل استخدام شعار مربع مع مساحة فارغة حوله. هذا يغيّر أيقونة التطبيق المثبّت، وليس اللوجو داخل صفحات التطبيق.",
     siteLogoSquare: "اللوجو المربع",
     siteLogoShort: "اللوجو المختصر",
     siteLogoHorizontal: "اللوجو الأفقي",
@@ -6823,6 +6850,39 @@ function siteLogoSource(
   if (fallbackVariant === "square") return squareLogo;
   if (fallbackVariant === "short") return shortLogo;
   return horizontalLogo;
+}
+
+async function renderPwaIcon(file: File, size: number): Promise<Blob> {
+  const image = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    image.close();
+    throw new Error("Could not prepare the icon image.");
+  }
+
+  const fitScale = (size * 0.8) / Math.max(image.width, image.height);
+  const width = Math.max(1, Math.round(image.width * fitScale));
+  const height = Math.max(1, Math.round(image.height * fitScale));
+  context.clearRect(0, 0, size, size);
+  context.drawImage(
+    image,
+    Math.round((size - width) / 2),
+    Math.round((size - height) / 2),
+    width,
+    height,
+  );
+  image.close();
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) =>
+        blob ? resolve(blob) : reject(new Error("Could not encode the icon image.")),
+      "image/png",
+    );
+  });
 }
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -25129,6 +25189,7 @@ function PlatformSiteBranding() {
     branding.socialLinks,
   );
   const [pending, setPending] = useState(false);
+  const [pwaIconPending, setPwaIconPending] = useState(false);
   const logoOptions: Array<{
     value: SiteLogoVariant;
     label: string;
@@ -25220,6 +25281,85 @@ function PlatformSiteBranding() {
     }
   };
 
+  const uploadPwaIcon = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    if (
+      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      file.size > 10 * 1024 * 1024
+    ) {
+      toast.error(t("pwaIconInvalidFile"));
+      return;
+    }
+
+    setPwaIconPending(true);
+    try {
+      const uploadedPaths: {
+        icon180Path: string;
+        icon192Path: string;
+        icon512Path: string;
+      } = { icon180Path: "", icon192Path: "", icon512Path: "" };
+
+      for (const size of [180, 192, 512] as const) {
+        const image = await renderPwaIcon(file, size);
+        const upload = await authRequest<{
+          uploadURL: string;
+          objectPath: string;
+        }>("/api/platform/site-settings/pwa-icons/upload-url", {
+          method: "POST",
+          body: JSON.stringify({ iconSize: size, fileSize: image.size }),
+        });
+        const response = await fetch(upload.uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": "image/png" },
+          body: image,
+        });
+        if (!response.ok) {
+          throw new Error(t("couldNotUpdatePwaIcon"));
+        }
+        if (size === 180) uploadedPaths.icon180Path = upload.objectPath;
+        if (size === 192) uploadedPaths.icon192Path = upload.objectPath;
+        if (size === 512) uploadedPaths.icon512Path = upload.objectPath;
+      }
+
+      const updated = await authRequest<SiteSettings>(
+        "/api/platform/site-settings/pwa-icons",
+        { method: "PATCH", body: JSON.stringify(uploadedPaths) },
+      );
+      branding.setSiteSettings(updated);
+      toast.success(t("pwaIconUpdated"));
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, t("couldNotUpdatePwaIcon")));
+    } finally {
+      setPwaIconPending(false);
+    }
+  };
+
+  const restoreDefaultPwaIcon = async () => {
+    setPwaIconPending(true);
+    try {
+      const updated = await authRequest<SiteSettings>(
+        "/api/platform/site-settings/pwa-icons",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            icon180Path: null,
+            icon192Path: null,
+            icon512Path: null,
+          }),
+        },
+      );
+      branding.setSiteSettings(updated);
+      toast.success(t("pwaIconRestored"));
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, t("couldNotUpdatePwaIcon")));
+    } finally {
+      setPwaIconPending(false);
+    }
+  };
+
   return (
     <div className="animate-in">
       <SectionTitle
@@ -25276,6 +25416,59 @@ function PlatformSiteBranding() {
                 })}
               </div>
             </div>
+            <section className="space-y-4 border-t border-border pt-5">
+              <div>
+                <h2 className="text-sm font-semibold">{t("pwaIconHeading")}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("pwaIconDetail")}
+                </p>
+              </div>
+              <div className="flex flex-col gap-4 rounded-xl border border-border p-4 sm:flex-row sm:items-center">
+                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
+                  <img
+                    src={branding.pwaIconUrls.icon512 || "/icons/icon-512.png"}
+                    alt={t("pwaIconCurrent")}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-3">
+                  <p className="text-sm font-semibold">{t("pwaIconCurrent")}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {t("pwaIconFileHelp")}
+                  </p>
+                  <label
+                    htmlFor="platform-pwa-icon-file"
+                    className={cn(
+                      "block text-sm font-medium",
+                      pwaIconPending && "opacity-60",
+                    )}
+                  >
+                    {t("pwaIconChoose")}
+                  </label>
+                  <input
+                    id="platform-pwa-icon-file"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={pwaIconPending}
+                    onChange={(event) => void uploadPwaIcon(event)}
+                    className="block w-full max-w-lg text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-semibold file:text-primary-foreground disabled:opacity-60"
+                  />
+                  {pwaIconPending && (
+                    <p role="status" className="text-sm text-muted-foreground">
+                      {t("pwaIconUploading")}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pwaIconPending || !branding.pwaIconUrls.icon512}
+                    onClick={() => void restoreDefaultPwaIcon()}
+                  >
+                    {t("pwaIconReset")}
+                  </Button>
+                </div>
+              </div>
+            </section>
             <section className="space-y-4 border-t border-border pt-5">
               <div>
                 <h2 className="text-sm font-semibold">
@@ -32016,6 +32209,20 @@ function App() {
               ? logoVariant
               : defaultSiteSettings.logoVariant,
           socialLinks: normalizeSocialLinks(settings.socialLinks),
+          pwaIconUrls: {
+            icon180:
+              typeof settings.pwaIconUrls?.icon180 === "string"
+                ? settings.pwaIconUrls.icon180
+                : null,
+            icon192:
+              typeof settings.pwaIconUrls?.icon192 === "string"
+                ? settings.pwaIconUrls.icon192
+                : null,
+            icon512:
+              typeof settings.pwaIconUrls?.icon512 === "string"
+                ? settings.pwaIconUrls.icon512
+                : null,
+          },
         });
       })
       .catch(() => undefined);
@@ -32032,7 +32239,16 @@ function App() {
       favicon.rel = "icon";
       document.head.appendChild(favicon);
     }
-    favicon.href = siteLogoSource(siteSettings.logoVariant, "square");
+    favicon.href =
+      siteSettings.pwaIconUrls.icon192 ||
+      siteLogoSource(siteSettings.logoVariant, "square");
+    const appleTouchIcon = document.querySelector<HTMLLinkElement>(
+      'link[rel="apple-touch-icon"]',
+    );
+    if (appleTouchIcon) {
+      appleTouchIcon.href =
+        siteSettings.pwaIconUrls.icon180 || "/icons/icon-180.png";
+    }
   }, [siteSettings]);
   return (
     <SiteBrandingContext.Provider value={{ ...siteSettings, setSiteSettings }}>

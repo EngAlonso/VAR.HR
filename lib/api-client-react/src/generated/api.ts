@@ -96,6 +96,7 @@ import type {
   GetEmployeePayrollSummaryParams,
   GetInitialPlatformOwnerProvisioningStatus200,
   GetMyPayrollParams,
+  GetPlatformPwaManifest200,
   GetReportParams,
   GoogleDriveRetryRequest,
   GoogleDriveRetryResult,
@@ -145,6 +146,9 @@ import type {
   PlatformCompanyUpdate,
   PlatformLeaveBalanceSupportInput,
   PlatformLeaveBalanceSupportResponse,
+  PlatformPwaIconPathsInput,
+  PlatformPwaIconUpload,
+  PlatformPwaIconUploadInput,
   PlatformSiteSettings,
   PlatformSiteSettingsInput,
   PlatformSummary,
@@ -10326,6 +10330,304 @@ export const useUpdatePlatformSiteSettings = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdatePlatformSiteSettingsMutationOptions(options));
     }
+
+export const getCreatePlatformPwaIconUploadUrlUrl = () => {
+
+
+
+
+  return `/api/platform/site-settings/pwa-icons/upload-url`
+}
+
+/**
+ * Requires Platform Owner access. The icon image uploads directly to object storage.
+ * @summary Create a platform-owner upload URL for a PWA icon
+ */
+export const createPlatformPwaIconUploadUrl = async (platformPwaIconUploadInput: PlatformPwaIconUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformPwaIconUpload> => {
+
+  return customFetch<PlatformPwaIconUpload>(getCreatePlatformPwaIconUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformPwaIconUploadInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePlatformPwaIconUploadUrlMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>, TError,{data: BodyType<PlatformPwaIconUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>, TError,{data: BodyType<PlatformPwaIconUploadInput>}, TContext> => {
+
+const mutationKey = ['createPlatformPwaIconUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>, {data: BodyType<PlatformPwaIconUploadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPlatformPwaIconUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlatformPwaIconUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>>
+    export type CreatePlatformPwaIconUploadUrlMutationBody = BodyType<PlatformPwaIconUploadInput>
+    export type CreatePlatformPwaIconUploadUrlMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a platform-owner upload URL for a PWA icon
+ */
+export const useCreatePlatformPwaIconUploadUrl = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>, TError,{data: BodyType<PlatformPwaIconUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlatformPwaIconUploadUrl>>,
+        TError,
+        {data: BodyType<PlatformPwaIconUploadInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePlatformPwaIconUploadUrlMutationOptions(options));
+    }
+
+export const getUpdatePlatformPwaIconsUrl = () => {
+
+
+
+
+  return `/api/platform/site-settings/pwa-icons`
+}
+
+/**
+ * Requires Platform Owner access. Null paths restore the built-in icons.
+ * @summary Save or clear platform PWA icons
+ */
+export const updatePlatformPwaIcons = async (platformPwaIconPathsInput: PlatformPwaIconPathsInput, options?: Parameters<typeof customFetch>[1]): Promise<PlatformSiteSettings> => {
+
+  return customFetch<PlatformSiteSettings>(getUpdatePlatformPwaIconsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformPwaIconPathsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePlatformPwaIconsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformPwaIcons>>, TError,{data: BodyType<PlatformPwaIconPathsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformPwaIcons>>, TError,{data: BodyType<PlatformPwaIconPathsInput>}, TContext> => {
+
+const mutationKey = ['updatePlatformPwaIcons'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformPwaIcons>>, {data: BodyType<PlatformPwaIconPathsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlatformPwaIcons(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformPwaIconsMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformPwaIcons>>>
+    export type UpdatePlatformPwaIconsMutationBody = BodyType<PlatformPwaIconPathsInput>
+    export type UpdatePlatformPwaIconsMutationError = ErrorType<void>
+
+    /**
+ * @summary Save or clear platform PWA icons
+ */
+export const useUpdatePlatformPwaIcons = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformPwaIcons>>, TError,{data: BodyType<PlatformPwaIconPathsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformPwaIcons>>,
+        TError,
+        {data: BodyType<PlatformPwaIconPathsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformPwaIconsMutationOptions(options));
+    }
+
+export const getGetPlatformPwaManifestUrl = () => {
+
+
+
+
+  return `/api/platform/pwa-manifest`
+}
+
+/**
+ * @summary Get the PWA manifest using current platform branding
+ */
+export const getPlatformPwaManifest = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetPlatformPwaManifest200> => {
+
+  return customFetch<GetPlatformPwaManifest200>(getGetPlatformPwaManifestUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformPwaManifestQueryKey = () => {
+    return [
+    `/api/platform/pwa-manifest`
+    ] as const;
+    }
+
+
+export const getGetPlatformPwaManifestQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformPwaManifest>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaManifest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformPwaManifestQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformPwaManifest>>> = ({ signal }) => getPlatformPwaManifest({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaManifest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformPwaManifestQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformPwaManifest>>>
+export type GetPlatformPwaManifestQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the PWA manifest using current platform branding
+ */
+
+export function useGetPlatformPwaManifest<TData = Awaited<ReturnType<typeof getPlatformPwaManifest>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaManifest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformPwaManifestQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlatformPwaIconUrl = (size: '180' | '192' | '512',) => {
+
+
+
+
+  return `/api/platform/pwa-icon/${size}`
+}
+
+/**
+ * @summary Serve a configured public PWA icon
+ */
+export const getPlatformPwaIcon = async (size: '180' | '192' | '512', options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPlatformPwaIconUrl(size),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformPwaIconQueryKey = (size: '180' | '192' | '512',) => {
+    return [
+    `/api/platform/pwa-icon/${size}`
+    ] as const;
+    }
+
+
+export const getGetPlatformPwaIconQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformPwaIcon>>, TError = ErrorType<void>>(size: '180' | '192' | '512', options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaIcon>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformPwaIconQueryKey(size);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformPwaIcon>>> = ({ signal }) => getPlatformPwaIcon(size, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: size !== null && size !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaIcon>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformPwaIconQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformPwaIcon>>>
+export type GetPlatformPwaIconQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve a configured public PWA icon
+ */
+
+export function useGetPlatformPwaIcon<TData = Awaited<ReturnType<typeof getPlatformPwaIcon>>, TError = ErrorType<void>>(
+ size: '180' | '192' | '512', options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformPwaIcon>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformPwaIconQueryOptions(size,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetPlatformGoogleDriveStatusUrl = () => {
 

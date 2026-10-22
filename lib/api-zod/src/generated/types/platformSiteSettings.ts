@@ -5,6 +5,7 @@
  * VAR HR operational API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlatformPwaIconUrls } from './platformPwaIconUrls';
 import type { PlatformSiteSettingsLogoVariant } from './platformSiteSettingsLogoVariant';
 import type { PlatformSocialLinks } from './platformSocialLinks';
 
@@ -13,4 +14,5 @@ export interface PlatformSiteSettings {
   siteName: string;
   logoVariant: PlatformSiteSettingsLogoVariant;
   socialLinks: PlatformSocialLinks;
+  pwaIconUrls: PlatformPwaIconUrls;
 }
