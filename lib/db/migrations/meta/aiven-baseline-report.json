@@ -2,7 +2,7 @@
   "reportVersion": 1,
   "target": "Aiven production",
   "status": "inspected",
-  "inspectedAt": "2026-10-22T09:47:02.391Z",
+  "inspectedAt": "2026-10-22T10:03:41.884Z",
   "databaseName": "defaultdb",
   "serverVersion": "18.6",
   "currentSchemaFingerprint": "a4f84ad925af4b03bfb297673398017f855ee1b8c052ac59bc9787821bada81a",
