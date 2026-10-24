@@ -288,6 +288,45 @@ function invalidateAttendanceRuleDependents(qc: QueryClient) {
 }
 
 type Locale = "en" | "ar" | "fr" | "de";
+const compactMobileNavLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    platformOwner: "Platform",
+    databaseAdministration: "Database",
+    siteBranding: "Branding",
+    accountSettings: "Account",
+    hrProfile: "Profile",
+  },
+  ar: {
+    platformOwner: "مالك المنصة",
+    databaseAdministration: "قاعدة البيانات",
+    siteBranding: "هوية الموقع",
+    accountSettings: "الحساب",
+    hrProfile: "الملف",
+  },
+  fr: {
+    platformOwner: "Plateforme",
+    databaseAdministration: "Données",
+    siteBranding: "Identité du site",
+    accountSettings: "Compte",
+    hrProfile: "Profil",
+  },
+  de: {
+    platformOwner: "Plattform",
+    databaseAdministration: "Datenbank",
+    siteBranding: "Website",
+    accountSettings: "Konto",
+    hrProfile: "Profil",
+  },
+};
+
+function mobileNavigationLabel(
+  locale: Locale,
+  key: string,
+  fallback: string,
+): string {
+  return compactMobileNavLabels[locale][key] ?? fallback;
+}
+
 type WorkspaceRole =
   "platform_owner" | "company_owner" | "manager" | "employee";
 type AuthAccount = {
@@ -8285,9 +8324,10 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-9 w-[clamp(44px,15vw,58px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
                 variant="short"
+                source={`${import.meta.env.BASE_URL}icons/icon-192.png`}
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
               />
               <BrandLogo
@@ -8365,7 +8405,7 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
+        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-28 pt-5 sm:px-8 sm:py-9 sm:pb-24">
           {children}
         </main>
         {canInstallPwa && (
@@ -8402,16 +8442,20 @@ function Shell({ children }: { children: ReactNode }) {
                 key={`${href}-${key}`}
                 href={href}
                 className={cn(
-                  "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors",
+                  "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight transition-colors",
                   isActive
                     ? "bg-primary/15 text-primary-dark"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
                 aria-current={isActive ? "page" : undefined}
+                aria-label={label}
+                title={label}
                 data-testid={`mobile-nav-${key}`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className="max-w-full truncate">{label}</span>
+                <span className="max-w-full whitespace-normal break-words text-center">
+                  {mobileNavigationLabel(locale, key, label)}
+                </span>
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
@@ -8429,14 +8473,16 @@ function Shell({ children }: { children: ReactNode }) {
           })}
           <button
             type="button"
-            className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(true)}
             aria-controls="workspace-navigation"
             aria-expanded={open}
             data-testid="button-mobile-more"
           >
             <MoreHorizontal size={18} strokeWidth={1.8} />
-            <span className="max-w-full truncate">{t("more")}</span>
+            <span className="max-w-full whitespace-normal break-words text-center">
+              {t("more")}
+            </span>
           </button>
         </nav>
       </div>
