@@ -8110,6 +8110,8 @@ function Shell({ children }: { children: ReactNode }) {
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
   const pendingAttendanceReviews = attendancePunchReviews.data?.length ?? 0;
   const canInstallPwa = !isPwaInstalled;
+  const displayAccountName =
+    accountDisplayName(locale, auth.account) || auth.account.username;
   async function installPwa() {
     if (!installPrompt) {
       if (isIosDevice) toast.info(t("pwaIosInstallHint"));
@@ -8334,6 +8336,13 @@ function Shell({ children }: { children: ReactNode }) {
                 variant="horizontal"
                 className="hidden !h-full !w-full !max-w-none object-contain sm:block"
               />
+            </span>
+            <span
+              className="ms-auto min-w-0 max-w-[45vw] truncate text-sm font-semibold text-foreground sm:hidden"
+              title={displayAccountName}
+              data-testid="text-mobile-account-name"
+            >
+              {displayAccountName}
             </span>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
