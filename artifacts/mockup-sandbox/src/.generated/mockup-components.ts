@@ -4,8 +4,8 @@ export const modules: ModuleMap = {
   "./components/mockups/request-modal/Current.tsx": () => import("../components/mockups/request-modal/Current.tsx"),
   "./components/mockups/request-modal/Inline.tsx": () => import("../components/mockups/request-modal/Inline.tsx"),
   "./components/mockups/request-modal/Refined.tsx": () => import("../components/mockups/request-modal/Refined.tsx"),
-  "./components/mockups/work-schedules/Current.tsx": () => import("../components/mockups/work-schedules/Current.tsx"),
-  "./components/mockups/work-schedules/Refined.tsx": () => import("../components/mockups/work-schedules/Refined.tsx"),
   "./components/mockups/var-hr-mobile-shell/At100Percent.tsx": () => import("../components/mockups/var-hr-mobile-shell/At100Percent.tsx"),
-  "./components/mockups/var-hr-mobile-shell/Current.tsx": () => import("../components/mockups/var-hr-mobile-shell/Current.tsx")
+  "./components/mockups/var-hr-mobile-shell/Current.tsx": () => import("../components/mockups/var-hr-mobile-shell/Current.tsx"),
+  "./components/mockups/work-schedules/Current.tsx": () => import("../components/mockups/work-schedules/Current.tsx"),
+  "./components/mockups/work-schedules/Refined.tsx": () => import("../components/mockups/work-schedules/Refined.tsx")
 };

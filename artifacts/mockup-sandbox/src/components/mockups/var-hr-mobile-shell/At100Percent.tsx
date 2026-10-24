@@ -22,7 +22,7 @@ export function At100Percent() {
       lang="ar"
       className="min-h-screen overflow-hidden bg-background font-sans text-foreground"
     >
-      <header className="sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md">
+      <header className="sticky top-0 z-30 grid h-28 grid-cols-1 grid-rows-2 items-center gap-1 border-b border-border/80 bg-background/90 px-3 py-2 backdrop-blur-md">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
@@ -44,7 +44,7 @@ export function At100Percent() {
           </span>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-1">
+        <div className="flex w-full min-w-0 items-center justify-center gap-1">
           <button
             type="button"
             aria-label="الإشعارات"

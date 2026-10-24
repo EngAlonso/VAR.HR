@@ -8307,7 +8307,7 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md sm:h-[72px] sm:px-8 sm:flex sm:gap-0">
+        <header className="relative sticky top-0 z-30 grid h-28 grid-cols-1 grid-rows-2 items-center gap-1 border-b border-border/80 bg-background/90 px-3 py-2 backdrop-blur-md sm:h-[72px] sm:grid-cols-[minmax(0,1fr)_auto] sm:grid-rows-1 sm:px-8 sm:py-0 sm:flex sm:gap-0">
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
@@ -8353,7 +8353,7 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
+          <div className="flex w-full min-w-0 items-center justify-center gap-1 sm:w-auto sm:justify-end sm:flex-1 sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
