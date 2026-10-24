@@ -8366,12 +8366,34 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex w-full min-w-0 items-center justify-center gap-1 sm:w-auto sm:justify-end sm:flex-1 sm:gap-2">
+          <div className="flex w-full min-w-0 items-center justify-between gap-1 sm:w-auto sm:justify-end sm:flex-1 sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            <NotificationCenter locale={locale} />
-            <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
+            <div className="order-2 flex items-center gap-1 sm:contents sm:order-none">
+              <div>
+                <NotificationCenter locale={locale} />
+              </div>
+              <Button
+                variant="quiet"
+                className="inline-flex p-2 sm:order-2"
+                title={authLabel(locale, "logout")}
+                aria-label={authLabel(locale, "logout")}
+                onClick={() => void auth.signOut()}
+              >
+                <LogOut size={18} />
+              </Button>
+              <Button
+                variant="quiet"
+                className="inline-flex p-2 sm:order-3"
+                title={t("support")}
+                aria-label={t("support")}
+                data-testid="button-support"
+              >
+                <LifeBuoy size={18} />
+              </Button>
+            </div>
+            <div className="order-1 flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:order-1 sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
               <select
                 aria-label={t("language")}
@@ -8387,24 +8409,6 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
-            <Button
-              variant="quiet"
-              className="hidden p-2 sm:inline-flex"
-              title={authLabel(locale, "logout")}
-              aria-label={authLabel(locale, "logout")}
-              onClick={() => void auth.signOut()}
-            >
-              <LogOut size={18} />
-            </Button>
-            <Button
-              variant="quiet"
-              className="hidden p-2 sm:inline-flex"
-              title={t("support")}
-              aria-label={t("support")}
-              data-testid="button-support"
-            >
-              <LifeBuoy size={18} />
-            </Button>
           </div>
         </header>
         <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-28 pt-5 sm:px-8 sm:py-9 sm:pb-24">
