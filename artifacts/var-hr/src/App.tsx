@@ -8136,6 +8136,8 @@ function Shell({ children }: { children: ReactNode }) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "V";
+  const displayAccountName =
+    accountDisplayName(locale, auth.account) || auth.account.username;
   return (
     <div
       className="app-noise min-h-[100dvh] bg-background"
@@ -8337,13 +8339,13 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
             <Button
               variant="outline"
-              className="ms-auto grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
+              className="ms-auto flex h-10 max-w-[calc(100vw-7rem)] shrink items-center justify-center rounded-xl px-3 text-xs font-semibold sm:hidden"
               onClick={() => setLocation("/profile")}
               aria-label={t("profileEmployee")}
               data-testid="button-mobile-profile"
             >
-              <span className="font-display text-xs font-bold">
-                {accountInitials}
+              <span className="text-center leading-tight">
+                {displayAccountName}
               </span>
             </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
