@@ -8110,8 +8110,6 @@ function Shell({ children }: { children: ReactNode }) {
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
   const pendingAttendanceReviews = attendancePunchReviews.data?.length ?? 0;
   const canInstallPwa = !isPwaInstalled;
-  const displayAccountName =
-    accountDisplayName(locale, auth.account) || auth.account.username;
   async function installPwa() {
     if (!installPrompt) {
       if (isIosDevice) toast.info(t("pwaIosInstallHint"));
@@ -8337,13 +8335,17 @@ function Shell({ children }: { children: ReactNode }) {
                 className="hidden !h-full !w-full !max-w-none object-contain sm:block"
               />
             </span>
-            <span
-              className="ms-auto min-w-0 max-w-[45vw] truncate text-sm font-semibold text-foreground sm:hidden"
-              title={displayAccountName}
-              data-testid="text-mobile-account-name"
+            <Button
+              variant="outline"
+              className="ms-auto grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
+              onClick={() => setLocation("/profile")}
+              aria-label={t("profileEmployee")}
+              data-testid="button-mobile-profile"
             >
-              {displayAccountName}
-            </span>
+              <span className="font-display text-xs font-bold">
+                {accountInitials}
+              </span>
+            </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
@@ -8383,17 +8385,6 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
-            <Button
-              variant="outline"
-              className="grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
-              onClick={() => setLocation("/profile")}
-              aria-label={t("profileEmployee")}
-              data-testid="button-mobile-profile"
-            >
-              <span className="font-display text-xs font-bold">
-                {accountInitials}
-              </span>
-            </Button>
             <Button
               variant="quiet"
               className="hidden p-2 sm:inline-flex"
