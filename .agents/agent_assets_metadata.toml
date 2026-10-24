@@ -28,3 +28,17 @@ mtime_ms = 1790677985540
 storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:0e840966-8c32-4509-8b9b-ca6d24ff43f4/72df849d-9b19-4fdb-91c9-6352de64ac30/57b0e9a4-2a9d-4ae3-8afa-759eea9cb087"
 storage_version_token = "1790677994697429"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "e-3ZL1zSg1q2L_FkmJhTn"
+uri = "file://artifacts/var-hr/public/icons/icon-512.png"
+type = "image"
+title = "أيقونة VAR HR الجديدة"
+description = "النسخة المربعة المحسنة المستخدمة كأيقونة PWA."
+logical_id = "04468539-ef55-4df1-bfc0-daf0711fdfb6"
+content_hash = "sha256:3cd4d7ff3802bbbf4bdd454f4a594bcc3f947682ee2fbbdb0519bae5494cc127"
+size = 149275
+mtime_ms = 1792859534379
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:f1e66a4f-30bd-4cb1-8f32-82ee4792e09e/04468539-ef55-4df1-bfc0-daf0711fdfb6/cf0e7c90-29b8-4e30-ac5b-388ee8f084b2"
+storage_version_token = "1792859673012417"
+content_type = "image/png"
