@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-const INTRO_VIDEO_URL = '/var-hr-intro.mp4';
+// Vite replaces BASE_URL with the configured deployment base path at build time.
+const INTRO_VIDEO_URL = `${import.meta.env.BASE_URL}var-hr-intro.mp4`;
 
 export function IntroOverlay() {
   const [visible, setVisible] = useState(true);
