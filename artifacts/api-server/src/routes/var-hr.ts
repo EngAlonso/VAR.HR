@@ -1189,7 +1189,7 @@ function effectiveScheduleFromRows(
   return {
     name: schedule.name,
     shiftType: schedule.shiftType,
-    workingDays: rules.workingDays,
+    workingDays: schedule.workingDays,
     startTime: schedule.startTime,
     endTime: schedule.endTime,
     requiredHours: schedule.requiredHours,
@@ -1382,7 +1382,7 @@ async function effectiveScheduleFor(
     ? {
         name: schedule.name,
         shiftType: schedule.shiftType,
-        workingDays: rules.workingDays,
+        workingDays: schedule.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
