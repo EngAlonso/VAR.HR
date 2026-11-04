@@ -1293,7 +1293,7 @@ async function effectiveScheduleFor(
     return {
       name: assignment.schedule.name,
       shiftType: assignment.schedule.shiftType,
-      workingDays: rules.workingDays,
+      workingDays: assignment.schedule.workingDays,
       startTime: assignment.schedule.startTime,
       endTime: assignment.schedule.endTime,
       requiredHours: assignment.schedule.requiredHours,
@@ -1346,7 +1346,7 @@ async function effectiveScheduleFor(
       return {
         name: schedule.name,
         shiftType: schedule.shiftType,
-        workingDays: rules.workingDays,
+        workingDays: schedule.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
@@ -1583,10 +1583,10 @@ function attendanceMetrics(input: {
   holiday: boolean;
 }) {
   const workingDay = isWorkingScheduleDay(input.schedule, input.attendanceDate);
-  const scheduledMinutes = scheduleDurationMinutes(
-    input.schedule.startTime,
-    input.schedule.endTime,
-  );
+  const scheduledMinutes =
+    input.schedule.shiftType === "flexible"
+      ? Math.round(input.schedule.requiredHours * 60)
+      : scheduleDurationMinutes(input.schedule.startTime, input.schedule.endTime);
   const workedMinutes =
     input.checkIn && input.checkOut
       ? Math.max(
@@ -1624,9 +1624,11 @@ function attendanceMetrics(input: {
       )
     : 0;
   const scheduledWorkedMinutes =
-    input.checkIn && input.checkOut
-      ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
-      : 0;
+    input.schedule.shiftType === "flexible"
+      ? netWorkedMinutes
+      : input.checkIn && input.checkOut
+        ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
+        : 0;
   const regularWorkedMinutes = Math.max(
     0,
     scheduledWorkedMinutes -
@@ -1835,10 +1837,10 @@ async function attendanceCalculationFor(
         netWorkedMinutes: metrics.netWorkedMinutes,
         rules: rules.timeMultipliers as TimeMultiplierRule[],
       });
-  const scheduledMinutes = scheduleDurationMinutes(
-    schedule.startTime,
-    schedule.endTime,
-  );
+  const scheduledMinutes =
+    schedule.shiftType === "flexible"
+      ? Math.round(schedule.requiredHours * 60)
+      : scheduleDurationMinutes(schedule.startTime, schedule.endTime);
   const fullDayPermission = approvedPermissionWindows.some(
     (window) => window.start <= 0 && window.end >= scheduledMinutes,
   );
