@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { IntroOverlay } from '@/components/IntroOverlay';
 import { registerNotificationServiceWorker } from '@/lib/notification-service-worker';
 import { initializePwaInstall } from '@/lib/pwa-install';
 
@@ -30,6 +31,9 @@ createRoot(document.getElementById('root')!, {
   },
 }).render(
   <ErrorBoundary>
-    <App />
+    <>
+      <App />
+      <IntroOverlay />
+    </>
   </ErrorBoundary>,
 );
