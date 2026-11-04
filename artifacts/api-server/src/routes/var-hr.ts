@@ -1105,6 +1105,7 @@ async function attendanceRulesFor(
 
 type EffectiveSchedule = {
   name: string;
+  shiftType: "fixed" | "flexible";
   workingDays: string[];
   startTime: string;
   endTime: string;
@@ -1142,6 +1143,7 @@ function defaultScheduleFromRules(
 ): EffectiveSchedule {
   return {
     name: rules.scheduleName,
+    shiftType: "fixed",
     workingDays: rules.workingDays,
     startTime: rules.workStart,
     endTime: rules.workEnd,
@@ -1628,13 +1630,15 @@ function attendanceMetrics(input: {
         : Math.min(unpaidBreakMinutes, scheduledWorkedMinutes)),
   );
   const rawLateMinutes =
-    input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed);
+    input.holiday || !workingDay || input.schedule.shiftType === "flexible"
+      ? 0
+      : Math.max(0, checkInElapsed);
   // Grace is an exemption threshold, not time credited back to the employee.
   // Once the threshold is exceeded, report the full raw delay.
   const lateMinutes =
     rawLateMinutes > input.schedule.graceMinutes ? rawLateMinutes : 0;
   const rawEarlyDepartureMinutes =
-    input.holiday || !workingDay || !input.checkOut
+    input.schedule.shiftType === "flexible" || input.holiday || !workingDay || !input.checkOut
       ? 0
       : Math.max(0, scheduledMinutes - checkOutElapsed);
   const earlyCheckoutMinutes =
@@ -1653,7 +1657,9 @@ function attendanceMetrics(input: {
   // threshold: once the raw extra time reaches it, count all extra minutes.
   const rawOvertimeMinutes = input.holiday
     ? netWorkedMinutes
-    : workingDay
+    : input.schedule.shiftType === "flexible"
+      ? Math.max(0, netWorkedMinutes - Math.round(input.schedule.requiredHours * 60))
+      : workingDay
       ? overtimeMinutesAfterScheduleEnd({
           checkIn: input.checkIn,
           checkOut: input.checkOut,
@@ -8986,6 +8992,7 @@ router.post("/schedules", async (req, res): Promise<void> => {
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
+      shiftType: parsed.data.shiftType ?? "fixed",
       nameAr: parsed.data.nameAr,
       nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,
@@ -9048,6 +9055,7 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     .update(workSchedulesTable)
     .set({
       name: parsed.data.name,
+      shiftType: parsed.data.shiftType ?? "fixed",
       nameAr: parsed.data.nameAr,
       nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,

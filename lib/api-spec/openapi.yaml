@@ -3006,6 +3006,7 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        shiftType: { type: string, enum: [fixed, flexible] }
         nameAr: { type: string }
         nameEn: { type: string }
         description: { type: ["string", "null"] }
@@ -4516,6 +4517,7 @@ components:
         [
           id,
           name,
+          shiftType,
           nameAr,
           nameEn,
           workingDays,
