@@ -9097,6 +9097,8 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     existing,
   );
   const attendanceScheduleFields = [
+    "shiftType",
+    "workingDays",
     "startTime",
     "endTime",
     "overnight",
