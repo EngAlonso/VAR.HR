@@ -1602,11 +1602,14 @@ function attendanceMetrics(input: {
   );
   const unpaidBreakMinutes = input.schedule.breakPaid ? 0 : breakMinutes;
   const netWorkedMinutes = Math.max(0, workedMinutes - unpaidBreakMinutes);
-  const normalScheduledMinutes = Math.max(
-    0,
-    scheduledMinutes -
-      (input.schedule.breakPaid ? 0 : input.schedule.breakDurationMinutes),
-  );
+  const normalScheduledMinutes =
+    input.schedule.shiftType === "flexible"
+      ? scheduledMinutes
+      : Math.max(
+          0,
+          scheduledMinutes -
+            (input.schedule.breakPaid ? 0 : input.schedule.breakDurationMinutes),
+        );
   const checkInElapsed = input.checkIn
     ? localElapsedMinutes(
         input.checkIn,
@@ -1625,7 +1628,7 @@ function attendanceMetrics(input: {
     : 0;
   const scheduledWorkedMinutes =
     input.schedule.shiftType === "flexible"
-      ? netWorkedMinutes
+      ? workedMinutes
       : input.checkIn && input.checkOut
         ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
         : 0;
