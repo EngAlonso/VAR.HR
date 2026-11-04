@@ -2777,6 +2777,7 @@ export const listWorkSchedulesResponseOvertimeAfterMinutesMax = 1440;
 export const ListWorkSchedulesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "shiftType": zod.enum(["fixed", "flexible"]),
   "nameAr": zod.string(),
   "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
@@ -2824,6 +2825,7 @@ export const createWorkScheduleBodyActiveDefault = true;
 
 export const CreateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
+  "shiftType": zod.enum(["fixed", "flexible"]).default("fixed"),
   "nameAr": zod.string(),
   "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
@@ -2862,6 +2864,7 @@ export const createWorkScheduleResponseOvertimeAfterMinutesMax = 1440;
 export const CreateWorkScheduleResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "shiftType": zod.enum(["fixed", "flexible"]),
   "nameAr": zod.string(),
   "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()),
@@ -2912,6 +2915,7 @@ export const updateWorkScheduleBodyActiveDefault = true;
 
 export const UpdateWorkScheduleBody = zod.object({
   "name": zod.string().min(1),
+  "shiftType": zod.enum(["fixed", "flexible"]).default("fixed"),
   "nameAr": zod.string(),
   "nameEn": zod.string(),
   "workingDays": zod.array(zod.string()).min(1),
