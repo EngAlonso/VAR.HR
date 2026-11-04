@@ -3862,6 +3862,7 @@ router.post("/branches", async (req, res): Promise<void> => {
     CreateBranchResponse.parse({
       id: branch.id,
       name: branch.name,
+      nameEn: branch.nameEn || branch.name,
       city: branch.city,
       employeeCount: 0,
       deviceCount: 0,
