@@ -1,5 +1,5 @@
 const basePath = new URL("./", self.location.href).pathname;
-const SHELL_CACHE = "var-hr-shell-v36";
+const SHELL_CACHE = "var-hr-shell-v37";
 const SHELL_ASSETS = [
   basePath,
   `${basePath}index.html`,
@@ -8,6 +8,7 @@ const SHELL_ASSETS = [
   `${basePath}icons/icon-180.png`,
   `${basePath}icons/icon-192.png`,
   `${basePath}icons/icon-512.png`,
+  `${basePath}var-hr-intro.mp4`,
 ];
 
 function resolveNotificationUrl(value) {
@@ -86,7 +87,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (["script", "style", "font", "image"].includes(request.destination)) {
+  if (["script", "style", "font", "image", "video", "audio"].includes(request.destination)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
