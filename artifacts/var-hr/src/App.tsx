@@ -1717,6 +1717,7 @@ const pageCopy = {
     employeeEmploymentDetail:
       "Set the working terms that will guide attendance and payroll calculations.",
     workingHours: "Working hours",
+    workDaysPerMonth: "Working days per month",
     workingHoursHint: "Hours per working day.",
     employmentStartDate: "Employment start date",
     employeePlacementSection: "Workplace placement",
@@ -2153,6 +2154,7 @@ const pageCopy = {
     employeeEmploymentDetail:
       "حدد شروط العمل التي ستوجّه حسابات الحضور والرواتب.",
     workingHours: "ساعات العمل",
+    workDaysPerMonth: "أيام العمل الشهرية",
     workingHoursHint: "عدد الساعات في يوم العمل.",
     employmentStartDate: "تاريخ بدء العمل",
     employeePlacementSection: "التوزيع الوظيفي",
@@ -9156,6 +9158,7 @@ function AddEmployeePage() {
     phone: "",
     biometricCode: "",
     workingHours: "8",
+    workDaysPerMonth: "26",
     departmentId: "",
     branchId: "",
     joinedOn: new Date().toISOString().slice(0, 10),
@@ -9187,7 +9190,10 @@ function AddEmployeePage() {
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
       Number(form.workingHours) < 0 ||
-      Number(form.workingHours) > 24
+      Number(form.workingHours) > 24 ||
+      !Number.isInteger(Number(form.workDaysPerMonth)) ||
+      Number(form.workDaysPerMonth) < 1 ||
+      Number(form.workDaysPerMonth) > 31
     ) {
       toast.error(t("required"));
       return;
@@ -9203,6 +9209,7 @@ function AddEmployeePage() {
           nationalId: form.nationalId.trim(),
           biometricCode: form.biometricCode.trim(),
           workingHours: Number(form.workingHours),
+          workDaysPerMonth: Number(form.workDaysPerMonth),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
@@ -9381,6 +9388,17 @@ function AddEmployeePage() {
               </p>
             </div>
             <Field
+              label={t("workDaysPerMonth")}
+              name="workDaysPerMonth"
+              required
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              value={form.workDaysPerMonth}
+              onChange={(value) => setForm({ ...form, workDaysPerMonth: value })}
+            />
+            <Field
               label={t("employmentStartDate")}
               name="joinedOn"
               required
@@ -9414,7 +9432,7 @@ function AddEmployeePage() {
                     value={schedule.id}
                     data-testid={`option-employee-shift-${schedule.id}`}
                   >
-                    {schedule.name} · {schedule.startTime}–{schedule.endTime}
+                    {schedule.name} · {schedule.shiftType === "flexible" ? t("flexibleShift") : `${schedule.startTime}–${schedule.endTime}`}
                   </option>
                 ))}
               </select>
