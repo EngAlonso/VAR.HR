@@ -16068,9 +16068,39 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
               </select>
             </label>
             {draft.shiftType === "flexible" ? (
-              <p className="rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">
-                {t("flexibleShiftHelp")}
-              </p>
+              <>
+                <p className="rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">
+                  {t("flexibleShiftHelp")}
+                </p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field
+                    label={t("requiredHours")}
+                    required
+                    type="number"
+                    min="0.5"
+                    max="24"
+                    step="0.5"
+                    value={draft.requiredHours}
+                    onChange={(value) => setDraft({ ...draft, requiredHours: value })}
+                  />
+                  <Field
+                    label={t("breakDurationMinutes")}
+                    required
+                    type="number"
+                    min="0"
+                    value={draft.breakDurationMinutes}
+                    onChange={(value) => setDraft({ ...draft, breakDurationMinutes: value })}
+                  />
+                  <Field
+                    label={t("overtimeAfterMinutes")}
+                    required
+                    type="number"
+                    min="0"
+                    value={draft.overtimeAfterMinutes}
+                    onChange={(value) => setDraft({ ...draft, overtimeAfterMinutes: value })}
+                  />
+                </div>
+              </>
             ) : (
             <>
             <div className="grid gap-4 sm:grid-cols-2">
