@@ -2298,6 +2298,7 @@ export interface EmployeePayrollSummary {
 
 export interface WorkSchedule {
   id: string;
+  shiftType: 'fixed' | 'flexible';
   name: string;
   nameAr: string;
   nameEn: string;
@@ -2341,6 +2342,7 @@ export interface WorkSchedule {
 }
 
 export interface WorkScheduleInput {
+  shiftType?: 'fixed' | 'flexible';
   /** @minLength 1 */
   name: string;
   nameAr: string;

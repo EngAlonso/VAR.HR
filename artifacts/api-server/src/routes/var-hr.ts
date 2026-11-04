@@ -711,6 +711,7 @@ function mapWorkSchedule(
   return {
     id: schedule.id,
     name: schedule.name,
+    shiftType: schedule.shiftType,
     nameAr: schedule.nameAr,
     nameEn: schedule.nameEn,
     workingDays: schedule.workingDays,
@@ -1105,6 +1106,7 @@ async function attendanceRulesFor(
 
 type EffectiveSchedule = {
   name: string;
+  shiftType: "fixed" | "flexible";
   workingDays: string[];
   startTime: string;
   endTime: string;
@@ -1142,6 +1144,7 @@ function defaultScheduleFromRules(
 ): EffectiveSchedule {
   return {
     name: rules.scheduleName,
+    shiftType: "fixed",
     workingDays: rules.workingDays,
     startTime: rules.workStart,
     endTime: rules.workEnd,
@@ -1185,7 +1188,8 @@ function effectiveScheduleFromRows(
   if (!schedule) return defaultScheduleFromRules(rules);
   return {
     name: schedule.name,
-    workingDays: rules.workingDays,
+    shiftType: schedule.shiftType,
+    workingDays: schedule.workingDays,
     startTime: schedule.startTime,
     endTime: schedule.endTime,
     requiredHours: schedule.requiredHours,
@@ -1288,7 +1292,8 @@ async function effectiveScheduleFor(
   if (assignment) {
     return {
       name: assignment.schedule.name,
-      workingDays: rules.workingDays,
+      shiftType: assignment.schedule.shiftType,
+      workingDays: assignment.schedule.workingDays,
       startTime: assignment.schedule.startTime,
       endTime: assignment.schedule.endTime,
       requiredHours: assignment.schedule.requiredHours,
@@ -1340,7 +1345,8 @@ async function effectiveScheduleFor(
     if (schedule) {
       return {
         name: schedule.name,
-        workingDays: rules.workingDays,
+        shiftType: schedule.shiftType,
+        workingDays: schedule.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
@@ -1375,7 +1381,8 @@ async function effectiveScheduleFor(
   return schedule
     ? {
         name: schedule.name,
-        workingDays: rules.workingDays,
+        shiftType: schedule.shiftType,
+        workingDays: schedule.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         requiredHours: schedule.requiredHours,
@@ -1576,10 +1583,10 @@ function attendanceMetrics(input: {
   holiday: boolean;
 }) {
   const workingDay = isWorkingScheduleDay(input.schedule, input.attendanceDate);
-  const scheduledMinutes = scheduleDurationMinutes(
-    input.schedule.startTime,
-    input.schedule.endTime,
-  );
+  const scheduledMinutes =
+    input.schedule.shiftType === "flexible"
+      ? Math.round(input.schedule.requiredHours * 60)
+      : scheduleDurationMinutes(input.schedule.startTime, input.schedule.endTime);
   const workedMinutes =
     input.checkIn && input.checkOut
       ? Math.max(
@@ -1595,11 +1602,14 @@ function attendanceMetrics(input: {
   );
   const unpaidBreakMinutes = input.schedule.breakPaid ? 0 : breakMinutes;
   const netWorkedMinutes = Math.max(0, workedMinutes - unpaidBreakMinutes);
-  const normalScheduledMinutes = Math.max(
-    0,
-    scheduledMinutes -
-      (input.schedule.breakPaid ? 0 : input.schedule.breakDurationMinutes),
-  );
+  const normalScheduledMinutes =
+    input.schedule.shiftType === "flexible"
+      ? scheduledMinutes
+      : Math.max(
+          0,
+          scheduledMinutes -
+            (input.schedule.breakPaid ? 0 : input.schedule.breakDurationMinutes),
+        );
   const checkInElapsed = input.checkIn
     ? localElapsedMinutes(
         input.checkIn,
@@ -1617,9 +1627,11 @@ function attendanceMetrics(input: {
       )
     : 0;
   const scheduledWorkedMinutes =
-    input.checkIn && input.checkOut
-      ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
-      : 0;
+    input.schedule.shiftType === "flexible"
+      ? workedMinutes
+      : input.checkIn && input.checkOut
+        ? overlapMinutes(checkInElapsed, checkOutElapsed, 0, scheduledMinutes)
+        : 0;
   const regularWorkedMinutes = Math.max(
     0,
     scheduledWorkedMinutes -
@@ -1628,13 +1640,15 @@ function attendanceMetrics(input: {
         : Math.min(unpaidBreakMinutes, scheduledWorkedMinutes)),
   );
   const rawLateMinutes =
-    input.holiday || !workingDay ? 0 : Math.max(0, checkInElapsed);
+    input.holiday || !workingDay || input.schedule.shiftType === "flexible"
+      ? 0
+      : Math.max(0, checkInElapsed);
   // Grace is an exemption threshold, not time credited back to the employee.
   // Once the threshold is exceeded, report the full raw delay.
   const lateMinutes =
     rawLateMinutes > input.schedule.graceMinutes ? rawLateMinutes : 0;
   const rawEarlyDepartureMinutes =
-    input.holiday || !workingDay || !input.checkOut
+    input.schedule.shiftType === "flexible" || input.holiday || !workingDay || !input.checkOut
       ? 0
       : Math.max(0, scheduledMinutes - checkOutElapsed);
   const earlyCheckoutMinutes =
@@ -1651,17 +1665,17 @@ function attendanceMetrics(input: {
   // Keep the actual extra worked minutes independent from the payroll
   // eligibility switch. The configured value is a minimum qualification
   // threshold: once the raw extra time reaches it, count all extra minutes.
-  const rawOvertimeMinutes = input.holiday
+  const rawOvertimeMinutes = input.holiday || !workingDay
     ? netWorkedMinutes
-    : workingDay
-      ? overtimeMinutesAfterScheduleEnd({
+    : input.schedule.shiftType === "flexible"
+      ? Math.max(0, netWorkedMinutes - Math.round(input.schedule.requiredHours * 60))
+      : overtimeMinutesAfterScheduleEnd({
           checkIn: input.checkIn,
           checkOut: input.checkOut,
           attendanceDate: input.attendanceDate,
           schedule: input.schedule,
           timeZone: input.timeZone,
-        })
-      : 0;
+        });
   const overtimeMinutes =
     rawOvertimeMinutes >= input.schedule.overtimeAfterMinutes
       ? rawOvertimeMinutes
@@ -1824,10 +1838,10 @@ async function attendanceCalculationFor(
         netWorkedMinutes: metrics.netWorkedMinutes,
         rules: rules.timeMultipliers as TimeMultiplierRule[],
       });
-  const scheduledMinutes = scheduleDurationMinutes(
-    schedule.startTime,
-    schedule.endTime,
-  );
+  const scheduledMinutes =
+    schedule.shiftType === "flexible"
+      ? Math.round(schedule.requiredHours * 60)
+      : scheduleDurationMinutes(schedule.startTime, schedule.endTime);
   const fullDayPermission = approvedPermissionWindows.some(
     (window) => window.start <= 0 && window.end >= scheduledMinutes,
   );
@@ -1982,15 +1996,21 @@ async function attendanceCalculationFor(
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
   const rawAutomaticOvertimeMinutes = hourlyEmployee
     ? 0
-    : holiday
+    : holiday || !metrics.workingDay
       ? finalWorkedMinutes
-      : overtimeMinutesAfterScheduleEnd({
-        checkIn: attendance.checkIn,
-        checkOut: attendance.checkOut,
-        attendanceDate: attendance.date,
-        schedule: calculationSchedule,
-        timeZone: context.company.timezone,
-      });
+      : calculationSchedule.shiftType === "flexible"
+        ? Math.max(
+            0,
+            metrics.netWorkedMinutes -
+              Math.round(calculationSchedule.requiredHours * 60),
+          )
+        : overtimeMinutesAfterScheduleEnd({
+            checkIn: attendance.checkIn,
+            checkOut: attendance.checkOut,
+            attendanceDate: attendance.date,
+            schedule: calculationSchedule,
+            timeZone: context.company.timezone,
+          });
   const automaticOvertimeMinutes =
     calculationSchedule.overtimeEligible &&
     rawAutomaticOvertimeMinutes >= calculationSchedule.overtimeAfterMinutes
@@ -3854,6 +3874,7 @@ router.post("/branches", async (req, res): Promise<void> => {
     CreateBranchResponse.parse({
       id: branch.id,
       name: branch.name,
+      nameEn: branch.nameEn || branch.name,
       city: branch.city,
       employeeCount: 0,
       deviceCount: 0,
@@ -8986,6 +9007,7 @@ router.post("/schedules", async (req, res): Promise<void> => {
     .values({
       companyId: context.companyId,
       name: parsed.data.name,
+      shiftType: parsed.data.shiftType ?? "fixed",
       nameAr: parsed.data.nameAr,
       nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,
@@ -9048,6 +9070,7 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     .update(workSchedulesTable)
     .set({
       name: parsed.data.name,
+      shiftType: parsed.data.shiftType ?? "fixed",
       nameAr: parsed.data.nameAr,
       nameEn: parsed.data.nameEn || parsed.data.name,
       workingDays: parsed.data.workingDays,
@@ -9075,6 +9098,8 @@ router.patch("/schedules/:scheduleId", async (req, res): Promise<void> => {
     existing,
   );
   const attendanceScheduleFields = [
+    "shiftType",
+    "workingDays",
     "startTime",
     "endTime",
     "overnight",

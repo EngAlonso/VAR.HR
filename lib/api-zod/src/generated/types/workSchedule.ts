@@ -9,6 +9,7 @@
 export interface WorkSchedule {
   id: string;
   name: string;
+  shiftType: "fixed" | "flexible";
   nameAr: string;
   nameEn: string;
   workingDays: string[];

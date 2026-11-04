@@ -9,6 +9,7 @@
 export interface WorkScheduleInput {
   /** @minLength 1 */
   name: string;
+  shiftType?: "fixed" | "flexible";
   nameAr: string;
   nameEn: string;
   /** @minItems 1 */
