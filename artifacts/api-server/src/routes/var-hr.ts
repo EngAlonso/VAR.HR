@@ -711,6 +711,7 @@ function mapWorkSchedule(
   return {
     id: schedule.id,
     name: schedule.name,
+    shiftType: schedule.shiftType,
     nameAr: schedule.nameAr,
     nameEn: schedule.nameEn,
     workingDays: schedule.workingDays,
@@ -1187,6 +1188,7 @@ function effectiveScheduleFromRows(
   if (!schedule) return defaultScheduleFromRules(rules);
   return {
     name: schedule.name,
+    shiftType: schedule.shiftType,
     workingDays: rules.workingDays,
     startTime: schedule.startTime,
     endTime: schedule.endTime,

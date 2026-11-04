@@ -4539,6 +4539,7 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        shiftType: { type: string, enum: [fixed, flexible] }
         nameAr: { type: string }
         nameEn: { type: string }
         workingDays:
@@ -4579,6 +4580,7 @@ components:
         ]
       properties:
         name: { type: string, minLength: 1 }
+        shiftType: { type: string, enum: [fixed, flexible], default: fixed }
         nameAr: { type: string }
         nameEn: { type: string }
         workingDays:
