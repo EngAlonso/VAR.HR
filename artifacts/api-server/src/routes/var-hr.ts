@@ -1662,12 +1662,11 @@ function attendanceMetrics(input: {
   // Keep the actual extra worked minutes independent from the payroll
   // eligibility switch. The configured value is a minimum qualification
   // threshold: once the raw extra time reaches it, count all extra minutes.
-  const rawOvertimeMinutes = input.holiday
+  const rawOvertimeMinutes = input.holiday || !workingDay
     ? netWorkedMinutes
     : input.schedule.shiftType === "flexible"
       ? Math.max(0, netWorkedMinutes - Math.round(input.schedule.requiredHours * 60))
-      : workingDay
-      ? overtimeMinutesAfterScheduleEnd({
+      : overtimeMinutesAfterScheduleEnd({
           checkIn: input.checkIn,
           checkOut: input.checkOut,
           attendanceDate: input.attendanceDate,
@@ -1995,7 +1994,7 @@ async function attendanceCalculationFor(
     latePenaltyMinutes + earlyDeparturePenaltyMinutes + absencePenaltyMinutes;
   const rawAutomaticOvertimeMinutes = hourlyEmployee
     ? 0
-    : holiday
+    : holiday || !metrics.workingDay
       ? finalWorkedMinutes
       : calculationSchedule.shiftType === "flexible"
         ? Math.max(
