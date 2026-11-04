@@ -1672,8 +1672,7 @@ function attendanceMetrics(input: {
           attendanceDate: input.attendanceDate,
           schedule: input.schedule,
           timeZone: input.timeZone,
-        })
-      : 0;
+        });
   const overtimeMinutes =
     rawOvertimeMinutes >= input.schedule.overtimeAfterMinutes
       ? rawOvertimeMinutes
