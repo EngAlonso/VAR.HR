@@ -13,19 +13,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import {
   QueryClient,
   QueryClientProvider,
   useQueryClient,
 } from "@tanstack/react-query";
-import type {
-  GoogleDriveRetryResult,
-  GoogleDriveStatus,
-  PlatformSiteSettings,
-  PlatformSocialLinks,
-} from "@workspace/api-client-react";
-import { EMPTY_SOCIAL_LINKS, normalizeSocialLinks } from "./social-links";
 import {
   Link,
   Redirect,
@@ -46,7 +38,6 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
-  Archive,
   Check,
   ChevronDown,
   CircleHelp,
@@ -63,11 +54,9 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
-  MapPin,
   Menu,
   MoreHorizontal,
   Network,
-  Pencil,
   Plus,
   Printer,
   RefreshCw,
@@ -95,7 +84,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import NotFound from "@/pages/not-found";
-import PublicLanding from "./PublicLanding";
 import {
   useGetWorkspace,
   useGetDashboardSummary,
@@ -115,17 +103,8 @@ import {
   useDeleteEmployee,
   useGetAttendanceToday,
   useListAttendanceHistory,
-  useListAttendancePunchRequests,
-  useDecideAttendancePunchRequest,
   useCheckIn,
   useCheckOut,
-  useRegisterAttendanceDevice,
-  useGetAttendanceDeviceApproval,
-  useUpdateAttendanceDeviceApproval,
-  useListEmployeeAttendanceDevices,
-  useDecideEmployeeAttendanceDevice,
-  useCreateManualAttendanceEvent,
-  useConvertAbsenceToAnnualLeave,
   useCorrectAttendance,
   usePreviewAttendanceCalculation,
   useListAttendanceTimeAdjustments,
@@ -162,7 +141,6 @@ import {
   useDeletePayrollPeriod,
   useCalculatePayroll,
   useGetPayrollCalculation,
-  useGetEmployeePayrollSummary,
   useFinalizePayroll,
   useListPayrollAdjustments,
   useCreatePayrollAdjustment,
@@ -193,8 +171,6 @@ import {
   useListAttendanceLocations,
   useCreateAttendanceLocation,
   useUpdateAttendanceLocation,
-  useCreateEmployeeWorkLocation,
-  useListEmployeeWorkLocations,
   useGetEmployeeHrRecord,
   useUpdateEmployeeHrRecord,
   useGetSubscription,
@@ -209,9 +185,6 @@ import {
   getGetEmployeeQueryKey,
   getGetAttendanceTodayQueryKey,
   getListAttendanceHistoryQueryKey,
-  getListAttendancePunchRequestsQueryKey,
-  getListEmployeeAttendanceDevicesQueryKey,
-  getGetAttendanceDeviceApprovalQueryKey,
   getPreviewAttendanceCalculationQueryKey,
   getListAttendanceTimeAdjustmentsQueryKey,
   getListLeaveBalancesQueryKey,
@@ -228,7 +201,6 @@ import {
   getListEmployeePayrollCycleAssignmentsQueryKey,
   getGetMyPayrollQueryKey,
   getGetPayrollCalculationQueryKey,
-  getGetEmployeePayrollSummaryQueryKey,
   getListPayrollAdjustmentsQueryKey,
   getListDevicesQueryKey,
   getListDeviceMappingsQueryKey,
@@ -239,17 +211,12 @@ import {
   getListDeviceSyncHistoryQueryKey,
   getListBiometricDeviceEventsQueryKey,
   getListAttendanceLocationsQueryKey,
-  getListEmployeeWorkLocationsQueryKey,
   getGetEmployeeHrRecordQueryKey,
   getGetSubscriptionQueryKey,
   getListPlatformCompaniesQueryKey,
 } from "@workspace/api-client-react";
 
 const queryClient = new QueryClient();
-
-function isPayrollPeriodImmutableStatus(status: string): boolean {
-  return status === "finalized" || status === "approved" || status === "locked";
-}
 
 function invalidateAttendanceRuleDependents(qc: QueryClient) {
   const queryKeys = [
@@ -279,7 +246,7 @@ function invalidateAttendanceRuleDependents(qc: QueryClient) {
         return (
           typeof root === "string" &&
           (root.startsWith("/api/attendance/") ||
-            root.startsWith("/api/payroll/"))
+            root.startsWith("/api/payroll/periods/"))
         );
       },
     }),
@@ -288,45 +255,6 @@ function invalidateAttendanceRuleDependents(qc: QueryClient) {
 }
 
 type Locale = "en" | "ar" | "fr" | "de";
-const compactMobileNavLabels: Record<Locale, Record<string, string>> = {
-  en: {
-    platformOwner: "Platform",
-    databaseAdministration: "Database",
-    siteBranding: "Branding",
-    accountSettings: "Account",
-    hrProfile: "Profile",
-  },
-  ar: {
-    platformOwner: "مالك المنصة",
-    databaseAdministration: "قاعدة البيانات",
-    siteBranding: "هوية الموقع",
-    accountSettings: "الحساب",
-    hrProfile: "الملف",
-  },
-  fr: {
-    platformOwner: "Plateforme",
-    databaseAdministration: "Données",
-    siteBranding: "Identité du site",
-    accountSettings: "Compte",
-    hrProfile: "Profil",
-  },
-  de: {
-    platformOwner: "Plattform",
-    databaseAdministration: "Datenbank",
-    siteBranding: "Website",
-    accountSettings: "Konto",
-    hrProfile: "Profil",
-  },
-};
-
-function mobileNavigationLabel(
-  locale: Locale,
-  key: string,
-  fallback: string,
-): string {
-  return compactMobileNavLabels[locale][key] ?? fallback;
-}
-
 type WorkspaceRole =
   "platform_owner" | "company_owner" | "manager" | "employee";
 type AuthAccount = {
@@ -339,20 +267,14 @@ type AuthAccount = {
   active: boolean;
   permissions: string[];
   fullName: string;
-  fullNameEn: string;
   primaryPhone: string;
   backupPhones: string[];
   email: string;
   backupEmails: string[];
-  passwordSet?: boolean;
-  companyName?: string;
-  companyNameEn?: string;
-  isCurrentAccount?: boolean;
 };
 type PlatformCompanyDetail = {
   id: string;
   name: string;
-  nameEn?: string;
   slug: string;
   timezone: string;
   address?: string;
@@ -380,7 +302,6 @@ type PlatformCompanyDetail = {
 type PlatformCompanyDetails = {
   company: {
     name: string;
-    nameEn?: string;
     slug: string;
     address: string;
     timezone: string;
@@ -410,7 +331,6 @@ type PlatformCompanyDetails = {
       id: string;
       name: string;
       nameAr: string;
-      nameEn: string;
       active: boolean;
       managerId: string | null;
       employeeCount: number;
@@ -466,7 +386,6 @@ type PlatformSummary = {
 };
 type NewCompanyOwner = {
   fullName: string;
-  fullNameEn: string;
   username: string;
   password: string;
   primaryPhone: string;
@@ -480,24 +399,6 @@ function useAuth() {
   const value = useContext(AuthContext);
   if (!value) throw new Error("Auth context is unavailable.");
   return value;
-}
-type SiteLogoVariant = PlatformSiteSettings["logoVariant"];
-type SiteSettings = PlatformSiteSettings;
-type SiteBrandingContextValue = SiteSettings & {
-  setSiteSettings: (settings: SiteSettings) => void;
-};
-const defaultSiteSettings: SiteSettings = {
-  siteName: "VAR HR",
-  logoVariant: "horizontal",
-  socialLinks: EMPTY_SOCIAL_LINKS,
-  pwaIconUrls: { icon180: null, icon192: null, icon512: null },
-};
-const SiteBrandingContext = createContext<SiteBrandingContextValue>({
-  ...defaultSiteSettings,
-  setSiteSettings: () => undefined,
-});
-function useSiteBranding() {
-  return useContext(SiteBrandingContext);
 }
 type NavItem = {
   href: string;
@@ -682,13 +583,6 @@ const companyAdminNav: NavItem[] = [
     capability: "employees.view",
   },
   {
-    href: "/attendance",
-    key: "attendance",
-    icon: Clock3,
-    roles: ["company_owner"],
-    capability: "attendance.view",
-  },
-  {
     href: "/requests",
     key: "companyNavRequests",
     icon: CalendarDays,
@@ -777,12 +671,6 @@ const platformNav: NavItem[] = [
     icon: Settings,
     roles: ["platform_owner"],
   },
-  {
-    href: "/platform/site-branding",
-    key: "siteBranding",
-    icon: SlidersHorizontal,
-    roles: ["platform_owner"],
-  },
 ];
 
 const copy = {
@@ -822,53 +710,13 @@ const copy = {
     companyNavSubscription: "Subscription",
     databaseAdministration: "Database Administration",
     accountSettings: "Account Settings",
-    siteBranding: "Site name, logo & footer",
-    siteBrandingDetail:
-      "Choose the site name and logo, and manage the social links shown in the public footer.",
-    siteName: "Site name",
-    siteLogo: "Site logo",
-    pwaIconHeading: "PWA app icon",
-    pwaIconDetail:
-      "Choose the icon shown when users install this app. One image is prepared for iOS, Android, and the browser.",
-    pwaIconCurrent: "Current app icon",
-    pwaIconChoose: "Upload a new icon",
-    pwaIconReset: "Restore default icon",
-    pwaIconUpdated: "PWA app icon updated.",
-    pwaIconRestored: "Default PWA app icon restored.",
-    couldNotUpdatePwaIcon: "Could not update the PWA app icon.",
-    pwaIconInvalidFile: "Choose a PNG, JPG, or WebP image smaller than 10 MB.",
-    pwaIconUploading: "Preparing and uploading icons…",
-    pwaIconFileHelp:
-      "A square logo with some empty space around it works best. This changes the installed app icon, not the logo inside pages.",
-    siteLogoSquare: "Square logo",
-    siteLogoShort: "Short logo",
-    siteLogoHorizontal: "Horizontal logo",
-    siteLogoArabic: "Arabic logo",
-    changeLogo: "Change logo",
-    selected: "Selected",
-    socialLinksHeading: "Social media links",
-    socialLinksDetail:
-      "Add a secure link for each channel you want visitors to see in the public footer.",
-    saveSiteBranding: "Save site branding",
-    siteBrandingUpdated: "Site branding and social links updated.",
-    couldNotUpdateSiteBranding: "Could not update site branding.",
     platformOwnerOnly: "Platform Owner only",
     databaseAdminDetail:
-      "Company-scoped support tools for reviewing and correcting approved records. Every edit needs a reason and is audited; credentials and backup payloads stay excluded.",
+      "Controlled emergency access to safe application data. Authentication secrets and backup payloads are excluded.",
     databaseEntity: "Data entity",
     databaseCoreOrganization: "Core organization",
     databaseSchedulingAttendance: "Scheduling and attendance",
     databaseLeavePayrollSupport: "Leave, payroll and platform support",
-    databaseLeaveBalances: "Annual leave balances",
-    adjustAnnualLeaveTotal: "Adjust annual leave balance",
-    annualLeaveTotalHint:
-      "Edit the total, used, or remaining days. The related value updates automatically using total = used + pending + remaining. Pending requests stay unchanged.",
-    annualLeaveTotalSaved:
-      "Annual leave balance updated and recorded in the audit and leave history.",
-    supportAnnualLeaveTotalInvalid:
-      "Enter valid total, used, and remaining values from 0 to 9,999.99 days, with no more than two decimal places. The total must cover used and pending days.",
-    pendingLeaveDays: "Pending days",
-    databaseEmployeeName: "Employee",
     dataExplorer: "Data explorer",
     companyContext: "Company context",
     allCompanies: "All companies",
@@ -886,24 +734,7 @@ const copy = {
     recordDetails: "Record details",
     supportEdit: "Support edit",
     supportEditHint:
-      "Only approved support fields are editable. Company ownership and authentication fields are locked.",
-    supportScopeHint:
-      "Editing a company-owned row automatically scopes the correction to its company. Each change requires a reason and is recorded in company history.",
-    supportSelectCompany:
-      "Select one company in Company context before editing a record.",
-    supportReasonLabel: "Reason for this support change",
-    supportReasonRequired:
-      "Enter a reason of at least 10 characters before saving.",
-    supportNoChanges: "Change at least one supported field before saving.",
-    supportWorkdaysInvalid:
-      "Enter a whole number from 1 to 31 for reference workdays.",
-    supportChangeSaved: "Support change saved and added to the audit history.",
-    supportPayrollRefreshHint:
-      "Changing reference workdays recalculates calculated, editable payroll periods. Drafts use the new value when first calculated; approved or locked periods stay unchanged.",
-    supportPayrollRefreshWarning:
-      "The employee value was saved, but at least one editable payroll period could not be refreshed. Review payroll for this company.",
-    missingReferenceWorkdays: "Missing reference workdays",
-    missingReferenceWorkdaysOnly: "Only show employees missing reference workdays",
+      "Only approved operational fields are editable. Company ownership and authentication fields are locked.",
     databaseEditHint:
       "Only fields approved for this data type are editable. Record IDs, company ownership, and authentication fields stay locked.",
     inspectionOnly:
@@ -1038,12 +869,6 @@ const copy = {
     operationsDesk: "operations desk",
     activeWorkspace: "Active workspace",
     support: "Support",
-    pwaInstall: "Install app",
-    pwaInstalled: "VAR HR was added to your home screen.",
-    pwaIosInstallHint: "On iPhone, tap Share, then Add to Home Screen.",
-    pwaBrowserInstallHint:
-      "Open your browser menu and choose Install app or Add to Home screen.",
-    pwaInstallFailed: "The app could not be installed. Please try again.",
     language: "Language",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
@@ -1143,27 +968,6 @@ const copy = {
     lastName: "Last name",
     email: "Email",
     monthlySalary: "Monthly salary",
-    compensation: "Compensation",
-    payBasis: "Pay basis",
-    monthlyPayBasis: "Monthly pay",
-    hourlyPayBasis: "Hourly pay",
-    referenceMonthlySalary: "Reference monthly salary",
-    referenceWorkdaysPerMonth: "Reference workdays per month",
-    referenceHoursPerDay: "Reference hours per day",
-    calculatedHourlyRate: "Calculated hourly rate",
-    hourlyRateDerivationHint:
-      "Hourly rate = reference monthly salary ÷ (reference workdays × reference hours per day).",
-    hourlyPayReferenceSalaryHint:
-      "This monthly salary is used only to calculate the hourly rate.",
-    hourlyPayAttendanceHint:
-      "Pay uses the full biometric check-in/out interval after approved corrections, including breaks. No fixed schedule, leave, late or absence deductions, or overtime multiplier applies.",
-    hourlyWages: "Hourly wages",
-    noFixedSchedule: "No fixed schedule",
-    perHour: "per hour",
-    dailyRate: "Daily rate",
-    hourlyRate: "Hourly rate",
-    salaryRatesHint:
-      "Calculated from the employee's reference workdays and reference hours per day.",
     select: "Select",
     createDepartment: "Create department",
     departmentName: "Department name",
@@ -1186,21 +990,6 @@ const copy = {
       "Review your account information and linked employee HR information.",
     hrProfileDetail:
       "Review the employee and HR information available to your signed-in workspace identity.",
-    workLocations: "Work locations",
-    changeWorkLocation: "Change work location",
-    workLocationInfoOnly:
-      "This is an informational visit log. It does not affect attendance, check-in/out, or payroll.",
-    workLocationGpsRequired:
-      "Allow location access to record your work location.",
-    workLocationGpsComment: "Location recorded from this device's GPS.",
-    workLocationSaved: "Work location recorded",
-    workLocationSaveFailed: "Could not record the work location",
-    workLocationHistoryDetail:
-      "Recorded GPS locations with their date, time, coordinates, and map links.",
-    noWorkLocations: "No work locations recorded yet",
-    noWorkLocationsDetail:
-      "Recorded work locations will appear here, grouped by day.",
-    openWorkLocationMap: "Open map",
     hrRecord: "HR record",
     jobTitle: "Job title",
     employmentType: "Employment type",
@@ -1244,7 +1033,6 @@ const copy = {
     selectManager: "Select manager",
     noDepartments: "No departments yet",
     noDepartmentsDetail: "Create the first department for this company.",
-    departmentStatus: "Department status",
     departmentEmployees: "Department employees",
     departmentSaved: "Department saved",
     branchesEyebrow: "Organization",
@@ -1315,13 +1103,6 @@ const copy = {
     start: "Start",
     end: "End",
     submitRequest: "Submit request",
-    requestFormIntro: "Fill in the details below to send your request for review.",
-    leavePeriod: "Leave period",
-    leavePeriodHint: "Choose the first and last day you need off.",
-    permissionTime: "Permission time",
-    permissionTimeHint: "Select the date and time range for your permission.",
-    requestReasonHint: "A short explanation helps your manager review the request.",
-    requestPendingReview: "Your request will remain pending until a decision is made.",
     annualLeave: "Annual leave",
     reviewedInOperationsQueue: "Reviewed in operations queue",
     notApprovedAtThisTime: "Not approved at this time",
@@ -1329,21 +1110,21 @@ const copy = {
     workStarts: "Work starts",
     workEnds: "Work ends",
     gracePeriodMinutes: "Grace period (minutes)",
-    overtimeAfterMinutes: "Minimum overtime qualification (minutes)",
+    overtimeAfterMinutes: "Overtime after (minutes)",
     overtimeMultiplier: "Overtime hour multiplier",
-    locationVerification: "Attendance location type",
-    gpsPolicy: "Attendance movement with location (fixed location)",
+    locationVerification: "Location verification",
+    gpsPolicy: "GPS policy",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
-    locationRadiusMeters: "Fixed location radius (meters)",
+    locationRadiusMeters: "Location radius (meters)",
     explainabilityByDefault: "Explainability by default",
     attendanceExceptionsRecorded:
       "Attendance exceptions record their source, location posture, and a human-readable explanation for review.",
     saveAttendancePolicy: "Save attendance policy",
     attendancePolicyUpdated: "Attendance policy updated",
     attendancePolicyRecalculateHint:
-      "Policy saved. Calculated, unapproved payroll periods were refreshed; draft periods will use it when first calculated.",
+      "Policy saved. Recalculate any non-finalized payroll period to apply the change.",
     savingPolicy: "Saving policy…",
     evidenceAnalysis: "Evidence & analysis",
     attendanceReports: "Attendance reports",
@@ -1352,7 +1133,6 @@ const copy = {
     refreshPreview: "Refresh preview",
     previewReport: "Preview report",
     overtimeHours: "Overtime hours",
-    overtimeMinutes: "Overtime minutes",
     employeeDetail: "Employee detail",
     chooseReportingWindow: "Choose a reporting window",
     setDatesAbovePreview: "Set the dates above to preview attendance evidence.",
@@ -1464,13 +1244,6 @@ const copy = {
     operationsDesk: "مكتب العمليات",
     activeWorkspace: "مساحة العمل النشطة",
     support: "الدعم",
-    pwaInstall: "تثبيت التطبيق",
-    pwaInstalled: "تمت إضافة VAR HR إلى الشاشة الرئيسية.",
-    pwaIosInstallHint:
-      "على iPhone اضغط على مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
-    pwaBrowserInstallHint:
-      "افتح قائمة المتصفح واختر تثبيت التطبيق أو الإضافة إلى الشاشة الرئيسية.",
-    pwaInstallFailed: "تعذر تنزيل التطبيق. حاول مرة أخرى.",
     language: "اللغة",
     openNavigation: "فتح التنقل",
     closeNavigation: "إغلاق التنقل",
@@ -1545,7 +1318,7 @@ const copy = {
     annualLeave: "إجازة سنوية",
     attendancePolicyUpdated: "تم تحديث سياسة الحضور",
     attendancePolicyRecalculateHint:
-      "تم حفظ القاعدة وإعادة حساب الفترات المحسوبة وغير المعتمدة. ستُطبّق القاعدة عند حساب الفترات المسودة.",
+      "تم حفظ القاعدة. أعد حساب أي فترة راتب غير نهائية لتطبيق التغيير.",
     biometricDevices: "أجهزة البصمة",
     branch: "الفرع",
     branchCreated: "تم إنشاء الفرع",
@@ -1583,7 +1356,6 @@ const copy = {
     selectManager: "اختر المدير",
     noDepartments: "لا توجد أقسام بعد",
     noDepartmentsDetail: "أنشئ أول قسم لهذه الشركة.",
-    departmentStatus: "حالة القسم",
     departmentEmployees: "موظفو القسم",
     departmentSaved: "تم حفظ القسم",
     branchesEyebrow: "التنظيم",
@@ -1622,7 +1394,7 @@ const copy = {
     evidenceAnalysis: "الأدلة والتحليل",
     exceptionsSurfaced: "يتم عرض الاستثناءات بوضوح.",
     from: "من",
-    gpsPolicy: "تسجيل الحركة بالموقع (موقع ثابت)",
+    gpsPolicy: "سياسة GPS",
     hours: "الساعات",
     hrProfile: "ملفي في الموارد البشرية",
     profileCompanyOwner: "حسابي وبيانات الشركة",
@@ -1633,19 +1405,6 @@ const copy = {
       "راجع معلومات حسابك وبياناتك الوظيفية المرتبطة عند توفرها.",
     hrProfileDetail:
       "راجع معلومات الموظف والموارد البشرية المتاحة لهويتك المسجلة في مساحة العمل.",
-    workLocations: "مواقع العمل",
-    changeWorkLocation: "تغيير موقع العمل",
-    workLocationInfoOnly:
-      "هذا سجل معلوماتي لمواقع العمل فقط، ولا يؤثر على الحضور أو الانصراف أو الرواتب.",
-    workLocationGpsRequired: "اسمح بالوصول إلى موقعك لتسجيل موقع العمل.",
-    workLocationGpsComment: "تم تسجيل موقع العمل باستخدام GPS.",
-    workLocationSaved: "تم تسجيل موقع العمل",
-    workLocationSaveFailed: "تعذر تسجيل موقع العمل",
-    workLocationHistoryDetail:
-      "مواقع GPS المسجلة مع تاريخ ووقت التسجيل والإحداثيات وروابط الخريطة.",
-    noWorkLocations: "لا توجد مواقع عمل مسجلة حتى الآن",
-    noWorkLocationsDetail: "ستظهر هنا مواقع العمل المسجلة مرتبة حسب اليوم.",
-    openWorkLocationMap: "فتح الخريطة",
     hrRecord: "سجل الموارد البشرية",
     hrRecordCreateHint: "أكمل الحقول أدناه لإنشاء سجل الموارد البشرية للموظف.",
     hrRecordLoadFailed: "تعذر تحميل سجل الموارد البشرية.",
@@ -1661,7 +1420,7 @@ const copy = {
     leaveBalances: "أرصدة الإجازات",
     liveWorkspace: "مساحة العمل المباشرة",
     loadingOperationalDate: "جارٍ تحميل التاريخ التشغيلي…",
-    locationVerification: "نوع تسجيل الحركة",
+    locationVerification: "التحقق من الموقع",
     manager: "المدير",
     markInactive: "تعيين كغير نشط",
     mondayOperationalOverview: "نظرة تشغيلية ليوم الاثنين",
@@ -1676,7 +1435,7 @@ const copy = {
     operatingFootprint: "النطاق التشغيلي",
     operatingPictureClean: "الصورة التشغيلية واضحة حالياً.",
     optional: "اختياري",
-    overtimeAfterMinutes: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
+    overtimeAfterMinutes: "العمل الإضافي بعد (بالدقائق)",
     overtimeHours: "ساعات العمل الإضافي",
     ownProfileOnly: "يمكن للموظفين عرض ملف الموارد البشرية الخاص بهم فقط.",
     payrollPosture: "حالة الرواتب",
@@ -1957,10 +1716,6 @@ const pageCopy = {
     employeeEmploymentSection: "Employment details",
     employeeEmploymentDetail:
       "Set the working terms that will guide attendance and payroll calculations.",
-    automaticAnnualLeaveEligible:
-      "Eligible for automatic annual leave accrual",
-    automaticAnnualLeaveEligibleHint:
-      "When off, the annual entitlement is not added automatically. Manually assigned balances and manager-approved leave still work.",
     workingHours: "Working hours",
     workingHoursHint: "Hours per working day.",
     employmentStartDate: "Employment start date",
@@ -1979,7 +1734,7 @@ const pageCopy = {
     loading: "Loading…",
     createDepartmentPrompt: "Department name",
     departmentNameHint:
-      "Enter the department name separately in Arabic and English.",
+      "This name is stored exactly as entered and is not translated.",
     createBranchPrompt: "Branch name",
     branchCityPrompt: "Branch city",
     employeeStatusUpdated: "Employee status updated",
@@ -1991,23 +1746,6 @@ const pageCopy = {
     saving: "Saving…",
     createEmployee: "Create employee",
     employeeProfile: "Employee profile",
-    leaveAttendanceSummary: "Leave and attendance summary",
-    deductedForAbsence: "Deducted for absence",
-    pendingLeave: "Pending",
-    deductionMonths: "Deduction months",
-    deductionMonthlyMaximum: "Monthly deduction maximum",
-    deductedThisMonth: "Deducted this month",
-    unauthorizedAbsenceDays: "Absence without approved permission (all dates)",
-    authorizedAbsenceDays: "Absence with approved permission",
-    currentMonthUnauthorizedAbsenceDays: "Unexcused absence this month",
-    totalAbsenceDays: "Total absence days",
-    absenceBreakdownNote:
-      "The first three figures use the same attendance-history dates. An absence is authorized only when an approved permission matches that date; the monthly figure is separate.",
-    approvedLeaveDays: "Approved leave days",
-    extraPayDays: "Days with recorded overtime or holiday",
-    extraPayCalculationNote:
-      "This counts attendance dates with recorded overtime or a holiday status, not overtime hours or a guarantee of payment. Payable overtime follows the active attendance and payroll rules.",
-    annualLeaveBalanceUnavailable: "No annual leave balance is available.",
     employeeNumber: "Employee number",
     salary: "Salary",
     markInactive: "Mark inactive",
@@ -2018,34 +1756,6 @@ const pageCopy = {
     scheduledStart: "Scheduled start",
     checkInNow: "Check in now",
     checkOutNow: "Check out now",
-    attendancePunchPermissionRequired:
-      "Manual attendance entry is available only to accounts granted this permission.",
-    addManualPunch: "Add manual punch",
-    addAbsenceLeave: "Add annual-leave day",
-    addAbsenceLeaveDetail:
-      "Choose an absence day to convert it into an approved annual-leave day.",
-    absenceDays: "Absence days",
-    noAbsenceDays: "No absence days in this date range",
-    convertToAnnualLeave: "Convert to annual leave",
-    convertingToAnnualLeave: "Converting…",
-    absenceConvertedToAnnualLeave: "Absence converted to annual leave",
-    absenceConversionFailed: "Could not convert the absence to annual leave",
-    overtimePayableAmount: "Payable overtime amount",
-    overtimeMultiplierApplied: "Multiplier applied",
-    manualPunchTitle: "Add a manual attendance punch",
-    manualPunchDetail:
-      "Use this after reviewing the missed punch, such as camera footage.",
-    punchEmployee: "Employee",
-    punchDirection: "Movement",
-    punchIn: "Check-in",
-    punchOut: "Check-out",
-    punchDate: "Attendance date",
-    punchTime: "Actual date and time",
-    punchReason: "Reason",
-    punchReasonPlaceholder: "Example: Camera review confirmed arrival at this time.",
-    saveManualPunch: "Save manual punch",
-    manualPunchSaved: "Manual attendance punch saved",
-    manualPunchFailed: "Could not save the manual attendance punch",
     webEventPolicy: "Web event · location policy is evaluated by the API",
     today: "Today",
     history: "History",
@@ -2100,15 +1810,6 @@ const pageCopy = {
     approve: "Approve",
     reject: "Reject",
     newKindRequest: "New {kind} request",
-    requestLeaveType: "Leave type",
-    requestCategory: "Request type",
-    requestAnnualLeaveOption: "One or more days leave",
-    temporaryPermission: "Temporary permission",
-    noLeaveTypesAvailable: "No leave types are available.",
-    requestPermissionType: "Permission type",
-    requestReasonLabel: "Reason or additional notes",
-    requestLeaveReasonPlaceholder: "Briefly explain your leave request.",
-    requestPermissionReasonPlaceholder: "Briefly explain why you need permission.",
     type: "Type",
     reason: "Reason",
     from: "From",
@@ -2134,14 +1835,14 @@ const pageCopy = {
     gracePeriod: "Grace period (minutes)",
     lateArrivalGrace: "Late arrival grace period (minutes)",
     earlyDepartureGrace: "Early departure grace period (minutes)",
-    overtimeStartsAfter: "Minimum overtime qualification (minutes)",
-    overtimeAfter: "Minimum overtime qualification (minutes)",
-    locationVerification: "Attendance location type",
-    gpsPolicy: "Attendance movement with location (fixed location)",
+    overtimeStartsAfter: "Overtime starts after (minutes)",
+    overtimeAfter: "Overtime after (minutes)",
+    locationVerification: "Location verification",
+    gpsPolicy: "GPS policy",
     disabled: "Disabled",
     optional: "Optional",
     required: "Required",
-    locationRadius: "Fixed location radius (meters)",
+    locationRadius: "Location radius (meters)",
     explainability: "Explainability by default",
     attendanceExceptionsNote:
       "Attendance exceptions record their source, location posture, and a human-readable explanation for review.",
@@ -2211,9 +1912,7 @@ const pageCopy = {
       "Set late, early-departure, and absence multipliers, including approved permission coverage.",
     annualLeaveSettings: "Annual leave system",
     annualLeaveSettingsDetail:
-      "Annual leave is deducted only after an annual-leave request is approved or a manager explicitly grants the leave.",
-    annualLeaveDeductionOnlyExplicit:
-      "Absence and permission records do not deduct annual leave.",
+      "These current settings are used by annual balances, attendance, permissions, payroll, and self-service.",
     annualLeaveBalances: "Annual leave balances",
     annualEntitlementDays: "Annual entitlement (days)",
     leaveYearStartsIn: "Leave year starts in",
@@ -2222,13 +1921,12 @@ const pageCopy = {
     anyAbsenceMissing: "Any absence or missing attendance",
     leaveDaysPerAbsence: "Leave days deducted per absence",
     deductAnnualLeaveForUnapproved:
-      "Automatically deduct annual leave for qualifying absences",
+      "Deduct an annual-leave day for an unapproved absence",
     absenceDeductionDetail:
       "Off by default; absences never silently consume annual leave.",
     policyEnabled: "Policy enabled",
     accrualFrequency: "Accrual frequency",
     deductionMode: "Deduction mode",
-    deductOnApproval: "Deduct on leave approval",
     automatic: "Automatic",
     manual: "Manual",
     carryForwardDays: "Carry-forward days",
@@ -2454,9 +2152,6 @@ const pageCopy = {
     employeeEmploymentSection: "بيانات التوظيف",
     employeeEmploymentDetail:
       "حدد شروط العمل التي ستوجّه حسابات الحضور والرواتب.",
-    automaticAnnualLeaveEligible: "مؤهل للاستحقاق السنوي التلقائي",
-    automaticAnnualLeaveEligibleHint:
-      "عند إيقافه، لا يُضاف الاستحقاق السنوي تلقائيًا. يظل الرصيد المضاف يدويًا والإجازات المعتمدة متاحين.",
     workingHours: "ساعات العمل",
     workingHoursHint: "عدد الساعات في يوم العمل.",
     employmentStartDate: "تاريخ بدء العمل",
@@ -2474,7 +2169,7 @@ const pageCopy = {
     loading: "جارٍ التحميل…",
     createDepartmentPrompt: "اسم القسم",
     departmentNameHint:
-      "أدخل اسم القسم في الحقل العربي والحقل الإنجليزي كلٌ على حدة.",
+      "يُحفظ هذا الاسم كما تم إدخاله تمامًا ولا تتم ترجمته.",
     createBranchPrompt: "اسم الفرع",
     branchCityPrompt: "مدينة الفرع",
     employeeStatusUpdated: "تم تحديث حالة الموظف",
@@ -2486,23 +2181,6 @@ const pageCopy = {
     saving: "جارٍ الحفظ…",
     createEmployee: "إنشاء موظف",
     employeeProfile: "ملف الموظف",
-    leaveAttendanceSummary: "ملخص الإجازات والحضور",
-    deductedForAbsence: "المخصوم مقابل الغياب",
-    pendingLeave: "أيام قيد الموافقة",
-    deductionMonths: "أشهر الخصم",
-    deductionMonthlyMaximum: "الحد الأقصى للخصم الشهري",
-    deductedThisMonth: "المخصوم هذا الشهر",
-    unauthorizedAbsenceDays: "غياب بدون إذن معتمد (كل التواريخ)",
-    authorizedAbsenceDays: "غياب بإذن معتمد",
-    currentMonthUnauthorizedAbsenceDays: "غياب غير مصرح به هذا الشهر",
-    totalAbsenceDays: "إجمالي أيام الغياب",
-    absenceBreakdownNote:
-      "أول 3 أرقام محسوبة من نفس سجلات الحضور. يُعد يوم الغياب مصرحًا به فقط عند وجود إذن معتمد في التاريخ نفسه؛ ورقم الشهر الحالي منفصل.",
-    approvedLeaveDays: "أيام الإجازة المعتمدة",
-    extraPayDays: "أيام بها وقت إضافي أو عطلة مسجلة",
-    extraPayCalculationNote:
-      "هذا عدد أيام الحضور المسجل بها وقت إضافي أو المصنفة كعطلة، وليس عدد ساعات إضافية أو تأكيدًا بصرفها. يُحدد الأجر المستحق وفق قواعد الحضور والرواتب.",
-    annualLeaveBalanceUnavailable: "لا يوجد رصيد إجازة سنوية متاح.",
     hrProfile: "ملفي الوظيفي",
     hrProfileDetail:
       "راجع معلومات الموظف وسجل الموارد البشرية المتاح لهوية مساحة العمل المسجلة.",
@@ -2534,34 +2212,6 @@ const pageCopy = {
     scheduledStart: "بداية الدوام المجدولة",
     checkInNow: "تسجيل الحضور الآن",
     checkOutNow: "تسجيل الانصراف الآن",
-    attendancePunchPermissionRequired:
-      "إضافة البصمة اليدوية متاحة فقط للحسابات التي يمنحها صاحب الشركة هذه الصلاحية.",
-    addManualPunch: "إضافة بصمة يدوية",
-    addAbsenceLeave: "إضافة يوم رصيد",
-    addAbsenceLeaveDetail:
-      "اختر يوم غياب لتحويله إلى يوم إجازة سنوية معتمدة.",
-    absenceDays: "أيام الغياب",
-    noAbsenceDays: "لا توجد أيام غياب خلال نطاق التاريخ المحدد",
-    convertToAnnualLeave: "تحويل إلى إجازة سنوية",
-    convertingToAnnualLeave: "جارٍ التحويل…",
-    absenceConvertedToAnnualLeave: "تم تحويل الغياب إلى إجازة سنوية",
-    absenceConversionFailed: "تعذر تحويل الغياب إلى إجازة سنوية",
-    overtimePayableAmount: "قيمة الإضافي المستحقة",
-    overtimeMultiplierApplied: "المضاعف المطبق",
-    manualPunchTitle: "إضافة بصمة حضور أو انصراف",
-    manualPunchDetail:
-      "استخدمها بعد مراجعة البصمة المفقودة، مثل مراجعة تسجيلات الكاميرات.",
-    punchEmployee: "الموظف",
-    punchDirection: "نوع الحركة",
-    punchIn: "حضور",
-    punchOut: "انصراف",
-    punchDate: "تاريخ الحضور",
-    punchTime: "التاريخ والوقت الفعلي",
-    punchReason: "السبب",
-    punchReasonPlaceholder: "مثال: أكدت مراجعة الكاميرات وصول الموظف في هذا الوقت.",
-    saveManualPunch: "حفظ البصمة اليدوية",
-    manualPunchSaved: "تم حفظ بصمة الحضور اليدوية",
-    manualPunchFailed: "تعذر حفظ بصمة الحضور اليدوية",
     webEventPolicy: "حدث ويب · يقيّم API سياسة الموقع",
     today: "اليوم",
     todayRegister: "سجل اليوم",
@@ -2613,15 +2263,6 @@ const pageCopy = {
     approve: "موافقة",
     reject: "رفض",
     newKindRequest: "طلب {kind} جديد",
-    requestLeaveType: "نوع الإجازة",
-    requestCategory: "نوع الطلب",
-    requestAnnualLeaveOption: "إذن يوم أو عدة أيام",
-    temporaryPermission: "إذن مؤقت",
-    noLeaveTypesAvailable: "لا توجد أنواع إجازات متاحة.",
-    requestPermissionType: "نوع الاستئذان",
-    requestReasonLabel: "السبب أو ملاحظات إضافية",
-    requestLeaveReasonPlaceholder: "اكتب سبب طلب الإجازة باختصار.",
-    requestPermissionReasonPlaceholder: "اكتب سبب طلب الاستئذان باختصار.",
     type: "النوع",
     reason: "السبب",
     from: "من",
@@ -2629,13 +2270,6 @@ const pageCopy = {
     start: "البداية",
     end: "النهاية",
     submitRequest: "إرسال الطلب",
-    requestFormIntro: "املأ التفاصيل التالية لإرسال طلبك للمراجعة.",
-    leavePeriod: "مدة الإجازة",
-    leavePeriodHint: "اختر أول وآخر يوم تحتاج فيهما إلى إجازة.",
-    permissionTime: "موعد الاستئذان",
-    permissionTimeHint: "حدد تاريخ الاستئذان ووقته.",
-    requestReasonHint: "اكتب سبباً مختصراً ليساعد المسؤول على مراجعة الطلب.",
-    requestPendingReview: "سيظل الطلب قيد المراجعة حتى يصدر قرار بشأنه.",
     annualLeave: "إجازة سنوية",
     sickLeave: "إجازة مرضية",
     shortAbsence: "غياب قصير",
@@ -2654,15 +2288,15 @@ const pageCopy = {
     gracePeriod: "فترة السماح (بالدقائق)",
     lateArrivalGrace: "فترة السماح للوصول المتأخر (بالدقائق)",
     earlyDepartureGrace: "فترة السماح للانصراف المبكر (بالدقائق)",
-    overtimeStartsAfter: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
-    overtimeAfter: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
+    overtimeStartsAfter: "يبدأ العمل الإضافي بعد (بالدقائق)",
+    overtimeAfter: "العمل الإضافي بعد (بالدقائق)",
     overtimeMultiplier: "مضاعف ساعة العمل الإضافي",
-    locationVerification: "نوع تسجيل الحركة",
-    gpsPolicy: "تسجيل الحركة بالموقع (موقع ثابت)",
+    locationVerification: "التحقق من الموقع",
+    gpsPolicy: "سياسة GPS",
     disabled: "معطل",
     optional: "اختياري",
     required: "مطلوب",
-    locationRadius: "نطاق الموقع الثابت (بالمتر)",
+    locationRadius: "نطاق الموقع (بالمتر)",
     explainability: "قابلية التفسير افتراضياً",
     attendanceExceptionsNote:
       "تسجل استثناءات الحضور مصدرها وحالة الموقع وشرحاً واضحاً للمراجعة.",
@@ -2732,9 +2366,7 @@ const pageCopy = {
       "حدد مضاعفات التأخير والانصراف والغياب، وكيفية احتساب الدقائق المغطاة بإذن معتمد.",
     annualLeaveSettings: "نظام الرصيد السنوي",
     annualLeaveSettingsDetail:
-      "يُخصم الرصيد السنوي بعد اعتماد طلب الإجازة السنوية أو منح المدير للإجازة يدويًا فقط.",
-    annualLeaveDeductionOnlyExplicit:
-      "الغياب والإذن لا يخصمان من رصيد الإجازة السنوية.",
+      "تستخدم هذه الإعدادات الحالية في الرصيد السنوي والحضور والإذن والرواتب والخدمة الذاتية.",
     annualLeaveBalances: "أرصدة الإجازة السنوية",
     annualEntitlementDays: "أيام الإجازة السنوية",
     leaveYearStartsIn: "بداية سنة الإجازة",
@@ -2743,13 +2375,12 @@ const pageCopy = {
     anyAbsenceMissing: "كل غياب أو عدم تسجيل حضور",
     leaveDaysPerAbsence: "أيام الخصم لكل غياب",
     deductAnnualLeaveForUnapproved:
-      "خصم الرصيد السنوي تلقائياً للغياب المستحق للخصم",
+      "خصم يوم غياب من رصيد الإجازة السنوية",
     absenceDeductionDetail:
       "مغلق افتراضياً؛ لن يخصم الغياب من الإجازة السنوية دون تفعيل صريح.",
     policyEnabled: "السياسة مفعلة",
     accrualFrequency: "وتيرة الاستحقاق",
     deductionMode: "طريقة الخصم",
-    deductOnApproval: "الخصم عند اعتماد الإجازة",
     automatic: "تلقائي",
     manual: "يدوي",
     carryForwardDays: "أيام الترحيل",
@@ -2775,7 +2406,6 @@ const pageCopy = {
     reportsDetail: "عاين الفترة المحددة قبل التصدير عبر سير العمل المتصل.",
     setDatesAbove: "حدد التواريخ أعلاه لمعاينة بيانات الحضور.",
     overtimeHours: "ساعات إضافية",
-    overtimeMinutes: "دقائق الإضافي",
     employeeDetail: "تفاصيل الموظف",
     generalPayroll: "عمليات الرواتب العامة",
     payrollTitle: "الرواتب",
@@ -2949,27 +2579,6 @@ const pageCopy = {
     firstName: "الاسم الأول",
     lastName: "اسم العائلة",
     monthlySalary: "الراتب الشهري",
-    compensation: "التعويضات",
-    payBasis: "نظام الأجر",
-    monthlyPayBasis: "راتب شهري",
-    hourlyPayBasis: "بالساعة",
-    referenceMonthlySalary: "الراتب الشهري المرجعي",
-    referenceWorkdaysPerMonth: "أيام العمل المرجعية بالشهر",
-    referenceHoursPerDay: "ساعات العمل المرجعية باليوم",
-    calculatedHourlyRate: "سعر الساعة المحسوب",
-    hourlyRateDerivationHint:
-      "سعر الساعة = الراتب الشهري المرجعي ÷ (أيام العمل المرجعية × ساعات العمل المرجعية يومياً).",
-    hourlyPayReferenceSalaryHint:
-      "يُستخدم هذا الراتب الشهري لحساب سعر الساعة فقط.",
-    hourlyPayAttendanceHint:
-      "يُحسب الأجر من كامل المدة بين بصمتي الحضور والانصراف بعد التصحيحات المعتمدة، بما فيها الاستراحات. لا يوجد جدول ثابت أو إجازة مدفوعة أو خصم تأخير/غياب أو مضاعف إضافي.",
-    hourlyWages: "أجر الساعات",
-    noFixedSchedule: "بدون جدول ثابت",
-    perHour: "للساعة",
-    dailyRate: "سعر اليوم",
-    hourlyRate: "سعر الساعة",
-    salaryRatesHint:
-      "محسوب من أيام العمل المرجعية وساعات العمل المرجعية اليومية للموظف.",
     select: "اختر",
     departmentName: "اسم القسم",
     createDepartment: "إنشاء قسم",
@@ -2991,7 +2600,7 @@ const pageCopy = {
     notApprovedAtThisTime: "لم تتم الموافقة في الوقت الحالي",
     reviewedInOperationsQueue: "تمت مراجعته في قائمة العمليات",
     gracePeriodMinutes: "فترة السماح (بالدقائق)",
-    overtimeAfterMinutes: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
+    overtimeAfterMinutes: "العمل الإضافي بعد (بالدقائق)",
     locationRadiusMeters: "نطاق الموقع (بالمتر)",
     explainabilityByDefault: "قابلية التفسير افتراضياً",
     attendanceExceptionsRecorded:
@@ -3039,53 +2648,13 @@ const pageCopy = {
     accountManagement: "إدارة الحسابات",
     databaseAdministration: "إدارة قاعدة البيانات",
     accountSettings: "إعدادات الحساب",
-    siteBranding: "اسم ولوجو وتذييل الموقع",
-    siteBrandingDetail:
-      "تحكم في اسم الموقع واللوجو، وأضف روابط التواصل التي تظهر في الفوتر العام.",
-    siteName: "اسم الموقع",
-    siteLogo: "لوجو الموقع",
-    pwaIconHeading: "أيقونة تطبيق PWA",
-    pwaIconDetail:
-      "اختاري الأيقونة التي تظهر عند تثبيت التطبيق. سيتم تجهيز الصورة تلقائيًا لأجهزة iOS وAndroid والمتصفح.",
-    pwaIconCurrent: "أيقونة التطبيق الحالية",
-    pwaIconChoose: "رفع أيقونة جديدة",
-    pwaIconReset: "استعادة الأيقونة الافتراضية",
-    pwaIconUpdated: "تم تحديث أيقونة تطبيق PWA.",
-    pwaIconRestored: "تمت استعادة أيقونة تطبيق PWA الافتراضية.",
-    couldNotUpdatePwaIcon: "تعذر تحديث أيقونة تطبيق PWA.",
-    pwaIconInvalidFile: "اختاري صورة PNG أو JPG أو WebP، وحجمها أقل من 10 ميجابايت.",
-    pwaIconUploading: "جارٍ تجهيز الأيقونات ورفعها…",
-    pwaIconFileHelp:
-      "الأفضل استخدام شعار مربع مع مساحة فارغة حوله. هذا يغيّر أيقونة التطبيق المثبّت، وليس اللوجو داخل صفحات التطبيق.",
-    siteLogoSquare: "اللوجو المربع",
-    siteLogoShort: "اللوجو المختصر",
-    siteLogoHorizontal: "اللوجو الأفقي",
-    siteLogoArabic: "اللوجو العربي",
-    changeLogo: "تغيير اللوجو",
-    selected: "محدد",
-    socialLinksHeading: "روابط التواصل الاجتماعي",
-    socialLinksDetail:
-      "أضف رابطاً آمناً لكل قناة تريد أن تظهر لزوار الموقع في الفوتر.",
-    saveSiteBranding: "حفظ إعدادات الموقع",
-    siteBrandingUpdated: "تم تحديث إعدادات الموقع وروابط التواصل.",
-    couldNotUpdateSiteBranding: "تعذر تحديث اسم ولوجو الموقع.",
     platformOwnerOnly: "للمالك فقط",
     databaseAdminDetail:
-      "أدوات دعم محددة بالشركة لمراجعة السجلات المسموح بها وتصحيحها. كل تعديل يتطلب سبباً ويُسجل في سجل التدقيق؛ وتظل بيانات الدخول والنسخ الاحتياطية مستبعدة.",
+      "وصول طارئ مضبوط إلى بيانات التطبيق الآمنة. يتم استبعاد أسرار المصادقة وملفات النسخ الاحتياطية.",
     databaseEntity: "كيان البيانات",
     databaseCoreOrganization: "الهيكل الأساسي",
     databaseSchedulingAttendance: "الجدولة والحضور",
     databaseLeavePayrollSupport: "الإجازات والرواتب ودعم المنصة",
-    databaseLeaveBalances: "أرصدة الإجازة السنوية",
-    adjustAnnualLeaveTotal: "تعديل رصيد الإجازة السنوية",
-    annualLeaveTotalHint:
-      "يمكنك تعديل الإجمالي أو المستخدم أو المتبقي. تتحدث الخانة المرتبطة تلقائيًا وفق المعادلة: الإجمالي = المستخدم + المعلق + المتبقي. الطلبات المعلقة لا تتغير.",
-    annualLeaveTotalSaved:
-      "تم تعديل رصيد الإجازة السنوية وتسجيل التغيير في سجل التدقيق والإجازات.",
-    supportAnnualLeaveTotalInvalid:
-      "أدخل إجماليًا ومستخدمًا ومتبقيًا صالحًا من 0 إلى 9,999.99 يومًا، وبحد أقصى منزلتين عشريتين. يجب أن يغطي الإجمالي الأيام المستخدمة والمعلقة.",
-    pendingLeaveDays: "الأيام المعلقة",
-    databaseEmployeeName: "الموظف",
     dataExplorer: "مستكشف البيانات",
     companyContext: "سياق الشركة",
     allCompanies: "كل الشركات",
@@ -3103,24 +2672,7 @@ const pageCopy = {
     recordDetails: "تفاصيل السجل",
     supportEdit: "تعديل الدعم",
     supportEditHint:
-      "يمكن تعديل الحقول المعتمدة للدعم فقط. ملكية الشركة وحقول المصادقة مقفلة.",
-    supportScopeHint:
-      "تعديل أي سجل تابع لشركة يحدد نطاق التصحيح على شركته تلقائيًا. كل تصحيح يتطلب سببًا ويُسجل في سجل الشركة.",
-    supportSelectCompany:
-      "اختر شركة واحدة من سياق الشركة قبل تعديل أي سجل.",
-    supportReasonLabel: "سبب تعديل الدعم",
-    supportReasonRequired:
-      "اكتب سبباً لا يقل عن 10 أحرف قبل الحفظ.",
-    supportNoChanges: "غيّر حقلاً واحداً على الأقل قبل الحفظ.",
-    supportWorkdaysInvalid:
-      "أدخل عددًا صحيحًا من 1 إلى 31 لأيام العمل المرجعية.",
-    supportChangeSaved: "تم حفظ تعديل الدعم وإضافته إلى سجل التدقيق.",
-    supportPayrollRefreshHint:
-      "تعديل أيام العمل المرجعية يعيد حساب فترات الرواتب المحسوبة والقابلة للتعديل. تستخدم المسودات القيمة الجديدة عند حسابها أول مرة، ولا تتغير الفترات المعتمدة أو المقفلة.",
-    supportPayrollRefreshWarning:
-      "تم حفظ قيمة الموظف، لكن تعذر تحديث فترة رواتب قابلة للتعديل على الأقل. راجع رواتب هذه الشركة.",
-    missingReferenceWorkdays: "أيام العمل المرجعية مفقودة",
-    missingReferenceWorkdaysOnly: "عرض الموظفين الذين تنقصهم أيام العمل المرجعية فقط",
+      "يمكن تعديل الحقول التشغيلية المعتمدة فقط. ملكية الشركة وحقول المصادقة مقفلة.",
     databaseEditHint:
       "يمكن تعديل الحقول المسموح بها لهذا النوع فقط. المعرّفات وملكية الشركة وحقول المصادقة مقفلة.",
     inspectionOnly:
@@ -3267,28 +2819,6 @@ const pageCopy = {
     employeeEmploymentSection: "Détails de l’emploi",
     employeeEmploymentDetail:
       "Définissez les conditions qui guideront les calculs de présence et de paie.",
-    automaticAnnualLeaveEligible:
-      "Éligible à l’attribution automatique du congé annuel",
-    automaticAnnualLeaveEligibleHint:
-      "Désactivé, le droit annuel n’est pas ajouté automatiquement. Les soldes attribués manuellement et les congés approuvés restent possibles.",
-    monthlySalary: "Salaire mensuel",
-    compensation: "Rémunération",
-    payBasis: "Mode de rémunération",
-    monthlyPayBasis: "Salaire mensuel",
-    hourlyPayBasis: "À l’heure",
-    referenceMonthlySalary: "Salaire mensuel de référence",
-    referenceWorkdaysPerMonth: "Jours ouvrés de référence par mois",
-    referenceHoursPerDay: "Heures de référence par jour",
-    calculatedHourlyRate: "Taux horaire calculé",
-    hourlyRateDerivationHint:
-      "Taux horaire = salaire mensuel de référence ÷ (jours ouvrés de référence × heures de référence par jour).",
-    hourlyPayReferenceSalaryHint:
-      "Ce salaire mensuel sert uniquement à calculer le taux horaire.",
-    hourlyPayAttendanceHint:
-      "La paie utilise tout l’intervalle biométrique entre l’arrivée et le départ après corrections approuvées, pauses incluses. Aucun horaire fixe, congé payé, retenue de retard ou d’absence, ni majoration d’heures supplémentaires ne s’applique.",
-    hourlyWages: "Rémunération horaire",
-    noFixedSchedule: "Aucun horaire fixe",
-    perHour: "par heure",
     workingHours: "Heures de travail",
     workingHoursHint: "Heures par jour travaillé.",
     employmentStartDate: "Date de début d’emploi",
@@ -3320,49 +2850,6 @@ const pageCopy = {
     saving: "Enregistrement…",
     createEmployee: "Créer l’employé",
     employeeProfile: "Profil de l’employé",
-    hrProfile: "Mon profil professionnel",
-    hrProfileDetail:
-      "Consultez les informations personnelles et professionnelles liées à votre compte.",
-    workLocations: "Lieux de travail",
-    hrRecord: "Dossier RH",
-    jobTitle: "Intitulé du poste",
-    employmentType: "Type de contrat",
-    manager: "Responsable",
-    address: "Adresse",
-    emergencyContactName: "Contact d’urgence",
-    emergencyContactPhone: "Téléphone d’urgence",
-    notes: "Notes RH",
-    hrRecordNotFound: "Aucun dossier RH n’a encore été créé pour cet employé.",
-    hrRecordUnauthorized: "Vous n’êtes pas autorisé à consulter ce dossier RH.",
-    hrRecordLoadFailed: "Impossible de charger le dossier RH.",
-    hrRecordCreateHint:
-      "Complétez les champs ci-dessous pour créer le dossier RH de l’employé.",
-    saveHrRecord: "Enregistrer le dossier RH",
-    hrRecordSaved: "Dossier RH enregistré",
-    hrRecordSaveFailed: "Impossible d’enregistrer le dossier RH",
-    employeeProfileLoadFailed: "Impossible de charger le profil de l’employé.",
-    ownProfileOnly: "Les employés ne peuvent consulter que leur propre dossier RH.",
-    noEmployeeContextDetail:
-      "Aucun identifiant d’employé n’est associé à cette session.",
-    annualLeaveBalances: "Soldes de congés annuels",
-    absenceDays: "Jours d’absence",
-    leaveAttendanceSummary: "Résumé des congés et de la présence",
-    deductedForAbsence: "Déduit pour absence",
-    pendingLeave: "En attente",
-    deductionMonths: "Mois de déduction",
-    deductionMonthlyMaximum: "Plafond mensuel de déduction",
-    deductedThisMonth: "Déduit ce mois-ci",
-    unauthorizedAbsenceDays: "Absence sans autorisation approuvée (toutes dates)",
-    authorizedAbsenceDays: "Absence avec autorisation approuvée",
-    currentMonthUnauthorizedAbsenceDays: "Absence non autorisée ce mois-ci",
-    totalAbsenceDays: "Total des jours d’absence",
-    absenceBreakdownNote:
-      "Les trois premiers chiffres couvrent les mêmes dates d’historique. Une absence est autorisée uniquement si une autorisation approuvée correspond à cette date ; le chiffre mensuel est distinct.",
-    approvedLeaveDays: "Jours de congé approuvés",
-    extraPayDays: "Jours avec heures supplémentaires ou jour férié enregistré",
-    extraPayCalculationNote:
-      "Ce nombre compte les dates avec des heures supplémentaires enregistrées ou un statut de jour férié ; ce ne sont ni des heures ni une garantie de paiement. Le montant payable dépend des règles de présence et de paie.",
-    annualLeaveBalanceUnavailable: "Aucun solde de congé annuel disponible.",
     employeeNumber: "Numéro d’employé",
     employeeNumberEditHint:
       "Vous pouvez modifier ce numéro. La connexion, l’historique, la paie et les liens biométriques restent liés à cet employé.",
@@ -3404,21 +2891,6 @@ const pageCopy = {
     saveCorrection: "Enregistrer la correction",
     attendanceCorrectionUpdated: "Correction de présence enregistrée",
     attendanceCorrectionFailed: "Impossible d’enregistrer la correction",
-    addManualPunch: "Ajouter un pointage manuel",
-    manualPunchTitle: "Ajouter un pointage manuel",
-    manualPunchDetail:
-      "Utilisez cette action après avoir vérifié le pointage manquant.",
-    punchEmployee: "Employé",
-    punchDirection: "Mouvement",
-    punchIn: "Arrivée",
-    punchOut: "Départ",
-    punchDate: "Date de présence",
-    punchTime: "Date et heure réelles",
-    punchReason: "Motif",
-    punchReasonPlaceholder: "Expliquez la vérification effectuée.",
-    saveManualPunch: "Enregistrer le pointage",
-    manualPunchSaved: "Pointage manuel enregistré",
-    manualPunchFailed: "Impossible d’enregistrer le pointage manuel",
     checkInRecorded: "Pointage d’arrivée enregistré",
     checkOutRecorded: "Pointage de sortie enregistré",
     attendanceNotAccepted: "L’événement de présence a été refusé",
@@ -3451,15 +2923,6 @@ const pageCopy = {
     approve: "Approuver",
     reject: "Refuser",
     newKindRequest: "Nouvelle demande de {kind}",
-    requestLeaveType: "Type de congé",
-    requestCategory: "Type de demande",
-    requestAnnualLeaveOption: "Congé d’un ou plusieurs jours",
-    temporaryPermission: "Autorisation temporaire",
-    noLeaveTypesAvailable: "Aucun type de congé n’est disponible.",
-    requestPermissionType: "Type d’autorisation",
-    requestReasonLabel: "Motif ou informations complémentaires",
-    requestLeaveReasonPlaceholder: "Expliquez brièvement votre demande de congé.",
-    requestPermissionReasonPlaceholder: "Expliquez brièvement votre demande d’autorisation.",
     type: "Type",
     reason: "Motif",
     from: "Du",
@@ -3467,13 +2930,6 @@ const pageCopy = {
     start: "Début",
     end: "Fin",
     submitRequest: "Envoyer la demande",
-    requestFormIntro: "Renseignez les détails ci-dessous pour envoyer votre demande.",
-    leavePeriod: "Période de congé",
-    leavePeriodHint: "Choisissez le premier et le dernier jour de congé.",
-    permissionTime: "Horaire de l’autorisation",
-    permissionTimeHint: "Indiquez la date ainsi que l’heure de début et de fin.",
-    requestReasonHint: "Une courte explication aidera votre responsable à examiner la demande.",
-    requestPendingReview: "Votre demande restera en attente jusqu’à une décision.",
     annualLeave: "Congé annuel",
     sickLeave: "Congé maladie",
     shortAbsence: "Absence courte",
@@ -3513,15 +2969,15 @@ const pageCopy = {
     gracePeriod: "Délai de grâce (minutes)",
     lateArrivalGrace: "Délai de grâce pour arrivée tardive (minutes)",
     earlyDepartureGrace: "Délai de grâce pour départ anticipé (minutes)",
-    overtimeStartsAfter: "Seuil minimal d’éligibilité aux heures supplémentaires (minutes)",
-    overtimeAfter: "Seuil minimal d’éligibilité aux heures supplémentaires (minutes)",
+    overtimeStartsAfter: "Les heures supplémentaires commencent après (minutes)",
+    overtimeAfter: "Heures supplémentaires après (minutes)",
     overtimeMultiplier: "Multiplicateur d’une heure supplémentaire",
-    locationVerification: "Type de lieu de pointage",
-    gpsPolicy: "Pointage avec localisation (lieu fixe)",
+    locationVerification: "Vérification de localisation",
+    gpsPolicy: "Politique GPS",
     disabled: "Désactivé",
     optional: "Facultatif",
     required: "Obligatoire",
-    locationRadius: "Rayon du lieu fixe (mètres)",
+    locationRadius: "Rayon de localisation (mètres)",
     explainability: "Explicabilité par défaut",
     attendanceExceptionsNote:
       "Les exceptions de présence enregistrent leur source, la situation de localisation et une explication lisible.",
@@ -3529,7 +2985,7 @@ const pageCopy = {
     savingPolicy: "Enregistrement de la politique…",
     attendancePolicyUpdated: "Politique de présence mise à jour",
     attendancePolicyRecalculateHint:
-      "Règle enregistrée. Les périodes calculées non approuvées ont été mises à jour ; les brouillons utiliseront la règle lors de leur premier calcul.",
+      "Règle enregistrée. Recalculez toute période de paie non finalisée pour appliquer la modification.",
     attendanceRulesChangeHistory: "Historique des modifications des règles de présence",
     attendanceRulesChangeHistoryDetail:
       "Consultez l’auteur, les changements et leur date d’application pour chaque règle.",
@@ -3582,7 +3038,6 @@ const pageCopy = {
     setDatesAbove:
       "Définissez les dates ci-dessus pour prévisualiser les données.",
     overtimeHours: "Heures supplémentaires",
-    overtimeMinutes: "Minutes supplémentaires",
     employeeDetail: "Détail de l’employé",
     generalPayroll: "Opérations générales de paie",
     payrollTitle: "Paie",
@@ -3752,28 +3207,6 @@ const pageCopy = {
     employeeEmploymentSection: "Beschäftigungsdetails",
     employeeEmploymentDetail:
       "Legen Sie die Angaben fest, die Anwesenheits- und Abrechnungen steuern.",
-    automaticAnnualLeaveEligible:
-      "Für automatische Jahresurlaubszuweisung berechtigt",
-    automaticAnnualLeaveEligibleHint:
-      "Ist die Option aus, wird der Jahresurlaubsanspruch nicht automatisch gutgeschrieben. Manuell zugewiesene Salden und genehmigter Urlaub bleiben möglich.",
-    monthlySalary: "Monatsgehalt",
-    compensation: "Vergütung",
-    payBasis: "Vergütungsart",
-    monthlyPayBasis: "Monatsgehalt",
-    hourlyPayBasis: "Stundenlohn",
-    referenceMonthlySalary: "Monatliches Referenzgehalt",
-    referenceWorkdaysPerMonth: "Referenz-Arbeitstage pro Monat",
-    referenceHoursPerDay: "Referenzstunden pro Tag",
-    calculatedHourlyRate: "Berechneter Stundenlohn",
-    hourlyRateDerivationHint:
-      "Stundenlohn = monatliches Referenzgehalt ÷ (Referenz-Arbeitstage × Referenzstunden pro Tag).",
-    hourlyPayReferenceSalaryHint:
-      "Dieses Monatsgehalt dient nur zur Berechnung des Stundenlohns.",
-    hourlyPayAttendanceHint:
-      "Die Vergütung basiert auf dem gesamten biometrischen Zeitraum zwischen Ein- und Ausstempeln nach genehmigten Korrekturen, einschließlich Pausen. Es gelten weder ein fester Zeitplan noch bezahlter Urlaub, Verspätungs-/Abwesenheitsabzüge oder Überstundenzuschläge.",
-    hourlyWages: "Stundenvergütung",
-    noFixedSchedule: "Kein fester Zeitplan",
-    perHour: "pro Stunde",
     workingHours: "Arbeitsstunden",
     workingHoursHint: "Stunden pro Arbeitstag.",
     employmentStartDate: "Beschäftigungsbeginn",
@@ -3805,50 +3238,6 @@ const pageCopy = {
     saving: "Speichern…",
     createEmployee: "Mitarbeitenden erstellen",
     employeeProfile: "Mitarbeiterprofil",
-    hrProfile: "Mein berufliches Profil",
-    hrProfileDetail:
-      "Hier sehen Sie die persönlichen und beruflichen Informationen Ihres Kontos.",
-    workLocations: "Arbeitsorte",
-    hrRecord: "Personalakte",
-    jobTitle: "Berufsbezeichnung",
-    employmentType: "Beschäftigungsart",
-    manager: "Vorgesetzte Person",
-    address: "Adresse",
-    emergencyContactName: "Notfallkontakt",
-    emergencyContactPhone: "Telefon des Notfallkontakts",
-    notes: "Personalnotizen",
-    hrRecordNotFound: "Für diese Person wurde noch keine Personalakte angelegt.",
-    hrRecordUnauthorized: "Sie dürfen diese Personalakte nicht ansehen.",
-    hrRecordLoadFailed: "Die Personalakte konnte nicht geladen werden.",
-    hrRecordCreateHint:
-      "Füllen Sie die Felder aus, um die Personalakte anzulegen.",
-    saveHrRecord: "Personalakte speichern",
-    hrRecordSaved: "Personalakte gespeichert",
-    hrRecordSaveFailed: "Die Personalakte konnte nicht gespeichert werden",
-    employeeProfileLoadFailed: "Das Mitarbeiterprofil konnte nicht geladen werden.",
-    ownProfileOnly:
-      "Mitarbeitende können nur ihre eigene Personalakte ansehen.",
-    noEmployeeContextDetail:
-      "Dieser Sitzung ist keine Mitarbeiteridentität zugeordnet.",
-    annualLeaveBalances: "Jahresurlaubssalden",
-    absenceDays: "Abwesenheitstage",
-    leaveAttendanceSummary: "Übersicht zu Urlaub und Anwesenheit",
-    deductedForAbsence: "Wegen Abwesenheit abgezogen",
-    pendingLeave: "Ausstehend",
-    deductionMonths: "Abzugsmonate",
-    deductionMonthlyMaximum: "Monatliche Abzugsgrenze",
-    deductedThisMonth: "Diesen Monat abgezogen",
-    unauthorizedAbsenceDays: "Abwesenheit ohne genehmigte Erlaubnis (alle Daten)",
-    authorizedAbsenceDays: "Abwesenheit mit genehmigter Erlaubnis",
-    currentMonthUnauthorizedAbsenceDays: "Unentschuldigte Abwesenheit in diesem Monat",
-    totalAbsenceDays: "Abwesenheitstage insgesamt",
-    absenceBreakdownNote:
-      "Die ersten drei Werte verwenden denselben Anwesenheitszeitraum. Eine Abwesenheit gilt nur mit einer genehmigten Erlaubnis für dasselbe Datum als entschuldigt; der Monatswert ist separat.",
-    approvedLeaveDays: "Genehmigte Urlaubstage",
-    extraPayDays: "Tage mit erfasster Mehrarbeit oder Feiertag",
-    extraPayCalculationNote:
-      "Gezählt werden Anwesenheitstage mit erfasster Mehrarbeit oder Feiertagsstatus, nicht Stunden und keine garantierte Auszahlung. Die Vergütung richtet sich nach Anwesenheits- und Lohnregeln.",
-    annualLeaveBalanceUnavailable: "Kein Jahresurlaubssaldo verfügbar.",
     employeeNumber: "Mitarbeiternummer",
     employeeNumberEditHint:
       "Diese Nummer kann manuell geändert werden. Login, Verlauf, Lohnabrechnung und biometrische Verknüpfungen bleiben diesem Mitarbeitenden zugeordnet.",
@@ -3890,22 +3279,6 @@ const pageCopy = {
     attendanceCorrectionUpdated: "Anwesenheitskorrektur gespeichert",
     attendanceCorrectionFailed:
       "Anwesenheitskorrektur konnte nicht gespeichert werden",
-    addManualPunch: "Manuellen Stempel hinzufügen",
-    manualPunchTitle: "Manuellen Anwesenheitsstempel hinzufügen",
-    manualPunchDetail:
-      "Verwenden Sie diese Aktion nach Prüfung des fehlenden Stempels.",
-    punchEmployee: "Mitarbeitende",
-    punchDirection: "Bewegung",
-    punchIn: "Kommen",
-    punchOut: "Gehen",
-    punchDate: "Anwesenheitsdatum",
-    punchTime: "Tatsächliches Datum und Uhrzeit",
-    punchReason: "Begründung",
-    punchReasonPlaceholder: "Beschreiben Sie die durchgeführte Prüfung.",
-    saveManualPunch: "Manuellen Stempel speichern",
-    manualPunchSaved: "Manueller Anwesenheitsstempel gespeichert",
-    manualPunchFailed:
-      "Manueller Anwesenheitsstempel konnte nicht gespeichert werden",
     checkInRecorded: "Einchecken erfasst",
     checkOutRecorded: "Auschecken erfasst",
     attendanceNotAccepted: "Anwesenheitsereignis wurde nicht angenommen",
@@ -3937,15 +3310,6 @@ const pageCopy = {
     approve: "Genehmigen",
     reject: "Ablehnen",
     newKindRequest: "Neue {kind}-Anfrage",
-    requestLeaveType: "Urlaubsart",
-    requestCategory: "Antragsart",
-    requestAnnualLeaveOption: "Urlaub für einen oder mehrere Tage",
-    temporaryPermission: "Vorübergehende Genehmigung",
-    noLeaveTypesAvailable: "Es sind keine Urlaubsarten verfügbar.",
-    requestPermissionType: "Art der Genehmigung",
-    requestReasonLabel: "Grund oder zusätzliche Hinweise",
-    requestLeaveReasonPlaceholder: "Begründen Sie Ihren Urlaubsantrag kurz.",
-    requestPermissionReasonPlaceholder: "Begründen Sie Ihre Genehmigungsanfrage kurz.",
     type: "Typ",
     reason: "Grund",
     from: "Von",
@@ -3953,13 +3317,6 @@ const pageCopy = {
     start: "Beginn",
     end: "Ende",
     submitRequest: "Anfrage senden",
-    requestFormIntro: "Füllen Sie die folgenden Angaben aus, um Ihre Anfrage einzureichen.",
-    leavePeriod: "Urlaubszeitraum",
-    leavePeriodHint: "Wählen Sie den ersten und letzten Urlaubstag aus.",
-    permissionTime: "Genehmigungszeit",
-    permissionTimeHint: "Wählen Sie Datum sowie Beginn und Ende der Genehmigung.",
-    requestReasonHint: "Eine kurze Erklärung erleichtert die Prüfung Ihrer Anfrage.",
-    requestPendingReview: "Ihre Anfrage bleibt offen, bis eine Entscheidung getroffen wurde.",
     annualLeave: "Jahresurlaub",
     sickLeave: "Krankheitsurlaub",
     shortAbsence: "Kurze Abwesenheit",
@@ -3999,15 +3356,15 @@ const pageCopy = {
     gracePeriod: "Kulanzzeit (Minuten)",
     lateArrivalGrace: "Kulanzzeit bei verspäteter Ankunft (Minuten)",
     earlyDepartureGrace: "Kulanzzeit bei frühem Feierabend (Minuten)",
-    overtimeStartsAfter: "Mindestschwelle für Überstunden (Minuten)",
-    overtimeAfter: "Mindestschwelle für Überstunden (Minuten)",
+    overtimeStartsAfter: "Überstunden beginnen nach (Minuten)",
+    overtimeAfter: "Überstunden ab (Minuten)",
     overtimeMultiplier: "Multiplikator für eine Überstunde",
-    locationVerification: "Standorttyp der Zeiterfassung",
-    gpsPolicy: "Zeiterfassung mit Standort (fester Standort)",
+    locationVerification: "Standortprüfung",
+    gpsPolicy: "GPS-Richtlinie",
     disabled: "Deaktiviert",
     optional: "Optional",
     required: "Erforderlich",
-    locationRadius: "Radius des festen Standorts (Meter)",
+    locationRadius: "Standortradius (Meter)",
     explainability: "Erklärbarkeit als Standard",
     attendanceExceptionsNote:
       "Anwesenheitsausnahmen speichern Quelle, Standortstatus und eine verständliche Erklärung zur Prüfung.",
@@ -4015,7 +3372,7 @@ const pageCopy = {
     savingPolicy: "Richtlinie wird gespeichert…",
     attendancePolicyUpdated: "Anwesenheitsrichtlinie aktualisiert",
     attendancePolicyRecalculateHint:
-      "Regel gespeichert. Berechnete, noch nicht genehmigte Zeiträume wurden aktualisiert; Entwürfe verwenden die Regel bei der ersten Berechnung.",
+      "Regel gespeichert. Berechnen Sie nicht abgeschlossene Lohnzeiträume neu, um die Änderung anzuwenden.",
     attendanceRulesChangeHistory: "Änderungsverlauf der Anwesenheitsregeln",
     attendanceRulesChangeHistoryDetail:
       "Prüfen Sie für jede Anwesenheitsregel den Bearbeiter, die Änderung und den Beginn der Anwendung.",
@@ -4068,7 +3425,6 @@ const pageCopy = {
     setDatesAbove:
       "Legen Sie oben die Daten fest, um die Anwesenheitsdaten anzuzeigen.",
     overtimeHours: "Überstunden",
-    overtimeMinutes: "Überstundenminuten",
     employeeDetail: "Mitarbeiterdetails",
     generalPayroll: "Allgemeine Lohnabrechnung",
     payrollTitle: "Lohnabrechnung",
@@ -4472,7 +3828,6 @@ const part4Copy = {
     noAttendanceLocationsDetail:
       "Add a location before requiring GPS attendance.",
     saveLocation: "Save location",
-    useCurrentLocation: "Use my current location",
     locationState: "GPS attendance state",
     locationNotRequired: "Location not required",
     locationVerified: "Inside geofence",
@@ -4514,49 +3869,6 @@ const part4Copy = {
     syncQueued: "Sync queued",
     syncUnavailableResult: "Sync unavailable",
     syncMessage: "Message",
-    importedPunches: "Imported punches",
-    importedPunchesDetail:
-      "Raw events received from this device, kept separate from calculated attendance.",
-    deviceUser: "Device user",
-    noImportedPunches: "No imported punches",
-    noImportedPunchesDetail:
-      "A real ADMS upload will appear here after the device sends attendance data.",
-    registrationKeyUsbTitle: "ZKTeco USB connector key",
-    registrationKeyAdmsTitle: "ZKTeco ADMS registration key",
-    registrationKeyUsbNotice:
-      "Save this key now. It is shown only once and is used by the VAR HR Windows USB Connector.",
-    registrationKeyAdmsNotice:
-      "Save this key now. It is shown only once and is used as the device Comm Key.",
-    copy: "Copy",
-    done: "Done",
-    registrationKeyUsbInstructions:
-      "Enter this key in the connector configuration together with the device ID. The connector must run on the Windows computer connected to the LX15.",
-    registrationKeyAdmsInstructions:
-      "Configure the K50 Pro to use your published HTTPS host with ADMS path",
-    deviceIdentifierSerialHint: "Keep the device ID equal to its Serial Number.",
-    directionIn: "In",
-    directionOut: "Out",
-    eventTypeAttendance: "Attendance",
-    processingStatusMapped: "Mapped",
-    processingStatusReceived: "Received",
-    processingStatusRejected: "Rejected",
-    processingStatusPendingAdapter: "Pending adapter",
-    processingStatusFailed: "Failed",
-    providerMockName: "Deterministic mock provider",
-    providerMockDescription:
-      "Generates repeatable attendance events for automated verification without hardware.",
-    providerGenericName: "Generic adapter",
-    providerGenericDescription:
-      "Reserved for a manufacturer adapter supplied by the deployment.",
-    providerAdmsName: "ZKTeco ADMS",
-    providerAdmsDescription: "Inbound-only ZKTeco ADMS protocol receiver.",
-    providerUsbName: "ZKTeco USB Connector",
-    providerUsbDescription:
-      "Attendance is synchronized by the VAR HR Windows USB Connector.",
-    adapterMock: "Deterministic mock provider",
-    adapterGeneric: "Generic adapter",
-    adapterAdms: "ZKTeco ADMS",
-    adapterUsb: "ZKTeco USB Connector",
   },
   ar: {
     deviceMetadata: "بيانات الجهاز",
@@ -4600,7 +3912,6 @@ const part4Copy = {
     noAttendanceLocations: "لا توجد مواقع حضور مُعدة",
     noAttendanceLocationsDetail: "أضف موقعاً قبل إلزام الحضور عبر GPS.",
     saveLocation: "حفظ الموقع",
-    useCurrentLocation: "استخدام موقعي الحالي",
     locationState: "حالة الحضور عبر GPS",
     locationNotRequired: "الموقع غير مطلوب",
     locationVerified: "داخل النطاق الجغرافي",
@@ -4639,50 +3950,6 @@ const part4Copy = {
     syncQueued: "وُضعت المزامنة في قائمة الانتظار",
     syncUnavailableResult: "المزامنة غير متاحة",
     syncMessage: "الرسالة",
-    importedPunches: "سجلات البصمة المستلمة",
-    importedPunchesDetail:
-      "الأحداث الخام المستلمة من هذا الجهاز، وتُحفظ منفصلة عن الحضور المحسوب.",
-    deviceUser: "مستخدم الجهاز",
-    noImportedPunches: "لا توجد سجلات بصمة مستلمة",
-    noImportedPunchesDetail:
-      "سيظهر رفع ADMS الحقيقي هنا بعد أن يرسل الجهاز بيانات الحضور.",
-    registrationKeyUsbTitle: "مفتاح موصل ZKTeco USB",
-    registrationKeyAdmsTitle: "مفتاح تسجيل ZKTeco ADMS",
-    registrationKeyUsbNotice:
-      "احفظ هذا المفتاح الآن. سيظهر مرة واحدة فقط ويُستخدم بواسطة موصل VAR HR على Windows.",
-    registrationKeyAdmsNotice:
-      "احفظ هذا المفتاح الآن. سيظهر مرة واحدة فقط ويُستخدم كمفتاح اتصال الجهاز.",
-    copy: "نسخ",
-    done: "تم",
-    registrationKeyUsbInstructions:
-      "أدخل هذا المفتاح في إعدادات الموصل مع معرّف الجهاز. يجب تشغيل الموصل على كمبيوتر Windows المتصل بجهاز LX15.",
-    registrationKeyAdmsInstructions:
-      "اضبط جهاز K50 Pro لاستخدام عنوان HTTPS المنشور ومسار ADMS",
-    deviceIdentifierSerialHint:
-      "اجعل معرّف الجهاز مطابقاً للرقم التسلسلي.",
-    directionIn: "دخول",
-    directionOut: "خروج",
-    eventTypeAttendance: "حضور",
-    processingStatusMapped: "مرتبط",
-    processingStatusReceived: "مستلم",
-    processingStatusRejected: "مرفوض",
-    processingStatusPendingAdapter: "في انتظار الموصل",
-    processingStatusFailed: "فشل",
-    providerMockName: "موفر تجريبي ثابت",
-    providerMockDescription:
-      "ينشئ أحداث حضور متكررة للتحقق الآلي دون أجهزة فعلية.",
-    providerGenericName: "موصل عام",
-    providerGenericDescription:
-      "محجوز لموصل شركة مصنعة يتم توفيره مع إعداد النظام.",
-    providerAdmsName: "ZKTeco ADMS",
-    providerAdmsDescription: "موصل استقبال بروتوكول ZKTeco ADMS الوارد فقط.",
-    providerUsbName: "موصل ZKTeco USB",
-    providerUsbDescription:
-      "تتم مزامنة الحضور بواسطة موصل VAR HR على Windows.",
-    adapterMock: "موفر تجريبي ثابت",
-    adapterGeneric: "موصل عام",
-    adapterAdms: "ZKTeco ADMS",
-    adapterUsb: "موصل ZKTeco USB",
   },
   fr: {
     deviceMetadata: "Métadonnées de l’appareil",
@@ -4768,51 +4035,6 @@ const part4Copy = {
     syncQueued: "Synchronisation en file",
     syncUnavailableResult: "Synchronisation indisponible",
     syncMessage: "Message",
-    importedPunches: "Pointages importés",
-    importedPunchesDetail:
-      "Événements bruts reçus de cet appareil, séparés de la présence calculée.",
-    deviceUser: "Utilisateur de l’appareil",
-    noImportedPunches: "Aucun pointage importé",
-    noImportedPunchesDetail:
-      "Un envoi ADMS réel apparaîtra ici après l’envoi des données par l’appareil.",
-    registrationKeyUsbTitle: "Clé du connecteur USB ZKTeco",
-    registrationKeyAdmsTitle: "Clé d’enregistrement ZKTeco ADMS",
-    registrationKeyUsbNotice:
-      "Enregistrez cette clé maintenant. Elle ne s’affiche qu’une fois et est utilisée par le connecteur Windows VAR HR.",
-    registrationKeyAdmsNotice:
-      "Enregistrez cette clé maintenant. Elle ne s’affiche qu’une fois et sert de clé Comm de l’appareil.",
-    copy: "Copier",
-    done: "Terminé",
-    registrationKeyUsbInstructions:
-      "Saisissez cette clé dans la configuration du connecteur avec l’identifiant de l’appareil. Le connecteur doit fonctionner sur l’ordinateur Windows relié au LX15.",
-    registrationKeyAdmsInstructions:
-      "Configurez le K50 Pro pour utiliser votre hôte HTTPS publié avec le chemin ADMS",
-    deviceIdentifierSerialHint:
-      "Conservez l’identifiant de l’appareil égal à son numéro de série.",
-    directionIn: "Entrée",
-    directionOut: "Sortie",
-    eventTypeAttendance: "Présence",
-    processingStatusMapped: "Associé",
-    processingStatusReceived: "Reçu",
-    processingStatusRejected: "Rejeté",
-    processingStatusPendingAdapter: "Adaptateur en attente",
-    processingStatusFailed: "Échec",
-    providerMockName: "Fournisseur simulé déterministe",
-    providerMockDescription:
-      "Génère des événements de présence répétables pour les vérifications sans matériel.",
-    providerGenericName: "Adaptateur générique",
-    providerGenericDescription:
-      "Réservé à un adaptateur constructeur fourni avec le déploiement.",
-    providerAdmsName: "ZKTeco ADMS",
-    providerAdmsDescription:
-      "Récepteur entrant du protocole ZKTeco ADMS uniquement.",
-    providerUsbName: "Connecteur USB ZKTeco",
-    providerUsbDescription:
-      "La présence est synchronisée par le connecteur Windows VAR HR.",
-    adapterMock: "Fournisseur simulé déterministe",
-    adapterGeneric: "Adaptateur générique",
-    adapterAdms: "ZKTeco ADMS",
-    adapterUsb: "Connecteur USB ZKTeco",
   },
   de: {
     deviceMetadata: "Gerätemetadaten",
@@ -4900,51 +4122,6 @@ const part4Copy = {
     syncQueued: "Synchronisierung eingereiht",
     syncUnavailableResult: "Synchronisierung nicht verfügbar",
     syncMessage: "Nachricht",
-    importedPunches: "Importierte Buchungen",
-    importedPunchesDetail:
-      "Von diesem Gerät empfangene Rohereignisse, getrennt von der berechneten Anwesenheit.",
-    deviceUser: "Gerätebenutzer",
-    noImportedPunches: "Keine importierten Buchungen",
-    noImportedPunchesDetail:
-      "Ein echter ADMS-Upload erscheint hier, sobald das Gerät Anwesenheitsdaten sendet.",
-    registrationKeyUsbTitle: "ZKTeco-USB-Connectorschlüssel",
-    registrationKeyAdmsTitle: "ZKTeco-ADMS-Registrierungsschlüssel",
-    registrationKeyUsbNotice:
-      "Speichern Sie diesen Schlüssel jetzt. Er wird nur einmal angezeigt und vom VAR HR Windows USB Connector verwendet.",
-    registrationKeyAdmsNotice:
-      "Speichern Sie diesen Schlüssel jetzt. Er wird nur einmal angezeigt und als Comm-Schlüssel des Geräts verwendet.",
-    copy: "Kopieren",
-    done: "Fertig",
-    registrationKeyUsbInstructions:
-      "Geben Sie diesen Schlüssel zusammen mit der Geräte-ID in die Connector-Konfiguration ein. Der Connector muss auf dem mit dem LX15 verbundenen Windows-Computer laufen.",
-    registrationKeyAdmsInstructions:
-      "Konfigurieren Sie den K50 Pro für Ihren veröffentlichten HTTPS-Host mit ADMS-Pfad",
-    deviceIdentifierSerialHint:
-      "Die Geräte-ID muss der Seriennummer entsprechen.",
-    directionIn: "Eingang",
-    directionOut: "Ausgang",
-    eventTypeAttendance: "Anwesenheit",
-    processingStatusMapped: "Zugeordnet",
-    processingStatusReceived: "Empfangen",
-    processingStatusRejected: "Abgelehnt",
-    processingStatusPendingAdapter: "Adapter ausstehend",
-    processingStatusFailed: "Fehlgeschlagen",
-    providerMockName: "Deterministischer Simulationsanbieter",
-    providerMockDescription:
-      "Erzeugt wiederholbare Anwesenheitsereignisse zur Prüfung ohne Hardware.",
-    providerGenericName: "Generischer Adapter",
-    providerGenericDescription:
-      "Für einen mit der Bereitstellung gelieferten Herstelleradapter reserviert.",
-    providerAdmsName: "ZKTeco ADMS",
-    providerAdmsDescription:
-      "Nur eingehender Empfänger für das ZKTeco-ADMS-Protokoll.",
-    providerUsbName: "ZKTeco-USB-Connector",
-    providerUsbDescription:
-      "Die Anwesenheit wird durch den VAR HR Windows USB Connector synchronisiert.",
-    adapterMock: "Deterministischer Simulationsanbieter",
-    adapterGeneric: "Generischer Adapter",
-    adapterAdms: "ZKTeco ADMS",
-    adapterUsb: "ZKTeco-USB-Connector",
   },
 } as const;
 
@@ -4987,7 +4164,6 @@ const reportCopy = {
       "Try a wider reporting window or remove one of the filters.",
     records: "records",
     workedHours: "Worked hours",
-    basicWorkingHours: "Basic working hours",
     presentDays: "Present days",
     lateDays: "Late days",
     absentDays: "Absent days",
@@ -5036,7 +4212,6 @@ const reportCopy = {
     checkOut: "Check out",
     overtimeHours: "Overtime hours",
     overtimeAmount: "Overtime amount",
-    overtimePayableAmount: "Payable overtime amount",
     payrollStatus: "Payroll status",
     period: "Period",
     salary: "Salary",
@@ -5045,22 +4220,18 @@ const reportCopy = {
     earlyCheckoutMinutes: "Early checkout minutes",
     attendanceMovementTitle: "Employee movement record",
     attendanceMovementDetail:
-      "Detailed attendance, fingerprint, deductions, and overtime records for a selected date range.",
+      "Full monthly attendance, fingerprint, deductions, and overtime details.",
     showAttendanceMovement: "View movement record",
     hideAttendanceMovement: "Hide movement record",
     backToEmployeeProfile: "Back to employee profile",
     printAttendanceMovement: "Print movement record",
     attendanceMonth: "Month",
-    attendanceFromDate: "From date",
-    attendanceToDate: "To date",
-    attendanceDateRange: "Date range",
-    payrollThroughDate: "Calculate through",
     scheduledEnd: "Scheduled end",
     deductedMinutes: "Deducted minutes",
     doublePay: "2× pay",
     multiplier: "Multiplier",
     fingerprintSource: "Fingerprint / source",
-    noAttendanceMovement: "No movement records for this date range",
+    noAttendanceMovement: "No movement records for this month",
     yes: "Yes",
     no: "No",
     company: "Company",
@@ -5095,7 +4266,6 @@ const reportCopy = {
     noReportRowsDetail: "جرّب نطاقاً أوسع أو أزل أحد الفلاتر.",
     records: "سجلات",
     workedHours: "ساعات العمل",
-    basicWorkingHours: "ساعات العمل الأساسية",
     presentDays: "أيام الحضور",
     lateDays: "أيام التأخر",
     absentDays: "أيام الغياب",
@@ -5143,7 +4313,6 @@ const reportCopy = {
     checkOut: "الخروج",
     overtimeHours: "ساعات إضافية",
     overtimeAmount: "قيمة إضافية",
-    overtimePayableAmount: "قيمة الإضافي المستحقة",
     payrollStatus: "حالة الرواتب",
     period: "الفترة",
     salary: "الراتب",
@@ -5153,22 +4322,18 @@ const reportCopy = {
     minutes: "دقيقة",
     attendanceMovementTitle: "سجل حركة الموظف",
     attendanceMovementDetail:
-      "سجل مفصل للحضور والبصمة والخصومات والعمل الإضافي خلال فترة تاريخية محددة.",
+      "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
     showAttendanceMovement: "عرض سجل الحركة",
     hideAttendanceMovement: "إخفاء سجل الحركة",
     backToEmployeeProfile: "العودة إلى ملف الموظف",
     printAttendanceMovement: "طباعة سجل الحركة",
     attendanceMonth: "الشهر",
-    attendanceFromDate: "من تاريخ",
-    attendanceToDate: "إلى تاريخ",
-    attendanceDateRange: "نطاق التاريخ",
-    payrollThroughDate: "احتساب حتى تاريخ",
     scheduledEnd: "نهاية الدوام المجدولة",
     deductedMinutes: "دقائق الخصم",
     doublePay: "مضاعف ٢×",
     multiplier: "المضاعف",
     fingerprintSource: "البصمة / المصدر",
-    noAttendanceMovement: "لا توجد حركة مسجلة خلال نطاق التاريخ المحدد",
+    noAttendanceMovement: "لا توجد حركة مسجلة لهذا الشهر",
     yes: "نعم",
     no: "لا",
     company: "الشركة",
@@ -5203,7 +4368,6 @@ const reportCopy = {
     noReportRowsDetail: "Élargissez la période ou retirez un filtre.",
     records: "enregistrements",
     workedHours: "Heures travaillées",
-    basicWorkingHours: "Heures de travail de base",
     presentDays: "Jours présents",
     lateDays: "Jours en retard",
     absentDays: "Jours absents",
@@ -5263,22 +4427,18 @@ const reportCopy = {
     minutes: "minutes",
     attendanceMovementTitle: "Registre de mouvement de l’employé",
     attendanceMovementDetail:
-      "Présence, empreinte, retenues et heures supplémentaires pour une période sélectionnée.",
+      "Présence mensuelle complète, empreinte, retenues et heures supplémentaires.",
     showAttendanceMovement: "Voir le registre de mouvement",
     hideAttendanceMovement: "Masquer le registre de mouvement",
     backToEmployeeProfile: "Retour au profil de l’employé",
     printAttendanceMovement: "Imprimer le registre de mouvement",
     attendanceMonth: "Mois",
-    attendanceFromDate: "Du",
-    attendanceToDate: "Au",
-    attendanceDateRange: "Période",
-    payrollThroughDate: "Calculer jusqu'au",
     scheduledEnd: "Fin planifiée",
     deductedMinutes: "Minutes déduites",
     doublePay: "Paie 2×",
     multiplier: "Multiplicateur",
     fingerprintSource: "Empreinte / source",
-    noAttendanceMovement: "Aucun mouvement pour cette période",
+    noAttendanceMovement: "Aucun mouvement pour ce mois",
     yes: "Oui",
     no: "Non",
     company: "Entreprise",
@@ -5314,7 +4474,6 @@ const reportCopy = {
       "Erweitern Sie den Zeitraum oder entfernen Sie einen Filter.",
     records: "Datensätze",
     workedHours: "Arbeitsstunden",
-    basicWorkingHours: "Grundarbeitszeit",
     presentDays: "Anwesenheitstage",
     lateDays: "Verspätete Tage",
     absentDays: "Abwesende Tage",
@@ -5373,22 +4532,18 @@ const reportCopy = {
     minutes: "Minuten",
     attendanceMovementTitle: "Mitarbeiter-Bewegungsprotokoll",
     attendanceMovementDetail:
-      "Detaillierte Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht für einen ausgewählten Zeitraum.",
+      "Vollständige monatliche Anwesenheits-, Fingerabdruck-, Abzugs- und Überstundenübersicht.",
     showAttendanceMovement: "Bewegungsprotokoll anzeigen",
     hideAttendanceMovement: "Bewegungsprotokoll ausblenden",
     backToEmployeeProfile: "Zurück zum Mitarbeiterprofil",
     printAttendanceMovement: "Bewegungsprotokoll drucken",
     attendanceMonth: "Monat",
-    attendanceFromDate: "Von",
-    attendanceToDate: "Bis",
-    attendanceDateRange: "Zeitraum",
-    payrollThroughDate: "Berechnen bis",
     scheduledEnd: "Geplantes Ende",
     deductedMinutes: "Abgezogene Minuten",
     doublePay: "2×-Vergütung",
     multiplier: "Multiplikator",
     fingerprintSource: "Fingerabdruck / Quelle",
-    noAttendanceMovement: "Keine Bewegungsdaten für diesen Zeitraum",
+    noAttendanceMovement: "Keine Bewegungsdaten für diesen Monat",
     yes: "Ja",
     no: "Nein",
     company: "Unternehmen",
@@ -5449,6 +4604,10 @@ const task5Copy = {
     editSchedule: "Edit shift",
     scheduleName: "Shift name",
     scheduleNameAr: "Arabic name",
+    shiftType: "Schedule type",
+    fixedShift: "Fixed hours",
+    flexibleShift: "Flexible hours",
+    flexibleShiftHelp: "No fixed arrival or departure time. Attendance is evaluated by required daily hours.",
     workingDays: "Working days",
     startTime: "Start time",
     endTime: "End time",
@@ -5463,7 +4622,7 @@ const task5Copy = {
     bulkAssignment: "Bulk assign shifts",
     selectEmployees: "Select employees",
     bulkAssigned: "Employees assigned",
-    overtimeAfterMinutes: "Minimum overtime qualification (minutes)",
+    overtimeAfterMinutes: "Overtime after (minutes)",
     overtimeEligible: "Overtime eligible",
     activeSchedule: "Active shift",
     daySun: "Sun",
@@ -5502,8 +4661,6 @@ const task5Copy = {
     shiftOrganization: "Shift organization",
     shiftOrganizationDetail:
       "Create and manage reusable shifts, working days, breaks, grace periods, overtime, and the company default shift.",
-    scheduleListTitle: "Shift list",
-    scheduleListDetail: "Select a shift to edit it or set it as the company default.",
     employeeShiftAssignment: "Employee shift assignment",
     employeeShiftAssignmentDetail:
       "Assign shifts to employees, set effective dates, bulk assign, and review assignment history.",
@@ -5557,7 +4714,6 @@ const task5Copy = {
     attendanceSync: "Attendance sync",
     fullSync: "Full sync",
     sync: "Sync",
-    requestAttendanceHistory: "Load full attendance history",
     syncEmployees: "Sync employees",
     syncAttendance: "Sync attendance",
     syncing: "Syncing…",
@@ -5579,6 +4735,10 @@ const task5Copy = {
     editSchedule: "تعديل الشيفت",
     scheduleName: "اسم الشيفت",
     scheduleNameAr: "الاسم بالعربية",
+    shiftType: "نوع الدوام",
+    fixedShift: "دوام ثابت",
+    flexibleShift: "دوام مرن",
+    flexibleShiftHelp: "لا يوجد وقت حضور أو انصراف ثابت؛ يتم تقييم الحضور حسب عدد ساعات العمل المطلوبة يومياً.",
     workingDays: "أيام العمل",
     startTime: "وقت البدء",
     endTime: "وقت الانتهاء",
@@ -5593,7 +4753,7 @@ const task5Copy = {
     bulkAssignment: "تعيين جماعي",
     selectEmployees: "اختر الموظفين",
     bulkAssigned: "تم تعيين الموظفين",
-    overtimeAfterMinutes: "الحد الأدنى للتأهل للإضافي (بالدقائق)",
+    overtimeAfterMinutes: "العمل الإضافي بعد (دقائق)",
     overtimeEligible: "مؤهل للعمل الإضافي",
     activeSchedule: "شيفت نشط",
     daySun: "الأحد",
@@ -5629,8 +4789,6 @@ const task5Copy = {
     shiftOrganization: "تنظيم الشيفتات",
     shiftOrganizationDetail:
       "أنشئ وأدر الشيفتات ومواعيدها والاستراحات وفترات السماح والإضافي والشيفت الافتراضي للشركة.",
-    scheduleListTitle: "قائمة الشيفتات",
-    scheduleListDetail: "اختر شيفتًا لتعديله أو تعيينه افتراضيًا.",
     employeeShiftAssignment: "ربط الموظفين بالشيفتات",
     employeeShiftAssignmentDetail:
       "اربط الشيفتات بالموظفين وحدد تواريخ السريان والربط الجماعي وراجع سجل التعيينات.",
@@ -5681,7 +4839,6 @@ const task5Copy = {
     attendanceSync: "مزامنة الحضور",
     fullSync: "مزامنة كاملة",
     sync: "مزامنة",
-    requestAttendanceHistory: "تحميل سجل الحركة بالكامل",
     syncEmployees: "مزامنة الموظفين",
     syncAttendance: "مزامنة الحضور",
     syncing: "جارٍ المزامنة…",
@@ -5921,7 +5078,6 @@ function date(value?: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    timeZone: document.documentElement.dataset.timezone || "Africa/Cairo",
   }).format(new Date(value));
 }
 function time(value?: string | null) {
@@ -5929,7 +5085,6 @@ function time(value?: string | null) {
   return new Intl.DateTimeFormat(activeIntlLocale(), {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: document.documentElement.dataset.timezone || "Africa/Cairo",
   }).format(new Date(value));
 }
 function periodLabel(value?: string) {
@@ -5999,7 +5154,7 @@ function Button({
   className = "",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "quiet" | "outline" | "danger";
+  variant?: "primary" | "quiet" | "outline" | "danger";
 }) {
   return (
     <button
@@ -6008,8 +5163,6 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all duration-200 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" &&
           "bg-primary text-primary-foreground hover:brightness-110",
-        variant === "secondary" &&
-          "bg-secondary text-secondary-foreground hover:opacity-90",
         variant === "quiet" &&
           "text-muted-foreground hover:bg-muted hover:text-foreground",
         variant === "outline" &&
@@ -6276,13 +5429,6 @@ function requestTypeLabel(value: string, t: (key: AppCopyKey) => string) {
   return key[value] ? t(key[value]) : value;
 }
 
-function requestFormTypeLabel(value: string, t: (key: AppCopyKey) => string) {
-  if (["annual", "annual leave"].includes(value.trim().toLowerCase())) {
-    return t("requestAnnualLeaveOption");
-  }
-  return requestTypeLabel(value, t);
-}
-
 function localizedValue(
   value: string | undefined,
   keys: Record<string, AppCopyKey>,
@@ -6291,64 +5437,17 @@ function localizedValue(
   return value && keys[value] ? t(keys[value]) : value || "—";
 }
 
-function localizedName(
-  locale: Locale,
-  arabic: string | undefined | null,
-  english: string | undefined | null,
-) {
-  return (locale === "ar" ? arabic : english || arabic) || "—";
-}
-
-function employeeDisplayName(
-  locale: Locale,
-  employee: {
-    firstName: string;
-    lastName: string;
-    firstNameEn?: string;
-    lastNameEn?: string;
-  },
-) {
-  const firstName =
-    locale === "ar" ? employee.firstName : employee.firstNameEn || employee.firstName;
-  const lastName =
-    locale === "ar" ? employee.lastName : employee.lastNameEn || employee.lastName;
-  return [firstName, lastName]
-    .filter(Boolean)
-    .filter((value, index, values) => index === 0 || value !== values[index - 1])
-    .join(" ");
-}
-
-function splitEmployeeFullName(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) {
-    return { firstName: "", lastName: "" };
-  }
-  return {
-    firstName: parts[0],
-    lastName: parts.slice(1).join(" ") || parts[0],
-  };
-}
-
-function accountDisplayName(locale: Locale, account: { fullName: string; fullNameEn?: string }) {
-  return localizedName(locale, account.fullName, account.fullNameEn);
-}
-
 function departmentLabel(
   value: string | undefined,
   _t: (key: AppCopyKey) => string,
-  locale?: Locale,
-  english?: string,
 ) {
-  return locale ? localizedName(locale, value, english) : value || "—";
+  return value || "—";
 }
 
 function branchLabel(
   value: string | undefined,
   t: (key: AppCopyKey) => string,
-  locale?: Locale,
-  english?: string,
 ) {
-  if (locale) return localizedName(locale, value, english);
   return localizedValue(
     value,
     {
@@ -6657,10 +5756,7 @@ function permissionLabel(
     "employees.manage": "إدارة الموظفين",
     "employees.credentials": "بيانات اعتماد الموظفين",
     "attendance.view": "عرض الحضور",
-    "attendance.punch": "إضافة بصمة حضور يدوية",
     "attendance.correct": "تصحيح الحضور",
-    "attendance.location.approve": "اعتماد بصمات الموقع",
-    "attendance.absence_leave": "تحويل الغياب إلى إجازة سنوية",
     "leave.approve": "اعتماد الإجازات",
     "leave.create": "إنشاء طلبات الإجازات",
     "permissions.create": "إنشاء طلبات الأذونات",
@@ -6713,10 +5809,7 @@ function permissionDescription(
     "employees.manage": "إضافة الموظفين وتعديلهم وإدارتهم.",
     "employees.credentials": "إدارة بيانات اعتماد الموظفين.",
     "attendance.view": "عرض سجلات الحضور والانصراف.",
-    "attendance.punch": "إضافة حركة حضور أو انصراف يدوية بعد المراجعة.",
     "attendance.correct": "تصحيح سجلات الحضور.",
-    "attendance.location.approve": "اعتماد أو رفض بصمات الموقع للموظفين المحددين.",
-    "attendance.absence_leave": "تحويل يوم الغياب إلى إجازة سنوية معتمدة وتحديث الراتب.",
     "leave.create": "إرسال طلبات الإجازات.",
     "leave.approve": "اعتماد طلبات الإجازات.",
     "permissions.create": "إرسال طلبات الأذونات.",
@@ -6866,62 +5959,20 @@ function BrandLogo({
   className?: string;
   alt?: string;
 }) {
-  const branding = useSiteBranding();
   const source =
     sourceOverride ||
-    siteLogoSource(branding.logoVariant, variant);
+    (variant === "square"
+      ? squareLogo
+      : variant === "short"
+        ? shortLogo
+        : horizontalLogo);
   return (
     <img
       src={source}
-      alt={alt || branding.siteName}
+      alt={alt || "VAR HR"}
       className={`block h-auto max-w-full object-contain ${className}`}
     />
   );
-}
-
-function siteLogoSource(
-  selectedVariant: SiteLogoVariant,
-  fallbackVariant: "square" | "short" | "horizontal",
-) {
-  if (selectedVariant === "square") return squareLogo;
-  if (selectedVariant === "short") return shortLogo;
-  if (selectedVariant === "arabic") return arabicLoginLogo;
-  if (fallbackVariant === "square") return squareLogo;
-  if (fallbackVariant === "short") return shortLogo;
-  return horizontalLogo;
-}
-
-async function renderPwaIcon(file: File, size: number): Promise<Blob> {
-  const image = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const context = canvas.getContext("2d");
-  if (!context) {
-    image.close();
-    throw new Error("Could not prepare the icon image.");
-  }
-
-  const fitScale = (size * 0.8) / Math.max(image.width, image.height);
-  const width = Math.max(1, Math.round(image.width * fitScale));
-  const height = Math.max(1, Math.round(image.height * fitScale));
-  context.clearRect(0, 0, size, size);
-  context.drawImage(
-    image,
-    Math.round((size - width) / 2),
-    Math.round((size - height) / 2),
-    width,
-    height,
-  );
-  image.close();
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) =>
-        blob ? resolve(blob) : reject(new Error("Could not encode the icon image.")),
-      "image/png",
-    );
-  });
 }
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -6931,13 +5982,7 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "content-type": "application/json", ...(init?.headers || {}) },
   });
   const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    const error = new Error(data?.error || "Request failed.") as Error & {
-      status?: number;
-    };
-    error.status = response.status;
-    throw error;
-  }
+  if (!response.ok) throw new Error(data?.error || "Request failed.");
   return data as T;
 }
 
@@ -7413,12 +6458,12 @@ function Login({
   setupAvailable: boolean;
 }) {
   const { locale, setLocale } = useI18n();
-  const branding = useSiteBranding();
+  const loginLogo = locale === "ar" ? arabicLoginLogo : horizontalLogo;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
     setPending(true);
@@ -7442,17 +6487,14 @@ function Login({
     >
       <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-5xl items-center gap-8 lg:min-h-[calc(100dvh-4rem)] lg:gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
-          <Link
-            href="/"
-            aria-label={locale === "ar" ? "الصفحة الرئيسية" : "Home"}
-            className="block w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-          >
+          <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
             <BrandLogo
               variant="horizontal"
+              source={loginLogo}
               className="w-full"
               alt={authLabel(locale, "brandName")}
             />
-          </Link>
+          </div>
           <div className="mt-12 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
               {authLabel(locale, "brandHeading")}
@@ -7467,17 +6509,14 @@ function Login({
             className="flex flex-row items-center justify-between"
             dir={locale === "ar" ? "rtl" : "ltr"}
           >
-            <Link
-              href="/"
-              aria-label={locale === "ar" ? "الصفحة الرئيسية" : "Home"}
-              className="block lg:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-            >
+            <div className="lg:hidden">
               <BrandLogo
                 variant="horizontal"
+                source={loginLogo}
                 className="w-[168px]"
                 alt={authLabel(locale, "brandName")}
               />
-            </Link>
+            </div>
             <button
               type="button"
               className="ms-auto shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
@@ -7493,7 +6532,7 @@ function Login({
               {authLabel(locale, "secureAccess")}
             </p>
             <h2 className="mt-2 font-display text-3xl font-semibold text-foreground">
-              {authLabel(locale, "title").replace("VAR HR", branding.siteName)}
+              {authLabel(locale, "title")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {authLabel(locale, "detail")}
@@ -7566,7 +6605,6 @@ function Login({
 
 function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
   const { locale } = useI18n();
-  const branding = useSiteBranding();
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -7578,7 +6616,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
     ? {
         eyebrow: "إعداد أولي آمن",
         title: "إنشاء حساب المؤسس",
-         detail: `أنشئ أول حساب مالك للمنصة لبدء استخدام ${branding.siteName}.`,
+        detail: "أنشئ أول حساب مالك للمنصة لبدء استخدام VAR HR.",
         fullName: "الاسم الكامل",
         username: "اسم المستخدم",
         password: "كلمة المرور",
@@ -7593,7 +6631,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
         eyebrow: "Secure first-time setup",
         title: "Create the initial Founder",
         detail:
-           `Create the first Platform Owner account to start using ${branding.siteName}.`,
+          "Create the first Platform Owner account to start using VAR HR.",
         fullName: "Founder full name",
         username: "Username",
         password: "Password",
@@ -7604,24 +6642,14 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
         tooShort: "Password must be at least 6 characters.",
         failed: "Could not create the account. Please try again.",
       };
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    // Read the submitted DOM values as the source of truth. Password managers
-    // and browser autofill can update an input without triggering React's
-    // change handler, which otherwise leaves the two controlled states stale.
-    const formData = new FormData(event.currentTarget);
-    const submittedPassword = String(
-      formData.get("founderPassword") ?? password,
-    );
-    const submittedConfirmPassword = String(
-      formData.get("founderPasswordConfirmation") ?? confirmPassword,
-    );
-    if (submittedPassword.length < 6) {
+    if (password.length < 6) {
       setError(copy.tooShort);
       return;
     }
-    if (submittedPassword !== submittedConfirmPassword) {
+    if (password !== confirmPassword) {
       setError(copy.mismatch);
       return;
     }
@@ -7629,11 +6657,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
     try {
       await authRequest("/api/auth/provision/platform-owner", {
         method: "POST",
-        body: JSON.stringify({
-          fullName,
-          username,
-          password: submittedPassword,
-        }),
+        body: JSON.stringify({ fullName, username, password }),
       });
       onComplete();
     } catch (cause) {
@@ -7677,7 +6701,6 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
               autoComplete="username"
             />
             <Field
-              name="founderPassword"
               label={copy.password}
               value={password}
               onChange={setPassword}
@@ -7690,7 +6713,6 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
               hidePasswordLabel={authLabel(locale, "hidePassword")}
             />
             <Field
-              name="founderPasswordConfirmation"
               label={copy.confirmPassword}
               value={confirmPassword}
               onChange={setConfirmPassword}
@@ -7729,12 +6751,7 @@ function AuthGate() {
   const [account, setAccount] = useState<AuthAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupAvailable, setSetupAvailable] = useState(false);
-  const [authError, setAuthError] = useState(false);
-  const [authCheckKey, setAuthCheckKey] = useState(0);
   const [location, setLocation] = useLocation();
-  const { locale, setLocale } = useI18n();
-  const branding = useSiteBranding();
-  const landingLocale = locale === "ar" ? "ar" : "en";
   const signOut = async () => {
     await authRequest("/api/auth/logout", { method: "POST" }).catch(
       () => undefined,
@@ -7744,94 +6761,26 @@ function AuthGate() {
     setLocation("/login");
   };
   useEffect(() => {
-    const isPublicHome = location === "/" && !account;
-    const isLogin = location === "/login";
-    const title =
-      isPublicHome
-        ? locale === "ar"
-          ? `${branding.siteName} | الموارد البشرية والحضور والرواتب`
-          : `${branding.siteName} | HR, attendance and payroll`
-        : isLogin
-          ? locale === "ar"
-            ? `تسجيل الدخول | ${branding.siteName}`
-            : `Sign in | ${branding.siteName}`
-          : branding.siteName;
-    const description = isPublicHome
-      ? locale === "ar"
-        ? "أدر سجلات الموظفين والحضور والرواتب والجداول وطلبات الموظفين من منصة واحدة واضحة للموارد البشرية."
-        : "Manage employee records, attendance, payroll, schedules, and employee requests in one clear HR operations platform."
-      : isLogin
-        ? locale === "ar"
-          ? `سجّل الدخول إلى مساحة عمل ${branding.siteName} الآمنة.`
-          : `Sign in to your secure ${branding.siteName} workspace.`
-        : branding.siteName;
-    document.title = title;
-    const setMetaContent = (
-      selector: string,
-      attribute: "name" | "property",
-      key: string,
-      content: string,
-    ) => {
-      let meta = document.head.querySelector<HTMLMetaElement>(selector);
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.setAttribute(attribute, key);
-        document.head.appendChild(meta);
-      }
-      meta.content = content;
-    };
-    setMetaContent('meta[name="description"]', "name", "description", description);
-    setMetaContent('meta[property="og:title"]', "property", "og:title", title);
-    setMetaContent(
-      'meta[property="og:description"]',
-      "property",
-      "og:description",
-      description,
-    );
-    setMetaContent('meta[name="twitter:title"]', "name", "twitter:title", title);
-    setMetaContent(
-      'meta[name="twitter:description"]',
-      "name",
-      "twitter:description",
-      description,
-    );
-  }, [account, branding.siteName, location, locale]);
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setAuthError(false);
-    void Promise.allSettled([
+    void Promise.all([
       authRequest<{ user: AuthAccount }>("/api/auth/me"),
       authRequest<{ setupAvailable: boolean }>(
         "/api/auth/provision/platform-owner/status",
       ),
-    ]).then(([sessionResult, setupResult]) => {
-      if (cancelled) return;
-      if (sessionResult.status === "fulfilled") {
-        setAccount(sessionResult.value.user);
-      } else {
-        const status = (sessionResult.reason as { status?: number })?.status;
+    ])
+      .then(([session, setup]) => {
+        setAccount(session.user);
+        setSetupAvailable(setup.setupAvailable);
+      })
+      .catch(async () => {
         setAccount(null);
-        if (status !== 401) setAuthError(true);
-      }
-      if (setupResult.status === "fulfilled") {
-        setSetupAvailable(setupResult.value.setupAvailable);
-      } else {
-        setSetupAvailable(false);
-        setAuthError(true);
-      }
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [authCheckKey]);
-  useEffect(() => {
-    if (loading || account || !setupAvailable) return;
-    if (location === "/" || location === "/login") {
-      setLocation("/setup");
-    }
-  }, [account, loading, location, setLocation, setupAvailable]);
+        await authRequest<{ setupAvailable: boolean }>(
+          "/api/auth/provision/platform-owner/status",
+        )
+          .then((setup) => setSetupAvailable(setup.setupAvailable))
+          .catch(() => setSetupAvailable(false));
+      })
+      .finally(() => setLoading(false));
+  }, []);
   useEffect(() => {
     if (!account) return;
     if (location === "/login") {
@@ -7841,33 +6790,9 @@ function AuthGate() {
     }
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
-  if (authError && location !== "/")
-    return (
-      <WorkspaceState
-        kind="error"
-        retry={() => setAuthCheckKey((current) => current + 1)}
-      />
-    );
   if (!account)
     if (setupAvailable && location === "/setup")
-      return (
-        <InitialFounderSetup
-          onComplete={() => {
-            setSetupAvailable(false);
-            setLocation("/login");
-          }}
-        />
-      );
-  if (!account && location === "/")
-    return (
-      <PublicLanding
-        locale={landingLocale}
-        onLocaleChange={(nextLocale) => setLocale(nextLocale)}
-        siteName={branding.siteName}
-        logoSrc={siteLogoSource(branding.logoVariant, "horizontal")}
-        socialLinks={branding.socialLinks}
-      />
-    );
+      return <InitialFounderSetup onComplete={() => setLocation("/login")} />;
   if (!account)
     return (
       <Login
@@ -7933,93 +6858,25 @@ function WorkspaceState({
   );
 }
 
-import {
-  clearPwaInstallPrompt,
-  getPwaInstallPrompt,
-  initializePwaInstall,
-  subscribeToPwaInstall,
-  type PwaInstallPromptEvent,
-} from "@/lib/pwa-install";
-
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] =
-    useState<PwaInstallPromptEvent | null>(() => getPwaInstallPrompt());
-  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
-  const [isIosDevice, setIsIosDevice] = useState(false);
   const pointerStart = useRef<{ id: number; x: number } | null>(null);
   const { locale, setLocale, t } = useI18n();
   const auth = useAuth();
-  const branding = useSiteBranding();
   const isArabic = locale === "ar";
   const isMobile = useIsMobile();
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    initializePwaInstall();
-    const unsubscribeFromPwaInstall = subscribeToPwaInstall(() => {
-      setInstallPrompt(getPwaInstallPrompt());
-    });
-    const displayMode = window.matchMedia("(display-mode: standalone)");
-    const updateInstalledState = () => {
-      const standaloneNavigator = (
-        window.navigator as Navigator & { standalone?: boolean }
-      ).standalone;
-      setIsPwaInstalled(displayMode.matches || standaloneNavigator === true);
-    };
-    const ios =
-      /iphone|ipad|ipod/i.test(window.navigator.userAgent) ||
-      (window.navigator.platform === "MacIntel" &&
-        window.navigator.maxTouchPoints > 1);
-    const handleAppInstalled = () => {
-      clearPwaInstallPrompt();
-      setIsPwaInstalled(true);
-    };
-
-    setIsIosDevice(ios);
-    updateInstalledState();
-    window.addEventListener("appinstalled", handleAppInstalled);
-    displayMode.addEventListener?.("change", updateInstalledState);
-
-    return () => {
-      unsubscribeFromPwaInstall();
-      window.removeEventListener("appinstalled", handleAppInstalled);
-      displayMode.removeEventListener?.("change", updateInstalledState);
-    };
-  }, []);
   const workspaceQuery = useGetWorkspace();
-  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const summaryQuery = useGetDashboardSummary({
     query: {
       queryKey: getGetDashboardSummaryQueryKey(),
       enabled: Boolean(workspaceQuery.data),
-      refetchInterval: 30_000,
-      refetchIntervalInBackground: false,
-    },
-  });
-  const attendancePunchReviews = useListAttendancePunchRequests({
-    query: {
-      queryKey: getListAttendancePunchRequestsQueryKey(),
-      enabled: Boolean(
-        workspaceQuery.data?.capabilities?.includes(
-          "attendance.location.approve",
-        ),
-      ),
-      refetchInterval: 30_000,
-      refetchIntervalInBackground: false,
     },
   });
   const workspaceStatus = queryStatus(workspaceQuery.error);
   useEffect(() => {
     if (workspaceStatus === 401) void auth.signOut();
   }, [auth.signOut, workspaceStatus]);
-  useEffect(() => {
-    const timeZone = workspaceQuery.data?.company?.timezone;
-    if (timeZone) {
-      document.documentElement.dataset.timezone = timeZone;
-    }
-  }, [workspaceQuery.data?.company?.timezone]);
   useEffect(() => {
     setOpen(false);
   }, [location]);
@@ -8095,12 +6952,7 @@ function Shell({ children }: { children: ReactNode }) {
       : secondaryNav.filter(canSee);
   const mobileNavPool = isPlatformOwner ? visibleNav : nav.filter(canSee);
   const mobilePrimaryKeys = isPlatformOwner
-    ? ([
-        "platformOwner",
-        "databaseAdministration",
-        "siteBranding",
-        "accountSettings",
-      ] as const)
+    ? (["platformOwner", "databaseAdministration", "accountSettings"] as const)
     : (["overview", "attendance", "requests", "hrProfile"] as const);
   const mobilePrimaryNav = mobilePrimaryKeys
     .map((key) => mobileNavPool.find((item) => item.key === key))
@@ -8108,27 +6960,6 @@ function Shell({ children }: { children: ReactNode }) {
   const pendingRequests =
     (summaryQuery.data?.requests.pendingLeave ?? 0) +
     (summaryQuery.data?.requests.pendingPermissions ?? 0);
-  const pendingAttendanceReviews = attendancePunchReviews.data?.length ?? 0;
-  const canInstallPwa = !isPwaInstalled;
-  async function installPwa() {
-    if (!installPrompt) {
-      if (isIosDevice) toast.info(t("pwaIosInstallHint"));
-      else toast.info(t("pwaBrowserInstallHint"));
-      return;
-    }
-
-    try {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      clearPwaInstallPrompt();
-      if (choice.outcome === "accepted") {
-        setIsPwaInstalled(true);
-        toast.success(t("pwaInstalled"));
-      }
-    } catch {
-      toast.error(t("pwaInstallFailed"));
-    }
-  }
   const accountInitials = auth.account.fullName
     .trim()
     .split(/\s+/)
@@ -8136,8 +6967,6 @@ function Shell({ children }: { children: ReactNode }) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "V";
-  const displayAccountName =
-    accountDisplayName(locale, auth.account) || auth.account.username;
   return (
     <div
       className="app-noise min-h-[100dvh] bg-background"
@@ -8167,13 +6996,10 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="w-full max-w-[176px] overflow-hidden rounded-lg bg-white p-1.5">
               <BrandLogo variant="horizontal" className="w-full" />
             </div>
-            <p className="mt-2 truncate px-1 text-xs font-semibold text-sidebar-foreground/70">
-              {branding.siteName}
-            </p>
             <div className="mt-3 lg:hidden">
               {isPlatformOwner ? (
                 <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                  {accountDisplayName(locale, auth.account)}
+                  {auth.account.fullName}
                 </p>
               ) : (
                 <>
@@ -8181,7 +7007,7 @@ function Shell({ children }: { children: ReactNode }) {
                     {workspace.company?.name ?? ""}
                   </p>
                   <p className="mt-1 truncate text-xs text-sidebar-foreground/60">
-                    {accountDisplayName(locale, auth.account)}
+                    {auth.account.fullName}
                   </p>
                 </>
               )}
@@ -8229,19 +7055,8 @@ function Shell({ children }: { children: ReactNode }) {
                     : t(key)}
                 </span>
                 {href === "/requests" && pendingRequests > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary"
-                  >
+                  <span className="ms-auto rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-secondary">
                     {pendingRequests}
-                  </span>
-                )}
-                {href === "/attendance" && pendingAttendanceReviews > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="ms-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white"
-                  >
-                    {pendingAttendanceReviews}
                   </span>
                 )}
               </Link>
@@ -8278,7 +7093,7 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                {accountDisplayName(locale, auth.account)}
+                {auth.account.fullName}
               </p>
               <p className="mt-0.5 truncate text-[11px] text-sidebar-foreground/55">
                 {roleLabel(workspace.role, t)}
@@ -8309,7 +7124,7 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-28 grid-cols-1 grid-rows-2 items-center gap-1 border-b border-border/80 bg-background/90 px-3 py-2 backdrop-blur-md sm:h-[72px] sm:grid-cols-[minmax(0,1fr)_auto] sm:grid-rows-1 sm:px-8 sm:py-0 sm:flex sm:gap-0">
+        <header className="relative sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md sm:h-[72px] sm:px-8 sm:flex sm:gap-0">
           <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
@@ -8326,10 +7141,9 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-9 w-[clamp(44px,15vw,58px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
                 variant="short"
-                source={`${import.meta.env.BASE_URL}icons/icon-192.png`}
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
               />
               <BrandLogo
@@ -8337,17 +7151,6 @@ function Shell({ children }: { children: ReactNode }) {
                 className="hidden !h-full !w-full !max-w-none object-contain sm:block"
               />
             </span>
-            <Button
-              variant="outline"
-              className="ms-auto flex h-10 max-w-[calc(100vw-7rem)] shrink items-center justify-center rounded-xl px-3 text-xs font-semibold sm:hidden"
-              onClick={() => setLocation("/profile")}
-              aria-label={t("profileEmployee")}
-              data-testid="button-mobile-profile"
-            >
-              <span className="text-center leading-tight">
-                {displayAccountName}
-              </span>
-            </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
@@ -8356,8 +7159,8 @@ function Shell({ children }: { children: ReactNode }) {
               <span className="min-w-0 truncate">
                 {isPlatformOwner
                   ? locale === "ar"
-                    ? `${branding.siteName} · إدارة المنصة`
-                    : `${branding.siteName} · Platform administration`
+                    ? "إدارة المنصة"
+                    : "Platform administration"
                   : (workspace.company?.name ?? "")}
               </span>
               <ChevronDown
@@ -8366,34 +7169,12 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex w-full min-w-0 items-center justify-between gap-1 sm:w-auto sm:justify-end sm:flex-1 sm:gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            <div className="order-2 flex items-center gap-1 sm:contents sm:order-none">
-              <div>
-                <NotificationCenter locale={locale} />
-              </div>
-              <Button
-                variant="quiet"
-                className="inline-flex p-2 sm:order-2"
-                title={authLabel(locale, "logout")}
-                aria-label={authLabel(locale, "logout")}
-                onClick={() => void auth.signOut()}
-              >
-                <LogOut size={18} />
-              </Button>
-              <Button
-                variant="quiet"
-                className="inline-flex p-2 sm:order-3"
-                title={t("support")}
-                aria-label={t("support")}
-                data-testid="button-support"
-              >
-                <LifeBuoy size={18} />
-              </Button>
-            </div>
-            <div className="order-1 flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:order-1 sm:gap-2 sm:px-3 sm:py-2">
+            <NotificationCenter locale={locale} />
+            <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
               <select
                 aria-label={t("language")}
@@ -8409,24 +7190,40 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
+            <Button
+              variant="outline"
+              className="grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
+              onClick={() => setLocation("/profile")}
+              aria-label={t("profileEmployee")}
+              data-testid="button-mobile-profile"
+            >
+              <span className="font-display text-xs font-bold">
+                {accountInitials}
+              </span>
+            </Button>
+            <Button
+              variant="quiet"
+              className="hidden p-2 sm:inline-flex"
+              title={authLabel(locale, "logout")}
+              aria-label={authLabel(locale, "logout")}
+              onClick={() => void auth.signOut()}
+            >
+              <LogOut size={18} />
+            </Button>
+            <Button
+              variant="quiet"
+              className="hidden p-2 sm:inline-flex"
+              title={t("support")}
+              aria-label={t("support")}
+              data-testid="button-support"
+            >
+              <LifeBuoy size={18} />
+            </Button>
           </div>
         </header>
-        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-28 pt-5 sm:px-8 sm:py-9 sm:pb-24">
+        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
           {children}
         </main>
-        {canInstallPwa && (
-          <Button
-            variant="primary"
-            className="fixed bottom-24 end-4 z-40 min-h-12 rounded-full px-5 shadow-xl transition-transform hover:-translate-y-0.5 md:bottom-6 md:end-6"
-            onClick={() => void installPwa()}
-            title={t("pwaInstall")}
-            aria-label={t("pwaInstall")}
-            data-testid="button-install-pwa"
-          >
-            <Download size={17} />
-            <span>{t("pwaInstall")}</span>
-          </Button>
-        )}
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
@@ -8448,30 +7245,19 @@ function Shell({ children }: { children: ReactNode }) {
                 key={`${href}-${key}`}
                 href={href}
                 className={cn(
-                  "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight transition-colors",
+                  "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors",
                   isActive
                     ? "bg-primary/15 text-primary-dark"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
                 aria-current={isActive ? "page" : undefined}
-                aria-label={label}
-                title={label}
                 data-testid={`mobile-nav-${key}`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className="max-w-full whitespace-normal break-words text-center">
-                  {mobileNavigationLabel(locale, key, label)}
-                </span>
+                <span className="max-w-full truncate">{label}</span>
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
-                  </span>
-                ) : href === "/attendance" && pendingAttendanceReviews > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white"
-                  >
-                    {pendingAttendanceReviews}
                   </span>
                 ) : null}
               </Link>
@@ -8479,16 +7265,14 @@ function Shell({ children }: { children: ReactNode }) {
           })}
           <button
             type="button"
-            className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(true)}
             aria-controls="workspace-navigation"
             aria-expanded={open}
             data-testid="button-mobile-more"
           >
             <MoreHorizontal size={18} strokeWidth={1.8} />
-            <span className="max-w-full whitespace-normal break-words text-center">
-              {t("more")}
-            </span>
+            <span className="max-w-full truncate">{t("more")}</span>
           </button>
         </nav>
       </div>
@@ -8651,7 +7435,7 @@ function Overview() {
         </Card>
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card className="min-w-0 overflow-hidden">
+        <Card>
           <div className="flex items-center justify-between border-b border-border p-5">
             <div>
               <h2 className="font-display text-lg font-semibold">
@@ -8728,7 +7512,7 @@ function Overview() {
                     <BriefcaseBusiness size={15} />
                   </div>
                   <span className="text-sm font-semibold">
-                    {departmentLabel(item.name, t, locale, item.nameEn)}
+                    {departmentLabel(item.name, t)}
                   </span>
                 </div>
                 <span className="font-mono text-xs text-muted-foreground">
@@ -8773,7 +7557,6 @@ const importHeaderAliases: Record<string, string> = {
   phone: "phone",
   departmentid: "departmentId",
   branchid: "branchId",
-  workdayspermonth: "workDaysPerMonth",
   status: "status",
   role: "role",
   joinedon: "joinedOn",
@@ -8788,7 +7571,6 @@ const importRequiredHeaders = [
   "branchId",
   "joinedOn",
   "salary",
-  "workDaysPerMonth",
 ];
 
 function parseDelimitedText(text: string) {
@@ -8879,8 +7661,6 @@ function makeImportDraft(
       const branchId = values[headers[canonicalHeaders.indexOf("branchId")]];
       const joinedOn = values[headers[canonicalHeaders.indexOf("joinedOn")]];
       const salary = values[headers[canonicalHeaders.indexOf("salary")]];
-      const workDaysPerMonth =
-        values[headers[canonicalHeaders.indexOf("workDaysPerMonth")]];
       const employeeNumberIndex = canonicalHeaders.indexOf("employeeNumber");
       const statusIndex = canonicalHeaders.indexOf("status");
       const roleIndex = canonicalHeaders.indexOf("role");
@@ -8904,9 +7684,6 @@ function makeImportDraft(
         Number.isNaN(Date.parse(`${joinedOn}T00:00:00Z`)) ||
         Number.isNaN(Number(salary)) ||
         Number(salary) < 0 ||
-        !Number.isInteger(Number(workDaysPerMonth)) ||
-        Number(workDaysPerMonth) < 1 ||
-        Number(workDaysPerMonth) > 31 ||
         !["active", "inactive"].includes(status) ||
         !["employee", "manager"].includes(role)
       ) {
@@ -8951,16 +7728,11 @@ const emptyHrRecordForm: HrRecordForm = {
 function EmployeeHrPanel({
   employeeId,
   canEdit,
-  standalone = false,
 }: {
   employeeId: string;
   canEdit: boolean;
-  standalone?: boolean;
 }) {
-  const { t, locale } = useI18n();
-  const wrapperClass = standalone
-    ? "space-y-4"
-    : "mt-7 border-t border-border pt-6";
+  const { t } = useI18n();
   const qc = useQueryClient();
   const hr = useGetEmployeeHrRecord(employeeId, {
     query: {
@@ -8992,7 +7764,7 @@ function EmployeeHrPanel({
   if (!employeeId) return null;
   if (hr.isLoading)
     return (
-      <div className={wrapperClass}>
+      <div className="mt-7 border-t border-border pt-6">
         <Skeleton className="h-40" />
       </div>
     );
@@ -9000,14 +7772,14 @@ function EmployeeHrPanel({
   const status = queryStatus(hr.error);
   if (hr.isError && status === 403) {
     return (
-      <div className={wrapperClass}>
+      <div className="mt-7 border-t border-border pt-6">
         <Empty title={t("hrRecordUnauthorized")} detail={t("ownProfileOnly")} />
       </div>
     );
   }
   if (hr.isError && status !== 404) {
     return (
-      <div className={wrapperClass}>
+      <div className="mt-7 border-t border-border pt-6">
         <Empty
           title={t("hrRecordLoadFailed")}
           detail={t("checkWorkspace")}
@@ -9022,7 +7794,7 @@ function EmployeeHrPanel({
   }
   if (hr.isError && !canEdit) {
     return (
-      <div className={wrapperClass}>
+      <div className="mt-7 border-t border-border pt-6">
         <Empty title={t("hrRecordNotFound")} detail={t("hrProfileDetail")} />
       </div>
     );
@@ -9070,8 +7842,8 @@ function EmployeeHrPanel({
     (item: any) => item.id === form.managerId,
   );
   return (
-    <div className={wrapperClass}>
-      <div className={standalone ? "mb-0" : "mb-4"}>
+    <div className="mt-7 border-t border-border pt-6">
+      <div className="mb-4">
         <h3 className="font-display text-lg font-semibold">{t("hrRecord")}</h3>
         {!hr.data && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -9105,7 +7877,7 @@ function EmployeeHrPanel({
               <option value="">{t("notAvailable")}</option>
               {managerOptions.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {employeeDisplayName(locale, item)}
+                  {item.firstName} {item.lastName}
                 </option>
               ))}
             </select>
@@ -9161,7 +7933,7 @@ function EmployeeHrPanel({
             label={t("manager")}
             value={
               selectedManager
-                ? employeeDisplayName(locale, selectedManager)
+                ? `${selectedManager.firstName} ${selectedManager.lastName}`
                 : t("notAvailable")
             }
           />
@@ -9186,177 +7958,12 @@ function EmployeeHrPanel({
   );
 }
 
-function WorkLocationChangeButton({
-  employeeId,
-}: {
-  employeeId: string;
-}) {
-  const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const createLocation = useCreateEmployeeWorkLocation();
-  const [saving, setSaving] = useState(false);
-
-  async function recordLocation() {
-    if (saving) return;
-    if (!navigator.geolocation) {
-      toast.error(t("workLocationGpsRequired"));
-      return;
-    }
-
-    setSaving(true);
-    let position: GeolocationPosition;
-    try {
-      position = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        }),
-      );
-    } catch {
-      toast.error(t("workLocationGpsRequired"));
-      setSaving(false);
-      return;
-    }
-
-    try {
-      await createLocation.mutateAsync({
-        employeeId,
-        data: {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracyMeters: position.coords.accuracy,
-          comment: t("workLocationGpsComment"),
-        },
-      });
-      await queryClient.invalidateQueries({
-        queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
-      });
-      toast.success(t("workLocationSaved"));
-    } catch (error) {
-      toast.error(apiErrorMessage(error, t("workLocationSaveFailed")));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Button
-      variant="outline"
-      onClick={() => void recordLocation()}
-      disabled={saving}
-      data-testid={`button-change-work-location-${employeeId}`}
-    >
-      <MapPin size={16} />
-      {saving ? t("gpsRequesting") : t("changeWorkLocation")}
-    </Button>
-  );
-}
-
-function EmployeeWorkLocationsSection({
-  employeeId,
-}: {
-  employeeId: string;
-}) {
-  const { t, locale } = useI18n();
-  const workspace = useGetWorkspace();
-  const workLocations = useListEmployeeWorkLocations(employeeId, {
-    query: {
-      enabled: Boolean(employeeId),
-      queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
-    },
-  });
-  const localeTag =
-    locale === "ar"
-      ? "ar-EG"
-      : locale === "fr"
-        ? "fr-FR"
-        : locale === "de"
-          ? "de-DE"
-          : "en-US";
-  const entries = [...(workLocations.data ?? [])].sort((a, b) =>
-    b.recordedAt.localeCompare(a.recordedAt),
-  );
-  const dateTime = (value: string) =>
-    new Intl.DateTimeFormat(localeTag, {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: workspace.data?.company?.timezone || undefined,
-    }).format(new Date(value));
-
-  return (
-    <section className="mt-6" data-testid="attendance-work-locations">
-      <Card>
-        <div className="border-b border-border p-5">
-          <h2 className="font-display text-lg font-semibold">
-            {t("workLocations")}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("workLocationHistoryDetail")}
-          </p>
-        </div>
-        {workLocations.isLoading ? (
-          <div className="space-y-3 p-5">
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-          </div>
-        ) : workLocations.isError ? (
-          <div className="p-5">
-            <ErrorState retry={() => workLocations.refetch()} />
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="p-5">
-            <Empty
-              title={t("noWorkLocations")}
-              detail={t("noWorkLocationsDetail")}
-            />
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {entries.map((entry) => (
-              <article
-                key={entry.id}
-                className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center sm:p-5"
-                data-testid={`attendance-work-location-${entry.id}`}
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold">{dateTime(entry.recordedAt)}</p>
-                  <p
-                    className="mt-1 text-sm text-muted-foreground"
-                    dir="ltr"
-                  >
-                    <span>{t("locationCoordinates")}: </span>
-                    <span className="font-mono">
-                      {entry.latitude.toFixed(6)}, {entry.longitude.toFixed(6)}
-                    </span>
-                  </p>
-                </div>
-                <a
-                  href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                  data-testid={`attendance-work-location-map-${entry.id}`}
-                >
-                  <MapPin size={16} />
-                  {t("openWorkLocationMap")}
-                  <ArrowUpRight size={14} />
-                </a>
-              </article>
-            ))}
-          </div>
-        )}
-      </Card>
-    </section>
-  );
-}
-
 function EmployeeHrProfile({
   employeeIdOverride,
 }: {
   employeeIdOverride?: string | null;
 } = {}) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [, setLocation] = useLocation();
   const workspace = useGetWorkspace();
   const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
@@ -9401,88 +8008,21 @@ function EmployeeHrProfile({
       queryKey: getListAttendanceHistoryQueryKey(),
     },
   });
-  const permissionRequests = useListPermissionRequests({
-    query: {
-      enabled: selfService,
-      queryKey: getListPermissionRequestsQueryKey(),
-    },
-  });
   const annualLeaveBalance = ((leaveBalances.data || []) as Array<{
     type: string;
     employee?: { id?: string };
     total: number;
     used: number;
     remaining: number;
-    unauthorizedAbsenceDays: number;
   }>).find(
     (balance) =>
       balance.employee?.id === employeeId &&
       balance.type.toLowerCase().includes("annual"),
   );
-  const profileAttendanceRows = (attendanceHistory.data || []) as Array<{
-    date: string;
-    status: string;
-    overtimeHours: number;
-  }>;
-  const profileAbsenceDates = Array.from(
-    new Set(
-      profileAttendanceRows
-        .filter((item) =>
-          ["absent", "unexcused_absence", "missing_attendance"].includes(
-            item.status,
-          ),
-        )
-        .map((item) => item.date),
-    ),
-  );
-  const approvedPermissionDates = new Set(
-    (permissionRequests.data || [])
-      .filter((request) => request.status === "approved")
-      .map((request) => request.date),
-  );
-  const authorizedAbsenceDays = profileAbsenceDates.filter((date) =>
-    approvedPermissionDates.has(date),
-  ).length;
-  const unauthorizedAbsenceDays = Math.max(
-    0,
-    profileAbsenceDates.length - authorizedAbsenceDays,
-  );
-  const extraPayDays = new Set(
-    profileAttendanceRows
-      .filter(
-        (item) =>
-          item.status === "holiday" || Number(item.overtimeHours || 0) > 0,
-      )
-      .map((item) => item.date),
-  ).size;
-  const localeTag =
-    locale === "ar"
-      ? "ar-EG"
-      : locale === "fr"
-        ? "fr-FR"
-        : locale === "de"
-          ? "de-DE"
-          : "en-US";
-  const formatNumber = (value: number) =>
-    new Intl.NumberFormat(localeTag).format(value);
-  const formatDays = (value: number) =>
-    `${formatNumber(value)} ${t("days")}`;
-  const attendanceSummaryValue = (value: number) =>
-    attendanceHistory.isLoading || permissionRequests.isLoading
-      ? "…"
-      : attendanceHistory.isError || permissionRequests.isError
-        ? "—"
-        : formatDays(value);
-  const formatMonth = (month: number) =>
-    month >= 1 && month <= 12
-      ? new Intl.DateTimeFormat(localeTag, { month: "short" }).format(
-          new Date(2020, month - 1, 15),
-        )
-      : formatNumber(month);
   return (
     <div className="animate-in">
       <SectionTitle
-        eyebrow={t("employeeProfile")}
+        eyebrow={t("hrRecord")}
         title={t("hrProfile")}
         detail={t("hrProfileDetail")}
       />
@@ -9508,70 +8048,33 @@ function EmployeeHrProfile({
           />
         </Card>
       ) : employee.data ? (
-        <div className="space-y-4">
-          <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-br from-primary/[0.12] via-primary/[0.045] to-card p-4 sm:p-6">
-            <div className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-4">
-                <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-card text-lg font-bold text-primary shadow-sm ring-1 ring-primary/15">
-                  {employee.data.avatarInitials ||
-                    `${employee.data.firstName[0]}${employee.data.lastName[0]}`}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="truncate font-display text-2xl font-semibold sm:text-3xl">
-                    {employeeDisplayName(locale, employee.data)}
-                  </h2>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {employee.data.phone || t("notAvailable")}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge tone="accent">
-                      {t("employeeNumber")}: {employee.data.employeeNumber}
-                    </Badge>
-                    <Status value={employee.data.status} />
-                  </div>
-                </div>
+        <Card className="p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 font-bold text-primary">
+                {employee.data.avatarInitials}
               </div>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setLocation(`/employees/${employee.data.id}/movement`)
-                  }
-                  className="w-full sm:w-auto"
-                  data-testid={`button-open-attendance-movement-${employee.data.id}`}
-                >
-                  <Activity size={16} />
-                  {t("showAttendanceMovement")}
-                </Button>
-                {selfService && employee.data.locationAttendanceEnabled ? (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setLocation(
-                        `/employees/${employee.data.id}/work-locations`,
-                      )
-                    }
-                    className="w-full sm:w-auto"
-                    data-testid={`button-open-work-locations-${employee.data.id}`}
-                  >
-                    <MapPin size={16} />
-                    {t("workLocations")}
-                  </Button>
-                ) : null}
+              <div className="min-w-0">
+                <h2 className="truncate font-display text-xl font-semibold">
+                  {employee.data.firstName} {employee.data.lastName}
+                </h2>
               </div>
             </div>
-          </Card>
-          <Card className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                <UserRound size={18} />
-              </div>
-              <h3 className="font-display text-lg font-semibold">
-                {t("employeeProfile")}
-              </h3>
-            </div>
-            <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <Button
+              variant="outline"
+              onClick={() => setLocation(`/employees/${employee.data.id}/movement`)}
+              className="w-full shrink-0 sm:w-auto"
+              data-testid={`button-open-attendance-movement-${employee.data.id}`}
+            >
+              <Activity size={16} />
+              {t("showAttendanceMovement")}
+            </Button>
+          </div>
+          <div className="mt-6 border-t border-border pt-6">
+            <h3 className="font-display text-lg font-semibold">
+              {t("employeeProfile")}
+            </h3>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <Info
                 label={t("employeeNumber")}
                 value={employee.data.employeeNumber}
@@ -9592,7 +8095,7 @@ function EmployeeHrProfile({
                 label={t("workingHours")}
                 value={
                   employee.data.workingHours != null
-                    ? `${formatNumber(employee.data.workingHours)} ${t("hours")}`
+                    ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
                     : t("notAvailable")
                 }
               />
@@ -9602,13 +8105,13 @@ function EmployeeHrProfile({
               />
               <Info
                 label={t("department")}
-                value={departmentLabel(employee.data.department?.name, t, locale, employee.data.department?.nameEn)}
+                value={departmentLabel(employee.data.department?.name, t)}
               />
               <Info
                 label={t("branch")}
                 value={
                   employee.data.branch
-                    ? `${branchLabel(employee.data.branch.name, t, locale, employee.data.branch.nameEn)} · ${employee.data.branch.city}`
+                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
                     : t("notAvailable")
                 }
               />
@@ -9624,15 +8127,9 @@ function EmployeeHrProfile({
                 value={employee.data.biometricCode || t("notAvailable")}
               />
             </div>
-          </Card>
-          <Card className="p-4 sm:p-6">
-            <EmployeeHrPanel
-              employeeId={employee.data.id}
-              canEdit={false}
-              standalone
-            />
-          </Card>
-          <Card className="p-4 sm:p-6">
+          </div>
+          <EmployeeHrPanel employeeId={employee.data.id} canEdit={false} />
+          <div className="mt-6 border-t border-border pt-6">
             <div className="flex items-center gap-2">
               <CalendarDays size={17} className="text-primary" />
               <h3 className="font-display text-lg font-semibold">
@@ -9649,36 +8146,29 @@ function EmployeeHrProfile({
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Info
                   label={t("allocatedDays")}
-                  value={formatDays(annualLeaveBalance.total)}
+                  value={`${annualLeaveBalance.total} ${t("days")}`}
                 />
                 <Info
                   label={t("usedDays")}
-                  value={formatDays(annualLeaveBalance.used ?? 0)}
+                  value={`${annualLeaveBalance.used ?? 0} ${t("days")}`}
                 />
                 <Info
                   label={t("daysRemaining")}
-                  value={formatDays(
-                    Math.max(0, annualLeaveBalance.remaining ?? 0),
-                  )}
+                  value={`${Math.max(0, annualLeaveBalance.remaining ?? 0)} ${t("days")}`}
                 />
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                {t("annualLeaveBalanceUnavailable")}
+                {t("notAvailable")}
               </p>
             )}
-          </Card>
+          </div>
           {selfService && (
-            <Card className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Activity size={18} />
-                </div>
-                <h3 className="font-display text-lg font-semibold">
-                  {t("leaveAttendanceSummary")}
-                </h3>
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 border-t border-border pt-6">
+              <h3 className="font-display text-lg font-semibold">
+                Leave & attendance summary
+              </h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {(
                   (leaveBalances.data || []) as Array<{
                     type: string;
@@ -9687,7 +8177,10 @@ function EmployeeHrProfile({
                     absenceDeducted: number;
                     pending: number;
                     remaining: number;
+                    allowedBalanceMonths: number[];
+                    monthlyDeductionLimit: number;
                     deductedThisMonth: number;
+                    unauthorizedAbsenceDays: number;
                   }>
                 )
                   .filter((balance) =>
@@ -9696,91 +8189,75 @@ function EmployeeHrProfile({
                   .map((balance) => (
                     <Fragment key={balance.type}>
                       <Info
-                        label={t("allocatedDays")}
-                        value={formatDays(balance.total)}
+                        label="Annual balance"
+                        value={`${balance.total} days`}
                       />
                       <Info
-                        label={t("usedDays")}
-                        value={formatDays(balance.used)}
+                        label="Used leave"
+                        value={`${balance.used} days`}
                       />
                       <Info
-                        label={t("deductedForAbsence")}
-                        value={formatDays(balance.absenceDeducted)}
+                        label="Deducted for absence"
+                        value={`${balance.absenceDeducted} days`}
+                      />
+                      <Info label="Pending" value={`${balance.pending} days`} />
+                      <Info
+                        label="Remaining"
+                        value={`${Math.max(0, balance.remaining)} days`}
                       />
                       <Info
-                        label={t("pendingLeave")}
-                        value={formatDays(balance.pending)}
+                        label="Deduction months"
+                        value={balance.allowedBalanceMonths.join(", ")}
                       />
                       <Info
-                        label={t("daysRemaining")}
-                        value={formatDays(Math.max(0, balance.remaining))}
+                        label="Monthly maximum"
+                        value={`${balance.monthlyDeductionLimit} days`}
                       />
                       <Info
-                        label={t("deductedThisMonth")}
-                        value={formatDays(balance.deductedThisMonth)}
+                        label="Deducted this month"
+                        value={`${balance.deductedThisMonth} days`}
+                      />
+                      <Info
+                        label="Unauthorized absence"
+                        value={`${balance.unauthorizedAbsenceDays} days`}
                       />
                     </Fragment>
                   ))}
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Info
-                  label={t("totalAbsenceDays")}
-                  value={attendanceSummaryValue(profileAbsenceDates.length)}
-                />
-                <Info
-                  label={t("authorizedAbsenceDays")}
-                  value={attendanceSummaryValue(authorizedAbsenceDays)}
-                />
-                <Info
-                  label={t("unauthorizedAbsenceDays")}
-                  value={attendanceSummaryValue(unauthorizedAbsenceDays)}
-                />
-                <Info
-                  label={t("currentMonthUnauthorizedAbsenceDays")}
+                  label="Absence days"
                   value={
-                    leaveBalances.isLoading
-                      ? "…"
-                      : leaveBalances.isError
-                        ? "—"
-                        : formatDays(
-                            annualLeaveBalance?.unauthorizedAbsenceDays ?? 0,
-                          )
-                  }
-                />
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                {t("absenceBreakdownNote")}
-              </p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Info
-                  label={t("approvedLeaveDays")}
-                  value={
-                    leaveRequests.isLoading
-                      ? "…"
-                      : leaveRequests.isError
-                        ? "—"
-                        : formatDays(
-                            (leaveRequests.data || [])
-                              .filter((item) => item.status === "approved")
-                              .reduce(
-                                (sum, item) => sum + Number(item.days),
-                                0,
-                              ),
-                          )
+                    (attendanceHistory.data || []).filter((item: any) =>
+                      ["absent", "unexcused_absence", "missing_attendance"].includes(
+                        item.status,
+                      ),
+                    ).length
                   }
                 />
                 <Info
-                  label={t("extraPayDays")}
-                  value={attendanceSummaryValue(extraPayDays)}
+                  label="Approved leave days"
+                  value={(leaveRequests.data || [])
+                    .filter((item: any) => item.status === "approved")
+                    .reduce((sum: number, item: any) => sum + Number(item.days), 0)}
+                />
+                <Info
+                  label="Extra-pay days"
+                  value={(attendanceHistory.data || []).filter(
+                    (item: any) =>
+                      item.status === "holiday" ||
+                      Number(item.overtimeHours || 0) > 0,
+                  ).length}
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                {t("extraPayCalculationNote")}
+                Extra pay is calculated from the effective attendance rules and
+                the highest applicable holiday or weekly multiplier.
               </p>
-            </Card>
+            </div>
           )}
           <EmployeePasswordChange />
-        </div>
+        </Card>
       ) : (
         <Empty
           title={t("employeeProfileLoadFailed")}
@@ -9794,92 +8271,24 @@ function EmployeeHrProfile({
 function EmployeeAttendanceMovement({
   employeeId,
   employeeName,
-  payBasis,
   biometricCode,
   canPrint,
-  canManualPunch = false,
-  canManagePayroll = false,
   fullPage = false,
 }: {
   employeeId: string;
   employeeName: string;
-  payBasis: "monthly" | "hourly";
   biometricCode?: string | null;
   canPrint: boolean;
-  canManualPunch?: boolean;
-  canManagePayroll?: boolean;
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
-  const deviceCopy = attendanceDeviceCopy(locale);
-  const qc = useQueryClient();
-  const workspace = useGetWorkspace();
-  const workspaceCapabilities = workspace.data?.capabilities ?? [];
-  const canConvertAbsence =
-    workspace.data?.role !== "employee" &&
-    (workspaceCapabilities.includes("attendance.absence_leave") ||
-      workspaceCapabilities.includes("attendance.correct") ||
-      workspaceCapabilities.includes("attendance.adjust"));
   const [open, setOpen] = useState(fullPage);
-  const today = new Date().toISOString().slice(0, 10);
-  const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
-  const [to, setTo] = useState(today);
-  const [manualPunch, setManualPunch] = useState<{
-    attendanceDate: string;
-    direction: "in" | "out";
-    occurredAt: string;
-    reason: string;
-  } | null>(null);
-  const [showAdjustment, setShowAdjustment] = useState(false);
-  const [showAbsenceLeave, setShowAbsenceLeave] = useState(false);
-  const [convertingAttendanceId, setConvertingAttendanceId] = useState<
-    string | null
-  >(null);
-  const [adjustmentForm, setAdjustmentForm] = useState({
-    type: "addition",
-    category: "fixed",
-    amount: "",
-    reason: "",
-  });
-  const createManualPunch = useCreateManualAttendanceEvent();
-  const convertAbsenceToAnnualLeave = useConvertAbsenceToAnnualLeave();
-  const payrollPeriods = useListPayrollPeriods({
-    query: {
-      enabled: canManagePayroll,
-      queryKey: getListPayrollPeriodsQueryKey(),
-    },
-  });
-  const summaryTo = to;
-  const summaryParams = useMemo(
-    () => ({ employeeId, from, to: summaryTo }),
-    [employeeId, from, summaryTo],
-  );
-  const payrollSummary = useGetEmployeePayrollSummary(summaryParams, {
-    query: {
-      enabled: open && Boolean(employeeId) && summaryTo >= from,
-      queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
-    },
-  });
-  const openPayrollPeriods = (payrollPeriods.data ?? []).filter(
-    (period: any) => !isPayrollPeriodImmutableStatus(period.status),
-  );
-  const openPayrollPeriod =
-    openPayrollPeriods.find(
-      (period: any) => period.from <= from && period.to >= summaryTo,
-    ) ??
-    openPayrollPeriods.find(
-      (period: any) => period.from <= summaryTo && period.to >= from,
-    );
-  const employeeAdjustments = useListPayrollAdjustments(
-    { employeeId },
-    {
-      query: {
-        enabled: canManagePayroll && open,
-        queryKey: getListPayrollAdjustmentsQueryKey({ employeeId }),
-      },
-    },
-  );
-  const createAdjustment = useCreatePayrollAdjustment();
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [year, monthNumber] = month.split("-").map(Number);
+  const from = `${month}-01`;
+  const to = new Date(Date.UTC(year, monthNumber, 0))
+    .toISOString()
+    .slice(0, 10);
   const reportParams = useMemo(
     () => ({
       type: "attendance" as const,
@@ -9896,21 +8305,7 @@ function EmployeeAttendanceMovement({
     },
   });
 
-  const hourlyEmployee = payBasis === "hourly";
-  const rows = [...(report.data?.rows ?? [])]
-    .map((row) =>
-      hourlyEmployee
-        ? { ...row, scheduledStart: "", scheduledEnd: "" }
-        : row,
-    )
-    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
-  const absenceRows = rows.filter(
-    (row) => row.attendanceStatus === "absent" && row.attendanceId,
-  );
-  async function recalculateAttendanceMovement() {
-    if (summaryTo < from) return;
-    await Promise.all([report.refetch(), payrollSummary.refetch()]);
-  }
+  const rows = report.data?.rows ?? [];
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
@@ -9927,143 +8322,9 @@ function EmployeeAttendanceMovement({
   const hours = (value?: number) =>
     `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
-  const overtimePay = (value?: number) =>
-    money(value, report.data?.currency ?? "EGP");
-
-  function convertAbsence(attendanceId: string) {
-    setConvertingAttendanceId(attendanceId);
-    convertAbsenceToAnnualLeave.mutate(
-      { attendanceId },
-      {
-        onSuccess: () => {
-          toast.success(t("absenceConvertedToAnnualLeave"));
-          setShowAbsenceLeave(false);
-          setConvertingAttendanceId(null);
-          qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) });
-          qc.invalidateQueries({
-            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
-          });
-          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-          qc.invalidateQueries({
-            queryKey: getListLeaveBalanceTransactionsQueryKey(),
-          });
-          qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetAttendanceReportQueryKey() });
-          qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
-          qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() });
-        },
-        onError: (error: unknown) => {
-          setConvertingAttendanceId(null);
-          toast.error(apiErrorMessage(error, t("absenceConversionFailed")));
-        },
-      },
-    );
-  }
-
-  function openManualPunch() {
-    const attendanceDate = from;
-    setManualPunch({
-      attendanceDate,
-      direction: "in",
-      occurredAt: `${attendanceDate}T09:00`,
-      reason: "",
-    });
-  }
-
-  function submitManualPunch(event: FormEvent) {
-    event.preventDefault();
-    if (
-      !manualPunch?.attendanceDate ||
-      !manualPunch.occurredAt ||
-      !manualPunch.reason.trim()
-    ) {
-      return;
-    }
-    createManualPunch.mutate(
-      {
-        data: {
-          employeeId,
-          attendanceDate: manualPunch.attendanceDate,
-          direction: manualPunch.direction,
-          occurredAt: new Date(manualPunch.occurredAt).toISOString(),
-          reason: manualPunch.reason.trim(),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("manualPunchSaved"));
-          setManualPunch(null);
-          qc.invalidateQueries({
-            queryKey: getGetReportQueryKey(reportParams),
-          });
-          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-          qc.invalidateQueries({
-            queryKey: getListAttendanceHistoryQueryKey(),
-          });
-          qc.invalidateQueries({
-            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
-          });
-        },
-        onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, t("manualPunchFailed"))),
-      },
-    );
-  }
-
-  function submitAdjustment(event: FormEvent) {
-    event.preventDefault();
-    if (
-      !openPayrollPeriod ||
-      !adjustmentForm.amount ||
-      Number(adjustmentForm.amount) < 0 ||
-      !adjustmentForm.reason.trim()
-    ) {
-      return;
-    }
-    createAdjustment.mutate(
-      {
-        data: {
-          periodId: openPayrollPeriod.id,
-          employeeId,
-          type: adjustmentForm.type as "addition" | "deduction",
-          category: adjustmentForm.category as "fixed" | "variable",
-          amount: Number(adjustmentForm.amount),
-          reason: adjustmentForm.reason.trim(),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("adjustmentCreated"));
-          setShowAdjustment(false);
-          setAdjustmentForm({
-            type: "addition",
-            category: "fixed",
-            amount: "",
-            reason: "",
-          });
-          qc.invalidateQueries({
-            queryKey: getGetEmployeePayrollSummaryQueryKey(summaryParams),
-          });
-          qc.invalidateQueries({
-            queryKey: getListPayrollAdjustmentsQueryKey({ employeeId }),
-          });
-        },
-        onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, t("adjustmentCreateFailed"))),
-      },
-    );
-  }
 
   function printMovement() {
     if (!report.data) return;
-    // Keep a 30-day movement record at full size on one A4 landscape sheet.
-    // Longer ranges scale down as needed instead of splitting rows.
-    const printScale = Math.min(
-      1,
-      Math.max(0.01, 750 / (Math.max(rows.length, 1) * 19 + 180)),
-    );
     const escapeHtml = (value: unknown) =>
       String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -10080,9 +8341,7 @@ function EmployeeAttendanceMovement({
       t("checkIn"),
       t("checkOut"),
       t("deductedMinutes"),
-      t("overtimeMinutes"),
-      t("overtimeMultiplier"),
-      t("overtimePayableAmount"),
+      t("doublePay"),
       t("workedHours"),
       t("attendanceStatus"),
     ]
@@ -10094,174 +8353,61 @@ function EmployeeAttendanceMovement({
           <tr>
             <td>${escapeHtml(date(row.date ?? undefined))}</td>
             <td>${escapeHtml(weekday(row.date))}</td>
-            <td>${escapeHtml(row.source === "biometric" ? row.biometricCode || biometricCode || "—" : row.source || "—")}</td>
+            <td>${escapeHtml(sourceLabel(row))}</td>
             <td>${escapeHtml(row.scheduledStart || "—")}</td>
             <td>${escapeHtml(row.scheduledEnd || "—")}</td>
-            <td>${escapeHtml(time(row.checkIn))}${row.checkInDeviceType ? `<br><span>${escapeHtml(deviceCopy.phoneType)}: ${escapeHtml(attendanceDeviceTypeLabel(row.checkInDeviceType, locale))}</span>` : ""}</td>
-            <td>${escapeHtml(time(row.checkOut))}${row.checkOutDeviceType ? `<br><span>${escapeHtml(deviceCopy.phoneType)}: ${escapeHtml(attendanceDeviceTypeLabel(row.checkOutDeviceType, locale))}</span>` : ""}</td>
+            <td>${escapeHtml(time(row.checkIn))}</td>
+            <td>${escapeHtml(time(row.checkOut))}</td>
             <td>${escapeHtml(minutes(row.deductedMinutes))}</td>
-            <td>${escapeHtml(minutes(row.overtimeMinutes))}</td>
-            <td>${escapeHtml(Number(row.overtimeHours || 0) > 0 ? `${row.overtimeMultiplier ?? "—"}×` : "—")}</td>
-            <td>${escapeHtml(overtimePay(row.overtimeAmount))}</td>
+            <td>${escapeHtml(row.doublePay ? t("yes") : t("no"))}</td>
             <td>${escapeHtml(hours(row.workedHours))}</td>
-            <td>${escapeHtml(statusLabel(row.attendanceStatus || "—", t))}</td>
+            <td>${escapeHtml(row.attendanceStatus || "—")}</td>
           </tr>`,
       )
       .join("");
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    const printCss = `
-      @page { size: A4 landscape; margin: 0; }
-      * { box-sizing: border-box; }
-      html, body { width: 297mm; height: 210mm; margin: 0; padding: 0; }
-      body {
-        position: relative;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        color: #152638;
-      }
-      .sheet {
-        position: absolute;
-        inset: 0;
-        width: calc(100% / ${printScale});
-        height: calc(100% / ${printScale});
-        overflow: hidden;
-        padding: 4mm;
-        transform: scale(${printScale});
-        transform-origin: top left;
-        text-align: center;
-      }
-      h1 { margin: 0 0 3px; font-size: 18px; font-weight: 700; text-align: center; }
-      p { margin: 0 0 6px; color: #40566b; font-size: 10px; font-weight: 700; text-align: center; }
-      .summary {
-        display: flex;
-        gap: 5px;
-        flex-wrap: nowrap;
-        justify-content: center;
-        margin: 0 0 6px;
-        white-space: nowrap;
-      }
-      .chip {
-        background: #edf4f4;
-        border-radius: 999px;
-        padding: 3px 6px;
-        font-size: 9px;
-        font-weight: 700;
-      }
-      table {
-        width: 100%;
-        table-layout: fixed;
-        border-collapse: collapse;
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1.05;
-        margin-inline: auto;
-      }
-      col.source-column { width: 6%; }
-      th, td {
-        overflow: hidden;
-        border: 1px solid #d8e0e4;
-        padding: 1px 2px;
-        text-align: center;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        text-overflow: clip;
-      }
-      th:nth-child(3), td:nth-child(3) { font-size: 9px; }
-      th { background: #edf4f4; font-weight: 800; }
-      td { white-space: normal; }
-      tr { break-inside: avoid; page-break-inside: avoid; }
-      @media print {
-        html, body { width: 297mm; height: 210mm; }
-        .sheet { break-inside: avoid; page-break-inside: avoid; }
-      }
-    `;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>${printCss}</style></head><body><main class="sheet"><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceDateRange"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("basicWorkingHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.regularHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("lateMinutes"))}: ${escapeHtml(minutes(rows.reduce((sum, row) => sum + Number(row.lateMinutes || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeMinutes || 0) / 60, 0)))}</span></div><table><colgroup><col><col><col class="source-column"><col><col><col><col><col><col><col><col><col><col></colgroup><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></main><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceMonth"))}: ${escapeHtml(periodLabel(month))}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
 
   return (
-    <>
-      <div
-        className={cn(
-          fullPage ? "space-y-5" : "mt-6 border-t border-border pt-6",
-        )}
-        data-testid={`employee-attendance-movement-${employeeId}`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-display text-lg font-semibold">
-              {t("attendanceMovementTitle")}
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("attendanceMovementDetail")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canManualPunch && (
-              <Button
-                variant="outline"
-                onClick={openManualPunch}
-                data-testid={`button-add-manual-punch-${employeeId}`}
-              >
-                <Plus size={15} />
-                {t("addManualPunch")}
-              </Button>
-            )}
-            {canManagePayroll && (
-              <Button
-                variant="outline"
-                onClick={() => setShowAdjustment(true)}
-                data-testid={`button-add-payroll-adjustment-${employeeId}`}
-              >
-                <Coins size={15} />
-                {t("addAdjustment")}
-              </Button>
-            )}
-            {canConvertAbsence && (
-              <Button
-                variant="outline"
-                onClick={() => setShowAbsenceLeave(true)}
-                data-testid={`button-add-absence-leave-${employeeId}`}
-              >
-                <CalendarDays size={15} />
-                {t("addAbsenceLeave")}
-                {absenceRows.length ? ` (${absenceRows.length})` : ""}
-              </Button>
-            )}
-            {!fullPage && (
-              <Button
-                variant={open ? "outline" : "primary"}
-                onClick={() => setOpen((value) => !value)}
-                data-testid={`button-toggle-attendance-movement-${employeeId}`}
-              >
-                <Activity size={16} />
-                {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
-              </Button>
-            )}
-          </div>
+    <div
+      className={cn(
+        fullPage ? "space-y-5" : "mt-6 border-t border-border pt-6",
+      )}
+      data-testid={`employee-attendance-movement-${employeeId}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">
+            {t("attendanceMovementTitle")}
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("attendanceMovementDetail")}
+          </p>
         </div>
-        {open && (
+        {!fullPage && (
+          <Button
+            variant={open ? "outline" : "primary"}
+            onClick={() => setOpen((value) => !value)}
+            data-testid={`button-toggle-attendance-movement-${employeeId}`}
+          >
+            <Activity size={16} />
+            {open ? t("hideAttendanceMovement") : t("showAttendanceMovement")}
+          </Button>
+        )}
+      </div>
+      {open && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
             <Field
-              name="attendance-from-date"
-              label={t("attendanceFromDate")}
-              type="date"
-              value={from}
-              max={to}
-              onChange={setFrom}
-            />
-            <Field
-              name="attendance-to-date"
-              label={t("attendanceToDate")}
-              type="date"
-              value={to}
-              min={from}
-              max={today}
-              onChange={setTo}
+              label={t("attendanceMonth")}
+              type="month"
+              value={month}
+              onChange={setMonth}
             />
             {canPrint && (
               <Button
@@ -10274,105 +8420,24 @@ function EmployeeAttendanceMovement({
                 {t("printAttendanceMovement")}
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={() => void recalculateAttendanceMovement()}
-              disabled={
-                report.isFetching || payrollSummary.isFetching || summaryTo < from
-              }
-              data-testid={`button-calculate-payroll-through-date-${employeeId}`}
-            >
-              <Coins size={16} />
-              {report.isFetching || payrollSummary.isFetching
-                ? t("calculating")
-                : t("calculate")}
-            </Button>
           </div>
-          {payrollSummary.isLoading ? (
-            <Skeleton className="h-32" />
-          ) : payrollSummary.isError ? (
-            <Card className="border-destructive/20 bg-destructive/[0.04] p-4">
-              <p className="text-sm text-destructive">
-                {apiErrorMessage(payrollSummary.error, t("calculationFailed"))}
-              </p>
-            </Card>
-          ) : payrollSummary.data ? (
-            <Card className="border-primary/20 bg-primary/[0.04] p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h4 className="font-semibold">{t("payroll")}</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {from} – {summaryTo}
-                  </p>
-                </div>
-                <div className="text-end">
-                  <p className="text-xs text-muted-foreground">{t("net")}</p>
-                  <p className="font-display text-2xl font-semibold text-primary">
-                    {money(payrollSummary.data.netSalary, payrollSummary.data.currency)}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                <Info label={t("basicSalary")} value={money(payrollSummary.data.basicSalary, payrollSummary.data.currency)} />
-                <Info label={t("additions")} value={money(payrollSummary.data.additions, payrollSummary.data.currency)} />
-                <Info label={t("overtime")} value={money(payrollSummary.data.overtime, payrollSummary.data.currency)} />
-                <Info label={t("overtimeMinutes")} value={minutes(payrollSummary.data.overtimeMinutes)} />
-                <Info label={t("attendanceDeductions")} value={money(payrollSummary.data.attendanceDeductions, payrollSummary.data.currency)} />
-                <Info label={t("otherDeductions")} value={money(payrollSummary.data.otherDeductions, payrollSummary.data.currency)} />
-              </div>
-              {canManagePayroll && employeeAdjustments.data?.length ? (
-                <div className="mt-4 border-t border-border/70 pt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t("adjustments")}
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    {employeeAdjustments.data
-                      .filter(
-                        (adjustment: any) =>
-                          adjustment.periodId === payrollSummary.data?.payrollPeriod?.id,
-                      )
-                      .map((adjustment: any) => (
-                        <div
-                          className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2 text-sm"
-                          key={adjustment.id}
-                        >
-                          <span className="min-w-0 truncate">
-                            {adjustment.reason}
-                          </span>
-                          <span
-                            className={
-                              adjustment.type === "addition"
-                                ? "font-semibold text-emerald-600"
-                                : "font-semibold text-destructive"
-                            }
-                          >
-                            {adjustment.type === "addition" ? "+" : "−"}
-                            {money(adjustment.amount, payrollSummary.data.currency)}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ) : null}
-            </Card>
-          ) : null}
           {report.isLoading ? (
             <Skeleton className="h-56" />
           ) : report.isError ? (
             <ErrorState retry={() => report.refetch()} />
           ) : rows.length ? (
             <Card className="overflow-hidden">
-              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-3 border-b border-border bg-muted/30 p-4 sm:grid-cols-3">
                 <Info
                   label={t("records")}
                   value={rows.length}
                   testId={`text-attendance-movement-records-${employeeId}`}
                 />
                 <Info
-                  label={t("basicWorkingHours")}
+                  label={t("workedHours")}
                   value={hours(
                     rows.reduce(
-                      (sum, row) => sum + Number(row.regularHours || 0),
+                      (sum, row) => sum + Number(row.workedHours || 0),
                       0,
                     ),
                   )}
@@ -10382,24 +8447,6 @@ function EmployeeAttendanceMovement({
                   value={minutes(
                     rows.reduce(
                       (sum, row) => sum + Number(row.deductedMinutes || 0),
-                      0,
-                    ),
-                  )}
-                />
-                <Info
-                  label={t("overtimeMinutes")}
-                  value={minutes(
-                    rows.reduce(
-                      (sum, row) => sum + Number(row.overtimeMinutes || 0),
-                      0,
-                    ),
-                  )}
-                />
-                <Info
-                  label={t("overtimePayableAmount")}
-                  value={overtimePay(
-                    rows.reduce(
-                      (sum, row) => sum + Number(row.overtimeAmount || 0),
                       0,
                     ),
                   )}
@@ -10423,53 +8470,15 @@ function EmployeeAttendanceMovement({
                       <Status value={row.attendanceStatus || "—"} />
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <Info label={t("checkIn")} value={time(row.checkIn)} />
-                        {row.checkInDeviceType ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {deviceCopy.phoneType}:{" "}
-                            {attendanceDeviceTypeLabel(
-                              row.checkInDeviceType,
-                              locale,
-                            )}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div>
-                        <Info label={t("checkOut")} value={time(row.checkOut)} />
-                        {row.checkOutDeviceType ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {deviceCopy.phoneType}:{" "}
-                            {attendanceDeviceTypeLabel(
-                              row.checkOutDeviceType,
-                              locale,
-                            )}
-                          </p>
-                        ) : null}
-                      </div>
+                      <Info label={t("checkIn")} value={time(row.checkIn)} />
+                      <Info label={t("checkOut")} value={time(row.checkOut)} />
                       <Info
-                        label={t("basicWorkingHours")}
-                        value={hours(row.regularHours)}
+                        label={t("workedHours")}
+                        value={hours(row.workedHours)}
                       />
                       <Info
                         label={t("deductedMinutes")}
                         value={minutes(row.deductedMinutes)}
-                      />
-                      <Info
-                        label={t("overtimeMinutes")}
-                        value={minutes(row.overtimeMinutes)}
-                      />
-                      <Info
-                        label={t("overtimePayableAmount")}
-                        value={overtimePay(row.overtimeAmount)}
-                      />
-                      <Info
-                        label={t("overtimeMultiplierApplied")}
-                        value={
-                          Number(row.overtimeHours || 0) > 0
-                            ? `${row.overtimeMultiplier ?? "—"}×`
-                            : "—"
-                        }
                       />
                     </div>
                     <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
@@ -10495,10 +8504,8 @@ function EmployeeAttendanceMovement({
                       <th className="px-4 py-3">{t("checkIn")}</th>
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("deductedMinutes")}</th>
-                      <th className="px-4 py-3">{t("overtimeMinutes")}</th>
-                      <th className="px-4 py-3">{t("overtimeMultiplier")}</th>
-                      <th className="px-4 py-3">{t("overtimePayableAmount")}</th>
-                      <th className="px-4 py-3">{t("basicWorkingHours")}</th>
+                      <th className="px-4 py-3">{t("doublePay")}</th>
+                      <th className="px-4 py-3">{t("workedHours")}</th>
                       <th className="px-4 py-3">{t("attendanceStatus")}</th>
                     </tr>
                   </thead>
@@ -10525,54 +8532,21 @@ function EmployeeAttendanceMovement({
                         <td className="px-4 py-3 font-mono">
                           {row.scheduledEnd || "—"}
                         </td>
-                        <td className="px-4 py-3">
-                          <div>{time(row.checkIn)}</div>
-                          {row.checkInDeviceType ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {deviceCopy.phoneType}:{" "}
-                              {attendanceDeviceTypeLabel(
-                                row.checkInDeviceType,
-                                locale,
-                              )}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>{time(row.checkOut)}</div>
-                          {row.checkOutDeviceType ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {deviceCopy.phoneType}:{" "}
-                              {attendanceDeviceTypeLabel(
-                                row.checkOutDeviceType,
-                                locale,
-                              )}
-                            </div>
-                          ) : null}
-                        </td>
+                        <td className="px-4 py-3">{time(row.checkIn)}</td>
+                        <td className="px-4 py-3">{time(row.checkOut)}</td>
                         <td className="px-4 py-3 font-mono">
                           {minutes(row.deductedMinutes)}
                         </td>
-                        <td className="px-4 py-3 font-mono">
-                          {minutes(row.overtimeMinutes)}
-                        </td>
                         <td className="px-4 py-3">
-                          <Badge
-                            tone={
-                              Number(row.overtimeHours || 0) > 0
-                                ? "good"
-                                : "neutral"
-                            }
-                          >
-                            {Number(row.overtimeHours || 0) > 0
-                              ? `${row.overtimeMultiplier ?? "—"}×`
-                              : "—"}
+                          <Badge tone={row.doublePay ? "good" : "neutral"}>
+                            {row.doublePay ? t("yes") : t("no")}
+                            {row.overtimeMultiplier
+                              ? ` · ${row.overtimeMultiplier}×`
+                              : ""}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 font-mono">
-                          {overtimePay(row.overtimeAmount)}
-                        </td>
-                        <td className="px-4 py-3 font-mono">
-                          {hours(row.regularHours)}
+                          {hours(row.workedHours)}
                         </td>
                         <td className="px-4 py-3">
                           <Status value={row.attendanceStatus || "—"} />
@@ -10590,239 +8564,8 @@ function EmployeeAttendanceMovement({
             />
           )}
         </div>
-        )}
-      </div>
-      {manualPunch && (
-        <Modal
-          title={t("manualPunchTitle")}
-          onClose={() => setManualPunch(null)}
-        >
-          <form onSubmit={submitManualPunch} className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t("manualPunchDetail")}
-            </p>
-            <Info label={t("employee")} value={employeeName} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                label={t("punchDate")}
-                type="date"
-                value={manualPunch.attendanceDate}
-                onChange={(value) =>
-                  setManualPunch({
-                    ...manualPunch,
-                    attendanceDate: value,
-                    occurredAt: `${value}T${manualPunch.occurredAt.slice(11, 16) || "09:00"}`,
-                  })
-                }
-              />
-              <label className="block text-sm font-semibold">
-                {t("punchDirection")}
-                <select
-                  value={manualPunch.direction}
-                  onChange={(event) =>
-                    setManualPunch({
-                      ...manualPunch,
-                      direction: event.target.value as "in" | "out",
-                    })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="in">{t("punchIn")}</option>
-                  <option value="out">{t("punchOut")}</option>
-                </select>
-              </label>
-            </div>
-            <Field
-              label={t("punchTime")}
-              type="datetime-local"
-              value={manualPunch.occurredAt}
-              onChange={(value) =>
-                setManualPunch({ ...manualPunch, occurredAt: value })
-              }
-            />
-            <label className="block text-sm font-semibold">
-              {t("punchReason")}
-              <textarea
-                required
-                minLength={1}
-                maxLength={1000}
-                value={manualPunch.reason}
-                onChange={(event) =>
-                  setManualPunch({ ...manualPunch, reason: event.target.value })
-                }
-                placeholder={t("punchReasonPlaceholder")}
-                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setManualPunch(null)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button type="submit" disabled={createManualPunch.isPending}>
-                {createManualPunch.isPending
-                  ? t("saving")
-                  : t("saveManualPunch")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
       )}
-      {showAdjustment && (
-        <Modal title={t("addAdjustment")} onClose={() => setShowAdjustment(false)}>
-          <form onSubmit={submitAdjustment} className="space-y-4">
-            <Info label={t("employee")} value={employeeName} />
-            {openPayrollPeriod ? (
-              <Info
-                label={t("payrollPeriod")}
-                value={`${openPayrollPeriod.label} · ${openPayrollPeriod.from} – ${openPayrollPeriod.to}`}
-              />
-            ) : (
-              <Empty
-                title={t("noPayrollPeriods")}
-                detail={t("periodsFromApi")}
-              />
-            )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm font-semibold">
-                {t("adjustmentType")}
-                <select
-                  value={adjustmentForm.type}
-                  onChange={(event) =>
-                    setAdjustmentForm({
-                      ...adjustmentForm,
-                      type: event.target.value,
-                    })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="addition">{t("addition")}</option>
-                  <option value="deduction">{t("deduction")}</option>
-                </select>
-              </label>
-              <label className="block text-sm font-semibold">
-                {t("category")}
-                <select
-                  value={adjustmentForm.category}
-                  onChange={(event) =>
-                    setAdjustmentForm({
-                      ...adjustmentForm,
-                      category: event.target.value,
-                    })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="fixed">{t("fixed")}</option>
-                  <option value="variable">{t("variable")}</option>
-                </select>
-              </label>
-            </div>
-            <Field
-              label={t("amount")}
-              type="number"
-              min="0"
-              step="0.01"
-              value={adjustmentForm.amount}
-              onChange={(value) =>
-                setAdjustmentForm({ ...adjustmentForm, amount: value })
-              }
-            />
-            <label className="block text-sm font-semibold">
-              {t("reason")}
-              <textarea
-                required
-                value={adjustmentForm.reason}
-                onChange={(event) =>
-                  setAdjustmentForm({
-                    ...adjustmentForm,
-                    reason: event.target.value,
-                  })
-                }
-                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setShowAdjustment(false)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                type="submit"
-                disabled={createAdjustment.isPending || !openPayrollPeriod}
-              >
-                {createAdjustment.isPending ? t("saving") : t("addAdjustment")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
-      {showAbsenceLeave && (
-        <Modal
-          title={t("addAbsenceLeave")}
-          onClose={() => {
-            if (!convertAbsenceToAnnualLeave.isPending) {
-              setShowAbsenceLeave(false);
-            }
-          }}
-        >
-          <div className="space-y-4">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {t("addAbsenceLeaveDetail")}
-            </p>
-            <Info label={t("employee")} value={employeeName} />
-            {absenceRows.length ? (
-              <div className="space-y-2">
-                {absenceRows.map((row) => {
-                  const attendanceId = row.attendanceId as string;
-                  const isConverting = convertingAttendanceId === attendanceId;
-                  return (
-                    <div
-                      key={attendanceId}
-                      className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold">
-                          {date(row.date ?? undefined)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {weekday(row.date)} ·{" "}
-                          {statusLabel(row.attendanceStatus || "—", t)}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={() => convertAbsence(attendanceId)}
-                        disabled={
-                          convertAbsenceToAnnualLeave.isPending ||
-                          Boolean(convertingAttendanceId)
-                        }
-                      >
-                        <CalendarDays size={15} />
-                        {isConverting
-                          ? t("convertingToAnnualLeave")
-                          : t("convertToAnnualLeave")}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <Empty
-                title={t("noAbsenceDays")}
-                detail={t("historyWillAppear")}
-              />
-            )}
-          </div>
-        </Modal>
-      )}
-    </>
+    </div>
   );
 }
 
@@ -10851,7 +8594,7 @@ function AccountProfileSummary({
       />
       <Card className="p-6">
         <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <Info label={t("fullName")} value={accountDisplayName(locale, auth.account)} />
+          <Info label={t("fullName")} value={auth.account.fullName} />
           <Info
             label={t("phoneLoginUsername")}
             value={auth.account.primaryPhone || auth.account.username}
@@ -10907,21 +8650,19 @@ function Branches() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    nameEn: "",
     city: "",
     gpsEnabled: false,
     active: true,
   });
   function openCreate() {
     setSelected(null);
-    setForm({ name: "", nameEn: "", city: "", gpsEnabled: false, active: true });
+    setForm({ name: "", city: "", gpsEnabled: false, active: true });
     setEditing(true);
   }
   function openEdit(branch: any) {
     setSelected(branch);
     setForm({
       name: branch.name ?? "",
-      nameEn: branch.nameEn ?? "",
       city: branch.city ?? "",
       gpsEnabled: branch.gpsEnabled === true,
       active: branch.active !== false,
@@ -10932,7 +8673,6 @@ function Branches() {
     event.preventDefault();
     const data = {
       name: form.name.trim(),
-      nameEn: form.nameEn.trim(),
       city: form.city.trim(),
       gpsEnabled: form.gpsEnabled,
       ...(selected ? { active: form.active } : {}),
@@ -10973,447 +8713,98 @@ function Branches() {
       },
     );
   }
-  const branchRows = branches.data ?? [];
-  const summary = [
-    {
-      label: t("branchesTitle"),
-      value: branchRows.length,
-      icon: <Building2 size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("branchEmployees"),
-      value: branchRows.reduce(
-        (total: number, branch: any) =>
-          total + (Number(branch.employeeCount) || 0),
-        0,
-      ),
-      icon: <Users size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("branchDevices"),
-      value: branchRows.reduce(
-        (total: number, branch: any) =>
-          total + (Number(branch.deviceCount) || 0),
-        0,
-      ),
-      icon: <Network size={18} aria-hidden="true" />,
-    },
-  ];
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
         eyebrow={t("branchesEyebrow")}
         title={t("branchesTitle")}
         detail={t("branchesDetail")}
-        action={
-          canManage ? (
-            <Button
-              onClick={openCreate}
-              className="min-h-11 rounded-xl px-4 shadow-sm"
-            >
-              <Plus size={16} aria-hidden="true" />
-              {t("addBranch")}
-            </Button>
-          ) : undefined
-        }
+        action={canManage ? <Button onClick={openCreate}><Plus size={16} />{t("addBranch")}</Button> : undefined}
       />
       {branches.isLoading ? (
-        <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {summary.map((item) => (
-              <Card key={item.label} className="h-24 animate-pulse bg-muted/40" />
-            ))}
-          </div>
-          <div className="grid gap-5 xl:grid-cols-[minmax(300px,.82fr)_minmax(0,1.18fr)]">
-            <Skeleton className="h-64 rounded-2xl" />
-            <Skeleton className="h-64 rounded-2xl" />
-          </div>
-        </div>
+        <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
       ) : branches.isError ? (
         <ErrorState retry={() => branches.refetch()} />
-      ) : (
-        <>
-          <section
-            aria-label={t("branchesTitle")}
-            className="grid gap-3 sm:grid-cols-3"
-          >
-            {summary.map((item, index) => (
+      ) : branches.data?.length ? (
+        <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
+          <div className="space-y-3">
+            {branches.data.map((branch: any) => (
               <Card
-                key={item.label}
-                className="relative overflow-hidden p-4 sm:p-5"
+                key={branch.id}
+                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
+                onClick={() => setSelected(branch)}
               >
-                <div
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute inset-y-0 start-0 w-1",
-                    index === 0
-                      ? "bg-primary"
-                      : index === 1
-                        ? "bg-emerald-500"
-                        : "bg-secondary",
-                  )}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-muted-foreground">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
-                      {item.value}
-                    </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-display text-lg font-semibold">
+                      {branch.name}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">{branch.city}</div>
                   </div>
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                    {item.icon}
-                  </div>
+                  <Status value={branch.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <Info label={t("branchEmployees")} value={branch.employeeCount} />
+                  <Info label={t("branchDevices")} value={branch.deviceCount} />
                 </div>
               </Card>
             ))}
-          </section>
-
-          {branchRows.length ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(300px,.82fr)_minmax(0,1.18fr)]">
-              <section
-                aria-label={t("branchesTitle")}
-                className="min-w-0 space-y-3"
-              >
-                <div className="flex items-center justify-between gap-3 px-1">
-                  <h2 className="font-display text-base font-semibold">
-                    {t("branchesTitle")}
-                  </h2>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                    {branchRows.length}
-                  </span>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                  {branchRows.map((branch: any) => {
-                    const isSelected = selected?.id === branch.id;
-                    return (
-                      <button
-                        key={branch.id}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => setSelected(branch)}
-                        className={cn(
-                          "group w-full rounded-2xl border p-4 text-start shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:p-5",
-                          isSelected
-                            ? "border-primary/60 bg-primary/[.06] ring-1 ring-primary/20"
-                            : "border-border bg-card hover:border-primary/40",
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className={cn(
-                                "grid size-10 shrink-0 place-items-center rounded-xl transition-colors",
-                                isSelected
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary-dark",
-                              )}
-                            >
-                              <Building2 size={18} aria-hidden="true" />
-                            </span>
-                            <div className="min-w-0">
-                              <h3 className="truncate font-display text-base font-semibold">
-                                {localizedName(
-                                  locale,
-                                  branch.name,
-                                  branch.nameEn,
-                                )}
-                              </h3>
-                              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <MapPin
-                                  size={14}
-                                  className="shrink-0"
-                                  aria-hidden="true"
-                                />
-                                <span className="truncate">{branch.city}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <Status
-                            value={
-                              branch.active === false ? "inactive" : "active"
-                            }
-                          />
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-                          {[
-                            {
-                              label: t("branchEmployees"),
-                              value: branch.employeeCount ?? 0,
-                              icon: <Users size={14} aria-hidden="true" />,
-                            },
-                            {
-                              label: t("branchDevices"),
-                              value: branch.deviceCount ?? 0,
-                              icon: <Network size={14} aria-hidden="true" />,
-                            },
-                          ].map((metric) => (
-                            <div
-                              key={metric.label}
-                              className="flex min-w-0 items-center gap-2 text-xs"
-                            >
-                              <span className="text-muted-foreground">
-                                {metric.icon}
-                              </span>
-                              <span className="truncate text-muted-foreground">
-                                {metric.label}
-                              </span>
-                              <span className="ms-auto font-semibold tabular-nums">
-                                {metric.value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {selected ? (
-                <Card className="min-w-0 self-start overflow-hidden">
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:p-6">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
-                        <MapPin size={21} aria-hidden="true" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                          {t("branchDetails")}
-                        </p>
-                        <h2 className="mt-1 truncate font-display text-xl font-bold sm:text-2xl">
-                          {localizedName(
-                            locale,
-                            selected.name,
-                            selected.nameEn,
-                          )}
-                        </h2>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">
-                          {selected.city}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Status
-                        value={
-                          selected.active === false ? "inactive" : "active"
-                        }
-                      />
-                      {canManage && (
-                        <Button
-                          variant="outline"
-                          className="min-h-9 rounded-xl px-3"
-                          onClick={() => openEdit(selected)}
-                        >
-                          <Pencil size={14} aria-hidden="true" />
-                          {t("edit")}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6">
-                    {[
-                      {
-                        label: t("branchEmployees"),
-                        value: selected.employeeCount ?? 0,
-                        icon: <Users size={17} aria-hidden="true" />,
-                      },
-                      {
-                        label: t("branchDevices"),
-                        value: selected.deviceCount ?? 0,
-                        icon: <Network size={17} aria-hidden="true" />,
-                      },
-                      {
-                        label: t("branchStatus"),
-                        value:
-                          selected.active === false
-                            ? t("branchInactive")
-                            : t("branchActive"),
-                        icon: <Building2 size={17} aria-hidden="true" />,
-                      },
-                      {
-                        label: t("databaseCreatedAt"),
-                        value: selected.createdAt
-                          ? date(selected.createdAt)
-                          : "—",
-                        icon: <CalendarDays size={17} aria-hidden="true" />,
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5"
-                      >
-                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
-                          {item.icon}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs text-muted-foreground">
-                            {item.label}
-                          </p>
-                          <p className="mt-0.5 truncate text-sm font-semibold">
-                            {item.value}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {selected.gpsEnabled && (
-                    <div className="mx-4 mb-4 flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/[.06] px-4 py-3 text-sm font-medium text-primary-dark sm:mx-6 sm:mb-6">
-                      <MapPin size={16} aria-hidden="true" />
-                      {t("gpsEnabled")}
-                    </div>
-                  )}
-                </Card>
-              ) : (
-                <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
-                  <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
-                    <MapPin size={24} aria-hidden="true" />
-                  </div>
-                  <h2 className="mt-4 font-display text-lg font-semibold">
-                    {t("branchDetails")}
-                  </h2>
-                  <p className="mt-1 max-w-xs text-sm leading-6 text-muted-foreground">
-                    {t("selectOption")}
-                  </p>
-                </Card>
-              )}
-            </div>
-          ) : (
-            <Card className="overflow-hidden border-dashed">
-              <div className="grid gap-5 p-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-8">
-                <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
-                  <Building2 size={24} aria-hidden="true" />
-                </div>
+          </div>
+          {selected ? (
+            <Card className="p-6">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-lg font-semibold">
-                    {t("noBranches")}
-                  </h2>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {t("branchesDetail")}
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("branchDetails")}</p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold">{selected.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{selected.city}</p>
                 </div>
-                {canManage && (
-                  <Button
-                    onClick={openCreate}
-                    className="min-h-11 rounded-xl px-4"
-                  >
-                    <Plus size={16} aria-hidden="true" />
-                    {t("addBranch")}
-                  </Button>
-                )}
+                {canManage && <Button variant="outline" onClick={() => openEdit(selected)}>{t("edit")}</Button>}
               </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Info label={t("branchStatus")} value={selected.active ? t("branchActive") : t("branchInactive")} />
+                <Info label={t("branchEmployees")} value={selected.employeeCount} />
+                <Info label={t("branchDevices")} value={selected.deviceCount} />
+                <Info label={t("databaseCreatedAt")} value={date(selected.createdAt)} />
+              </div>
+              {selected.gpsEnabled && (
+                <p className="mt-5 rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">{t("gpsEnabled")}</p>
+              )}
             </Card>
+          ) : (
+            <Empty title={t("branchDetails")} detail={t("selectOption")} />
           )}
-        </>
+        </div>
+      ) : (
+        <Empty title={t("noBranches")} detail={t("branchesDetail")} action={canManage ? <Button onClick={openCreate}><Plus size={15} />{t("addBranch")}</Button> : undefined} />
       )}
       {editing && (
-        <Modal
-          title={selected ? t("editBranch") : t("addBranch")}
-          onClose={() => setEditing(false)}
-          className="max-w-xl"
-          footer={
-            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <div>
-                {selected && (
-                  <Button
-                    type="button"
-                    variant="danger"
-                    onClick={deleteBranch}
-                    disabled={remove.isPending}
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    {t("remove")}
-                  </Button>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
+        <Modal title={selected ? t("edit") : t("addBranch")} onClose={() => setEditing(false)}>
+          <form onSubmit={save} className="space-y-4">
+            <Field label={t("branchName")} required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+            <Field label={t("branchCity")} required value={form.city} onChange={(value) => setForm({ ...form, city: value })} />
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={form.gpsEnabled} onChange={(event) => setForm({ ...form, gpsEnabled: event.target.checked })} />
+              {t("gpsEnabled")}
+            </label>
+            {selected && (
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />
+                {form.active ? t("activateBranch") : t("deactivateBranch")}
+              </label>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>{t("cancel")}</Button>
+              {selected && (
                 <Button
                   type="button"
-                  variant="quiet"
-                  onClick={() => setEditing(false)}
+                  variant="danger"
+                  onClick={deleteBranch}
+                  disabled={remove.isPending}
                 >
-                  {t("cancel")}
+                  {t("remove")}
                 </Button>
-                <Button
-                  type="submit"
-                  form="branch-editor-form"
-                  disabled={
-                    create.isPending || update.isPending || remove.isPending
-                  }
-                >
-                  {selected ? t("saveChanges") : t("createBranch")}
-                </Button>
-              </div>
-            </div>
-          }
-        >
-          <form
-            id="branch-editor-form"
-            onSubmit={save}
-            className="space-y-5"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label={t("arabicName")}
-                required
-                value={form.name}
-                onChange={(value) => setForm({ ...form, name: value })}
-              />
-              <Field
-                label={t("englishName")}
-                value={form.nameEn}
-                onChange={(value) => setForm({ ...form, nameEn: value })}
-              />
-              <div className="sm:col-span-2">
-                <Field
-                  label={t("branchCity")}
-                  required
-                  value={form.city}
-                  onChange={(value) => setForm({ ...form, city: value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-3 border-t border-border pt-4">
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/30">
-                <input
-                  type="checkbox"
-                  checked={form.gpsEnabled}
-                  onChange={(event) =>
-                    setForm({ ...form, gpsEnabled: event.target.checked })
-                  }
-                  className="size-4 shrink-0 accent-primary"
-                />
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary-dark">
-                  <MapPin size={16} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 text-sm font-semibold">
-                  {t("gpsEnabled")}
-                </span>
-              </label>
-              {selected && (
-                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/30">
-                  <span className="flex min-w-0 items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={form.active}
-                      onChange={(event) =>
-                        setForm({ ...form, active: event.target.checked })
-                      }
-                      className="size-4 shrink-0 accent-primary"
-                    />
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                      <Building2 size={16} aria-hidden="true" />
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {t("branchStatus")}
-                    </span>
-                  </span>
-                  <Status
-                    value={form.active ? "active" : "inactive"}
-                  />
-                </label>
               )}
+              <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
         </Modal>
@@ -11423,7 +8814,7 @@ function Branches() {
 }
 
 function Departments() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage =
@@ -11437,7 +8828,6 @@ function Departments() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    nameEn: "",
     active: true,
   });
   const detail = useGetDepartment(selected || "", undefined, {
@@ -11449,7 +8839,6 @@ function Departments() {
   function resetForm() {
     setForm({
       name: "",
-      nameEn: "",
       active: true,
     });
   }
@@ -11462,7 +8851,6 @@ function Departments() {
     setSelected(item.id);
     setForm({
       name: item.name ?? "",
-      nameEn: item.nameEn ?? "",
       active: item.active !== false,
     });
     setShowCreate(true);
@@ -11471,7 +8859,6 @@ function Departments() {
     event.preventDefault();
     const data = {
       name: form.name,
-      nameEn: form.nameEn,
       ...(selected ? { active: form.active } : {}),
     };
     const options = {
@@ -11523,477 +8910,165 @@ function Departments() {
     );
   }
   const activeDetail = detail.data as any;
-  const departmentRows = departments.data ?? [];
-  const activeDepartmentCount = departmentRows.filter(
-    (item: any) => item.active !== false,
-  ).length;
-  const employeeTotal = departmentRows.reduce(
-    (total: number, item: any) =>
-      total + (Number(item.employeeCount) || 0),
-    0,
-  );
-  const summary = [
-    {
-      label: t("departmentsTitle"),
-      value: departmentRows.length,
-      icon: <Building2 size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("branchActive"),
-      value: activeDepartmentCount,
-      icon: <Activity size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("employees"),
-      value: employeeTotal,
-      icon: <Users size={18} aria-hidden="true" />,
-    },
-  ];
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
         eyebrow={t("departmentsEyebrow")}
         title={t("departmentsTitle")}
         detail={t("departmentsDetail")}
         action={
           canManage ? (
-            <Button
-              onClick={openCreate}
-              className="min-h-11 rounded-xl px-4 shadow-sm"
-              data-testid="button-add-department"
-            >
-              <Plus size={16} aria-hidden="true" />
+            <Button onClick={openCreate}>
+              <Plus size={16} />
               {t("addDepartment")}
             </Button>
           ) : undefined
         }
       />
       {departments.isLoading ? (
-        <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {summary.map((item) => (
-              <Skeleton
-                key={item.label}
-                className="h-24 rounded-2xl"
-              />
-            ))}
-          </div>
-          <div className="grid gap-5 xl:grid-cols-[minmax(280px,.82fr)_minmax(0,1.18fr)]">
-            <Skeleton className="h-64 rounded-2xl" />
-            <Skeleton className="h-64 rounded-2xl" />
-          </div>
+        <div className="space-y-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
         </div>
       ) : departments.isError ? (
         <ErrorState retry={() => departments.refetch()} />
-      ) : (
-        <>
-          <section
-            aria-label={t("departmentsTitle")}
-            className="grid gap-3 sm:grid-cols-3"
-          >
-            {summary.map((item, index) => (
+      ) : departments.data?.length ? (
+        <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
+          <div className="space-y-3">
+            {departments.data.map((item: any) => (
               <Card
-                key={item.label}
-                className="relative overflow-hidden p-4 sm:p-5"
+                key={item.id}
+                className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
+                  selected === item.id ? "border-primary bg-primary/5" : ""
+                }`}
+                onClick={() => setSelected(item.id)}
               >
-                <div
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute inset-y-0 start-0 w-1",
-                    index === 0
-                      ? "bg-primary"
-                      : index === 1
-                        ? "bg-emerald-500"
-                        : "bg-secondary",
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-display text-lg font-semibold">
+                      {item.name}
+                    </div>
+                  </div>
+                  <Status value={item.active ? "active" : "inactive"} />
+                </div>
+                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{item.employeeCount} {t("employees").toLowerCase()}</span>
+                  {canManage && (
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEdit(item);
+                      }}
+                    >
+                      {t("edit")}
+                    </Button>
                   )}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-muted-foreground">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
-                      {item.value}
-                    </p>
-                  </div>
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                    {item.icon}
-                  </div>
                 </div>
               </Card>
             ))}
-          </section>
-
-          {departmentRows.length ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(280px,.82fr)_minmax(0,1.18fr)]">
-              <section
-                aria-label={t("departmentsTitle")}
-                className="min-w-0 space-y-3"
-              >
-                <div className="flex items-center justify-between gap-3 px-1">
-                  <h2 className="font-display text-base font-semibold">
-                    {t("departmentsTitle")}
-                  </h2>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                    {departmentRows.length}
-                  </span>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                  {departmentRows.map((item: any) => {
-                    const isSelected = selected === item.id;
-                    return (
-                      <Card
-                        key={item.id}
-                        className={cn(
-                          "overflow-hidden transition duration-200 hover:shadow-[var(--shadow-md)]",
-                          isSelected
-                            ? "border-primary/60 bg-primary/[.04] ring-1 ring-primary/20"
-                            : "hover:border-primary/40",
-                        )}
-                        data-testid={`card-department-${item.id}`}
-                      >
-                        <div className="flex items-center gap-2 p-3 sm:p-4">
-                          <button
-                            type="button"
-                            aria-pressed={isSelected}
-                            onClick={() => setSelected(item.id)}
-                            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                            data-testid={`button-select-department-${item.id}`}
-                          >
-                            <span
-                              className={cn(
-                                "grid size-10 shrink-0 place-items-center rounded-xl transition-colors",
-                                isSelected
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              <Building2 size={18} aria-hidden="true" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-display text-base font-semibold">
-                                {localizedName(
-                                  locale,
-                                  item.name,
-                                  item.nameEn,
-                                )}
-                              </span>
-                              <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Users
-                                  size={13}
-                                  className="shrink-0"
-                                  aria-hidden="true"
-                                />
-                                {item.employeeCount ?? 0}{" "}
-                                {t("employees").toLowerCase()}
-                              </span>
-                            </span>
-                          </button>
-                          <div className="flex shrink-0 flex-col items-end gap-2">
-                            <Status
-                              value={
-                                item.active === false ? "inactive" : "active"
-                              }
-                            />
-                            {canManage && (
-                              <Button
-                                variant="outline"
-                                className="min-h-9 rounded-xl px-3"
-                                onClick={() => openEdit(item)}
-                                data-testid={`button-edit-department-${item.id}`}
-                              >
-                                <Pencil size={14} aria-hidden="true" />
-                                {t("edit")}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <div className="min-w-0">
-                {selected ? (
-                  detail.isLoading ? (
-                    <Card className="space-y-4 p-5 sm:p-6">
-                      <Skeleton className="h-16 rounded-xl" />
-                      <Skeleton className="h-20 rounded-xl" />
-                      <Skeleton className="h-40 rounded-xl" />
-                    </Card>
-                  ) : detail.isError ? (
-                    <Card className="flex min-h-[320px] items-center justify-center p-6">
-                      <ErrorState retry={() => detail.refetch()} />
-                    </Card>
-                  ) : activeDetail ? (
-                    <Card className="min-w-0 self-start overflow-hidden">
-                      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:p-6">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
-                            <Building2 size={21} aria-hidden="true" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                              {t("department")}
-                            </p>
-                            <h2
-                              className="mt-1 truncate font-display text-xl font-bold sm:text-2xl"
-                              data-testid={`text-department-name-${activeDetail.id}`}
-                            >
-                              {localizedName(
-                                locale,
-                                activeDetail.name,
-                                activeDetail.nameEn,
-                              )}
-                            </h2>
-                            {activeDetail.description && (
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                {activeDetail.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Status
-                            value={
-                              activeDetail.active === false
-                                ? "inactive"
-                                : "active"
-                            }
-                          />
-                          {canManage && (
-                            <Button
-                              variant="outline"
-                              className="min-h-9 rounded-xl px-3"
-                              onClick={() => openEdit(activeDetail)}
-                              data-testid={`button-edit-selected-department-${activeDetail.id}`}
-                            >
-                              <Pencil size={14} aria-hidden="true" />
-                              {t("edit")}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6">
-                        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
-                            <UserRound size={17} aria-hidden="true" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-xs text-muted-foreground">
-                              {t("manager")}
-                            </p>
-                            <p
-                              className="mt-0.5 truncate text-sm font-semibold"
-                              data-testid={`text-department-manager-${activeDetail.id}`}
-                            >
-                              {activeDetail.manager?.name ?? "—"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-muted/30 p-3.5">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-primary-dark shadow-sm">
-                            <Users size={17} aria-hidden="true" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-xs text-muted-foreground">
-                              {t("departmentEmployees")}
-                            </p>
-                            <p
-                              className="mt-0.5 text-sm font-semibold tabular-nums"
-                              data-testid={`text-department-employee-count-${activeDetail.id}`}
-                            >
-                              {activeDetail.employeeCount ??
-                                activeDetail.employees?.length ??
-                                0}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <section className="px-4 pb-4 sm:px-6 sm:pb-6">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <h3 className="font-display text-lg font-semibold">
-                            {t("departmentEmployees")}
-                          </h3>
-                          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                            {activeDetail.employees?.length ?? 0}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          {activeDetail.employees?.map((employee: any) => (
-                            <div
-                              key={employee.id}
-                              className="flex flex-col gap-3 rounded-xl border border-border/80 p-3 sm:flex-row sm:items-center sm:justify-between"
-                              data-testid={`row-department-employee-${employee.id}`}
-                            >
-                              <div className="flex min-w-0 items-center gap-3">
-                                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                                  <UserRound
-                                    size={16}
-                                    aria-hidden="true"
-                                  />
-                                </span>
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-semibold">
-                                    {employee.name}
-                                  </div>
-                                  <div className="truncate text-xs text-muted-foreground">
-                                    {employee.department ?? "—"}
-                                  </div>
-                                </div>
-                              </div>
-                              {canManage && (
-                                <select
-                                  aria-label={`${t("departmentEmployees")}: ${employee.name}`}
-                                  data-testid={`select-department-membership-${employee.id}`}
-                                  value={selected ?? ""}
-                                  onChange={(event) =>
-                                    setMembership(
-                                      employee.id,
-                                      event.target.value,
-                                    )
-                                  }
-                                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-[220px]"
-                                >
-                                  <option value="">
-                                    {t("selectOption")}
-                                  </option>
-                                  {departmentRows.map((department: any) => (
-                                    <option
-                                      key={department.id}
-                                      value={department.id}
-                                    >
-                                      {localizedName(
-                                        locale,
-                                        department.name,
-                                        department.nameEn,
-                                      )}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            </div>
-                          ))}
-                          {!activeDetail.employees?.length && (
-                            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-center text-sm text-muted-foreground">
-                              {t("noEmployeesMatch")}
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                    </Card>
-                  ) : (
-                    <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
-                      <Building2
-                        size={24}
-                        className="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {t("departmentEmployees")}
-                      </p>
-                    </Card>
-                  )
-                ) : (
-                  <Card className="flex min-h-[320px] flex-col items-center justify-center border-dashed bg-muted/20 p-8 text-center">
-                    <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
-                      <Building2 size={24} aria-hidden="true" />
+          </div>
+          <Card className="min-h-[360px] p-6">
+            {activeDetail ? (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                      {t("department")}
                     </div>
-                    <h2 className="mt-4 font-display text-lg font-semibold">
-                      {t("departmentEmployees")}
+                    <h2 className="mt-1 font-display text-2xl font-semibold">
+                      {activeDetail.name}
                     </h2>
-                    <p className="mt-1 max-w-xs text-sm leading-6 text-muted-foreground">
-                      {t("selectOption")}
-                    </p>
-                  </Card>
-                )}
-              </div>
-            </div>
-          ) : (
-            <Card className="overflow-hidden border-dashed">
-              <div className="grid gap-5 p-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-8">
-                <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary-dark">
-                  <Building2 size={24} aria-hidden="true" />
+                    {activeDetail.description && (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {activeDetail.description}
+                      </p>
+                    )}
+                  </div>
+                  <Status value={activeDetail.active ? "active" : "inactive"} />
                 </div>
-                <div>
-                  <h2 className="font-display text-lg font-semibold">
-                    {t("noDepartments")}
-                  </h2>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {t("noDepartmentsDetail")}
-                  </p>
+                <div className="mt-6 rounded-xl border border-border p-4">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {t("manager")}
+                  </div>
+                  <div className="mt-1 font-medium">
+                    {activeDetail.manager?.name ?? "—"}
+                  </div>
                 </div>
-                {canManage && (
-                  <Button
-                    onClick={openCreate}
-                    className="min-h-11 rounded-xl px-4"
-                    data-testid="button-add-first-department"
-                  >
-                    <Plus size={16} aria-hidden="true" />
-                    {t("addDepartment")}
-                  </Button>
-                )}
-              </div>
-            </Card>
-          )}
-        </>
+                <div className="mt-6">
+                  <h3 className="font-display text-lg font-semibold">
+                    {t("departmentEmployees")}
+                  </h3>
+                  <div className="mt-3 space-y-2">
+                    {activeDetail.employees?.map((employee: any) => (
+                      <div
+                        key={employee.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                      >
+                        <div className="min-w-0">
+                           <div className="truncate font-medium">
+                             {employee.name}
+                           </div>
+                           <div className="text-xs text-muted-foreground">
+                             {employee.department}
+                           </div>
+                        </div>
+                        {canManage && (
+                           <select
+                             value={selected ?? ""}
+                            onChange={(event) =>
+                              setMembership(employee.id, event.target.value)
+                            }
+                            className="h-9 max-w-[180px] rounded-lg border border-input bg-background px-2 text-xs"
+                          >
+                            <option value="">{t("selectOption")}</option>
+                            {departments.data.map((department: any) => (
+                              <option key={department.id} value={department.id}>
+                                {department.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    ))}
+                     {!activeDetail.employees?.length && (
+                      <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                        {t("noEmployeesMatch")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Empty
+                title={t("departmentEmployees")}
+                detail={t("noDepartmentsDetail")}
+                action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
+              />
+            )}
+          </Card>
+        </div>
+      ) : (
+        <Empty
+          title={t("noDepartments")}
+          detail={t("noDepartmentsDetail")}
+          action={canManage ? <Button onClick={openCreate}>{t("addDepartment")}</Button> : undefined}
+        />
       )}
       {showCreate && (
         <Modal
           title={selected ? t("edit") : t("addDepartment")}
-          onClose={() => setShowCreate(false)}
-          className="max-w-xl"
-          footer={
-            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <div>
-                {selected && (
-                  <Button
-                    type="button"
-                    variant="danger"
-                    onClick={deleteDepartment}
-                    disabled={remove.isPending}
-                    data-testid="button-delete-department"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    {t("remove")}
-                  </Button>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="quiet"
-                  onClick={() => setShowCreate(false)}
-                  data-testid="button-cancel-department"
-                >
-                  {t("cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  form="department-editor-form"
-                  disabled={
-                    create.isPending || update.isPending || remove.isPending
-                  }
-                  data-testid="button-save-department"
-                >
-                  {selected ? t("saveChanges") : t("createDepartment")}
-                </Button>
-              </div>
-            </div>
-          }
+          onClose={() => {
+            setShowCreate(false);
+            setSelected(null);
+          }}
         >
-          <form
-            id="department-editor-form"
-            onSubmit={save}
-            className="space-y-5"
-          >
+          <form onSubmit={save} className="space-y-6">
             <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
               <div className="mb-5 flex items-start gap-3">
                 <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Building2 size={19} aria-hidden="true" />
+                  <Building2 size={19} />
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
@@ -12004,43 +9079,48 @@ function Departments() {
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label={t("arabicName")}
-                  name="departmentName"
-                  required
-                  autoComplete="organization"
-                  value={form.name}
-                  onChange={(value) => setForm({ ...form, name: value })}
-                />
-                <Field
-                  label={t("englishName")}
-                  name="departmentNameEn"
-                  value={form.nameEn}
-                  onChange={(value) => setForm({ ...form, nameEn: value })}
-                />
-              </div>
+              <Field
+                label={t("departmentName")}
+                name="departmentName"
+                required
+                autoComplete="organization"
+                value={form.name}
+                onChange={(value) => setForm({ ...form, name: value })}
+              />
               {selected && (
-                <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-background p-3.5 transition-colors hover:border-primary/35">
-                  <span className="flex min-w-0 items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={form.active}
-                      onChange={(event) =>
-                        setForm({ ...form, active: event.target.checked })
-                      }
-                      className="size-4 shrink-0 accent-primary"
-                      data-testid="input-department-active"
-                    />
-                    <span className="text-sm font-semibold">
-                      {t("departmentStatus")}
-                    </span>
-                  </span>
-                  <Status
-                    value={form.active ? "active" : "inactive"}
+                <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(event) =>
+                      setForm({ ...form, active: event.target.checked })
+                    }
                   />
+                  {form.active ? t("activateDepartment") : t("deactivateDepartment")}
                 </label>
               )}
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreate(false)}
+              >
+                {t("cancel")}
+              </Button>
+               {selected && (
+                 <Button
+                   type="button"
+                   variant="danger"
+                   onClick={deleteDepartment}
+                   disabled={remove.isPending}
+                 >
+                   {t("remove")}
+                 </Button>
+               )}
+                <Button type="submit" disabled={create.isPending || update.isPending || remove.isPending}>
+                 {t("saveChanges")}
+               </Button>
             </div>
           </form>
         </Modal>
@@ -12054,7 +9134,6 @@ function AddEmployeePage() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
-  const currency = workspaceQuery.data?.company?.currency ?? "EGP";
   const depts = useListDepartments();
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
@@ -12073,33 +9152,17 @@ function AddEmployeePage() {
     workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const [form, setForm] = useState({
     employeeName: "",
-    employeeNameEn: "",
     nationalId: "",
     phone: "",
     biometricCode: "",
     workingHours: "8",
-    payBasis: "monthly" as "monthly" | "hourly",
-    workDaysPerMonth: "",
     departmentId: "",
     branchId: "",
     joinedOn: new Date().toISOString().slice(0, 10),
     salary: "0",
     scheduleId: "",
-    role: "employee",
     payrollCycleId: "",
-    locationAttendanceEnabled: false,
-    automaticAnnualLeaveEligible: false,
   });
-  const liveHourlyRate =
-    Number.isFinite(Number(form.salary)) &&
-    Number(form.salary) >= 0 &&
-    Number.isInteger(Number(form.workDaysPerMonth)) &&
-    Number(form.workDaysPerMonth) > 0 &&
-    Number.isFinite(Number(form.workingHours)) &&
-    Number(form.workingHours) > 0
-      ? Number(form.salary) /
-        (Number(form.workDaysPerMonth) * Number(form.workingHours))
-      : null;
 
   useEffect(() => {
     if (workspaceQuery.data && !canCreateEmployees) {
@@ -12110,9 +9173,7 @@ function AddEmployeePage() {
   function submit(e: FormEvent) {
     e.preventDefault();
     const employeeName = form.employeeName.trim();
-    const employeeNameEn = form.employeeNameEn.trim();
     const nameParts = employeeName.split(/\s+/).filter(Boolean);
-    const englishNameParts = (employeeNameEn || employeeName).split(/\s+/).filter(Boolean);
     if (
       nameParts.length === 0 ||
       !form.nationalId.trim() ||
@@ -12120,56 +9181,40 @@ function AddEmployeePage() {
       !form.biometricCode.trim() ||
       !form.departmentId ||
       !form.branchId ||
-      (form.payBasis === "monthly" && !form.scheduleId) ||
+      !form.scheduleId ||
       !form.joinedOn ||
       !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
-      Number(form.workingHours) <= 0 ||
-      Number(form.workingHours) > 24 ||
-      !Number.isInteger(Number(form.workDaysPerMonth)) ||
-      Number(form.workDaysPerMonth) < 1 ||
-      Number(form.workDaysPerMonth) > 31
+      Number(form.workingHours) < 0 ||
+      Number(form.workingHours) > 24
     ) {
       toast.error(t("required"));
       return;
     }
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(" ") || firstName;
-    const firstNameEn = englishNameParts[0];
-    const lastNameEn = englishNameParts.slice(1).join(" ") || firstNameEn;
     create.mutate(
       {
         data: {
           firstName,
           lastName,
-          firstNameEn,
-          lastNameEn,
           phone: form.phone.trim(),
           nationalId: form.nationalId.trim(),
           biometricCode: form.biometricCode.trim(),
           workingHours: Number(form.workingHours),
-          payBasis: form.payBasis,
-          workDaysPerMonth: Number(form.workDaysPerMonth),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
           joinedOn: form.joinedOn,
-          ...(form.payBasis === "monthly"
-            ? { scheduleId: form.scheduleId }
-            : {}),
+          scheduleId: form.scheduleId,
           payrollCycleId: form.payrollCycleId || null,
-          role: form.role as "employee" | "manager",
-          locationAttendanceEnabled: form.locationAttendanceEnabled,
-          automaticAnnualLeaveEligible:
-            form.automaticAnnualLeaveEligible,
         },
       },
       {
         onSuccess: (result: any) => {
           toast.success(t("employeeAdded"));
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
           const generated = result?.accountCredentials?.generatedPassword;
           const username = result?.accountCredentials?.username;
           if (generated && username) {
@@ -12244,7 +9289,7 @@ function AddEmployeePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Field
-                label={t("arabicName")}
+                label={t("employeeName")}
                 name="employeeName"
                 required
                 autoComplete="name"
@@ -12253,16 +9298,6 @@ function AddEmployeePage() {
                 onChange={(value) =>
                   setForm({ ...form, employeeName: value })
                 }
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Field
-                label={t("englishName")}
-                name="employeeNameEn"
-                autoComplete="name"
-                placeholder="First Last"
-                value={form.employeeNameEn}
-                onChange={(value) => setForm({ ...form, employeeNameEn: value })}
               />
             </div>
             <Field
@@ -12310,30 +9345,9 @@ function AddEmployeePage() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-semibold">
-              <span className="block">{t("payBasis")}</span>
-              <select
-                name="payBasis"
-                value={form.payBasis}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    payBasis: event.target.value as "monthly" | "hourly",
-                  })
-                }
-                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
-              >
-                <option value="monthly">{t("monthlyPayBasis")}</option>
-                <option value="hourly">{t("hourlyPayBasis")}</option>
-              </select>
-            </label>
             <div>
               <Field
-                label={
-                  form.payBasis === "hourly"
-                    ? t("referenceMonthlySalary")
-                    : t("monthlySalary")
-                }
+                label={t("monthlySalary")}
                 name="salary"
                 required
                 type="number"
@@ -12344,20 +9358,18 @@ function AddEmployeePage() {
                 onChange={(value) => setForm({ ...form, salary: value })}
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                {form.payBasis === "hourly"
-                  ? t("hourlyPayReferenceSalaryHint")
-                  : t("salaryHint")}
+                {t("salaryHint")}
               </p>
             </div>
             <div>
               <Field
-                label={t("referenceHoursPerDay")}
+                label={t("workingHours")}
                 name="workingHours"
                 required
                 type="number"
-                min="0.01"
+                min="0"
                 max="24"
-                step="0.01"
+                step="0.5"
                 inputMode="decimal"
                 value={form.workingHours}
                 onChange={(value) =>
@@ -12369,34 +9381,6 @@ function AddEmployeePage() {
               </p>
             </div>
             <Field
-              label={t("referenceWorkdaysPerMonth")}
-              name="workDaysPerMonth"
-              required
-              type="number"
-              min="1"
-              max="31"
-              step="1"
-              inputMode="numeric"
-              value={form.workDaysPerMonth}
-              onChange={(value) =>
-                setForm({ ...form, workDaysPerMonth: value })
-              }
-            />
-            <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("calculatedHourlyRate")}
-              </div>
-              <div className="mt-1 text-xl font-bold text-primary">
-                {liveHourlyRate !== null
-                  ? `${money(liveHourlyRate, currency)} / ${t("perHour")}`
-                  : t("notAvailable")}
-              </div>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {t("hourlyRateDerivationHint")}{" "}
-                {form.payBasis === "hourly" ? t("hourlyPayAttendanceHint") : ""}
-              </p>
-            </div>
-            <Field
               label={t("employmentStartDate")}
               name="joinedOn"
               required
@@ -12404,44 +9388,42 @@ function AddEmployeePage() {
               value={form.joinedOn}
               onChange={(value) => setForm({ ...form, joinedOn: value })}
             />
-            {form.payBasis === "monthly" && (
-              <label className="block text-sm font-semibold">
-                <span className="block">{t("shift")}</span>
-                <select
-                  required
-                  name="scheduleId"
-                  data-testid="select-employee-shift"
-                  value={form.scheduleId}
-                  disabled={schedules.isLoading || !schedules.data?.length}
-                  onChange={(e) =>
-                    setForm({ ...form, scheduleId: e.target.value })
-                  }
-                  className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <option value="">
-                    {schedules.isLoading
-                      ? t("loading")
-                      : schedules.data?.length
-                        ? t("selectOption")
-                        : t("noShifts")}
+            <label className="block text-sm font-semibold">
+              <span className="block">{t("shift")}</span>
+              <select
+                required
+                name="scheduleId"
+                data-testid="select-employee-shift"
+                value={form.scheduleId}
+                disabled={schedules.isLoading || !schedules.data?.length}
+                onChange={(e) =>
+                  setForm({ ...form, scheduleId: e.target.value })
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">
+                  {schedules.isLoading
+                    ? t("loading")
+                    : schedules.data?.length
+                      ? t("selectOption")
+                      : t("noShifts")}
+                </option>
+                {schedules.data?.map((schedule: any) => (
+                  <option
+                    key={schedule.id}
+                    value={schedule.id}
+                    data-testid={`option-employee-shift-${schedule.id}`}
+                  >
+                    {schedule.name} · {schedule.startTime}–{schedule.endTime}
                   </option>
-                  {schedules.data?.map((schedule: any) => (
-                    <option
-                      key={schedule.id}
-                      value={schedule.id}
-                      data-testid={`option-employee-shift-${schedule.id}`}
-                    >
-                      {localizedName(locale, schedule.name, schedule.nameEn)} · {schedule.startTime}–{schedule.endTime}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                  {schedules.isError
-                    ? t("shiftsLoadFailed")
-                    : t("selectShiftHint")}
-                </p>
-              </label>
-            )}
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                {schedules.isError
+                  ? t("shiftsLoadFailed")
+                  : t("selectShiftHint")}
+              </p>
+            </label>
             <label className="block text-sm font-semibold sm:col-span-2">
               <span className="block">{t("payrollCycle")}</span>
               <select
@@ -12469,37 +9451,6 @@ function AddEmployeePage() {
               <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
                 {t("payrollCycleHint")}
               </p>
-            </label>
-            <EmployeeAttendanceLocationMode
-              locale={locale}
-              variableLocation={form.locationAttendanceEnabled}
-              onChange={(variableLocation) =>
-                setForm({
-                  ...form,
-                  locationAttendanceEnabled: variableLocation,
-                })
-              }
-            />
-            <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
-                className="mt-1 accent-primary"
-                checked={form.automaticAnnualLeaveEligible}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    automaticAnnualLeaveEligible: event.target.checked,
-                  })
-                }
-              />
-              <span>
-                <span className="block font-semibold">
-                  {t("automaticAnnualLeaveEligible")}
-                </span>
-                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                  {t("automaticAnnualLeaveEligibleHint")}
-                </span>
-              </span>
             </label>
           </div>
         </Card>
@@ -12533,7 +9484,7 @@ function AddEmployeePage() {
                     value={x.id}
                     data-testid={`option-employee-department-${x.id}`}
                   >
-                    {departmentLabel(x.name, t, locale, x.nameEn)}
+                    {departmentLabel(x.name, t)}
                   </option>
                 ))}
               </select>
@@ -12557,24 +9508,9 @@ function AddEmployeePage() {
                     value={x.id}
                     data-testid={`option-employee-branch-${x.id}`}
                   >
-                    {branchLabel(x.name, t, locale, x.nameEn)}
+                    {branchLabel(x.name, t)}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
-              <span className="block">{t("role")}</span>
-              <select
-                name="role"
-                data-testid="select-employee-role"
-                value={form.role}
-                onChange={(event) =>
-                  setForm({ ...form, role: event.target.value })
-                }
-                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary"
-              >
-                <option value="employee">{t("roleEmployee")}</option>
-                <option value="manager">{t("roleManager")}</option>
               </select>
             </label>
           </div>
@@ -12619,167 +9555,6 @@ function AddEmployeePage() {
   );
 }
 
-function EmployeeAttendanceDevicesPanel({
-  employeeId,
-  locale,
-}: {
-  employeeId: string;
-  locale: Locale;
-}) {
-  const qc = useQueryClient();
-  const devices = useListEmployeeAttendanceDevices(employeeId, {
-    query: {
-      enabled: Boolean(employeeId),
-      queryKey: getListEmployeeAttendanceDevicesQueryKey(employeeId),
-      refetchInterval: 15_000,
-    },
-  });
-  const decide = useDecideEmployeeAttendanceDevice();
-  const hasActiveDevice = devices.data?.some((device) => device.status === "active");
-  const copy = attendanceDeviceCopy(locale);
-
-  function decideDevice(deviceId: string, decision: "approve" | "reject" | "revoke") {
-    if (
-      decision === "approve" &&
-      hasActiveDevice &&
-      !window.confirm(copy.replaceConfirm)
-    ) {
-      return;
-    }
-    if (
-      decision === "revoke" &&
-      !window.confirm(copy.revokeConfirm)
-    ) {
-      return;
-    }
-    decide.mutate(
-      { employeeId, deviceId, data: { decision } },
-      {
-        onSuccess: () => {
-          toast.success(
-            decision === "approve"
-              ? copy.approveSuccess
-              : decision === "reject"
-                ? copy.rejectSuccess
-                : copy.unlinkSuccess,
-          );
-          qc.invalidateQueries({
-            queryKey: getListEmployeeAttendanceDevicesQueryKey(employeeId),
-          });
-        },
-        onError: (error: unknown) =>
-          toast.error(
-            apiErrorMessage(
-              error,
-              copy.updateFailed,
-            ),
-          ),
-      },
-    );
-  }
-
-  return (
-    <Card>
-      <div className="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-            <Fingerprint size={18} className="text-primary" />
-            {copy.title}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {copy.description}
-          </p>
-        </div>
-      </div>
-      <div className="space-y-3 p-4">
-        {devices.isLoading ? (
-          <Skeleton className="h-20" />
-        ) : devices.isError ? (
-          <Empty
-            title={copy.loadFailed}
-            detail={copy.retry}
-            action={
-              <Button variant="outline" onClick={() => devices.refetch()}>
-                {copy.retry}
-              </Button>
-            }
-          />
-        ) : devices.data?.length ? (
-          devices.data.map((device) => (
-            <div
-              key={device.id}
-              className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <div className="break-words text-sm font-medium">
-                  {device.deviceLabel}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {copy.requested}
-                  {date(device.requestedAt)}
-                  {device.approvedAt
-                    ? ` · ${copy.approvedAt}${date(device.approvedAt)}`
-                    : ""}
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <Badge
-                  tone={
-                    device.status === "active"
-                      ? "good"
-                      : device.status === "pending"
-                        ? "warn"
-                        : "neutral"
-                  }
-                >
-                  {device.status === "active"
-                    ? copy.approved
-                    : device.status === "pending"
-                      ? copy.pending
-                      : device.status === "rejected"
-                        ? copy.rejected
-                        : copy.unlinked}
-                </Badge>
-                {device.status === "pending" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      disabled={decide.isPending}
-                      onClick={() => decideDevice(device.id, "approve")}
-                    >
-                      {copy.approve}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={decide.isPending}
-                      onClick={() => decideDevice(device.id, "reject")}
-                    >
-                      {copy.reject}
-                    </Button>
-                  </>
-                ) : null}
-                {device.status === "active" ? (
-                  <Button
-                    variant="outline"
-                    disabled={decide.isPending}
-                    onClick={() => decideDevice(device.id, "revoke")}
-                  >
-                    {copy.unlink}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {copy.noDevices}
-          </p>
-        )}
-      </div>
-    </Card>
-  );
-}
-
 function EmployeeProfilePage() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
@@ -12805,16 +9580,6 @@ function EmployeeProfilePage() {
       queryKey: getGetEmployeeScheduleQueryKey(employeeId),
     },
   });
-  const payBasis = employee.data?.payBasis ?? "monthly";
-  const monthlySalary = Number(employee.data?.salary ?? 0);
-  const workingHours = Number(employee.data?.workingHours ?? 0);
-  const referenceWorkdays = Number(employee.data?.workDaysPerMonth ?? 0);
-  const dailyRate =
-    referenceWorkdays > 0 && Number.isFinite(monthlySalary)
-      ? monthlySalary / referenceWorkdays
-      : null;
-  const hourlyRate =
-    dailyRate != null && workingHours > 0 ? dailyRate / workingHours : null;
   const leaveBalances = useListLeaveBalances({
     query: {
       enabled: Boolean(employeeId),
@@ -12833,11 +9598,9 @@ function EmployeeProfilePage() {
       balance.type.toLowerCase().includes("annual"),
   );
   const update = useUpdateEmployee();
-  const assignSchedule = useAssignEmployeeSchedule();
   const remove = useDeleteEmployee();
   const departments = useListDepartments();
   const branches = useListBranches();
-  const schedules = useListWorkSchedules();
   const payrollCycles = useListPayrollCycles();
   const payrollCycleAssignments = useListEmployeePayrollCycleAssignments(
     employeeId,
@@ -12856,34 +9619,17 @@ function EmployeeProfilePage() {
   });
   const [editForm, setEditForm] = useState({
     employeeNumber: "",
-    arabicName: "",
-    englishName: "",
+    firstName: "",
+    lastName: "",
     phone: "",
     nationalId: "",
     biometricCode: "",
     workingHours: "8",
-    payBasis: "monthly" as "monthly" | "hourly",
-    workDaysPerMonth: "",
     salary: "0",
-    joinedOn: "",
-    scheduleId: "",
     departmentId: "",
     branchId: "",
-    role: "employee",
     status: "active",
-    locationAttendanceEnabled: false,
-    automaticAnnualLeaveEligible: false,
   });
-  const editHourlyRate =
-    Number.isFinite(Number(editForm.salary)) &&
-    Number(editForm.salary) >= 0 &&
-    Number.isInteger(Number(editForm.workDaysPerMonth)) &&
-    Number(editForm.workDaysPerMonth) > 0 &&
-    Number.isFinite(Number(editForm.workingHours)) &&
-    Number(editForm.workingHours) > 0
-      ? Number(editForm.salary) /
-        (Number(editForm.workDaysPerMonth) * Number(editForm.workingHours))
-      : null;
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
       setCycleForm((current) => ({
@@ -12896,143 +9642,54 @@ function EmployeeProfilePage() {
     if (!employee.data) return;
     setEditForm({
       employeeNumber: employee.data.employeeNumber,
-      arabicName: [employee.data.firstName, employee.data.lastName]
-        .filter(Boolean)
-        .filter(
-          (value, index, values) =>
-            index === 0 || value !== values[index - 1],
-        )
-        .join(" "),
-      englishName: [employee.data.firstNameEn, employee.data.lastNameEn]
-        .filter(Boolean)
-        .filter(
-          (value, index, values) =>
-            index === 0 || value !== values[index - 1],
-        )
-        .join(" "),
+      firstName: employee.data.firstName,
+      lastName: employee.data.lastName,
       phone: employee.data.phone ?? "",
       nationalId: employee.data.nationalId ?? "",
       biometricCode: employee.data.biometricCode ?? "",
       workingHours: String(employee.data.workingHours ?? 8),
-      payBasis: employee.data.payBasis ?? "monthly",
-      workDaysPerMonth: String(employee.data.workDaysPerMonth ?? ""),
       salary: String(employee.data.salary ?? 0),
-      joinedOn: employee.data.joinedOn,
-      scheduleId:
-        employeeSchedule.data?.assignment?.scheduleId ||
-        employeeSchedule.data?.schedule?.id ||
-        "",
       departmentId: employee.data.department?.id ?? "",
       branchId: employee.data.branch?.id ?? "",
-      role: employee.data.role,
       status: employee.data.status,
-      locationAttendanceEnabled: employee.data.locationAttendanceEnabled ?? false,
-      automaticAnnualLeaveEligible:
-        employee.data.automaticAnnualLeaveEligible ?? false,
     });
     setEditing(true);
   }
   function saveEdit(event: FormEvent) {
     event.preventDefault();
     const employeeNumber = editForm.employeeNumber.trim();
-    const arabicName = editForm.arabicName.trim();
-    const englishName = editForm.englishName.trim();
-    const arabicParts = splitEmployeeFullName(arabicName);
-    const englishParts = splitEmployeeFullName(englishName);
     if (
       !employeeNumber.match(/^[1-9][0-9]*$/) ||
-      !arabicName ||
-      !editForm.joinedOn ||
-      !editForm.branchId ||
-      (editForm.payBasis === "monthly" && !editForm.scheduleId) ||
-      !Number.isFinite(Number(editForm.salary)) ||
-      Number(editForm.salary) < 0 ||
-      !Number.isFinite(Number(editForm.workingHours)) ||
-      Number(editForm.workingHours) <= 0 ||
-      Number(editForm.workingHours) > 24 ||
-      !Number.isInteger(Number(editForm.workDaysPerMonth)) ||
-      Number(editForm.workDaysPerMonth) < 1 ||
-      Number(editForm.workDaysPerMonth) > 31
+      !editForm.firstName.trim() ||
+      !editForm.lastName.trim() ||
+      !editForm.branchId
     ) {
       toast.error(t("couldNotSaveRecord"));
       return;
     }
-    const finishEmployeeSave = () => {
-      toast.success(t("employeeSaved"));
-      setEditing(false);
-      qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-      qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
-      qc.invalidateQueries({
-        queryKey: getGetEmployeeQueryKey(employeeId),
-      });
-      qc.invalidateQueries({
-        queryKey: getGetEmployeeScheduleQueryKey(employeeId),
-      });
-      qc.invalidateQueries({ queryKey: getGetReportQueryKey() });
-      qc.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/payroll/"),
-      });
-      qc.invalidateQueries({
-        queryKey: getGetEmployeePayrollSummaryQueryKey(),
-      });
-    };
     update.mutate(
       {
         employeeId,
         data: {
           employeeNumber,
-          firstName: arabicParts.firstName,
-          lastName: arabicParts.lastName,
-          firstNameEn: englishParts.firstName,
-          lastNameEn: englishParts.lastName,
+          firstName: editForm.firstName.trim(),
+          lastName: editForm.lastName.trim(),
           phone: editForm.phone.trim(),
           nationalId: editForm.nationalId.trim(),
           biometricCode: editForm.biometricCode.trim(),
           workingHours: Number(editForm.workingHours),
-          payBasis: editForm.payBasis,
-          workDaysPerMonth: Number(editForm.workDaysPerMonth),
           salary: Number(editForm.salary),
-          joinedOn: editForm.joinedOn,
           departmentId: editForm.departmentId || null,
           branchId: editForm.branchId,
-          role: editForm.role,
           status: editForm.status,
-          locationAttendanceEnabled: editForm.locationAttendanceEnabled,
-          automaticAnnualLeaveEligible:
-            editForm.automaticAnnualLeaveEligible,
         } as any,
       },
       {
         onSuccess: () => {
-          if (editForm.payBasis === "hourly") {
-            finishEmployeeSave();
-            return;
-          }
-          const effectiveFrom =
-            employeeSchedule.data?.assignment?.effectiveFrom ||
-            (employee.data?.payBasis === "hourly"
-              ? new Date().toISOString().slice(0, 10)
-              : editForm.joinedOn);
-          assignSchedule.mutate(
-            {
-              employeeId,
-              data: {
-                scheduleId: editForm.scheduleId,
-                effectiveFrom,
-                effectiveTo:
-                  employeeSchedule.data?.assignment?.effectiveTo ?? null,
-              },
-            },
-            {
-              onSuccess: finishEmployeeSave,
-              onError: (error: unknown) =>
-                toast.error(
-                  apiErrorMessage(error, t("scheduleAssignmentFailed")),
-                ),
-            },
-          );
+          toast.success(t("employeeSaved"));
+          setEditing(false);
+          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) });
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
@@ -13043,7 +9700,7 @@ function EmployeeProfilePage() {
     if (
       !employee.data ||
       !window.confirm(
-        `${t("remove")}: ${employeeDisplayName(locale, employee.data)}?`,
+        `${t("remove")}: ${employee.data.firstName} ${employee.data.lastName}?`,
       )
     ) {
       return;
@@ -13109,7 +9766,7 @@ function EmployeeProfilePage() {
         eyebrow={t("employeeProfile")}
         title={
           employee.data
-            ? employeeDisplayName(locale, employee.data)
+            ? `${employee.data.firstName} ${employee.data.lastName}`
             : t("employeeProfile")
         }
         detail={t("employeeDetail")}
@@ -13163,7 +9820,7 @@ function EmployeeProfilePage() {
                     className="truncate font-display text-2xl font-semibold sm:text-3xl"
                     data-testid={`text-employee-name-${employee.data.id}`}
                   >
-                    {employeeDisplayName(locale, employee.data)}
+                    {employee.data.firstName} {employee.data.lastName}
                   </h2>
                   <p
                     className="mt-1 truncate text-sm text-muted-foreground"
@@ -13176,32 +9833,16 @@ function EmployeeProfilePage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone="accent">{roleLabel(employee.data.role, t)}</Badge>
                 <Status value={employee.data.status} />
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setLocation(`/employees/${employee.data.id}/movement`)
-                    }
-                    data-testid={`button-open-attendance-movement-${employee.data.id}`}
-                  >
-                    <Activity size={16} />
-                    {t("showAttendanceMovement")}
-                  </Button>
-                  {employee.data.locationAttendanceEnabled ? (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setLocation(
-                          `/employees/${employee.data.id}/work-locations`,
-                        )
-                      }
-                      data-testid={`button-open-work-locations-${employee.data.id}`}
-                    >
-                      <MapPin size={16} />
-                      {t("workLocations")}
-                    </Button>
-                  ) : null}
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setLocation(`/employees/${employee.data.id}/movement`)
+                  }
+                  data-testid={`button-open-attendance-movement-${employee.data.id}`}
+                >
+                  <Activity size={16} />
+                  {t("showAttendanceMovement")}
+                </Button>
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -13230,7 +9871,7 @@ function EmployeeProfilePage() {
               />
               <Info
                 label={t("branch")}
-                value={branchLabel(employee.data.branch?.name, t, locale, employee.data.branch?.nameEn)}
+                value={branchLabel(employee.data.branch?.name, t)}
               />
               <Info
                 label={t("employmentStartDate")}
@@ -13298,14 +9939,14 @@ function EmployeeProfilePage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <Info
                 label={t("department")}
-                value={departmentLabel(employee.data.department?.name, t, locale, employee.data.department?.nameEn)}
+                value={departmentLabel(employee.data.department?.name, t)}
                 testId={`text-profile-department-${employee.data.id}`}
               />
               <Info
                 label={t("branch")}
                 value={
                   employee.data.branch
-                    ? `${branchLabel(employee.data.branch.name, t, locale, employee.data.branch.nameEn)} · ${employee.data.branch.city}`
+                    ? `${branchLabel(employee.data.branch.name, t)} · ${employee.data.branch.city}`
                     : t("notAvailable")
                 }
                 testId={`text-profile-branch-${employee.data.id}`}
@@ -13313,25 +9954,21 @@ function EmployeeProfilePage() {
               <Info
                 label={t("shift")}
                 value={
-                  payBasis === "hourly"
-                    ? t("noFixedSchedule")
-                    : employeeSchedule.data?.schedule?.name ||
-                      t("notAvailable")
+                  employeeSchedule.data?.schedule?.name ||
+                  t("notAvailable")
                 }
                 testId={`text-profile-shift-${employee.data.id}`}
               />
-              {payBasis === "monthly" && (
-                <Info
-                  label={t("effectiveFrom")}
-                  value={
-                    employeeSchedule.data?.assignment?.effectiveFrom
-                      ? date(employeeSchedule.data.assignment.effectiveFrom)
-                      : t("notAvailable")
-                  }
-                  testId={`text-profile-shift-effective-${employee.data.id}`}
-                />
-              )}
-              {payBasis === "monthly" && employeeSchedule.data?.schedule && (
+              <Info
+                label={t("effectiveFrom")}
+                value={
+                  employeeSchedule.data?.assignment?.effectiveFrom
+                    ? date(employeeSchedule.data.assignment.effectiveFrom)
+                    : t("notAvailable")
+                }
+                testId={`text-profile-shift-effective-${employee.data.id}`}
+              />
+              {employeeSchedule.data?.schedule && (
                 <div
                   className="rounded-lg bg-muted/60 p-3 sm:col-span-2"
                   data-testid={`text-profile-shift-hours-${employee.data.id}`}
@@ -13436,60 +10073,18 @@ function EmployeeProfilePage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <EmployeeProfileSection
-              title={t(
-                payBasis === "hourly" ? "hourlyPayBasis" : "monthlySalary",
-              )}
-              detail={t(
-                payBasis === "hourly"
-                  ? "hourlyPayReferenceSalaryHint"
-                  : "salaryHint",
-              )}
+              title={t("monthlySalary")}
+              detail={t("salaryHint")}
               icon={<Coins size={17} />}
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <Info
-                  label={t("payBasis")}
-                  value={t(
-                    payBasis === "hourly" ? "hourlyPayBasis" : "monthlyPayBasis",
-                  )}
-                  testId={`text-profile-pay-basis-${employee.data.id}`}
-                />
-                <Info
-                  label={t(
-                    payBasis === "hourly"
-                      ? "referenceMonthlySalary"
-                      : "monthlySalary",
-                  )}
+                  label={t("monthlySalary")}
                   value={money(employee.data.salary, currency)}
                   testId={`text-profile-salary-${employee.data.id}`}
                 />
                 <Info
-                  label={t("referenceWorkdaysPerMonth")}
-                  value={
-                    employee.data.workDaysPerMonth ?? t("notAvailable")
-                  }
-                  testId={`text-profile-reference-workdays-${employee.data.id}`}
-                />
-                <Info
-                  label={t("dailyRate")}
-                  value={
-                    dailyRate != null
-                      ? money(dailyRate, currency)
-                      : t("notAvailable")
-                  }
-                  testId={`text-profile-daily-rate-${employee.data.id}`}
-                />
-                <Info
-                  label={t("hourlyRate")}
-                  value={
-                    hourlyRate != null
-                      ? money(hourlyRate, currency)
-                      : t("notAvailable")
-                  }
-                  testId={`text-profile-hourly-rate-${employee.data.id}`}
-                />
-                <Info
-                  label={t("referenceHoursPerDay")}
+                  label={t("workingHours")}
                   value={
                     employee.data.workingHours != null
                       ? `${employee.data.workingHours} ${t("hours").toLowerCase()}`
@@ -13498,11 +10093,6 @@ function EmployeeProfilePage() {
                   testId={`text-profile-working-hours-${employee.data.id}`}
                 />
               </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                {payBasis === "hourly"
-                  ? `${t("hourlyRateDerivationHint")} ${t("hourlyPayAttendanceHint")}`
-                  : t("salaryRatesHint")}
-              </p>
             </EmployeeProfileSection>
 
             <EmployeeProfileSection
@@ -13595,13 +10185,6 @@ function EmployeeProfilePage() {
             </EmployeeProfileSection>
           </div>
 
-          {canEditEmployees ? (
-            <EmployeeAttendanceDevicesPanel
-              employeeId={employee.data.id}
-              locale={locale}
-            />
-          ) : null}
-
           <div className="border-t border-border pt-1">
             <EmployeeHrPanel
               employeeId={employee.data.id}
@@ -13648,7 +10231,7 @@ function EmployeeProfilePage() {
             employeeId={employee.data.id}
             phone={employee.data.phone}
             companyName={workspaceQuery.data?.company?.name ?? ""}
-            employeeName={employeeDisplayName(locale, employee.data)}
+            employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
             canManage={canManageCredentials}
           />
 
@@ -13712,15 +10295,16 @@ function EmployeeProfilePage() {
                 {t("employeeNumberEditHint")}
               </p>
               <Field
-                label={t("arabicName")}
-                value={editForm.arabicName}
+                label={t("firstName")}
+                value={editForm.firstName}
                 required
-                onChange={(value) => setEditForm({ ...editForm, arabicName: value })}
+                onChange={(value) => setEditForm({ ...editForm, firstName: value })}
               />
               <Field
-                label={t("englishName")}
-                value={editForm.englishName}
-                onChange={(value) => setEditForm({ ...editForm, englishName: value })}
+                label={t("lastName")}
+                value={editForm.lastName}
+                required
+                onChange={(value) => setEditForm({ ...editForm, lastName: value })}
               />
               <Field
                 label={t("phoneNumber")}
@@ -13738,113 +10322,23 @@ function EmployeeProfilePage() {
                 value={editForm.biometricCode}
                 onChange={(value) => setEditForm({ ...editForm, biometricCode: value })}
               />
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("payBasis")}</span>
-                <select
-                  value={editForm.payBasis}
-                  onChange={(event) =>
-                    setEditForm({
-                      ...editForm,
-                      payBasis: event.target.value as "monthly" | "hourly",
-                    })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="monthly">{t("monthlyPayBasis")}</option>
-                  <option value="hourly">{t("hourlyPayBasis")}</option>
-                </select>
-              </label>
               <Field
-                label={t("referenceHoursPerDay")}
+                label={t("workingHours")}
                 type="number"
-                min={0.01}
+                min={0}
                 max={24}
-                step={0.01}
+                step={0.25}
                 value={editForm.workingHours}
                 onChange={(value) => setEditForm({ ...editForm, workingHours: value })}
               />
               <Field
-                label={
-                  editForm.payBasis === "hourly"
-                    ? t("referenceMonthlySalary")
-                    : t("monthlySalary")
-                }
+                label={t("salary")}
                 type="number"
                 min={0}
                 step={0.01}
                 value={editForm.salary}
                 onChange={(value) => setEditForm({ ...editForm, salary: value })}
               />
-              <Field
-                label={t("referenceWorkdaysPerMonth")}
-                type="number"
-                required
-                min={1}
-                max={31}
-                step={1}
-                value={editForm.workDaysPerMonth}
-                onChange={(value) =>
-                  setEditForm({ ...editForm, workDaysPerMonth: value })
-                }
-              />
-              <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t("calculatedHourlyRate")}
-                </div>
-                <div className="mt-1 text-xl font-bold text-primary">
-                  {editHourlyRate !== null
-                    ? `${money(editHourlyRate, currency)} / ${t("perHour")}`
-                    : t("notAvailable")}
-                </div>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  {t("hourlyRateDerivationHint")}{" "}
-                  {editForm.payBasis === "hourly"
-                    ? t("hourlyPayAttendanceHint")
-                    : ""}
-                </p>
-              </div>
-              <Field
-                label={t("employmentStartDate")}
-                type="date"
-                value={editForm.joinedOn}
-                required
-                onChange={(value) => setEditForm({ ...editForm, joinedOn: value })}
-              />
-              {editForm.payBasis === "monthly" && (
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("shift")}</span>
-                  <select
-                    value={editForm.scheduleId}
-                    required
-                    disabled={schedules.isLoading || !schedules.data?.length}
-                    onChange={(event) =>
-                      setEditForm({
-                        ...editForm,
-                        scheduleId: event.target.value,
-                      })
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="">
-                      {schedules.isLoading
-                        ? t("loading")
-                        : schedules.data?.length
-                          ? t("selectSchedule")
-                          : t("noShifts")}
-                    </option>
-                    {schedules.data?.map((schedule: any) => (
-                      <option key={schedule.id} value={schedule.id}>
-                        {localizedName(
-                          locale,
-                          schedule.nameAr || schedule.name,
-                          schedule.nameEn || schedule.name,
-                        )}{" "}
-                        · {schedule.startTime}–{schedule.endTime}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
               <label className="block text-sm font-semibold">
                 <span className="mb-2 block">{t("department")}</span>
                 <select
@@ -13891,60 +10385,12 @@ function EmployeeProfilePage() {
                   <option value="inactive">{t("inactive")}</option>
                 </select>
               </label>
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("role")}</span>
-                <select
-                  value={editForm.role}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, role: event.target.value })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  data-testid={`select-edit-employee-role-${employee.data.id}`}
-                >
-                  <option value="employee">{t("roleEmployee")}</option>
-                  <option value="manager">{t("roleManager")}</option>
-                </select>
-              </label>
-              <EmployeeAttendanceLocationMode
-                locale={locale}
-                variableLocation={editForm.locationAttendanceEnabled}
-                onChange={(variableLocation) =>
-                  setEditForm({
-                    ...editForm,
-                    locationAttendanceEnabled: variableLocation,
-                  })
-                }
-              />
-              <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm sm:col-span-2">
-                <input
-                  type="checkbox"
-                  className="mt-1 accent-primary"
-                  checked={editForm.automaticAnnualLeaveEligible}
-                  onChange={(event) =>
-                    setEditForm({
-                      ...editForm,
-                      automaticAnnualLeaveEligible: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <span className="block font-semibold">
-                    {t("automaticAnnualLeaveEligible")}
-                  </span>
-                  <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                    {t("automaticAnnualLeaveEligibleHint")}
-                  </span>
-                </span>
-              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
                 {t("cancel")}
               </Button>
-              <Button
-                type="submit"
-                disabled={update.isPending || assignSchedule.isPending}
-              >
+              <Button type="submit" disabled={update.isPending}>
                 {t("saveChanges")}
               </Button>
             </div>
@@ -14008,7 +10454,6 @@ function Employees() {
       "role",
       "joinedOn",
       "salary",
-      "workDaysPerMonth",
     ];
     downloadReport(
       "var-hr-employee-import-template.csv",
@@ -14045,36 +10490,8 @@ function Employees() {
       },
     );
   }
-  const employeeRows = q.data ?? [];
-  const departmentCount = new Set(
-    employeeRows
-      .map((item: any) => item.department?.id ?? item.department?.name)
-      .filter(Boolean),
-  ).size;
-  const branchCount = new Set(
-    employeeRows
-      .map((item: any) => item.branch?.id ?? item.branch?.name)
-      .filter(Boolean),
-  ).size;
-  const summary = [
-    {
-      label: t("employeesTitle"),
-      value: employeeRows.length,
-      icon: <Users size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("department"),
-      value: departmentCount,
-      icon: <Building2 size={18} aria-hidden="true" />,
-    },
-    {
-      label: t("branch"),
-      value: branchCount,
-      icon: <MapPin size={18} aria-hidden="true" />,
-    },
-  ];
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
         eyebrow={t("employeesEyebrow")}
         title={t("employeesTitle")}
@@ -14083,798 +10500,241 @@ function Employees() {
           canCreateEmployees ? (
             <Button
               onClick={() => setLocation("/employees/new")}
-              className="min-h-11 rounded-xl px-4 shadow-sm"
               data-testid="button-create-employee"
             >
-              <Plus size={16} aria-hidden="true" />
+              <Plus size={16} />
               {t("addEmployee")}
             </Button>
           ) : undefined
         }
       />
-      <Card className="p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+      <Card>
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
           <div className="relative flex-1">
             <Search
-              className="absolute start-3 top-3 text-muted-foreground"
+              className="absolute start-3 top-2.5 text-muted-foreground"
               size={16}
-              aria-hidden="true"
             />
             <input
               data-testid="input-employee-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              aria-label={t("searchEmployees")}
               placeholder={t("searchEmployees")}
-              className="h-11 w-full rounded-xl border border-input bg-background ps-10 pe-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border border-input bg-background ps-9 pe-3 text-sm outline-none focus:border-primary"
             />
           </div>
-          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-input bg-background px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
-            <SlidersHorizontal
-              size={16}
-              className="shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <label htmlFor="employee-status-filter" className="sr-only">
-              {t("status")}
-            </label>
-            <select
-              id="employee-status-filter"
-              data-testid="select-employee-status"
-              aria-label={t("status")}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
-            >
-              <option value="all">{t("allStatuses")}</option>
-              <option value="active">{t("active")}</option>
-              <option value="inactive">{t("inactive")}</option>
-            </select>
-          </div>
-        </div>
-      </Card>
-
-      {q.isLoading ? (
-        <>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {summary.map((item) => (
-              <Skeleton
-                key={item.label}
-                className="h-24 rounded-2xl"
-              />
-            ))}
-          </div>
-          <Card className="space-y-3 p-5">
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-          </Card>
-        </>
-      ) : q.isError ? (
-        <ErrorState retry={() => q.refetch()} />
-      ) : (
-        <>
-          <section
-            aria-label={t("employeesTitle")}
-            className="grid gap-3 sm:grid-cols-3"
+          <select
+            data-testid="select-employee-status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
           >
-            {summary.map((item, index) => (
-              <Card
-                key={item.label}
-                className="relative overflow-hidden p-4 sm:p-5"
-              >
-                <div
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute inset-y-0 start-0 w-1",
-                    index === 0
-                      ? "bg-primary"
-                      : index === 1
-                        ? "bg-emerald-500"
-                        : "bg-secondary",
-                  )}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-muted-foreground">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-bold tabular-nums">
-                      {item.value}
-                    </p>
-                  </div>
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                    {item.icon}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </section>
-
-          {employeeRows.length ? (
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
-                <h2 className="font-display text-base font-semibold">
-                  {t("employeesTitle")}
-                </h2>
-                <span
-                  className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"
-                  data-testid="text-employee-result-count"
-                >
-                  {employeeRows.length}
-                </span>
-              </div>
-              <div className="hidden overflow-x-auto 2xl:block">
-                <table className="w-full min-w-[1300px] text-left text-sm rtl:text-right">
-                  <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="px-5 py-4">{t("employeeNumber")}</th>
-                      <th className="px-4 py-4">{t("employee")}</th>
-                      <th className="px-4 py-4">{t("nationalId")}</th>
-                      <th className="px-4 py-4">{t("phoneNumber")}</th>
-                      <th className="px-4 py-4">{t("department")}</th>
-                      <th className="px-4 py-4">{t("branch")}</th>
-                      <th className="px-4 py-4">{t("shift")}</th>
-                      <th className="px-4 py-4">{t("monthlySalary")}</th>
-                      <th className="px-4 py-4">{t("workingHours")}</th>
-                      <th className="px-4 py-4">{t("biometricCode")}</th>
-                      <th className="px-4 py-4">{t("employmentStartDate")}</th>
-                      <th className="px-5 py-4">{t("status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {employeeRows.map((item: any) => (
-                      <tr
-                        key={item.id}
-                        role="link"
-                        tabIndex={0}
-                        aria-label={employeeDisplayName(locale, item)}
-                        onClick={() => setLocation(`/employees/${item.id}`)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            setLocation(`/employees/${item.id}`);
-                          }
-                        }}
-                        className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
-                        data-testid={`row-employee-${item.id}`}
+            <option value="all">{t("allStatuses")}</option>
+            <option value="active">{t("active")}</option>
+            <option value="inactive">{t("inactive")}</option>
+          </select>
+        </div>
+        {q.isLoading ? (
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
+        ) : q.isError ? (
+          <ErrorState retry={() => q.refetch()} />
+        ) : q.data?.length ? (
+          <>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[1450px] text-left text-sm rtl:text-right">
+              <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-4">{t("employeeNumber")}</th>
+                  <th className="px-4 py-4">{t("employee")}</th>
+                  <th className="px-4 py-4">{t("nationalId")}</th>
+                  <th className="px-4 py-4">{t("phoneNumber")}</th>
+                  <th className="px-4 py-4">{t("department")}</th>
+                  <th className="px-4 py-4">{t("branch")}</th>
+                  <th className="px-4 py-4">{t("shift")}</th>
+                  <th className="px-4 py-4">{t("monthlySalary")}</th>
+                  <th className="px-4 py-4">{t("workingHours")}</th>
+                  <th className="px-4 py-4">{t("biometricCode")}</th>
+                  <th className="px-4 py-4">{t("employmentStartDate")}</th>
+                  <th className="px-5 py-4">{t("status")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {q.data.map((item: any) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => setLocation(`/employees/${item.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-muted/40"
+                    data-testid={`row-employee-${item.id}`}
+                  >
+                    <td className="px-5 py-4">
+                      <span
+                        className="inline-flex rounded-lg bg-secondary/5 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-secondary"
+                        data-testid={`text-list-employee-number-${item.id}`}
                       >
-                        <td className="px-5 py-4">
-                          <span
-                            className="inline-flex rounded-lg bg-secondary/5 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-secondary"
-                            data-testid={`text-list-employee-number-${item.id}`}
-                          >
-                            {item.employeeNumber}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
-                              {item.avatarInitials ||
-                                `${item.firstName[0]}${item.lastName[0]}`}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="whitespace-nowrap font-semibold">
-                                {employeeDisplayName(locale, item)}
-                              </div>
-                              <div className="max-w-[190px] truncate text-xs text-muted-foreground">
-                                {item.phone || t("notAvailable")}
-                              </div>
-                            </div>
+                        {item.employeeNumber}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
+                          {item.avatarInitials ||
+                            `${item.firstName[0]}${item.lastName[0]}`}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="whitespace-nowrap font-semibold">
+                            {item.firstName} {item.lastName}
                           </div>
-                        </td>
-                        <td className="px-4 py-4 font-mono text-xs">
-                          {item.nationalId || t("notAvailable")}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-4">
-                          {item.phone || t("notAvailable")}
-                        </td>
-                        <td className="px-4 py-4">
-                          {departmentLabel(
-                            item.department?.name,
-                            t,
-                            locale,
-                            item.department?.nameEn,
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          {branchLabel(
-                            item.branch?.name,
-                            t,
-                            locale,
-                            item.branch?.nameEn,
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          {effectiveScheduleName(
-                            scheduleAssignments.data,
-                            schedules.data,
-                            item.id,
-                          ) || t("notAvailable")}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-4 font-semibold">
-                          {money(item.salary, currency)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-4">
-                          {item.workingHours ?? t("notAvailable")}
-                          {item.workingHours != null &&
-                            ` ${t("hours").toLowerCase()}`}
-                        </td>
-                        <td className="px-4 py-4 font-mono text-xs">
-                          {item.biometricCode || t("notAvailable")}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
-                          {date(item.joinedOn)}
-                        </td>
-                        <td className="px-5 py-4">
-                          <Status value={item.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 2xl:hidden">
-                {employeeRows.map((item: any) => {
-                  const shift =
-                    effectiveScheduleName(
-                      scheduleAssignments.data,
-                      schedules.data,
-                      item.id,
-                    ) || t("notAvailable");
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={() => setLocation(`/employees/${item.id}`)}
-                      aria-label={employeeDisplayName(locale, item)}
-                      className="group rounded-2xl border border-border bg-background p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rtl:text-right"
-                      data-testid={`card-employee-${item.id}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
-                            {item.avatarInitials ||
-                              `${item.firstName[0]}${item.lastName[0]}`}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold">
-                              {employeeDisplayName(locale, item)}
-                            </div>
-                            <div className="truncate text-xs text-muted-foreground">
-                              {item.phone || t("notAvailable")}
-                            </div>
+                          <div className="max-w-[190px] truncate text-xs text-muted-foreground">
+                            {item.phone || t("notAvailable")}
                           </div>
                         </div>
-                        <Status value={item.status} />
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                        <span className="font-mono text-xs font-bold tracking-wide text-secondary">
-                          {item.employeeNumber}
-                        </span>
-                        <ArrowUpRight
-                          size={16}
-                          className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                        <Info
-                          label={t("nationalId")}
-                          value={item.nationalId || t("notAvailable")}
-                        />
-                        <Info
-                          label={t("phoneNumber")}
-                          value={item.phone || t("notAvailable")}
-                        />
-                        <Info
-                          label={t("department")}
-                          value={departmentLabel(
-                            item.department?.name,
-                            t,
-                            locale,
-                            item.department?.nameEn,
-                          )}
-                        />
-                        <Info
-                          label={t("branch")}
-                          value={branchLabel(
-                            item.branch?.name,
-                            t,
-                            locale,
-                            item.branch?.nameEn,
-                          )}
-                        />
-                        <Info label={t("shift")} value={shift} />
-                        <Info
-                          label={t("monthlySalary")}
-                          value={money(item.salary, currency)}
-                        />
-                        <Info
-                          label={t("workingHours")}
-                          value={
-                            item.workingHours != null
-                              ? `${item.workingHours} ${t("hours").toLowerCase()}`
-                              : t("notAvailable")
-                          }
-                        />
-                        <Info
-                          label={t("biometricCode")}
-                          value={item.biometricCode || t("notAvailable")}
-                        />
-                        <Info
-                          label={t("employmentStartDate")}
-                          value={date(item.joinedOn)}
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
-          ) : (
-            <Empty
-              title={t("noEmployeesMatch")}
-              detail={t("adjustEmployeeSearch")}
-              action={
-                canCreateEmployees ? (
-                  <Button
-                    onClick={() => setLocation("/employees/new")}
-                    data-testid="button-empty-create-employee"
+                    </td>
+                    <td className="px-4 py-4 font-mono text-xs">
+                      {item.nationalId || t("notAvailable")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {item.phone || t("notAvailable")}
+                    </td>
+                    <td className="px-4 py-4">
+                      {departmentLabel(item.department?.name, t)}
+                    </td>
+                    <td className="px-4 py-4">{branchLabel(item.branch?.name, t)}</td>
+                    <td className="px-4 py-4">
+                      {effectiveScheduleName(
+                        scheduleAssignments.data,
+                        schedules.data,
+                        item.id,
+                      ) || t("notAvailable")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 font-semibold">
+                      {money(item.salary, currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {item.workingHours ?? t("notAvailable")}
+                      {item.workingHours != null && ` ${t("hours").toLowerCase()}`}
+                    </td>
+                    <td className="px-4 py-4 font-mono text-xs">
+                      {item.biometricCode || t("notAvailable")}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
+                      {date(item.joinedOn)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Status value={item.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              </table>
+            </div>
+            <div className="grid gap-3 p-3 lg:hidden sm:grid-cols-2 sm:p-4">
+              {q.data.map((item: any) => {
+                const shift =
+                  effectiveScheduleName(
+                    scheduleAssignments.data,
+                    schedules.data,
+                    item.id,
+                  ) || t("notAvailable");
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => setLocation(`/employees/${item.id}`)}
+                    className="group rounded-2xl border border-border bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)] rtl:text-right"
+                    data-testid={`card-employee-${item.id}`}
                   >
-                    <Plus size={15} aria-hidden="true" />
-                    {t("addEmployee")}
-                  </Button>
-                ) : undefined
-              }
-            />
-          )}
-        </>
-      )}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                          {item.avatarInitials ||
+                            `${item.firstName[0]}${item.lastName[0]}`}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold">
+                            {item.firstName} {item.lastName}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {item.phone || t("notAvailable")}
+                          </div>
+                        </div>
+                      </div>
+                      <Status value={item.status} />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                      <span className="font-mono text-xs font-bold tracking-wide text-secondary">
+                        {item.employeeNumber}
+                      </span>
+                      <ArrowUpRight
+                        size={16}
+                        className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      />
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <Info label={t("nationalId")} value={item.nationalId || t("notAvailable")} />
+                      <Info label={t("phoneNumber")} value={item.phone || t("notAvailable")} />
+                      <Info
+                        label={t("department")}
+                        value={departmentLabel(item.department?.name, t)}
+                      />
+                      <Info label={t("branch")} value={branchLabel(item.branch?.name, t)} />
+                      <Info label={t("shift")} value={shift} />
+                      <Info label={t("monthlySalary")} value={money(item.salary, currency)} />
+                      <Info
+                        label={t("workingHours")}
+                        value={
+                          item.workingHours != null
+                            ? `${item.workingHours} ${t("hours").toLowerCase()}`
+                            : t("notAvailable")
+                        }
+                      />
+                      <Info
+                        label={t("biometricCode")}
+                        value={item.biometricCode || t("notAvailable")}
+                      />
+                      <Info
+                        label={t("employmentStartDate")}
+                        value={date(item.joinedOn)}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <Empty
+            title={t("noEmployeesMatch")}
+            detail={t("adjustEmployeeSearch")}
+            action={
+              canCreateEmployees ? (
+                <Button
+                  onClick={() => setLocation("/employees/new")}
+                  data-testid="button-empty-create-employee"
+                >
+                  <Plus size={15} />
+                  {t("addEmployee")}
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+      </Card>
     </div>
   );
-}
-
-function EmployeeAttendanceLocationMode({
-  locale,
-  variableLocation,
-  onChange,
-}: {
-  locale: Locale;
-  variableLocation: boolean;
-  onChange: (variableLocation: boolean) => void;
-}) {
-  const copy =
-    locale === "ar"
-      ? {
-          title: "نوع تسجيل الحركة",
-          fixedTitle: "تسجيل الحركة بالموقع (موقع ثابت)",
-          fixedDetail:
-            "تُضاف بصمتا الحضور والانصراف مباشرة دون انتظار موافقة. ويتحقق GPS مقابل نطاق الشركة الثابت عند تفعيل سياسة GPS «مطلوب».",
-          variableTitle: "تسجيل الحركة بالموقع (موقع متغير)",
-          variableDetail:
-            "يتطلب GPS الهاتف ويلتقط موقعه عند كل بصمة من أي مكان. كل بصمات الهاتف تنتظر موافقة المدير أو HR قبل دخولها السجل والحسابات؛ بصمات الأجهزة تدخل مباشرة.",
-        }
-      : {
-          title: "Attendance movement type",
-          fixedTitle: "Attendance movement with location (fixed location)",
-          fixedDetail:
-            "Check-in and check-out are recorded immediately without manager approval. GPS is checked against company-defined fixed zones when the company GPS policy is Required.",
-          variableTitle:
-            "Attendance movement with location (variable location)",
-          variableDetail:
-            "Requires phone GPS and captures its location at every punch from any site. Every phone punch awaits manager/HR approval before entering attendance and calculations; device punches remain direct.",
-        };
-
-  return (
-    <fieldset className="min-w-0 sm:col-span-2">
-      <legend className="mb-2 text-sm font-semibold">{copy.title}</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label
-          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${
-            !variableLocation
-              ? "border-primary bg-primary/[0.035]"
-              : "border-border hover:border-primary/40"
-          }`}
-        >
-          <input
-            type="radio"
-            name="employee-attendance-location-mode"
-            value="fixed"
-            checked={!variableLocation}
-            onChange={() => onChange(false)}
-            className="mt-1 size-4 accent-primary"
-            data-testid="radio-employee-location-fixed"
-          />
-          <span>
-            <span className="block font-semibold">{copy.fixedTitle}</span>
-            <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-              {copy.fixedDetail}
-            </span>
-          </span>
-        </label>
-        <label
-          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${
-            variableLocation
-              ? "border-primary bg-primary/[0.035]"
-              : "border-border hover:border-primary/40"
-          }`}
-        >
-          <input
-            type="radio"
-            name="employee-attendance-location-mode"
-            value="variable"
-            checked={variableLocation}
-            onChange={() => onChange(true)}
-            className="mt-1 size-4 accent-primary"
-            data-testid="radio-employee-location-variable"
-          />
-          <span>
-            <span className="block font-semibold">{copy.variableTitle}</span>
-            <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-              {copy.variableDetail}
-            </span>
-          </span>
-        </label>
-      </div>
-    </fieldset>
-  );
-}
-
-function AttendanceLocationLinks({
-  location,
-  locale,
-}: {
-  location?: Record<string, any> | null;
-  locale: Locale;
-}) {
-  if (!location || typeof location !== "object") return null;
-  const checkIn = location.checkIn ?? (location.latitude != null ? location : null);
-  const checkOut = location.checkOut ?? null;
-  const links = [
-    checkIn ? { label: locale === "ar" ? "موقع الحضور" : "Check-in location", point: checkIn } : null,
-    checkOut ? { label: locale === "ar" ? "موقع الانصراف" : "Check-out location", point: checkOut } : null,
-  ].filter(Boolean) as Array<{ label: string; point: any }>;
-  return (
-    <div className="flex flex-wrap justify-end gap-1.5">
-      {links.map(({ label, point }) =>
-        typeof point.latitude === "number" && typeof point.longitude === "number" ? (
-          <a
-            key={label}
-            href={`https://www.google.com/maps?q=${point.latitude},${point.longitude}`}
-            target="_blank"
-            rel="noreferrer"
-            title={`${label}: ${point.latitude}, ${point.longitude}`}
-            className="inline-flex items-center gap-1 rounded-md border border-primary/20 px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/5"
-          >
-            <MapPin size={11} />
-            {label}
-          </a>
-        ) : null,
-      )}
-    </div>
-  );
-}
-
-const ATTENDANCE_DEVICE_TOKEN_KEY = "var-hr:attendance-device-token";
-
-function getAttendanceDeviceToken(): string {
-  const existing = window.localStorage.getItem(ATTENDANCE_DEVICE_TOKEN_KEY);
-  if (existing && existing.length >= 32) return existing;
-  const bytes = window.crypto.getRandomValues(new Uint8Array(32));
-  const token = Array.from(bytes, (value) =>
-    value.toString(16).padStart(2, "0"),
-  ).join("");
-  window.localStorage.setItem(ATTENDANCE_DEVICE_TOKEN_KEY, token);
-  return token;
-}
-
-function attendanceDeviceLabel(): string {
-  return attendanceDeviceTypeLabel(
-    attendanceDeviceTypeFromUserAgent(window.navigator.userAgent),
-    "en",
-  );
-}
-
-function attendanceDeviceTypeFromUserAgent(userAgent: string): string {
-  const agent = userAgent.toLowerCase();
-  if (/iphone|ipod/.test(agent)) return "ios";
-  if (/ipad|tablet/.test(agent)) return "tablet";
-  if (/android/.test(agent)) return /mobile/.test(agent) ? "android" : "tablet";
-  if (/windows phone|mobile|phone/.test(agent)) return "other";
-  return agent ? "desktop" : "unknown";
-}
-
-function attendanceDeviceTypeLabel(
-  deviceType: string | null | undefined,
-  locale: Locale,
-): string {
-  if (!deviceType) return "";
-  const labels: Record<Locale, Record<string, string>> = {
-    en: {
-      android: "Android",
-      ios: "iPhone / iPod",
-      tablet: "Tablet",
-      desktop: "Computer",
-      other: "Other mobile device",
-      unknown: "Unknown device",
-    },
-    ar: {
-      android: "أندرويد",
-      ios: "iPhone / iPod",
-      tablet: "جهاز لوحي",
-      desktop: "كمبيوتر",
-      other: "هاتف آخر",
-      unknown: "جهاز غير معروف",
-    },
-    fr: {
-      android: "Android",
-      ios: "iPhone / iPod",
-      tablet: "Tablette",
-      desktop: "Ordinateur",
-      other: "Autre appareil mobile",
-      unknown: "Appareil inconnu",
-    },
-    de: {
-      android: "Android",
-      ios: "iPhone / iPod",
-      tablet: "Tablet",
-      desktop: "Computer",
-      other: "Anderes Mobilgerät",
-      unknown: "Unbekanntes Gerät",
-    },
-  };
-  return labels[locale][deviceType] ?? deviceType;
-}
-
-function attendanceDeviceCopy(locale: Locale) {
-  const copy = {
-    en: {
-      title: "Attendance devices",
-      registered: "This device is approved for attendance check-in and check-out.",
-      approvalRequired:
-        "An administrator must approve this device before you can record attendance. Approving a new device replaces the previous one.",
-      approvalSettingTitle: "Require approval for employee attendance devices",
-      approvalSettingDetail:
-        "When enabled, an administrator must approve each browser before an employee can punch. When disabled, employees can punch without browser approval and the phone type is still recorded.",
-      approvalSettingSaved: "Attendance device approval setting saved.",
-      approvalSettingFailed: "Could not update attendance device approval.",
-      approvalSettingLoadFailed: "Could not load attendance device settings.",
-      approvalSettingOff: "Browser approval is off",
-      approvalSettingOn: "Browser approval is on",
-      phoneType: "Device type",
-      checking: "Checking",
-      approved: "Approved",
-      pending: "Awaiting approval",
-      notApproved: "Not approved",
-      refresh: "Refresh status",
-      sending: "Sending...",
-      requestFailed: "Could not request device registration.",
-      description:
-        "Approving a new device unlinks the current one. A rejected device can request approval again.",
-      loadFailed: "Could not load devices",
-      retry: "Retry",
-      requested: "Requested: ",
-      approvedAt: "Approved: ",
-      rejected: "Rejected",
-      unlinked: "Unlinked",
-      approve: "Approve",
-      reject: "Reject",
-      unlink: "Unlink",
-      replaceConfirm:
-        "Approving this device will unlink the current device. Continue?",
-      revokeConfirm:
-        "Unlinking this device will prevent attendance from it. Continue?",
-      approveSuccess: "Device approved.",
-      rejectSuccess: "Device request rejected.",
-      unlinkSuccess: "Device unlinked.",
-      updateFailed: "Could not update device registration.",
-      noDevices: "No linked devices or approval requests for this employee yet.",
-    },
-    ar: {
-      title: "أجهزة تسجيل الحضور",
-      registered: "هذا الجهاز معتمد لتسجيل الحضور والانصراف.",
-      approvalRequired:
-        "يجب اعتماد الجهاز من الإدارة قبل تسجيل الحضور. اعتماد جهاز جديد يلغي ربط الجهاز السابق.",
-      approvalSettingTitle: "اشتراط اعتماد متصفح الموظف قبل تسجيل الحضور",
-      approvalSettingDetail:
-        "عند التفعيل، يجب اعتماد كل متصفح قبل بصمة الموظف. عند الإيقاف، يستطيع الموظفون تسجيل الحضور دون اعتماد المتصفح، مع حفظ نوع الهاتف لكل بصمة.",
-      approvalSettingSaved: "تم حفظ إعداد اعتماد أجهزة الحضور.",
-      approvalSettingFailed: "تعذر تحديث إعداد اعتماد أجهزة الحضور.",
-      approvalSettingLoadFailed: "تعذر تحميل إعدادات أجهزة الحضور.",
-      approvalSettingOff: "اعتماد المتصفح متوقف",
-      approvalSettingOn: "اعتماد المتصفح مفعّل",
-      phoneType: "نوع الجهاز",
-      checking: "جارٍ التحقق",
-      approved: "معتمد",
-      pending: "بانتظار اعتماد الإدارة",
-      notApproved: "غير معتمد",
-      refresh: "تحديث الحالة",
-      sending: "جارٍ الإرسال...",
-      requestFailed: "تعذر إرسال طلب ربط الجهاز.",
-      description:
-        "اعتماد جهاز جديد يلغي ربط الجهاز الحالي. الجهاز المرفوض يمكنه إرسال طلب جديد.",
-      loadFailed: "تعذر تحميل الأجهزة",
-      retry: "إعادة المحاولة",
-      requested: "طلب الربط: ",
-      approvedAt: "اعتمد في: ",
-      rejected: "مرفوض",
-      unlinked: "ملغي",
-      approve: "اعتماد",
-      reject: "رفض",
-      unlink: "إلغاء الربط",
-      replaceConfirm:
-        "اعتماد هذا الجهاز سيلغي ربط الجهاز الحالي. هل تريد المتابعة؟",
-      revokeConfirm:
-        "إلغاء ربط هذا الجهاز سيمنع تسجيل الحضور منه. هل تريد المتابعة؟",
-      approveSuccess: "تم اعتماد الجهاز.",
-      rejectSuccess: "تم رفض طلب ربط الجهاز.",
-      unlinkSuccess: "تم إلغاء ربط الجهاز.",
-      updateFailed: "تعذر تحديث ربط الجهاز.",
-      noDevices: "لا توجد أجهزة مرتبطة أو طلبات اعتماد لهذا الموظف بعد.",
-    },
-    fr: {
-      title: "Appareils de présence",
-      registered: "Cet appareil est autorisé pour les arrivées et les départs.",
-      approvalRequired:
-        "Un administrateur doit autoriser cet appareil avant tout pointage. L’autorisation d’un nouvel appareil remplace l’ancien.",
-      approvalSettingTitle: "Exiger l’approbation du navigateur de présence",
-      approvalSettingDetail:
-        "Si l’option est activée, chaque navigateur doit être approuvé avant le pointage. Sinon, les employés peuvent pointer sans approbation et le type d’appareil est enregistré.",
-      approvalSettingSaved: "Le paramètre d’approbation est enregistré.",
-      approvalSettingFailed: "Impossible de modifier le paramètre d’approbation.",
-      approvalSettingLoadFailed: "Impossible de charger les paramètres des appareils.",
-      approvalSettingOff: "Approbation du navigateur désactivée",
-      approvalSettingOn: "Approbation du navigateur activée",
-      phoneType: "Type d’appareil",
-      checking: "Vérification",
-      approved: "Autorisé",
-      pending: "En attente d’approbation",
-      notApproved: "Non autorisé",
-      refresh: "Actualiser le statut",
-      sending: "Envoi...",
-      requestFailed: "Impossible de demander l’enregistrement de l’appareil.",
-      description:
-        "L’autorisation d’un nouvel appareil déconnecte l’appareil actuel. Un appareil refusé peut soumettre une nouvelle demande.",
-      loadFailed: "Impossible de charger les appareils",
-      retry: "Réessayer",
-      requested: "Demandé : ",
-      approvedAt: "Autorisé : ",
-      rejected: "Refusé",
-      unlinked: "Déconnecté",
-      approve: "Autoriser",
-      reject: "Refuser",
-      unlink: "Déconnecter",
-      replaceConfirm:
-        "Autoriser cet appareil déconnectera l’appareil actuel. Continuer ?",
-      revokeConfirm:
-        "Déconnecter cet appareil empêchera le pointage. Continuer ?",
-      approveSuccess: "Appareil autorisé.",
-      rejectSuccess: "Demande refusée.",
-      unlinkSuccess: "Appareil déconnecté.",
-      updateFailed: "Impossible de modifier l’enregistrement de l’appareil.",
-      noDevices: "Aucun appareil ni aucune demande en attente pour cet employé.",
-    },
-    de: {
-      title: "Anwesenheitsgeräte",
-      registered: "Dieses Gerät ist für Kommen und Gehen freigegeben.",
-      approvalRequired:
-        "Die Verwaltung muss dieses Gerät freigeben, bevor Sie Anwesenheit erfassen können. Ein neues Gerät ersetzt das bisherige.",
-      approvalSettingTitle: "Freigabe des Anwesenheitsbrowsers verlangen",
-      approvalSettingDetail:
-        "Wenn aktiviert, muss jeder Browser vor der Zeiterfassung freigegeben werden. Wenn deaktiviert, können Beschäftigte ohne Browserfreigabe buchen; der Gerätetyp wird trotzdem gespeichert.",
-      approvalSettingSaved: "Die Freigabeeinstellung wurde gespeichert.",
-      approvalSettingFailed: "Die Freigabeeinstellung konnte nicht geändert werden.",
-      approvalSettingLoadFailed: "Geräteeinstellungen konnten nicht geladen werden.",
-      approvalSettingOff: "Browserfreigabe ist deaktiviert",
-      approvalSettingOn: "Browserfreigabe ist aktiviert",
-      phoneType: "Gerätetyp",
-      checking: "Wird geprüft",
-      approved: "Freigegeben",
-      pending: "Wartet auf Freigabe",
-      notApproved: "Nicht freigegeben",
-      refresh: "Status aktualisieren",
-      sending: "Wird gesendet...",
-      requestFailed: "Geräteregistrierung konnte nicht angefordert werden.",
-      description:
-        "Die Freigabe eines neuen Geräts trennt das aktuelle Gerät. Für abgelehnte Geräte kann erneut eine Freigabe beantragt werden.",
-      loadFailed: "Geräte konnten nicht geladen werden",
-      retry: "Erneut versuchen",
-      requested: "Angefordert: ",
-      approvedAt: "Freigegeben: ",
-      rejected: "Abgelehnt",
-      unlinked: "Getrennt",
-      approve: "Freigeben",
-      reject: "Ablehnen",
-      unlink: "Trennen",
-      replaceConfirm:
-        "Dieses Gerät ersetzt das aktuelle Gerät. Fortfahren?",
-      revokeConfirm:
-        "Das Trennen dieses Geräts verhindert die Anwesenheitserfassung. Fortfahren?",
-      approveSuccess: "Gerät freigegeben.",
-      rejectSuccess: "Geräteanfrage abgelehnt.",
-      unlinkSuccess: "Gerät getrennt.",
-      updateFailed: "Geräteregistrierung konnte nicht aktualisiert werden.",
-      noDevices: "Für diesen Mitarbeiter gibt es noch keine Geräte oder Anfragen.",
-    },
-  } satisfies Record<Locale, Record<string, string>>;
-  return copy[locale];
 }
 
 function Attendance() {
-  const { t, locale } = useI18n();
-  const deviceCopy = attendanceDeviceCopy(locale);
+  const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
-  const selfEmployeeId =
-    workspace.data?.role === "employee" || workspace.data?.role === "manager"
-      ? workspace.data.employeeId ?? ""
-      : "";
-  const isSelfAttendanceUser = Boolean(selfEmployeeId);
-  const deviceApprovalPolicy = useGetAttendanceDeviceApproval({
-    query: {
-      queryKey: getGetAttendanceDeviceApprovalQueryKey(),
-      enabled: isSelfAttendanceUser,
-      refetchInterval: 15_000,
-    },
-  });
-  const requireDeviceApproval =
-    deviceApprovalPolicy.data?.requireApproval ?? false;
-  const [deviceToken] = useState(() => getAttendanceDeviceToken());
-  const registerDevice = useRegisterAttendanceDevice();
-  const requestDeviceRegistration = () => {
-    registerDevice.mutate(
-      {
-        data: {
-          deviceToken,
-          deviceLabel: attendanceDeviceLabel(),
-        },
-      },
-      {
-        onError: (error: unknown) =>
-          toast.error(
-            apiErrorMessage(
-              error,
-              deviceCopy.requestFailed,
-            ),
-          ),
-      },
-    );
-  };
-  const registrationRequested = useRef(false);
-  useEffect(() => {
-    if (
-      !isSelfAttendanceUser ||
-      !deviceApprovalPolicy.isSuccess ||
-      !requireDeviceApproval ||
-      registrationRequested.current
-    ) {
-      return;
-    }
-    registrationRequested.current = true;
-    requestDeviceRegistration();
-  }, [
-    isSelfAttendanceUser,
-    selfEmployeeId,
-    deviceToken,
-    deviceApprovalPolicy.isSuccess,
-    requireDeviceApproval,
-  ]);
-  const selfEmployee = useGetEmployee(selfEmployeeId, {
-    query: {
-      enabled: Boolean(selfEmployeeId),
-      queryKey: getGetEmployeeQueryKey(selfEmployeeId),
-    },
-  });
-  const invalidatePayrollAttendance = () =>
-    qc.invalidateQueries({
-      predicate: ({ queryKey }) =>
-        typeof queryKey[0] === "string" &&
-        queryKey[0].startsWith("/api/payroll/"),
-    });
   const [tab, setTab] = useState<"today" | "history">("today");
   const [filters, setFilters] = useState({ from: "", to: "", employeeId: "" });
   const [correction, setCorrection] = useState<any | null>(null);
-  const [manualPunch, setManualPunch] = useState<any | null>(null);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState("");
   const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState({
@@ -14892,18 +10752,6 @@ function Attendance() {
   });
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
-  const createManualPunch = useCreateManualAttendanceEvent();
-  const canApproveLocation =
-    workspace.data?.capabilities?.includes("attendance.location.approve") ||
-    workspace.data?.capabilities?.includes("attendance.correct") ||
-    false;
-  const punchRequests = useListAttendancePunchRequests({
-    query: {
-      enabled: canApproveLocation,
-      queryKey: getListAttendancePunchRequestsQueryKey(),
-    },
-  });
-  const decidePunchRequestMutation = useDecideAttendancePunchRequest();
   const correct = useCorrectAttendance();
   const calculation = usePreviewAttendanceCalculation(selectedAttendanceId, {
     query: {
@@ -14930,18 +10778,10 @@ function Attendance() {
     workspace.data?.capabilities?.includes("attendance.correct") ?? false;
   const canAdjust =
     workspace.data?.capabilities?.includes("attendance.adjust") ?? false;
-  const canManualPunch =
-    workspace.data?.role !== "employee" &&
-    (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
   const record = today.data?.records?.find(
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
   const action = record?.checkIn && !record.checkOut ? "out" : "in";
-  const canPunch = action === "in" || Boolean(record);
-  const deviceReady =
-    !isSelfAttendanceUser ||
-    (deviceApprovalPolicy.isSuccess &&
-      (!requireDeviceApproval || registerDevice.data?.status === "active"));
   const employeeDepartment = record?.employee?.department
     ? departmentLabel(record.employee.department, t)
     : t("companyAttendanceView");
@@ -15003,53 +10843,18 @@ function Attendance() {
       toast.warning(t("gpsUnavailable"));
     }
     const data = location ? { source: "web", ...location } : { source: "web" };
-    if (isSelfAttendanceUser && requireDeviceApproval) {
-      Object.assign(data, { deviceToken });
-    }
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
-       onSuccess: (result: any) => {
+      onSuccess: () => {
         setGpsState(location ? "captured" : "unavailable");
         toast.success(
-           result?.status === "pending"
-             ? locale === "ar"
-                ? "تم إرسال بصمة الموقع للموافقة، وستدخل السجل والحسابات بعد اعتمادها."
-                : "Your location punch was sent for approval and will enter attendance and calculations after approval."
-             : t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
+          t(kind === "in" ? "checkInRecorded" : "checkOutRecorded"),
         );
         qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
-        qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
-         qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
-          if (result?.status !== "pending") invalidatePayrollAttendance();
       },
       onError: (error: unknown) =>
         toast.error(apiErrorMessage(error, t("attendanceNotAccepted"))),
     });
-  }
-  function decidePunchRequest(id: string, decision: "approved" | "rejected") {
-    decidePunchRequestMutation.mutate(
-      { requestId: id, data: { decision } },
-      {
-        onSuccess: () => {
-          toast.success(
-            decision === "approved"
-              ? locale === "ar"
-                ? "تم اعتماد بصمة الموقع وتحديث سجل الحضور والحسابات."
-                : "Location punch approved; attendance and calculations updated."
-              : locale === "ar"
-                ? "تم رفض بصمة الموقع."
-                : "Location punch rejected.",
-          );
-          qc.invalidateQueries({ queryKey: getListAttendancePunchRequestsQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
-          qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-          if (decision === "approved") invalidatePayrollAttendance();
-        },
-        onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث طلب البصمة." : "Could not update punch request.")),
-      },
-    );
   }
   function openCorrection(item: any) {
     setCorrection({
@@ -15059,57 +10864,6 @@ function Attendance() {
       status: item.status,
       reason: "",
     });
-  }
-  function openManualPunch(item?: any) {
-    const dateValue = item?.date || filters.from || today.data?.date || "";
-    const employeeId = item?.employee?.id || filters.employeeId || "";
-    const defaultTime = item?.checkIn || item?.checkOut
-      ? toDateTimeInput(item.checkIn || item.checkOut)
-      : dateValue
-        ? `${dateValue}T09:00`
-        : "";
-    setManualPunch({
-      employeeId,
-      attendanceDate: dateValue,
-      direction: item?.checkIn && !item?.checkOut ? "out" : "in",
-      occurredAt: defaultTime,
-      reason: "",
-    });
-  }
-  function submitManualPunch(event: FormEvent) {
-    event.preventDefault();
-    if (
-      !manualPunch?.employeeId ||
-      !manualPunch.attendanceDate ||
-      !manualPunch.occurredAt ||
-      !manualPunch.reason.trim()
-    ) {
-      return;
-    }
-    createManualPunch.mutate(
-      {
-        data: {
-          employeeId: manualPunch.employeeId,
-          attendanceDate: manualPunch.attendanceDate,
-          direction: manualPunch.direction,
-          occurredAt: new Date(manualPunch.occurredAt).toISOString(),
-          reason: manualPunch.reason.trim(),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("manualPunchSaved"));
-          setManualPunch(null);
-          qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-          qc.invalidateQueries({
-            queryKey: getListAttendanceHistoryQueryKey(),
-          });
-        },
-        onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, t("manualPunchFailed"))),
-      },
-    );
   }
   function submitCorrection(event: FormEvent) {
     event.preventDefault();
@@ -15133,7 +10887,6 @@ function Attendance() {
           toast.success(t("attendanceCorrectionUpdated"));
           setCorrection(null);
           qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           qc.invalidateQueries({
             queryKey: getListAttendanceHistoryQueryKey(),
           });
@@ -15236,17 +10989,7 @@ function Attendance() {
         title={t("attendance")}
         detail={t("attendanceRulesDetail")}
         action={
-          <div className="flex flex-wrap gap-2">
-            {workspace.data?.role === "employee" &&
-            selfEmployee.data?.locationAttendanceEnabled ? (
-              <WorkLocationChangeButton employeeId={selfEmployee.data.id} />
-            ) : null}
-            {canManualPunch && (
-              <Button variant="outline" onClick={() => openManualPunch()}>
-                <Plus size={15} />
-                {t("addManualPunch")}
-              </Button>
-            )}
+          <div className="flex gap-2">
             <Button
               variant={tab === "today" ? "primary" : "outline"}
               onClick={() => setTab("today")}
@@ -15262,129 +11005,6 @@ function Attendance() {
           </div>
         }
       />
-      {isSelfAttendanceUser && deviceApprovalPolicy.isLoading ? (
-        <Card className="mb-4 border-primary/20 p-4 text-sm text-muted-foreground">
-          {deviceCopy.checking}
-        </Card>
-      ) : null}
-      {isSelfAttendanceUser && deviceApprovalPolicy.isError ? (
-        <Card className="mb-4 flex flex-col gap-3 border-destructive/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {deviceCopy.approvalSettingLoadFailed}
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => void deviceApprovalPolicy.refetch()}
-          >
-            {deviceCopy.retry}
-          </Button>
-        </Card>
-      ) : null}
-      {isSelfAttendanceUser && requireDeviceApproval ? (
-        <Card className="mb-4 border-primary/20">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-semibold">
-                {locale === "ar"
-                  ? "جهاز تسجيل الحضور"
-                  : "Attendance device"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {registerDevice.data?.status === "active"
-                  ? deviceCopy.registered
-                  : deviceCopy.approvalRequired}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Badge
-                tone={
-                  registerDevice.data?.status === "active"
-                    ? "good"
-                    : registerDevice.data?.status === "pending"
-                      ? "warn"
-                      : "neutral"
-                }
-              >
-                {registerDevice.isPending
-                  ? deviceCopy.checking
-                  : registerDevice.data?.status === "active"
-                    ? deviceCopy.approved
-                    : registerDevice.data?.status === "pending"
-                      ? deviceCopy.pending
-                      : deviceCopy.notApproved}
-              </Badge>
-              <Button
-                variant="outline"
-                disabled={registerDevice.isPending}
-                onClick={requestDeviceRegistration}
-              >
-                {registerDevice.isPending
-                  ? deviceCopy.sending
-                  : deviceCopy.refresh}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-      {canApproveLocation && punchRequests.data?.length ? (
-        <Card className="mb-6 border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10">
-          <div className="flex items-start justify-between gap-4 border-b border-amber-200/70 p-5">
-            <div>
-              <h2 className="font-display text-lg font-semibold">
-                {locale === "ar" ? "موافقات تسجيل الموقع" : "Location attendance approvals"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {locale === "ar"
-                  ? "بصمات الحضور والانصراف بنظام الموقع المتغير لا تدخل السجل أو الحسابات إلا بعد الاعتماد."
-                  : "Variable-location check-in and check-out punches stay out of attendance and calculations until approved."}
-              </p>
-            </div>
-            <Badge tone="warn">{punchRequests.data.length}</Badge>
-          </div>
-          <div className="divide-y divide-amber-200/60">
-            {punchRequests.data.map((request: any) => (
-              <div key={request.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="font-semibold">{request.employee.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {request.direction === "in"
-                      ? locale === "ar"
-                        ? "حضور"
-                        : "Check-in"
-                      : locale === "ar"
-                        ? "انصراف"
-                        : "Check-out"}{" "}
-                    · {date(request.attendanceDate)} · {displayTime(request.occurredAt)}
-                  </div>
-                  {request.deviceType ? (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {deviceCopy.phoneType}:{" "}
-                      {attendanceDeviceTypeLabel(request.deviceType, locale)}
-                    </div>
-                  ) : null}
-                  <AttendanceLocationLinks location={request.location} locale={locale} />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={decidePunchRequestMutation.isPending}
-                    onClick={() => decidePunchRequest(request.id, "rejected")}
-                  >
-                    {locale === "ar" ? "رفض" : "Reject"}
-                  </Button>
-                  <Button
-                    disabled={decidePunchRequestMutation.isPending}
-                    onClick={() => decidePunchRequest(request.id, "approved")}
-                  >
-                    <Check size={15} />
-                    {locale === "ar" ? "اعتماد وإضافة للسجل" : "Approve & add"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : null}
       {tab === "today" ? (
         <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
           <Card className="bg-secondary p-6 text-sidebar-foreground">
@@ -15443,8 +11063,7 @@ function Attendance() {
               <>
                 <Button
                   disabled={
-                    !canPunch ||
-                    !deviceReady ||
+                    !record ||
                     (action === "in"
                       ? checkIn.isPending
                       : checkOut.isPending) ||
@@ -15505,24 +11124,6 @@ function Attendance() {
                           {displayTime(x.checkIn)} → {displayTime(x.checkOut)} ·{" "}
                           {x.workedHours}h
                         </div>
-                        {x.checkInDeviceType || x.checkOutDeviceType ? (
-                          <div className="mt-1 text-[10px] text-muted-foreground">
-                            {deviceCopy.phoneType}:{" "}
-                            {x.checkInDeviceType
-                              ? attendanceDeviceTypeLabel(
-                                  x.checkInDeviceType,
-                                  locale,
-                                )
-                              : "—"}
-                            {" → "}
-                            {x.checkOutDeviceType
-                              ? attendanceDeviceTypeLabel(
-                                  x.checkOutDeviceType,
-                                  locale,
-                                )
-                              : "—"}
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -15530,7 +11131,6 @@ function Attendance() {
                       <span className="text-[10px] text-muted-foreground">
                         {locationLabel(x.locationStatus)}
                       </span>
-                       <AttendanceLocationLinks location={x.location} locale={locale} />
                     </div>
                   </div>
                 ))}
@@ -15576,7 +11176,7 @@ function Attendance() {
                     <option value="">{t("allEmployees")}</option>
                     {employees.data?.map((item: any) => (
                       <option key={item.id} value={item.id}>
-                        {employeeDisplayName(locale, item)}
+                        {item.firstName} {item.lastName}
                       </option>
                     ))}
                   </select>
@@ -15610,8 +11210,7 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      <th className="px-4 py-3">{locale === "ar" ? "الموقع" : "Location"}</th>
-                      {(canCorrect || canAdjust || canManualPunch) && (
+                      {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
                     </tr>
@@ -15623,38 +11222,13 @@ function Attendance() {
                         <td className="px-4 py-4 font-semibold">
                           {x.employee.name}
                         </td>
-                        <td className="px-4 py-4">
-                          <div>{displayTime(x.checkIn)}</div>
-                          {x.checkInDeviceType ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {deviceCopy.phoneType}:{" "}
-                              {attendanceDeviceTypeLabel(
-                                x.checkInDeviceType,
-                                locale,
-                              )}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div>{displayTime(x.checkOut)}</div>
-                          {x.checkOutDeviceType ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {deviceCopy.phoneType}:{" "}
-                              {attendanceDeviceTypeLabel(
-                                x.checkOutDeviceType,
-                                locale,
-                              )}
-                            </div>
-                          ) : null}
-                        </td>
+                        <td className="px-4 py-4">{displayTime(x.checkIn)}</td>
+                        <td className="px-4 py-4">{displayTime(x.checkOut)}</td>
                         <td className="px-4 py-4 font-mono">{x.workedHours}</td>
                         <td className="px-5 py-4">
                           <Status value={x.status} />
                         </td>
-                        <td className="px-4 py-4">
-                          <AttendanceLocationLinks location={x.location} locale={locale} />
-                        </td>
-                        {(canCorrect || canAdjust || canManualPunch) && (
+                        {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
                             <div className="flex justify-end gap-2">
                               <Button
@@ -15685,15 +11259,6 @@ function Attendance() {
                                   {t("correctAttendance")}
                                 </Button>
                               )}
-                              {canManualPunch && (
-                                <Button
-                                  variant="outline"
-                                  className="text-xs"
-                                  onClick={() => openManualPunch(x)}
-                                >
-                                  {t("addManualPunch")}
-                                </Button>
-                              )}
                             </div>
                           </td>
                         )}
@@ -15708,9 +11273,6 @@ function Attendance() {
           </Card>
         </div>
       )}
-      {workspace.data?.role === "employee" && selfEmployee.data?.id ? (
-        <EmployeeWorkLocationsSection employeeId={selfEmployee.data.id} />
-      ) : null}
       {correction && (
         <Modal
           title={t("correctAttendance")}
@@ -15781,105 +11343,6 @@ function Attendance() {
               </Button>
               <Button type="submit" disabled={correct.isPending}>
                 {correct.isPending ? t("saving") : t("saveCorrection")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
-      {manualPunch && (
-        <Modal
-          title={t("manualPunchTitle")}
-          onClose={() => setManualPunch(null)}
-        >
-          <form onSubmit={submitManualPunch} className="space-y-4">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {t("manualPunchDetail")}
-            </p>
-            <label className="block text-sm font-semibold">
-              {t("punchEmployee")}
-              <select
-                required
-                value={manualPunch.employeeId}
-                onChange={(event) =>
-                  setManualPunch({
-                    ...manualPunch,
-                    employeeId: event.target.value,
-                  })
-                }
-                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-              >
-                <option value="">{t("punchEmployee")}</option>
-                {employees.data?.map((item: any) => (
-                  <option key={item.id} value={item.id}>
-                    {employeeDisplayName(locale, item)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                label={t("punchDate")}
-                type="date"
-                value={manualPunch.attendanceDate}
-                onChange={(value) =>
-                  setManualPunch({
-                    ...manualPunch,
-                    attendanceDate: value,
-                    occurredAt: `${value}T${manualPunch.occurredAt.slice(11, 16) || "09:00"}`,
-                  })
-                }
-              />
-              <label className="block text-sm font-semibold">
-                {t("punchDirection")}
-                <select
-                  value={manualPunch.direction}
-                  onChange={(event) =>
-                    setManualPunch({
-                      ...manualPunch,
-                      direction: event.target.value,
-                    })
-                  }
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="in">{t("punchIn")}</option>
-                  <option value="out">{t("punchOut")}</option>
-                </select>
-              </label>
-            </div>
-            <Field
-              label={t("punchTime")}
-              type="datetime-local"
-              value={manualPunch.occurredAt}
-              onChange={(value) =>
-                setManualPunch({ ...manualPunch, occurredAt: value })
-              }
-            />
-            <label className="block text-sm font-semibold">
-              {t("punchReason")}
-              <textarea
-                required
-                minLength={1}
-                maxLength={1000}
-                value={manualPunch.reason}
-                onChange={(event) =>
-                  setManualPunch({ ...manualPunch, reason: event.target.value })
-                }
-                placeholder={t("punchReasonPlaceholder")}
-                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setManualPunch(null)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button type="submit" disabled={createManualPunch.isPending}>
-                {createManualPunch.isPending
-                  ? t("saving")
-                  : t("saveManualPunch")}
               </Button>
             </div>
           </form>
@@ -16085,7 +11548,7 @@ function Attendance() {
 }
 
 function Requests() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
   const capabilities = workspaceQuery.data?.capabilities || [];
@@ -16119,24 +11582,9 @@ function Requests() {
     startTime: "",
     endTime: "",
   });
-  const leaveTypes = useMemo(
-    () =>
-      Array.from(
-        new Set((balances.data || []).map((balance: any) => balance.type)),
-      ) as string[],
-    [balances.data],
-  );
-  const temporaryPermissionOption = "__temporary_permission__";
-  useEffect(() => {
-    if (
-      show &&
-      kind === "leave" &&
-      leaveTypes.length > 0 &&
-      !leaveTypes.includes(form.type)
-    ) {
-      setForm((current: any) => ({ ...current, type: leaveTypes[0] }));
-    }
-  }, [show, kind, leaveTypes, form.type]);
+  const leaveTypes = Array.from(
+    new Set((balances.data || []).map((balance: any) => balance.type)),
+  ) as string[];
   const canCreateCurrent =
     kind === "leave" ? canCreateLeave : canCreatePermissions;
   function openRequest() {
@@ -16151,26 +11599,6 @@ function Requests() {
       endTime: "",
     });
     setShow(true);
-  }
-  function changeRequestCategory(value: string) {
-    if (value === temporaryPermissionOption) {
-      setKind("permission");
-      setForm((current: any) => ({
-        ...current,
-        type: "Short absence",
-        date: current.date || current.from || "",
-        startTime: current.startTime || "",
-        endTime: current.endTime || "",
-      }));
-      return;
-    }
-    setKind("leave");
-    setForm((current: any) => ({
-      ...current,
-      type: value,
-      from: current.from || current.date || "",
-      to: current.to || current.date || "",
-    }));
   }
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -16265,203 +11693,6 @@ function Requests() {
   }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
-  if (show) {
-    return (
-      <div
-        className="animate-in mx-auto max-w-5xl"
-        dir={locale === "ar" ? "rtl" : "ltr"}
-      >
-        <header className="mb-3 flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-9 shrink-0 rounded-xl px-3"
-            onClick={() => setShow(false)}
-            aria-label={t("goBack")}
-          >
-            {locale === "ar" ? (
-              <ArrowRight size={15} aria-hidden="true" />
-            ) : (
-              <ArrowLeft size={15} aria-hidden="true" />
-            )}
-            {t("back")}
-          </Button>
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary-dark">
-              {kind === "leave" ? (
-                <CalendarDays size={17} aria-hidden="true" />
-              ) : (
-                <Clock3 size={17} aria-hidden="true" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-primary-dark">
-                {t("requestsTitle")}
-              </p>
-              <h1 className="font-display text-lg font-bold leading-tight">
-                {tr("newKindRequest", { kind: t(kind) })}
-              </h1>
-            </div>
-          </div>
-        </header>
-        <Card className="p-3 sm:p-4">
-          <form onSubmit={submit}>
-            <div
-              className={`grid gap-4 ${
-                kind === "leave"
-                  ? "sm:grid-cols-3"
-                  : "sm:grid-cols-2 lg:grid-cols-4"
-              }`}
-            >
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block text-[13px]">
-                  {t("requestCategory")}
-                </span>
-                <select
-                  required
-                  value={
-                    kind === "permission"
-                      ? temporaryPermissionOption
-                      : leaveTypes.includes(form.type)
-                        ? form.type
-                        : ""
-                  }
-                  onChange={(event) =>
-                    changeRequestCategory(event.target.value)
-                  }
-                  className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                >
-                  {canCreateLeave &&
-                    leaveTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {requestFormTypeLabel(type, t)}
-                      </option>
-                    ))}
-                  {canCreatePermissions && (
-                    <option value={temporaryPermissionOption}>
-                      {t("temporaryPermission")}
-                    </option>
-                  )}
-                  {!leaveTypes.length && canCreateLeave && (
-                    <option value="" disabled>
-                      {balances.isLoading
-                        ? t("loading")
-                        : t("noLeaveTypesAvailable")}
-                    </option>
-                  )}
-                </select>
-              </label>
-              {kind === "leave" ? (
-                <>
-                  <Field
-                    label={t("from")}
-                    type="date"
-                    value={form.from}
-                    onChange={(value) => setForm({ ...form, from: value })}
-                    required
-                  />
-                  <Field
-                    label={t("to")}
-                    type="date"
-                    min={form.from || undefined}
-                    value={form.to}
-                    onChange={(value) => setForm({ ...form, to: value })}
-                    required
-                  />
-                </>
-              ) : (
-                <>
-                  <Field
-                    label={t("date")}
-                    type="date"
-                    value={form.date}
-                    onChange={(value) => setForm({ ...form, date: value })}
-                    required
-                  />
-                  <Field
-                    label={t("start")}
-                    type="time"
-                    value={form.startTime}
-                    onChange={(value) =>
-                      setForm({ ...form, startTime: value })
-                    }
-                    required
-                  />
-                  <Field
-                    label={t("end")}
-                    type="time"
-                    min={form.startTime || undefined}
-                    value={form.endTime}
-                    onChange={(value) => setForm({ ...form, endTime: value })}
-                    required
-                  />
-                </>
-              )}
-            </div>
-            <div className="mt-3 grid gap-3 border-t border-border pt-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div>
-                <label
-                  htmlFor="request-reason"
-                  className="mb-1.5 block text-[13px] font-semibold"
-                >
-                  {t("requestReasonLabel")}
-                </label>
-                <textarea
-                  id="request-reason"
-                  required
-                  rows={2}
-                  value={form.reason}
-                  onChange={(event) =>
-                    setForm({ ...form, reason: event.target.value })
-                  }
-                  placeholder={
-                    kind === "leave"
-                      ? t("requestLeaveReasonPlaceholder")
-                      : t("requestPermissionReasonPlaceholder")
-                  }
-                  className="min-h-16 w-full resize-none rounded-xl border border-input bg-background px-3.5 py-2 text-sm leading-6 outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
-                />
-                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                  {t("requestReasonHint")}
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 lg:items-end">
-                <div className="flex items-start gap-2 text-[10px] leading-4 text-muted-foreground">
-                  <ShieldCheck
-                    size={14}
-                    className="mt-0.5 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span>{t("requestPendingReview")}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-10 rounded-xl px-4"
-                    onClick={() => setShow(false)}
-                  >
-                    {t("cancel")}
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={
-                      kind === "leave"
-                        ? createLeave.isPending || !leaveTypes.length
-                        : createPermission.isPending
-                    }
-                    className="min-h-10 rounded-xl px-4"
-                  >
-                    {t("submitRequest")}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
-        </Card>
-      </div>
-    );
-  }
   return (
     <div className="animate-in">
       <SectionTitle
@@ -16597,245 +11828,113 @@ function Requests() {
         </Card>
       </div>
       {show && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-secondary/55 px-3 py-4 backdrop-blur-[3px] sm:px-6 sm:py-6">
-          <div className="flex min-h-full items-center justify-center">
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="request-dialog-title"
-              aria-describedby="request-dialog-description"
-              dir={locale === "ar" ? "rtl" : "ltr"}
-              className="flex max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_24px_70px_hsl(214_84%_10%_/_0.22)] animate-in fade-in zoom-in-95 duration-200"
-            >
-              <header className="shrink-0 border-b border-border px-5 pb-4 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-start gap-3.5">
-                    <div className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
-                      {kind === "leave" ? (
-                        <CalendarDays
-                          size={20}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <Clock3 size={20} aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-primary-dark">
-                        {t("requestsTitle")} · {t("newRequest")}
-                      </p>
-                      <h2
-                        id="request-dialog-title"
-                        className="mt-1 font-display text-xl font-bold leading-tight text-foreground sm:text-[22px]"
-                      >
-                        {tr("newKindRequest", { kind: t(kind) })}
-                      </h2>
-                      <p
-                        id="request-dialog-description"
-                        className="mt-1.5 max-w-sm text-xs leading-5 text-muted-foreground sm:text-[13px]"
-                      >
-                        {t("requestFormIntro")}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShow(false)}
-                    aria-label={t("closeDialog")}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
-                  >
-                    <X size={18} aria-hidden="true" />
-                  </button>
-                </div>
-              </header>
-
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
-                <form
-                  id="requests-request-form"
-                  onSubmit={submit}
-                  className="space-y-5"
+        <Modal
+          title={tr("newKindRequest", { kind: t(kind) })}
+          onClose={() => setShow(false)}
+        >
+          <form onSubmit={submit} className="space-y-4">
+            <label className="block text-sm font-semibold">
+              {t("type")}
+              {kind === "leave" && leaveTypes.length ? (
+                <select
+                  required
+                  value={form.type}
+                  onChange={(event) =>
+                    setForm({ ...form, type: event.target.value })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                 >
-                  <label className="block text-sm font-semibold">
-                    <span className="mb-2 block text-[13px]">
-                      {kind === "leave"
-                        ? t("requestLeaveType")
-                        : t("requestPermissionType")}
-                    </span>
-                    {kind === "leave" && leaveTypes.length ? (
-                      <select
-                        required
-                        value={form.type}
-                        onChange={(event) =>
-                          setForm({ ...form, type: event.target.value })
-                        }
-                        className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                      >
-                        {leaveTypes.map((type) => (
-                          <option key={type} value={type}>
-                            {requestTypeLabel(type, t)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        required
-                        value={form.type}
-                        onChange={(event) =>
-                          setForm({ ...form, type: event.target.value })
-                        }
-                        className="h-[50px] w-full rounded-xl border border-input bg-background px-4 text-sm font-medium transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                      />
-                    )}
-                  </label>
-
-                  {kind === "leave" ? (
-                    <section className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                          <CalendarDays size={18} aria-hidden="true" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold">
-                            {t("leavePeriod")}
-                          </h3>
-                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                            {t("leavePeriodHint")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field
-                          label={t("from")}
-                          type="date"
-                          value={form.from}
-                          onChange={(value) => setForm({ ...form, from: value })}
-                          required
-                        />
-                        <Field
-                          label={t("to")}
-                          type="date"
-                          min={form.from || undefined}
-                          value={form.to}
-                          onChange={(value) => setForm({ ...form, to: value })}
-                          required
-                        />
-                      </div>
-                    </section>
-                  ) : (
-                    <section className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                          <Clock3 size={18} aria-hidden="true" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold">
-                            {t("permissionTime")}
-                          </h3>
-                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                            {t("permissionTimeHint")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="sm:col-span-2">
-                          <Field
-                            label={t("date")}
-                            type="date"
-                            value={form.date}
-                            onChange={(value) =>
-                              setForm({ ...form, date: value })
-                            }
-                            required
-                          />
-                        </div>
-                        <Field
-                          label={t("start")}
-                          type="time"
-                          value={form.startTime}
-                          onChange={(value) =>
-                            setForm({ ...form, startTime: value })
-                          }
-                          required
-                        />
-                        <Field
-                          label={t("end")}
-                          type="time"
-                          min={form.startTime || undefined}
-                          value={form.endTime}
-                          onChange={(value) =>
-                            setForm({ ...form, endTime: value })
-                          }
-                          required
-                        />
-                      </div>
-                    </section>
-                  )}
-
-                  <div>
-                    <label
-                      htmlFor="request-reason"
-                      className="mb-2 block text-[13px] font-semibold"
-                    >
-                      {t("requestReasonLabel")}
-                    </label>
-                    <textarea
-                      id="request-reason"
-                      required
-                      value={form.reason}
-                      onChange={(event) =>
-                        setForm({ ...form, reason: event.target.value })
-                      }
-                      placeholder={
-                        kind === "leave"
-                          ? t("requestLeaveReasonPlaceholder")
-                          : t("requestPermissionReasonPlaceholder")
-                      }
-                      className="min-h-28 w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
-                    />
-                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                      {t("requestReasonHint")}
-                    </p>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3 text-xs leading-5 text-muted-foreground">
-                    <ShieldCheck
-                      size={16}
-                      className="mt-0.5 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <span>{t("requestPendingReview")}</span>
-                  </div>
-                </form>
+                  {leaveTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {requestTypeLabel(type, t)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  required
+                  value={form.type}
+                  onChange={(event) =>
+                    setForm({ ...form, type: event.target.value })
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                />
+              )}
+            </label>
+            {kind === "leave" ? (
+              <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+                <Field
+                  label={t("from")}
+                  type="date"
+                  value={form.from}
+                  onChange={(value) => setForm({ ...form, from: value })}
+                  required
+                />
+                <Field
+                  label={t("to")}
+                  type="date"
+                  value={form.to}
+                  onChange={(value) => setForm({ ...form, to: value })}
+                  required
+                />
               </div>
-
-              <footer className="shrink-0 border-t border-border bg-card px-5 py-4 sm:px-7">
-                <div className="flex flex-col-reverse gap-2.5 min-[390px]:flex-row min-[390px]:justify-between">
-                  <Button
-                    type="submit"
-                    form="requests-request-form"
-                    disabled={
-                      kind === "leave"
-                        ? createLeave.isPending
-                        : createPermission.isPending
-                    }
-                    className="min-h-11 rounded-xl px-5"
-                  >
-                    <span>{t("submitRequest")}</span>
-                    <ArrowLeft size={16} aria-hidden="true" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="quiet"
-                    className="min-h-11 rounded-xl px-4"
-                    onClick={() => setShow(false)}
-                  >
-                    {t("cancel")}
-                  </Button>
-                </div>
-              </footer>
-            </section>
-          </div>
-        </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field
+                  label={t("date")}
+                  type="date"
+                  value={form.date}
+                  onChange={(value) => setForm({ ...form, date: value })}
+                  required
+                />
+                <Field
+                  label={t("start")}
+                  type="time"
+                  value={form.startTime}
+                  onChange={(value) => setForm({ ...form, startTime: value })}
+                  required
+                />
+                <Field
+                  label={t("end")}
+                  type="time"
+                  value={form.endTime}
+                  onChange={(value) => setForm({ ...form, endTime: value })}
+                  required
+                />
+              </div>
+            )}
+            <label className="block text-sm font-semibold">
+              {t("reason")}
+              <textarea
+                required
+                value={form.reason}
+                onChange={(event) =>
+                  setForm({ ...form, reason: event.target.value })
+                }
+                className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setShow(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  kind === "leave"
+                    ? createLeave.isPending
+                    : createPermission.isPending
+                }
+              >
+                {t("submitRequest")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
       {decision && (
         <Modal title={t("confirmDecision")} onClose={() => setDecision(null)}>
@@ -16934,10 +12033,6 @@ function AnnualLeaveControls() {
     return value === "automatic" ? t("automatic") : t("manual");
   }
 
-  function isAnnualLeavePolicy(type: string) {
-    return ["annual", "annual leave"].includes(type.trim().toLowerCase());
-  }
-
   function transactionType(value: string) {
     return (
       {
@@ -16945,10 +12040,6 @@ function AnnualLeaveControls() {
         deduction: locale === "ar" ? "خصم" : "Deduction",
         restoration: locale === "ar" ? "إعادة" : "Restoration",
         adjustment: locale === "ar" ? "تعديل" : "Adjustment",
-        manual_adjustment:
-          locale === "ar" ? "تعديل يدوي" : "Manual adjustment",
-        support_usage_correction:
-          locale === "ar" ? "تصحيح استخدام الرصيد" : "Usage correction",
       }[value] || value
     );
   }
@@ -16960,9 +12051,6 @@ function AnnualLeaveControls() {
         data: {
           ...policyForm,
           annualEntitlement: Number(policyForm.annualEntitlement),
-          deductionMode: isAnnualLeavePolicy(policyForm.leaveType)
-            ? "automatic"
-            : policyForm.deductionMode,
           carryForwardDays: Number(policyForm.carryForwardDays),
           allowedBalanceMonths: policyForm.allowedBalanceMonths.map(Number),
           monthlyDeductionLimit: Number(policyForm.monthlyDeductionLimit),
@@ -17045,9 +12133,7 @@ function AnnualLeaveControls() {
                     {policy.annualEntitlement} {t("days")} /{" "}
                     {locale === "ar" ? "سنة" : "year"} ·{" "}
                     {policyFrequency(policy.accrualFrequency)} ·{" "}
-                     {isAnnualLeavePolicy(policy.leaveType)
-                       ? t("deductOnApproval")
-                       : deductionMode(policy.deductionMode)} ·{" "}
+                    {deductionMode(policy.deductionMode)} ·{" "}
                     {locale === "ar" ? "ساري من" : "effective"}{" "}
                     {policy.effectiveFrom}
                   </p>
@@ -17067,9 +12153,9 @@ function AnnualLeaveControls() {
                         ? "محظور"
                         : "blocked"}{" "}
                     · {t("leaveYearStartsMonth")}{" "}
-                     {policy.periodStartMonth || 1}
-                     {!isAnnualLeavePolicy(policy.leaveType) &&
-                       ` · ${t("deductionMonths")}: ${(policy.allowedBalanceMonths || []).join(", ")} · ${t("monthlyMaximum")}: ${policy.monthlyDeductionLimit}`}
+                    {policy.periodStartMonth || 1} · {t("deductionMonths")}:{" "}
+                    {(policy.allowedBalanceMonths || []).join(", ")} ·{" "}
+                    {t("monthlyMaximum")}: {policy.monthlyDeductionLimit}
                     {!policy.enabled && ` · ${t("disabled")}`}
                   </p>
                 </div>
@@ -17086,18 +12172,12 @@ function AnnualLeaveControls() {
               className="space-y-3 rounded-xl bg-muted/40 p-4"
             >
               <h3 className="font-semibold">{t("createPolicyVersion")}</h3>
-                <Field
-                  label={t("leaveType")}
-                  value={policyForm.leaveType}
-                  onChange={(value) =>
-                    setPolicyForm({
-                      ...policyForm,
-                      leaveType: value,
-                      ...(isAnnualLeavePolicy(value)
-                        ? { deductionMode: "automatic" }
-                        : {}),
-                    })
-                  }
+              <Field
+                label={t("leaveType")}
+                value={policyForm.leaveType}
+                onChange={(value) =>
+                  setPolicyForm({ ...policyForm, leaveType: value })
+                }
                 required
               />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -17190,24 +12270,22 @@ function AnnualLeaveControls() {
                     </option>
                   </select>
                 </label>
-                {!isAnnualLeavePolicy(policyForm.leaveType) && (
-                  <label className="text-sm font-semibold">
-                    {t("deductionMode")}
-                    <select
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                      value={policyForm.deductionMode}
-                      onChange={(event) =>
-                        setPolicyForm({
-                          ...policyForm,
-                          deductionMode: event.target.value,
-                        })
-                      }
-                    >
-                      <option value="automatic">{t("automatic")}</option>
-                      <option value="manual">{t("manual")}</option>
-                    </select>
-                  </label>
-                )}
+                <label className="text-sm font-semibold">
+                  {t("deductionMode")}
+                  <select
+                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                    value={policyForm.deductionMode}
+                    onChange={(event) =>
+                      setPolicyForm({
+                        ...policyForm,
+                        deductionMode: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="automatic">{t("automatic")}</option>
+                    <option value="manual">{t("manual")}</option>
+                  </select>
+                </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
@@ -17232,7 +12310,6 @@ function AnnualLeaveControls() {
                   }
                 />
               </div>
-              {!isAnnualLeavePolicy(policyForm.leaveType) && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
                   label={t("monthlyMaximumDeduction")}
@@ -17279,7 +12356,6 @@ function AnnualLeaveControls() {
                   </span>
                 </label>
               </div>
-              )}
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -17463,17 +12539,12 @@ function Rules() {
   const qc = useQueryClient();
   const q = useGetAttendanceRules();
   const update = useUpdateAttendanceRules();
-  const deviceApprovalPolicy = useGetAttendanceDeviceApproval({
-    query: {
-      queryKey: getGetAttendanceDeviceApprovalQueryKey(),
-      refetchInterval: 30_000,
-    },
-  });
-  const updateDeviceApproval = useUpdateAttendanceDeviceApproval();
-  const isCompanyOwner = account.accountType === "company_owner";
   const canViewRuleHistory = account.accountType === "company_owner";
   const changes = useListAttendanceRuleChanges({
-    query: { enabled: canViewRuleHistory } as any,
+    query: {
+      enabled: canViewRuleHistory,
+      queryKey: getListAttendanceRuleChangesQueryKey(),
+    },
   });
   const balances = useListLeaveBalances();
   const [form, setForm] = useState<any>(null);
@@ -17499,19 +12570,6 @@ function Rules() {
         annualLeavePeriodStartMonth: Number(
           q.data.annualLeavePeriodStartMonth ?? 1,
         ),
-         lateDeductionFactor: Number(
-           q.data.latePenaltyMultiplier ?? q.data.lateDeductionFactor ?? 1,
-         ),
-         earlyCheckoutDeductionFactor: Number(
-           q.data.earlyDeparturePenaltyMultiplier ??
-             q.data.earlyCheckoutDeductionFactor ??
-             1,
-         ),
-         absenceDeductionFactor: Number(
-           q.data.absencePenaltyMultiplier ??
-             q.data.absenceDeductionFactor ??
-             1,
-         ),
       });
   }, [q.data, form]);
   if (q.isLoading || !form) return <Skeleton className="h-64" />;
@@ -17541,11 +12599,9 @@ function Rules() {
             multiplier: Number(item.multiplier),
             enabled: item.enabled !== false,
           })),
-           lateDeductionFactor: Number(form.latePenaltyMultiplier),
-           earlyCheckoutDeductionFactor: Number(
-             form.earlyDeparturePenaltyMultiplier,
-           ),
-           absenceDeductionFactor: Number(form.absencePenaltyMultiplier),
+          lateDeductionFactor: Number(form.lateDeductionFactor),
+          earlyCheckoutDeductionFactor: Number(form.earlyCheckoutDeductionFactor),
+          absenceDeductionFactor: Number(form.absenceDeductionFactor),
           absenceLeaveDeductionDays: Number(form.absenceLeaveDeductionDays),
           annualLeaveEntitlement: Number(form.annualLeaveEntitlement),
           annualLeavePeriodStartMonth: Number(form.annualLeavePeriodStartMonth),
@@ -17577,11 +12633,8 @@ function Rules() {
           toast.success(t("attendancePolicyRecalculateHint"));
           void invalidateAttendanceRuleDependents(qc);
         },
-        onError: (error) => {
-          // A payroll refresh can fail after the rule itself was saved.
-          void invalidateAttendanceRuleDependents(qc);
-          toast.error(apiErrorMessage(error, t("couldNotSaveRecord")));
-        },
+        onError: (error) =>
+          toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
       },
     );
   }
@@ -17598,68 +12651,6 @@ function Rules() {
           </Badge>
         }
       />
-      {isCompanyOwner ? (
-        <Card className="mb-6 border-primary/20 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-3xl">
-              <h2 className="font-semibold">
-                {attendanceDeviceCopy(locale).approvalSettingTitle}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {attendanceDeviceCopy(locale).approvalSettingDetail}
-              </p>
-            </div>
-            {deviceApprovalPolicy.isError ? (
-              <Button
-                variant="outline"
-                onClick={() => void deviceApprovalPolicy.refetch()}
-              >
-                {locale === "ar" ? "إعادة المحاولة" : "Retry"}
-              </Button>
-            ) : (
-              <label className="flex shrink-0 items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={Boolean(deviceApprovalPolicy.data?.requireApproval)}
-                  disabled={
-                    deviceApprovalPolicy.isLoading ||
-                    updateDeviceApproval.isPending
-                  }
-                  onChange={(event) =>
-                    updateDeviceApproval.mutate(
-                      { data: { requireApproval: event.target.checked } },
-                      {
-                        onSuccess: () => {
-                          toast.success(
-                            attendanceDeviceCopy(locale).approvalSettingSaved,
-                          );
-                          void qc.invalidateQueries({
-                            queryKey: getGetAttendanceDeviceApprovalQueryKey(),
-                          });
-                        },
-                        onError: (error: unknown) =>
-                          toast.error(
-                            apiErrorMessage(
-                              error,
-                              attendanceDeviceCopy(locale)
-                                .approvalSettingFailed,
-                            ),
-                          ),
-                      },
-                    )
-                  }
-                  className="h-4 w-4 rounded border-input accent-primary"
-                />
-                <span>
-                  {deviceApprovalPolicy.data?.requireApproval
-                    ? attendanceDeviceCopy(locale).approvalSettingOn
-                    : attendanceDeviceCopy(locale).approvalSettingOff}
-                </span>
-              </label>
-            )}
-          </div>
-        </Card>
-      ) : null}
       <div className="flex flex-col gap-6">
         <div className="contents">
           <Card className="order-1 p-6">
@@ -17798,7 +12789,7 @@ function Rules() {
                       }}
                       className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                     >
-                      {[1, 1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
+                      {[1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25].map(
                         (multiplier) => (
                           <option key={multiplier} value={multiplier}>
                             {multiplier}×
@@ -17836,7 +12827,7 @@ function Rules() {
                     ...form,
                     timeMultipliers: [
                       ...(form.timeMultipliers || []),
-                      { from: "23:00", to: "06:00", multiplier: 1, enabled: true },
+                      { from: "23:00", to: "06:00", multiplier: 1.33, enabled: true },
                     ],
                   })
                 }
@@ -17916,7 +12907,7 @@ function Rules() {
                     ...form,
                     weeklyMultipliers: [
                       ...(form.weeklyMultipliers || []),
-                      { weekday: "Fri", multiplier: 1, enabled: true },
+                      { weekday: "Fri", multiplier: 1.5, enabled: true },
                     ],
                   })
                 }
@@ -18011,7 +13002,7 @@ function Rules() {
                         name: "",
                         from: "",
                         to: "",
-                        multiplier: 1,
+                        multiplier: 2,
                         enabled: true,
                       },
                     ],
@@ -18043,7 +13034,6 @@ function Rules() {
                   "absencePenaltyMultiplier",
                   t("absenceMultiplier"),
                 ],
-                ["overtimeMultiplier", t("overtimeMultiplier")],
                 [
                   "permissionCoveredMinutesMultiplier",
                   t("permissionCoveredMinutes"),
@@ -18066,14 +13056,9 @@ function Rules() {
                       key === "fullDayPermissionMultiplier") && (
                       <option value={0}>0x</option>
                     )}
-                    {(key === "overtimeMultiplier"
-                      ? [1, 1.25, 1.33, 1.5, 1.75, 2, 2.15, 2.25, 3]
-                      : [1, 2, 3]
-                    ).map((multiplier) => (
-                      <option key={multiplier} value={multiplier}>
-                        {multiplier}x
-                      </option>
-                    ))}
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
                   </select>
                 </label>
               ))}
@@ -18124,15 +13109,6 @@ function Rules() {
                   <option value="optional">{t("optional")}</option>
                   <option value="required">{t("required")}</option>
                 </select>
-                <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                  {locale === "ar"
-                    ? "يستخدم نطاقات GPS الثابتة التي تحددها الشركة. عند اختيار «مطلوب» تُرفض بصمات موظفي الموقع الثابت خارجها؛ موظفو الموقع المتغير يرسلون إحداثياتهم للمراجعة دون اشتراط نطاق."
-                    : locale === "fr"
-                      ? "Utilise les zones GPS fixes définies par l’entreprise. « Obligatoire » refuse les pointages hors zone en mode fixe ; le mode variable envoie les coordonnées pour vérification sans périmètre fixe."
-                      : locale === "de"
-                        ? "Verwendet die vom Unternehmen festgelegten GPS-Bereiche. „Erforderlich“ lehnt Buchungen außerhalb des Bereichs im Feststandortmodus ab; im variablen Modus werden Koordinaten ohne festen Bereich zur Prüfung gesendet."
-                        : "Uses company-defined fixed GPS zones. Required rejects fixed-location punches outside them; variable-location employees submit coordinates for review without a fixed zone."}
-                </span>
               </label>
               <Field
                 label={t("locationRadius")}
@@ -18174,10 +13150,56 @@ function Rules() {
           </p>
         </div>
         <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-          <p className="rounded-xl border border-border bg-background p-4 text-sm text-muted-foreground">
-            {t("annualLeaveDeductionOnlyExplicit")}
-          </p>
+          <label className="flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50/60 p-4 text-sm font-semibold text-amber-950">
+            <input
+              type="checkbox"
+              checked={Boolean(form.absenceDeductsAnnualLeave)}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  absenceDeductsAnnualLeave: event.target.checked,
+                })
+              }
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span>
+              {t("deductAnnualLeaveForUnapproved")}
+              <span className="mt-1 block text-xs font-normal">
+                {t("absenceDeductionDetail")}
+              </span>
+            </span>
+          </label>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              {t("absenceDeductionWhen")}
+              <select
+                value={form.absenceLeaveDeductionTrigger}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    absenceLeaveDeductionTrigger: event.target.value,
+                  })
+                }
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="unexcused_absence">
+                  {t("unapprovedAbsencesOnly")}
+                </option>
+                <option value="any_absence">{t("anyAbsenceMissing")}</option>
+              </select>
+            </label>
+            <Field
+              label={t("leaveDaysPerAbsence")}
+              type="number"
+              min={0}
+              required
+              value={form.absenceLeaveDeductionDays}
+              onChange={(value) =>
+                setForm({ ...form, absenceLeaveDeductionDays: value })
+              }
+            />
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field
               label={t("annualEntitlementDays")}
               type="number"
@@ -18208,6 +13230,55 @@ function Rules() {
                 )}
               </select>
             </label>
+            <Field
+              label={t("monthlyMaximumDeduction")}
+              type="number"
+              min={0}
+              value={form.annualLeaveMonthlyDeductionLimit ?? 1}
+              onChange={(value) =>
+                setForm({
+                  ...form,
+                  annualLeaveMonthlyDeductionLimit: value,
+                })
+              }
+            />
+          </div>
+          <div className="mt-4">
+            <span className="text-sm font-semibold">
+              {t("balanceDeductionMonths")}
+            </span>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                (month) => {
+                  const selectedMonths = form.annualLeaveAllowedMonths || [];
+                  return (
+                    <label
+                      key={month}
+                      className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMonths.includes(month)}
+                        onChange={(event) =>
+                          setForm({
+                            ...form,
+                            annualLeaveAllowedMonths: event.target.checked
+                              ? [...selectedMonths, month].sort(
+                                  (a: number, b: number) => a - b,
+                                )
+                              : selectedMonths.filter(
+                                  (item: number) => item !== month,
+                                ),
+                          })
+                        }
+                        className="h-4 w-4 accent-primary"
+                      />
+                      {month}
+                    </label>
+                  );
+                },
+              )}
+            </div>
           </div>
         </div>
         <h3 className="mt-6 font-semibold">{t("annualLeaveBalances")}</h3>
@@ -18260,14 +13331,7 @@ function Rules() {
             {t("attendanceRulesChangeHistoryDetail")}
           </p>
         </div>
-        <div
-          className="mt-5 max-h-80 overflow-y-auto overscroll-contain rounded-xl border border-border p-3"
-          role="region"
-          aria-label={t("attendanceRulesChangeHistory")}
-          tabIndex={0}
-          data-testid="attendance-rules-history-scroll"
-        >
-          <div className="grid gap-3">
+        <div className="mt-5 grid gap-3">
           {(changes.data || []).map((change: any) => (
             <div
               key={change.id}
@@ -18333,7 +13397,6 @@ function Rules() {
               {t("noAttendanceRulesHistory")}
             </p>
           )}
-          </div>
         </div>
         </Card>
       )}
@@ -18377,7 +13440,7 @@ function reportColumns(
       employee,
       { key: "checkIn", label: t("checkIn") },
       { key: "checkOut", label: t("checkOut") },
-      { key: "regularHours", label: t("basicWorkingHours") },
+      { key: "workedHours", label: t("workedHours") },
       { key: "lateMinutes", label: t("lateMinutes") },
       { key: "earlyCheckoutMinutes", label: t("earlyCheckoutMinutes") },
       { key: "overtimeHours", label: t("overtimeHours") },
@@ -18451,8 +13514,7 @@ function reportCell(
   )
     return money(Number(row[key] ?? 0), currency);
   if (
-     key === "workedHours" ||
-     key === "regularHours" ||
+    key === "workedHours" ||
     key === "overtimeHours" ||
     key === "durationHours"
   )
@@ -18491,16 +13553,7 @@ function reportTotals(
   const result: Array<[string, string]> = [
     [t("records"), String(totals.records)],
   ];
-  if (kind === "attendance") {
-    const basicHours = (data.rows ?? []).reduce(
-      (total: number, row: any) => total + Number(row.regularHours ?? 0),
-      0,
-    );
-    result.push(
-      [t("basicWorkingHours"), `${basicHours.toFixed(2)}h`],
-      [t("overtimeHours"), `${Number(totals.overtimeHours ?? 0).toFixed(2)}h`],
-    );
-  } else if (kind === "overtime") {
+  if (kind === "attendance" || kind === "overtime") {
     result.push(
       [t("workedHours"), `${Number(totals.workedHours ?? 0).toFixed(2)}h`],
       [t("overtimeHours"), `${Number(totals.overtimeHours ?? 0).toFixed(2)}h`],
@@ -18695,7 +13748,7 @@ function downloadXlsx(
 }
 
 function Reports() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const workspace = useGetWorkspace();
   const departments = useListDepartments();
   const employees = useListEmployees({ status: "active" });
@@ -18954,7 +14007,7 @@ function Reports() {
               <option value="">{t("allEmployees")}</option>
               {employees.data?.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {employeeDisplayName(locale, item)}
+                  {item.firstName} {item.lastName}
                 </option>
               ))}
             </select>
@@ -19103,20 +14156,7 @@ function Reports() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               [t("records"), data.totals.records],
-              [
-                kind === "attendance"
-                  ? t("basicWorkingHours")
-                  : t("workedHours"),
-                kind === "attendance"
-                  ? `${(data.rows ?? [])
-                      .reduce(
-                        (total: number, row: any) =>
-                          total + Number(row.regularHours ?? 0),
-                        0,
-                      )
-                      .toFixed(2)}h`
-                  : `${data.totals.workedHours.toFixed(2)}h`,
-              ],
+              [t("workedHours"), `${data.totals.workedHours.toFixed(2)}h`],
               [t("overtimeHours"), `${data.totals.overtimeHours.toFixed(2)}h`],
               [
                 kind === "payroll" ? t("net") : t("leaveDays"),
@@ -19230,105 +14270,34 @@ function EmployeePayrollStatement({
   const currency = workspace.data?.company?.currency ?? "EGP";
   const item = query.data?.items?.[0];
   return (
-    <div className="animate-in space-y-6">
-      <SectionTitle
-        eyebrow={c.payroll}
-        title={c.payroll}
-        detail={c.payrollDetail}
-      />
+    <div className="animate-in">
+      <SectionTitle eyebrow={c.payroll} title={c.payroll} detail={c.payrollDetail} />
       {query.isLoading ? (
-        <Card className="space-y-5 p-5 sm:p-6">
-          <Skeleton className="h-20 rounded-2xl" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-          </div>
-        </Card>
+        <Card className="p-6"><Skeleton className="h-48" /></Card>
       ) : query.isError ? (
         <Card><ErrorState retry={() => query.refetch()} /></Card>
       ) : query.data && item ? (
-        <Card className="overflow-hidden">
-          <div className="flex flex-col justify-between gap-4 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:flex-row sm:items-center sm:p-6">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary-dark">
-                <Coins size={21} aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted-foreground">
-                  {c.period}
-                </p>
-                <h2 className="mt-1 truncate font-display text-xl font-bold sm:text-2xl">
-                  {query.data.period?.label}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {query.data.period?.from} – {query.data.period?.to}
-                </p>
-              </div>
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{c.period}</p>
+              <h2 className="mt-1 font-display text-2xl font-semibold">
+                {query.data.period?.label}
+              </h2>
             </div>
-            <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-              {query.data.period?.status && (
-                <Status value={query.data.period.status} />
-              )}
-              <div className="rounded-xl border border-border/80 bg-background/80 px-3.5 py-2.5">
-                <p className="text-[11px] font-medium text-muted-foreground">
-                  {c.calculatedAt}
-                </p>
-                <p className="mt-0.5 text-sm font-semibold">
-                  {date(query.data.calculatedAt)}
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {c.calculatedAt}: {date(query.data.calculatedAt)}
+            </p>
           </div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
-            {[
-              {
-                label: c.gross,
-                value: money(item.grossSalary ?? item.gross ?? 0, currency),
-                featured: false,
-              },
-              {
-                label: c.additions,
-                value: money(item.additions ?? item.overtime ?? 0, currency),
-                featured: false,
-              },
-              {
-                label: c.deductions,
-                value: money(item.deductions ?? 0, currency),
-                featured: false,
-              },
-              {
-                label: c.net,
-                value: money(item.netSalary ?? item.net ?? 0, currency),
-                featured: true,
-              },
-            ].map((metric) => (
-              <div
-                key={metric.label}
-                className={cn(
-                  "rounded-xl border p-4",
-                  metric.featured
-                    ? "border-primary/25 bg-primary/[.07]"
-                    : "border-border bg-muted/25",
-                )}
-              >
-                <p className="text-xs font-medium text-muted-foreground">
-                  {metric.label}
-                </p>
-                <p
-                  className={cn(
-                    "mt-2 font-mono text-base font-bold tabular-nums",
-                    metric.featured && "text-primary-dark",
-                  )}
-                >
-                  {metric.value}
-                </p>
-              </div>
-            ))}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Info label={c.gross} value={money(item.grossSalary ?? item.gross ?? 0, currency)} />
+            <Info label={c.additions} value={money(item.additions ?? item.overtime ?? 0, currency)} />
+            <Info label={c.deductions} value={money(item.deductions ?? 0, currency)} />
+            <Info label={c.net} value={money(item.netSalary ?? item.net ?? 0, currency)} />
+            <Info label={c.period} value={`${query.data.period?.from} – ${query.data.period?.to}`} />
           </div>
           {query.data.explanation && (
-            <p className="mx-4 mb-4 rounded-xl border border-border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground sm:mx-6 sm:mb-6">
+            <p className="mt-5 rounded-lg bg-muted/60 p-3 text-sm leading-6 text-muted-foreground">
               {query.data.explanation}
             </p>
           )}
@@ -19341,7 +14310,7 @@ function EmployeePayrollStatement({
 }
 
 function Payroll() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const auth = useAuth();
   const isEmployee = auth.account.accountType === "employee";
   const qc = useQueryClient();
@@ -19653,24 +14622,20 @@ function Payroll() {
     return <EmployeePayrollStatement query={myPayroll} />;
   }
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
         eyebrow={t("generalPayroll")}
         title={t("payrollTitle")}
         detail={t("payrollDetail")}
         action={
-          <Button
-            onClick={() => setShowPeriod(true)}
-            className="min-h-11 rounded-xl px-4 shadow-sm"
-            data-testid="button-create-payroll-period"
-          >
-            <Plus size={16} aria-hidden="true" />
+          <Button onClick={() => setShowPeriod(true)}>
+            <Plus size={16} />
             {t("createPeriod")}
           </Button>
         }
       />
-      <Card className="overflow-hidden">
-        <div className="flex flex-col gap-4 border-b border-border bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <Card className="mb-6">
+        <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">
               {t("payrollCycles")}
@@ -19679,13 +14644,8 @@ function Payroll() {
               {t("payrollCyclesDetail")}
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => openCycleEditor()}
-            className="min-h-10 rounded-xl px-4"
-            data-testid="button-add-payroll-cycle"
-          >
-            <Plus size={16} aria-hidden="true" />
+          <Button variant="outline" onClick={() => openCycleEditor()}>
+            <Plus size={16} />
             {t("addPayrollCycle")}
           </Button>
         </div>
@@ -19694,55 +14654,44 @@ function Payroll() {
             <Skeleton className="h-16" />
           </div>
         ) : cycles.data?.length ? (
-          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
+          <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
             {cycles.data.map((cycle: any) => (
-              <Card
-                key={cycle.id}
-                className="p-4 transition-colors hover:border-primary/30"
-                data-testid={`card-payroll-cycle-${cycle.id}`}
-              >
+              <div key={cycle.id} className="rounded-xl border border-border p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                      <CalendarDays size={18} aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold">{cycle.name}</div>
-                      <div className="mt-1 text-xs leading-5 text-muted-foreground">
-                        {t("cycleStartDay")} {cycle.startDay} ·{" "}
-                        {t("cyclePayDay")} {cycle.payDay}
-                      </div>
+                  <div>
+                    <div className="font-semibold">{cycle.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {t("cycleStartDay")} {cycle.startDay} · {t("cyclePayDay")}{" "}
+                      {cycle.payDay}
                     </div>
                   </div>
                   <Status value={cycle.active ? "active" : "inactive"} />
                 </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
-                  <span className="rounded-lg bg-muted/60 px-2.5 py-1.5">
+                <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>
                     {cycle.employeeCount} {t("cycleEmployees").toLowerCase()}
                   </span>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex gap-2">
                     <Button
                       variant="quiet"
-                      className="min-h-9 rounded-lg px-3 text-xs"
+                      className="px-2 py-1 text-xs"
                       onClick={() => openCycleEditor(cycle)}
-                      data-testid={`button-edit-payroll-cycle-${cycle.id}`}
                     >
                       {t("edit")}
                     </Button>
                     {cycle.active && (
                       <Button
                         variant="danger"
-                        className="min-h-9 rounded-lg px-3 text-xs"
+                        className="px-2 py-1 text-xs"
                         onClick={() => deactivateCycle(cycle)}
                         disabled={deleteCycle.isPending}
-                        data-testid={`button-deactivate-payroll-cycle-${cycle.id}`}
                       >
                         {t("cycleInactive")}
                       </Button>
                     )}
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         ) : (
@@ -19751,22 +14700,13 @@ function Payroll() {
           </div>
         )}
       </Card>
-      <div className="grid gap-5 xl:grid-cols-[minmax(290px,.82fr)_minmax(0,1.18fr)]">
-        <Card className="min-w-0 overflow-hidden">
-          <div className="border-b border-border bg-muted/20 p-5 sm:p-6">
+      <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
+        <Card>
+          <div className="border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">
               {t("periods")}
             </h2>
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {t("selectPeriod")}
-              </p>
-              {q.data && (
-                <span className="rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                  {q.data.length}
-                </span>
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground">{t("selectPeriod")}</p>
           </div>
           {q.isLoading ? (
             <div className="space-y-3 p-5">
@@ -19781,68 +14721,52 @@ function Payroll() {
                 <div
                   key={p.id}
                   className={cn(
-                    "border-s-2 transition-colors",
-                    selectedPeriodId === p.id
-                      ? "border-s-primary bg-primary/[.035]"
-                      : "border-s-transparent hover:bg-muted/30",
+                    "p-5 transition-colors hover:bg-muted/40",
+                    selectedPeriodId === p.id && "bg-primary/5",
                   )}
                 >
                   <button
                     aria-label={`${t("selectPeriod")}: ${periodLabel(p.label)}`}
-                    aria-pressed={selectedPeriodId === p.id}
-                    className="block w-full p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 sm:p-5"
+                    className="block w-full text-left"
                     onClick={() => selectPeriod(p.id)}
-                    data-testid={`button-select-payroll-period-${p.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                          <CalendarDays size={17} aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate font-display font-semibold">
-                            {periodLabel(p.label)}
-                          </div>
-                          <div className="mt-1 text-xs leading-5 text-muted-foreground">
-                            {date(p.from)} – {date(p.to)} · {p.employeeCount}{" "}
-                            {t("employeeCount")}
-                          </div>
-                          {p.cycleName && (
-                            <div className="mt-1 truncate text-xs font-medium text-primary-dark">
-                              {p.cycleName}
-                            </div>
-                          )}
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-semibold">
+                          {periodLabel(p.label)}
                         </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {date(p.from)} – {date(p.to)} · {p.employeeCount}{" "}
+                          {t("employeeCount")}
+                        </div>
+                        {p.cycleName && (
+                          <div className="mt-1 text-xs font-medium text-primary">
+                            {p.cycleName}
+                          </div>
+                        )}
                       </div>
                       <Status value={p.status} />
                     </div>
-                    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
-                      <span className="text-xs text-muted-foreground">
-                        {t("netSalary")}
-                      </span>
-                      <span className="font-mono text-sm font-semibold tabular-nums">
-                        {money(p.totalNet)}
-                      </span>
+                    <div className="mt-3 text-sm font-mono">
+                      {money(p.totalNet)}
                     </div>
                   </button>
-                  <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5 sm:pb-5">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-9 rounded-lg px-3 text-xs"
+                      className="px-2 py-1 text-xs"
                       onClick={() => selectPeriod(p.id)}
-                      data-testid={`button-view-payroll-period-${p.id}`}
                     >
                       {t("viewPeriod")}
                     </Button>
-                    {!isPayrollPeriodImmutableStatus(p.status) && (
+                    {p.status !== "finalized" && p.status !== "locked" && (
                       <Button
                         type="button"
                         variant="outline"
-                        className="min-h-9 rounded-lg px-3 text-xs"
+                        className="px-2 py-1 text-xs"
                         onClick={() => calculate(p.id)}
                         disabled={calc.isPending}
-                        data-testid={`button-calculate-payroll-period-${p.id}`}
                       >
                         {calc.isPending
                           ? t("calculating")
@@ -19851,14 +14775,13 @@ function Payroll() {
                             : t("calculate")}
                       </Button>
                     )}
-                    {!isPayrollPeriodImmutableStatus(p.status) && (
+                    {p.status !== "finalized" && p.status !== "locked" && (
                       <Button
                         type="button"
                         variant="danger"
-                        className="min-h-9 rounded-lg px-3 text-xs"
+                        className="px-2 py-1 text-xs"
                         onClick={() => removePeriod(p.id)}
                         disabled={deletePeriod.isPending}
-                        data-testid={`button-delete-payroll-period-${p.id}`}
                       >
                         {t("deletePeriod")}
                       </Button>
@@ -19904,7 +14827,7 @@ function Payroll() {
             />
           ) : (
             <div>
-              <div className="flex flex-col justify-between gap-3 border-b border-border bg-gradient-to-r from-primary/10 via-primary/[.04] to-transparent p-5 sm:flex-row sm:items-start sm:p-6">
+              <div className="flex flex-col justify-between gap-3 border-b border-border p-5 sm:flex-row sm:items-start">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-primary">
                     {t("calculationHistory")}
@@ -19920,89 +14843,60 @@ function Payroll() {
                   <Status value={calculation.data.period.status} />
                   {calculation.data.period.status === "calculated" && (
                     <Button
-                      className="min-h-9 rounded-lg px-3 text-xs"
+                      className="px-2 py-1 text-xs"
                       onClick={finalizePeriod}
                       disabled={finalize.isPending}
-                      data-testid="button-finalize-payroll-period"
                     >
                       {t("finalize")}
                     </Button>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 p-4 min-[360px]:grid-cols-2 sm:p-5 2xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 p-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
                 {[
-                  {
-                    key: "basic",
-                    label: t("basic"),
-                    value: calculation.data.totals.basicSalary,
-                  },
-                  {
-                    key: "additions",
-                    label: t("additions"),
-                    value: calculation.data.totals.additions,
-                  },
-                  {
-                    key: "overtime",
-                    label: t("overtime"),
-                    value: calculation.data.totals.overtime,
-                  },
-                  {
-                    key: "net",
-                    label: t("netSalary"),
-                    value: calculation.data.totals.netSalary,
-                    featured: true,
-                  },
-                ].map((item) => (
+                  [t("basic"), calculation.data.totals.basicSalary],
+                  [t("additions"), calculation.data.totals.additions],
+                  [t("overtime"), calculation.data.totals.overtime],
+                  [t("netSalary"), calculation.data.totals.netSalary],
+                ].map(([label, value]) => (
                   <div
-                    key={item.key}
-                    className={cn(
-                      "rounded-xl border p-3.5",
-                      item.featured
-                        ? "border-primary/25 bg-primary/[.07]"
-                        : "border-border bg-muted/30",
-                    )}
+                    key={String(label)}
+                    className="rounded-lg bg-muted/60 p-3"
                   >
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                      {item.label}
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {label}
                     </div>
-                    <div
-                      className={cn(
-                        "mt-2 font-mono text-sm font-bold tabular-nums",
-                        item.featured && "text-primary-dark",
-                      )}
-                    >
-                      {money(Number(item.value))}
+                    <div className="mt-1 font-mono text-sm font-semibold">
+                      {money(Number(value))}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="border-t border-border bg-muted/10 p-5 sm:p-6">
+              <div className="border-t border-border p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
+                  <div>
                     <h3 className="text-sm font-semibold">
                       {t("calculationExplanation")}
                     </h3>
-                    <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                       {calculation.data.explanation ||
                         t("payrollFoundationExplanation")}
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    className="min-h-10 shrink-0 rounded-xl px-4"
                     onClick={() => setShowAdjustment(true)}
-                    disabled={isPayrollPeriodImmutableStatus(
-                      calculation.data.period.status,
-                    )}
-                    data-testid="button-add-payroll-adjustment"
+                    disabled={
+                      calculation.data.period.status === "finalized" ||
+                      calculation.data.period.status === "locked"
+                    }
                   >
-                    <Plus size={15} aria-hidden="true" />
+                    <Plus size={15} />
                     {t("addAdjustment")}
                   </Button>
                 </div>
               </div>
-              <div className="border-t border-border p-4 sm:p-6">
+              <div className="border-t border-border p-5">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">
                     {t("employeeDetails")}
@@ -20011,7 +14905,7 @@ function Payroll() {
                     {calculation.data.items.length} {t("employeeCount")}
                   </span>
                 </div>
-                <div className="mt-4 hidden overflow-x-auto lg:block">
+                <div className="mt-4 overflow-x-auto">
                   <table className="w-full min-w-[700px] text-sm">
                     <thead className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                       <tr>
@@ -20053,7 +14947,6 @@ function Payroll() {
                               onClick={() =>
                                 setSelectedEmployeeId(item.employee.id)
                               }
-                              data-testid={`button-payroll-employee-details-${item.employee.id}`}
                             >
                               {t("details")}
                             </Button>
@@ -20062,66 +14955,6 @@ function Payroll() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-                <div className="mt-4 space-y-3 lg:hidden">
-                  {calculation.data.items.map((item: any) => (
-                    <Card
-                      key={item.employee.id}
-                      className="p-4"
-                      data-testid={`card-payroll-employee-${item.employee.id}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">
-                            {item.employee.name}
-                          </p>
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {item.employee.department}
-                          </p>
-                        </div>
-                        <div className="shrink-0 rounded-lg bg-primary/[.07] px-3 py-2 text-end">
-                          <p className="text-[11px] text-muted-foreground">
-                            {t("netSalary")}
-                          </p>
-                          <p className="mt-0.5 font-mono text-sm font-bold text-primary-dark">
-                            {money(item.netSalary)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          [t("basic"), item.basicSalary],
-                          [
-                            t("attendanceDeductions"),
-                            item.attendanceDeductions,
-                          ],
-                          [t("otherDeductions"), item.otherDeductions],
-                        ].map(([label, value]) => (
-                          <div
-                            key={String(label)}
-                            className="min-w-0 rounded-lg bg-muted/40 p-2.5"
-                          >
-                            <p className="truncate text-[11px] text-muted-foreground">
-                              {label}
-                            </p>
-                            <p className="mt-1 truncate font-mono text-xs font-semibold">
-                              {money(Number(value))}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        variant="quiet"
-                        className="mt-3 min-h-9 rounded-lg px-3 text-xs"
-                        onClick={() =>
-                          setSelectedEmployeeId(item.employee.id)
-                        }
-                        data-testid={`button-payroll-employee-details-mobile-${item.employee.id}`}
-                      >
-                        {t("details")}
-                      </Button>
-                    </Card>
-                  ))}
                 </div>
               </div>
               {selectedEmployee && (
@@ -20153,7 +14986,7 @@ function Payroll() {
                     ].map(([label, value]) => (
                       <div
                         key={String(label)}
-                        className="rounded-xl border border-border bg-card p-3"
+                        className="rounded-lg bg-card p-3"
                       >
                         <div className="text-[11px] text-muted-foreground">
                           {label}
@@ -20222,32 +15055,31 @@ function Payroll() {
                   </div>
                 </div>
               )}
-              <div className="border-t border-border p-4 sm:p-6">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="border-t border-border p-5">
+                <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">{t("adjustments")}</h3>
-                  <span className="text-xs leading-5 text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t("recalculateAfterAdjustment")}
                   </span>
                 </div>
                 {adjustments.isLoading ? (
                   <Skeleton className="mt-4 h-16" />
                 ) : adjustments.data?.length ? (
-                  <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
+                  <div className="mt-4 divide-y divide-border rounded-lg border border-border">
                     {adjustments.data.map((item: any) => (
                       <div
-                        className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                          className="flex items-start gap-3 p-3 sm:items-center"
                         key={item.id}
-                        data-testid={`row-payroll-adjustment-${item.id}`}
                       >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="font-semibold">
-                              {item.employee.name}
-                            </span>
-                            <span className="break-words text-xs text-muted-foreground">
-                              {item.reason}
-                            </span>
-                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="font-semibold">
+                                {item.employee.name}
+                              </span>
+                              <span className="break-words text-xs text-muted-foreground">
+                                {item.reason}
+                              </span>
+                            </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {item.category === "fixed"
                               ? t("fixed")
@@ -20258,34 +15090,25 @@ function Payroll() {
                               : t("deduction")}
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                          <span
-                            className={cn(
-                              "whitespace-nowrap font-mono font-semibold",
-                              item.type === "deduction"
-                                ? "text-destructive"
-                                : "text-primary-dark",
-                            )}
-                          >
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span className="whitespace-nowrap font-mono">
                             {money(
                               item.type === "deduction"
                                 ? -item.amount
                                 : item.amount,
                             )}
                           </span>
-                          {!isPayrollPeriodImmutableStatus(
-                            calculation.data.period.status,
-                          ) && (
-                            <Button
-                              variant="danger"
-                              className="min-h-9 rounded-lg px-3 text-xs"
-                              onClick={() => removeAdjustment(item.id)}
-                              disabled={deleteAdjustment.isPending}
-                              data-testid={`button-delete-payroll-adjustment-${item.id}`}
-                            >
-                              {t("remove")}
-                            </Button>
-                          )}
+                          {calculation.data.period.status !== "finalized" &&
+                            calculation.data.period.status !== "locked" && (
+                              <Button
+                                variant="danger"
+                                className="px-2 py-1 text-xs"
+                                onClick={() => removeAdjustment(item.id)}
+                                disabled={deleteAdjustment.isPending}
+                              >
+                                {t("remove")}
+                              </Button>
+                            )}
                         </div>
                       </div>
                     ))}
@@ -20500,7 +15323,7 @@ function Payroll() {
                 <option value="">{t("selectEmployeeForAdjustment")}</option>
                 {employees.data?.map((employee: any) => (
                   <option value={employee.id} key={employee.id}>
-                    {employeeDisplayName(locale, employee)}
+                    {employee.firstName} {employee.lastName}
                   </option>
                 ))}
               </select>
@@ -20592,7 +15415,7 @@ const scheduleDayOptions: Array<[string, AppCopyKey]> = [
 ];
 
 function Schedules({ embedded = false }: { embedded?: boolean }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const role = workspace.data?.role as WorkspaceRole | undefined;
@@ -20635,23 +15458,12 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     },
   });
   const bulkAssign = useBulkAssignEmployeeSchedules();
-  const invalidateAttendanceCalculations = () => {
-    qc.invalidateQueries({ queryKey: getGetReportQueryKey() });
-    qc.invalidateQueries({
-      predicate: (query) =>
-        typeof query.queryKey[0] === "string" &&
-        query.queryKey[0].startsWith("/api/payroll/"),
-    });
-    qc.invalidateQueries({
-      queryKey: getGetEmployeePayrollSummaryQueryKey(),
-    });
-  };
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({
     name: "",
     nameAr: "",
-    nameEn: "",
+    shiftType: "fixed",
     workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
     startTime: "09:00",
     endTime: "17:00",
@@ -20671,8 +15483,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       schedule
         ? {
             ...schedule,
-            nameAr: schedule.nameAr || schedule.name || "",
-            nameEn: schedule.nameEn || "",
+            nameAr: schedule.nameAr || "",
             requiredHours: String(schedule.requiredHours),
             breakDurationMinutes: String(schedule.breakDurationMinutes),
             earlyCheckoutGraceMinutes: String(
@@ -20684,7 +15495,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         : {
             name: "",
             nameAr: "",
-            nameEn: "",
+            shiftType: "fixed",
             workingDays: ["Sun", "Mon", "Tue", "Wed", "Thu"],
             startTime: "09:00",
             endTime: "17:00",
@@ -20704,18 +15515,19 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
   function submitSchedule(event: FormEvent) {
     event.preventDefault();
     if (
-      !draft.nameAr.trim() ||
-      !draft.startTime ||
-      !draft.endTime
+      !draft.name.trim() ||
+      (draft.shiftType !== "flexible" && (!draft.startTime || !draft.endTime))
     ) {
       toast.error(t("scheduleValidation"));
       return;
     }
     const data = {
       ...draft,
-      name: draft.nameAr.trim(),
+      startTime: draft.shiftType === "flexible" ? (draft.startTime || "00:00") : draft.startTime,
+      endTime: draft.shiftType === "flexible" ? (draft.endTime || "23:59") : draft.endTime,
+      shiftType: draft.shiftType === "flexible" ? "flexible" : "fixed",
+      name: draft.name.trim(),
       nameAr: draft.nameAr.trim(),
-      nameEn: draft.nameEn.trim(),
       requiredHours: Number(draft.requiredHours),
       breakDurationMinutes: Number(draft.breakDurationMinutes),
       breakPaid: Boolean(draft.breakPaid),
@@ -20729,7 +15541,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         toast.success(t(editing ? "scheduleUpdated" : "scheduleCreated"));
         setShowEditor(false);
         qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
-        if (editing) invalidateAttendanceCalculations();
       },
       onError: (error: unknown) =>
         toast.error(apiErrorMessage(error, t("scheduleSaveFailed"))),
@@ -20760,7 +15571,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
           qc.invalidateQueries({
             queryKey: getGetEmployeeScheduleQueryKey(activeEmployeeId),
           });
-          invalidateAttendanceCalculations();
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("scheduleAssignmentFailed"))),
@@ -20813,7 +15623,6 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             queryKey: getListScheduleAssignmentsQueryKey(),
           });
           qc.invalidateQueries({ queryKey: getListWorkSchedulesQueryKey() });
-          invalidateAttendanceCalculations();
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("scheduleAssignmentFailed"))),
@@ -20856,24 +15665,14 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
       )}
       {canAdminister || role === "manager" ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-          <section className="min-w-0">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-base font-bold">
-                  {t("scheduleListTitle")}
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("scheduleListDetail")}
-                </p>
-              </div>
-              {schedules.data?.length ? (
-                <span
-                  aria-label={`${new Intl.NumberFormat(locale).format(schedules.data.length)} ${t("scheduleListTitle")}`}
-                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-                >
-                  {new Intl.NumberFormat(locale).format(schedules.data.length)}
-                </span>
-              ) : null}
+          <Card>
+            <div className="border-b border-border p-5">
+              <h2 className="font-display text-lg font-semibold">
+                {t("schedules")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t("startTime")} → {t("endTime")}
+              </p>
             </div>
             {schedules.isLoading ? (
               <div className="space-y-3 p-5">
@@ -20883,110 +15682,53 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             ) : schedules.isError ? (
               <ErrorState retry={() => schedules.refetch()} />
             ) : schedules.data?.length ? (
-              <div className="space-y-3">
+              <div className="divide-y divide-border">
                 {schedules.data.map((schedule: any) => (
-                  <Card
-                    key={schedule.id}
-                    className="rounded-2xl p-4 transition-colors hover:border-primary/40 sm:p-5"
-                    data-testid={`card-work-schedule-${schedule.id}`}
-                  >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span
-                          aria-hidden="true"
-                          className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-dark dark:text-primary"
-                        >
-                          <Clock3 size={19} />
-                        </span>
-                        <div className="min-w-0">
-                          <h3
-                            className="text-base font-bold leading-6"
-                            data-testid={`text-work-schedule-name-${schedule.id}`}
-                          >
-                            {localizedName(locale, schedule.name, schedule.nameEn)}
-                          </h3>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {schedule.isDefault && (
-                              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary-dark dark:text-primary">
-                                {t("defaultSchedule")}
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${schedule.active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}
-                            >
-                              {schedule.active
-                                ? t("activeSchedule")
-                                : t("statusInactive")}
-                            </span>
-                          </div>
+                  <div className="p-5" key={schedule.id}>
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                      <div>
+                        <div className="flex items-center gap-2 font-semibold">
+                          {schedule.name}
+                          {schedule.isDefault && (
+                            <Badge tone="accent">{t("defaultSchedule")}</Badge>
+                          )}
+                          <Badge tone={schedule.active ? "good" : "neutral"}>
+                            {schedule.active
+                              ? t("activeSchedule")
+                              : t("statusInactive")}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 sm:shrink-0">
+                      <div className="flex flex-wrap gap-2">
                         {!schedule.isDefault && (
                           <Button
                             variant="outline"
-                            className="min-h-9 px-3 text-xs"
                             onClick={() => makeDefault(schedule.id)}
                             disabled={setDefault.isPending}
-                            data-testid={`button-set-default-schedule-${schedule.id}`}
                           >
                             {t("setDefaultSchedule")}
                           </Button>
                         )}
                         <Button
-                          variant="secondary"
-                          className="min-h-9 px-3 text-xs"
+                          variant="outline"
                           onClick={() => openEditor(schedule)}
-                          data-testid={`button-edit-schedule-${schedule.id}`}
                         >
-                          <Pencil size={14} />
                           {t("editSchedule")}
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-4 sm:grid-cols-3 sm:gap-3">
-                      {[
-                        {
-                          id: "start",
-                          label: t("startTime"),
-                          value: schedule.startTime,
-                          Icon: Clock3,
-                          wide: false,
-                        },
-                        {
-                          id: "end",
-                          label: t("endTime"),
-                          value: `${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`,
-                          Icon: Clock3,
-                          wide: false,
-                        },
-                        {
-                          id: "hours",
-                          label: t("requiredHours"),
-                          value: `${schedule.requiredHours}h`,
-                          Icon: Activity,
-                          wide: true,
-                        },
-                      ].map(({ id, label, value, Icon, wide }) => (
-                        <div
-                          key={id}
-                          className={`rounded-xl border border-border/80 bg-muted/35 px-3.5 py-3 ${wide ? "col-span-2 sm:col-span-1" : ""}`}
-                          data-testid={`metric-work-schedule-${id}-${schedule.id}`}
-                        >
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Icon
-                              size={15}
-                              className="shrink-0 text-primary-dark"
-                            />
-                            <span>{label}</span>
-                          </div>
-                          <div className="mt-2 text-lg font-semibold tabular-nums">
-                            {value}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <Info label={t("startTime")} value={schedule.startTime} />
+                      <Info
+                        label={t("endTime")}
+                        value={`${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`}
+                      />
+                      <Info
+                        label={t("requiredHours")}
+                        value={`${schedule.requiredHours}h`}
+                      />
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -21001,7 +15743,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 }
               />
             )}
-          </section>
+          </Card>
           <Card>
             <div className="border-b border-border p-5">
               <h2 className="font-display text-lg font-semibold">
@@ -21030,7 +15772,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   <option value="">{t("selectEmployee")}</option>
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                      {employeeDisplayName(locale, employee)}
+                      {employee.firstName} {employee.lastName}
                     </option>
                   ))}
                 </select>
@@ -21043,7 +15785,9 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                   <div className="font-semibold">{effectiveSchedule.name}</div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {effectiveSchedule.startTime} → {effectiveSchedule.endTime}
+                    {effectiveSchedule.shiftType === "flexible"
+                      ? t("flexibleShift")
+                      : `${effectiveSchedule.startTime} → ${effectiveSchedule.endTime}`}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {t("effectiveFrom")}:{" "}
@@ -21080,7 +15824,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                         ?.filter((schedule: any) => schedule.active)
                         .map((schedule: any) => (
                           <option key={schedule.id} value={schedule.id}>
-                            {localizedName(locale, schedule.name, schedule.nameEn)}
+                            {schedule.name}
                           </option>
                         ))}
                     </select>
@@ -21142,7 +15886,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 >
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                      {employeeDisplayName(locale, employee)}
+                      {employee.firstName} {employee.lastName}
                     </option>
                   ))}
                 </select>
@@ -21162,7 +15906,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                     ?.filter((schedule: any) => schedule.active)
                     .map((schedule: any) => (
                       <option key={schedule.id} value={schedule.id}>
-                        {localizedName(locale, schedule.name, schedule.nameEn)}
+                        {schedule.name}
                       </option>
                     ))}
                 </select>
@@ -21276,18 +16020,33 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
         >
           <form onSubmit={submitSchedule} className="space-y-4">
             <Field
-              label={t("arabicName")}
+              label={t("scheduleName")}
               required
-              value={draft.nameAr}
-              onChange={(value) =>
-                setDraft({ ...draft, name: value, nameAr: value })
-              }
+              value={draft.name}
+              onChange={(value) => setDraft({ ...draft, name: value })}
             />
             <Field
-              label={t("englishName")}
-              value={draft.nameEn}
-              onChange={(value) => setDraft({ ...draft, nameEn: value })}
+              label={t("scheduleNameAr")}
+              value={draft.nameAr}
+              onChange={(value) => setDraft({ ...draft, nameAr: value })}
             />
+            <label className="block text-sm font-semibold">
+              {t("shiftType")}
+              <select
+                value={draft.shiftType || "fixed"}
+                onChange={(event) => setDraft({ ...draft, shiftType: event.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="fixed">{t("fixedShift")}</option>
+                <option value="flexible">{t("flexibleShift")}</option>
+              </select>
+            </label>
+            {draft.shiftType === "flexible" ? (
+              <p className="rounded-lg bg-primary/5 p-3 text-sm text-muted-foreground">
+                {t("flexibleShiftHelp")}
+              </p>
+            ) : (
+            <>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={t("startTime")}
@@ -21369,6 +16128,8 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                 }
               />
             </div>
+            </>
+            )}
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"
@@ -21805,62 +16566,8 @@ type BackupSummary = {
     tableCounts?: Record<string, number>;
     includesExternalFiles?: boolean;
     sourceChecksum?: string;
-    creationMode?: string;
-    googleDrive?: {
-      state?: string;
-      webViewLink?: string;
-      fileName?: string;
-      attempts?: number;
-    };
   };
   createdAt: string;
-};
-
-type BackupSchedule = {
-  platformBackupRunsPerDay: number;
-  companyBackupIntervalMinutes: number;
-  schedulerReady: boolean;
-};
-
-type BackupSchedulerTargetStatus = {
-  targetType: "platform" | "company";
-  companyId: string | null;
-  companyName: string | null;
-  companyNameEn: string | null;
-  scheduleEnabled: boolean;
-  source: string | null;
-  status: string;
-  reason: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  backupsCreated: number;
-  failureCount: number;
-  driveFailed: number;
-  errorMessage: string | null;
-};
-
-type BackupSchedulerRunStatus = {
-  startedAt: string;
-  completedAt: string | null;
-  source: string;
-  status: string;
-  reason: string | null;
-  platformCreated: number;
-  companyCreated: number;
-  failureCount: number;
-  driveUploaded: number;
-  driveFailed: number;
-  drivePending: number;
-  errorMessage: string | null;
-};
-
-type BackupSchedulerStatus = {
-  latestRun: BackupSchedulerRunStatus | null;
-  targets: BackupSchedulerTargetStatus[];
-};
-
-type BackupScheduleResponse = BackupSchedule & {
-  schedulerStatus: BackupSchedulerStatus;
 };
 
 function BackupRestore() {
@@ -21875,24 +16582,6 @@ function BackupRestore() {
     null,
   );
   const [selectedFilename, setSelectedFilename] = useState("");
-  const [schedule, setSchedule] = useState<BackupSchedule>({
-    platformBackupRunsPerDay: 0,
-    companyBackupIntervalMinutes: 0,
-    schedulerReady: false,
-  });
-  const [scheduleLoading, setScheduleLoading] = useState(true);
-  const [scheduleLoaded, setScheduleLoaded] = useState(false);
-  const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [scheduleError, setScheduleError] = useState("");
-  const [schedulerStatus, setSchedulerStatus] =
-    useState<BackupSchedulerStatus | null>(null);
-  const [schedulerStatusLoading, setSchedulerStatusLoading] = useState(true);
-  const [schedulerStatusError, setSchedulerStatusError] = useState("");
-  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
-  const [driveLoading, setDriveLoading] = useState(true);
-  const [driveAction, setDriveAction] = useState("");
-  const [driveMessage, setDriveMessage] = useState("");
-  const driveAutoRetryStarted = useRef(false);
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -21930,112 +16619,11 @@ function BackupRestore() {
         confirm:
           "الاستعادة تستبدل بيانات هذا النطاق بالكامل. سيتم إنشاء نسخة أمان أولاً. هل تريد المتابعة؟",
         confirmDelete: "هل تريد حذف هذه النسخة؟",
-         external:
-          "تغطي النسخ سجلات قاعدة البيانات فقط، ولا تشمل الملفات الخارجية.",
+        external:
+          "لا توجد ملفات خارجية في هذا النظام حالياً؛ النسخ تغطي بيانات قاعدة البيانات.",
         integrity: "سلامة SHA-256",
         records: "سجلات البيانات",
         size: "الحجم",
-        scheduleTitle: "النسخ الاحتياطي التلقائي",
-        scheduleDetail:
-          "اختر عدد النسخ الكاملة للمنصة: مرة الساعة 1 ظهرًا، أو مرتين الساعة 1 صباحًا و1 ظهرًا، أو 4 مرات الساعة 1 و7 صباحًا و1 ظهرًا و7 مساءً. المواعيد بتوقيت القاهرة، وجدولة الشركات مستقلة.",
-        scheduleLoading: "جارٍ تحميل إعدادات الجدولة…",
-        scheduleRuntime:
-          "على Replit يفحص الخادم الجدولة كل دقيقة. على Vercel، قد تؤخر خطة Hobby التشغيل حتى 59 دقيقة، بينما تدعم Pro دقة الدقيقة.",
-        platformFrequency: "تكرار نسخة المنصة",
-        companyFrequency: "تكرار نسخة كل شركة",
-        off: "متوقف",
-        onceDaily: "مرة يوميًا (1 ظهرًا)",
-        twiceDaily: "مرتان يوميًا (1 صباحًا، 1 ظهرًا)",
-        fourTimesDaily: "4 مرات يوميًا (1 و7 صباحًا، 1 ظهرًا، 7 مساءً)",
-        daily: "يوميًا",
-        weekly: "أسبوعيًا",
-        saveSchedule: "حفظ الجدولة",
-        savingSchedule: "جارٍ الحفظ…",
-        scheduleSaved: "تم حفظ إعدادات النسخ التلقائي.",
-        scheduleFailed: "تعذر تحميل أو حفظ إعدادات النسخ التلقائي.",
-        schedulerNeedsSecret:
-          "لتشغيل النسخ على Vercel، أضف CRON_SECRET إلى إعدادات بيئة النشر. لن تعمل الجدولة قبل ذلك.",
-        schedulerStatusTitle: "حالة تشغيل النسخ التلقائي",
-        schedulerStatusDetail:
-          "آخر تشغيل للجدولة ونتيجته، وآخر محاولة لكل نسخة من المنصة والشركات.",
-        refreshSchedulerStatus: "تحديث الحالة",
-        refreshingSchedulerStatus: "جارٍ التحديث…",
-        schedulerStatusFailed: "تعذر تحميل حالة تشغيل النسخ التلقائي.",
-        latestSchedulerRun: "آخر تشغيل للجدولة",
-        noSchedulerRun: "لا توجد محاولات جدولة مسجلة بعد.",
-        runTime: "وقت التشغيل",
-        runSource: "مصدر التشغيل",
-        runStatus: "حالة التشغيل",
-        platformCreatedCount: "نسخ المنصة المنشأة",
-        companyCreatedCount: "نسخ الشركات المنشأة",
-        backupFailureCount: "فشل إنشاء النسخ",
-        driveFailureCount: "فشل رفع Google Drive",
-        targetStatusTitle: "آخر محاولة لكل نطاق",
-        backupTarget: "النطاق",
-        backupTargetStatus: "الحالة",
-        backupTargetTime: "وقت آخر محاولة",
-        backupTargetCreated: "النسخ المنشأة",
-        backupTargetError: "الأخطاء",
-        platformTargetName: "المنصة",
-        noTargetAttempt: "لم تتم المحاولة بعد",
-        statusRunning: "جارٍ التنفيذ",
-        statusCompleted: "اكتمل",
-        statusCompletedWithErrors: "اكتمل مع أخطاء",
-        statusFailed: "فشل",
-        statusSkipped: "تم التخطي",
-        statusCreated: "تم إنشاء النسخة",
-        statusCreatedWithErrors: "أُنشئت النسخة مع خطأ في Google Drive",
-        statusNotAttempted: "لم تتم المحاولة",
-        statusDisabled: "الجدولة متوقفة",
-        statusUnknown: "غير معروف",
-        sourceVercel: "Vercel Cron",
-        sourceServer: "الخادم",
-        reasonInProgress: "جارٍ تنفيذ النسخ",
-        reasonNoDueBackups: "لم يحن موعد نسخة جديدة",
-        reasonDisabled: "الجدولة متوقفة",
-        reasonBackupFailures: "حدث فشل أثناء إنشاء النسخ",
-        reasonCompleted: "انتهى التشغيل",
-        reasonNoActiveOwner: "لا يوجد حساب نشط لصاحب المنصة",
-        reasonSchedulerError: "حدث خطأ في تشغيل الجدولة",
-        reasonBackupAttempt: "محاولة إنشاء نسخة",
-        keepAllBackups:
-          "لا تُحذف النسخ القديمة تلقائيًا؛ احذفها يدويًا عند الحاجة.",
-        automatic: "تلقائية",
-        driveTitle: "نسخة خارجية على Google Drive",
-        driveDetail:
-          "احفظ نسخة إضافية من النسخ المجدولة في Google Drive؛ تبقى نسخ PostgreSQL والتنزيل والاستعادة الحالية كما هي.",
-        driveNotConfigured:
-          "لم تكتمل إعدادات Google OAuth في Vercel بعد. أضف متغيرات Google Drive المطلوبة قبل الربط.",
-        driveConnected: "متصل بحساب",
-        driveDisconnected: "غير متصل",
-        driveLoading: "جارٍ تحميل حالة Google Drive…",
-        driveConnect: "ربط Google Drive",
-        driveReconnect: "إعادة ربط Google Drive",
-        driveDisconnect: "فصل Google Drive",
-        driveConfirmDisconnect:
-          "فصل Google Drive؟ ستبقى النسخ الموجودة في Drive دون حذف.",
-        driveFolder: "فتح مجلد النسخ في Google Drive",
-        drivePending: "نسخ بانتظار الرفع",
-        driveRetry: "إعادة محاولة الرفع",
-        driveRetrying: "جارٍ إعادة المحاولة…",
-        driveRetryUploaded: "مرفوعة",
-        driveRetryFailed: "فشلت",
-        driveRetryPendingResult: "ما زالت معلّقة",
-        driveRetryNotDue:
-          "لم يحِن موعد إعادة المحاولة بعد؛ ما زالت {pending} نسخة معلّقة.",
-        driveRetryNotProcessed: "لم تُعالج أي نسخة.",
-        driveRetryErrorCodes: "رموز الخطأ",
-        driveConnectedToast: "تم ربط Google Drive.",
-        driveDisconnectedToast:
-          "تم فصل Google Drive. النسخ الموجودة لم تُحذف.",
-        driveCancelled: "تم إلغاء ربط Google Drive.",
-        driveError: "تعذر إكمال إجراء Google Drive.",
-        driveNeedsSchedule:
-          "فعّل جدولة للمنصة أو للشركات كي تُنشأ النسخ التي ستُرفع.",
-        driveUploaded: "نسخة محفوظة في Google Drive",
-        driveUploadPending: "بانتظار الرفع إلى Google Drive",
-        driveUploadFailed: "تعذر رفع هذه النسخة إلى Google Drive",
-        openDriveFile: "فتح النسخة في Google Drive",
       }
     : {
         title: "Backup & restore",
@@ -22072,111 +16660,10 @@ function BackupRestore() {
           "Restore replaces all data in this scope. A safety backup will be created first. Continue?",
         confirmDelete: "Delete this backup?",
         external:
-          "Backups cover database records only; they do not include external file uploads.",
+          "There is no external file storage in this system currently; backups cover database data.",
         integrity: "SHA-256 integrity",
         records: "Data records",
         size: "Size",
-        scheduleTitle: "Automatic backup schedule",
-        scheduleDetail:
-          "Choose the complete platform backup frequency: once at 1 PM, twice at 1 AM and 1 PM, or four times at 1 AM, 7 AM, 1 PM, and 7 PM. Times are Cairo local time; company schedules are separate.",
-        scheduleLoading: "Loading schedule settings…",
-        scheduleRuntime:
-          "Replit checks every minute. Vercel Hobby may delay a run by up to 59 minutes; Pro supports minute-level precision.",
-        platformFrequency: "Platform backup frequency",
-        companyFrequency: "Company backup frequency",
-        off: "Off",
-        onceDaily: "Once daily (1 PM)",
-        twiceDaily: "Twice daily (1 AM, 1 PM)",
-        fourTimesDaily: "Four times daily (1 AM, 7 AM, 1 PM, 7 PM)",
-        daily: "Daily",
-        weekly: "Weekly",
-        saveSchedule: "Save schedule",
-        savingSchedule: "Saving…",
-        scheduleSaved: "Automatic backup schedule saved.",
-        scheduleFailed: "Automatic backup settings could not be loaded or saved.",
-        schedulerNeedsSecret:
-          "For Vercel, add CRON_SECRET to the deployment environment before scheduled backups can run.",
-        schedulerStatusTitle: "Automatic backup run status",
-        schedulerStatusDetail:
-          "Latest scheduler run and the most recent attempt for the platform and each company.",
-        refreshSchedulerStatus: "Refresh status",
-        refreshingSchedulerStatus: "Refreshing…",
-        schedulerStatusFailed: "Automatic backup status could not be loaded.",
-        latestSchedulerRun: "Latest scheduler run",
-        noSchedulerRun: "No scheduler attempts have been recorded yet.",
-        runTime: "Run time",
-        runSource: "Run source",
-        runStatus: "Run status",
-        platformCreatedCount: "Platform backups created",
-        companyCreatedCount: "Company backups created",
-        backupFailureCount: "Backup creation failures",
-        driveFailureCount: "Google Drive upload failures",
-        targetStatusTitle: "Latest attempt by scope",
-        backupTarget: "Scope",
-        backupTargetStatus: "Status",
-        backupTargetTime: "Last attempt",
-        backupTargetCreated: "Backups created",
-        backupTargetError: "Errors",
-        platformTargetName: "Platform",
-        noTargetAttempt: "Not attempted yet",
-        statusRunning: "Running",
-        statusCompleted: "Completed",
-        statusCompletedWithErrors: "Completed with errors",
-        statusFailed: "Failed",
-        statusSkipped: "Skipped",
-        statusCreated: "Backup created",
-        statusCreatedWithErrors: "Backup created; Google Drive upload failed",
-        statusNotAttempted: "Not attempted",
-        statusDisabled: "Schedule disabled",
-        statusUnknown: "Unknown",
-        sourceVercel: "Vercel Cron",
-        sourceServer: "Server",
-        reasonInProgress: "Backups are running",
-        reasonNoDueBackups: "No backup was due",
-        reasonDisabled: "The schedule is disabled",
-        reasonBackupFailures: "One or more backups failed",
-        reasonCompleted: "Run completed",
-        reasonNoActiveOwner: "No active platform owner account",
-        reasonSchedulerError: "Scheduler error",
-        reasonBackupAttempt: "Backup attempt",
-        keepAllBackups:
-          "Old backups are not deleted automatically; remove them manually when needed.",
-        automatic: "Automatic",
-        driveTitle: "External copy in Google Drive",
-        driveDetail:
-          "Save an additional copy of scheduled backups in Google Drive. Existing PostgreSQL backups, downloads, and restores remain unchanged.",
-        driveNotConfigured:
-          "Google OAuth is not configured in Vercel yet. Add the required Google Drive environment variables before connecting.",
-        driveConnected: "Connected as",
-        driveDisconnected: "Not connected",
-        driveLoading: "Loading Google Drive status…",
-        driveConnect: "Connect Google Drive",
-        driveReconnect: "Reconnect Google Drive",
-        driveDisconnect: "Disconnect Google Drive",
-        driveConfirmDisconnect:
-          "Disconnect Google Drive? Existing Drive backups will not be deleted.",
-        driveFolder: "Open backup folder in Google Drive",
-        drivePending: "Backups waiting to upload",
-        driveRetry: "Retry pending uploads",
-        driveRetrying: "Retrying…",
-        driveRetryUploaded: "uploaded",
-        driveRetryFailed: "failed",
-        driveRetryPendingResult: "still pending",
-        driveRetryNotDue:
-          "No backup is due for another attempt yet; {pending} remain pending.",
-        driveRetryNotProcessed: "No backups were processed.",
-        driveRetryErrorCodes: "Error codes",
-        driveConnectedToast: "Google Drive connected.",
-        driveDisconnectedToast:
-          "Google Drive disconnected. Existing Drive files were kept.",
-        driveCancelled: "Google Drive connection was cancelled.",
-        driveError: "Could not complete the Google Drive action.",
-        driveNeedsSchedule:
-          "Enable a platform or company schedule to create backups for Drive.",
-        driveUploaded: "Copy saved in Google Drive",
-        driveUploadPending: "Waiting to upload to Google Drive",
-        driveUploadFailed: "This backup could not be uploaded to Google Drive",
-        openDriveFile: "Open backup in Google Drive",
       };
 
   const load = async () => {
@@ -22190,184 +16677,9 @@ function BackupRestore() {
       setLoading(false);
     }
   };
-  const loadSchedule = async () => {
-    setScheduleLoading(true);
-    setScheduleError("");
-    setSchedulerStatusLoading(true);
-    setSchedulerStatusError("");
-    try {
-      const result = await authRequest<BackupScheduleResponse>(
-        "/api/platform/backup-schedule",
-      );
-      setSchedule({
-        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
-        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
-        schedulerReady: result.schedulerReady,
-      });
-      setSchedulerStatus(result.schedulerStatus);
-      setScheduleLoaded(true);
-    } catch {
-      setScheduleError(labels.scheduleFailed);
-    } finally {
-      setScheduleLoading(false);
-      setSchedulerStatusLoading(false);
-    }
-  };
-  const refreshSchedulerStatus = async () => {
-    setSchedulerStatusLoading(true);
-    setSchedulerStatusError("");
-    try {
-      const result = await authRequest<BackupScheduleResponse>(
-        "/api/platform/backup-schedule",
-      );
-      setSchedulerStatus(result.schedulerStatus);
-    } catch {
-      setSchedulerStatusError(labels.schedulerStatusFailed);
-    } finally {
-      setSchedulerStatusLoading(false);
-    }
-  };
-  const loadDriveStatus = async () => {
-    setDriveLoading(true);
-    setDriveMessage("");
-    try {
-      setDriveStatus(
-        await authRequest<GoogleDriveStatus>("/api/platform/google-drive"),
-      );
-    } catch {
-      setDriveMessage(labels.driveError);
-    } finally {
-      setDriveLoading(false);
-    }
-  };
   useEffect(() => {
     if (role === "platform_owner" || role === "company_owner") void load();
-    if (role === "platform_owner") void loadSchedule();
-    if (role === "platform_owner") void loadDriveStatus();
   }, [role]);
-  useEffect(() => {
-    if (role !== "platform_owner") return;
-    const interval = window.setInterval(() => {
-      void authRequest<BackupScheduleResponse>("/api/platform/backup-schedule")
-        .then((result) => {
-          setSchedulerStatus(result.schedulerStatus);
-          setSchedulerStatusError("");
-        })
-        .catch(() => setSchedulerStatusError(labels.schedulerStatusFailed));
-    }, 60_000);
-    return () => window.clearInterval(interval);
-  }, [role, locale]);
-  useEffect(() => {
-    if (!isPlatformOwner) return;
-    const params = new URLSearchParams(window.location.search);
-    const result = params.get("drive");
-    if (!result) return;
-    if (result === "connected") toast.success(labels.driveConnectedToast);
-    else if (result === "cancelled") setDriveMessage(labels.driveCancelled);
-    else setDriveMessage(labels.driveError);
-    params.delete("drive");
-    const query = params.toString();
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
-    );
-    if (result === "connected") void loadDriveStatus();
-  }, [isPlatformOwner]);
-
-  const saveSchedule = async () => {
-    setScheduleSaving(true);
-    setScheduleError("");
-    try {
-      const result = await authRequest<BackupScheduleResponse>(
-        "/api/platform/backup-schedule",
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            platformBackupRunsPerDay: schedule.platformBackupRunsPerDay,
-            companyBackupIntervalMinutes:
-              schedule.companyBackupIntervalMinutes,
-          }),
-        },
-      );
-      setSchedule({
-        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
-        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
-        schedulerReady: result.schedulerReady,
-      });
-      setSchedulerStatus(result.schedulerStatus);
-      toast.success(labels.scheduleSaved);
-    } catch {
-      setScheduleError(labels.scheduleFailed);
-    } finally {
-      setScheduleSaving(false);
-    }
-  };
-
-  const connectGoogleDrive = () => {
-    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    window.location.assign(
-      `/api/platform/google-drive/oauth/start?returnTo=${encodeURIComponent(returnTo)}`,
-    );
-  };
-
-  const disconnectGoogleDrive = async () => {
-    if (!window.confirm(labels.driveConfirmDisconnect)) return;
-    setDriveAction("disconnect");
-    setDriveMessage("");
-    try {
-      await authRequest("/api/platform/google-drive", { method: "DELETE" });
-      toast.success(labels.driveDisconnectedToast);
-      await loadDriveStatus();
-    } catch {
-      setDriveMessage(labels.driveError);
-    } finally {
-      setDriveAction("");
-    }
-  };
-
-  const retryGoogleDrive = async (force = true) => {
-    setDriveAction("retry");
-    setDriveMessage("");
-    try {
-      const result = await authRequest<GoogleDriveRetryResult>(
-        "/api/platform/google-drive/retry",
-        { method: "POST", body: JSON.stringify({ force }) },
-      );
-      const summary =
-        result.processed === 0 && result.pending > 0 && result.errorCodes.length === 0
-          ? labels.driveRetryNotDue.replace("{pending}", String(result.pending))
-          : result.processed === 0 && result.errorCodes.length > 0
-            ? `${labels.driveRetryNotProcessed} ${labels.driveRetryErrorCodes}: ${result.errorCodes.join(", ")}`
-            : `${result.uploaded} ${labels.driveRetryUploaded}, ${result.failed} ${labels.driveRetryFailed}, ${result.pending} ${labels.driveRetryPendingResult}${result.errorCodes.length > 0 ? `. ${labels.driveRetryErrorCodes}: ${result.errorCodes.join(", ")}` : ""}`;
-      if (result.failed > 0 || result.errorCodes.length > 0) {
-        toast.error(summary);
-      } else if (result.processed === 0 && result.pending > 0) {
-        toast.info(summary);
-      } else {
-        toast.success(summary);
-      }
-      await Promise.all([loadDriveStatus(), load()]);
-    } catch {
-      setDriveMessage(labels.driveError);
-    } finally {
-      setDriveAction("");
-    }
-  };
-
-  useEffect(() => {
-    if (
-      !isPlatformOwner ||
-      driveLoading ||
-      !driveStatus?.connected ||
-      driveStatus.pendingBackups <= 0 ||
-      driveAutoRetryStarted.current
-    ) {
-      return;
-    }
-    driveAutoRetryStarted.current = true;
-    void retryGoogleDrive(false);
-  }, [driveLoading, driveStatus, isPlatformOwner]);
 
   const create = async () => {
     setPending("create");
@@ -22464,50 +16776,6 @@ function BackupRestore() {
     }
   };
 
-  const formatSchedulerTime = (value: string | null) => {
-    if (!value) return labels.noTargetAttempt;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "Africa/Cairo",
-    }).format(date);
-  };
-  const schedulerStatusText = (status: string) => {
-    const statusLabels: Record<string, string> = {
-      running: labels.statusRunning,
-      completed: labels.statusCompleted,
-      completed_with_errors: labels.statusCompletedWithErrors,
-      failed: labels.statusFailed,
-      skipped: labels.statusSkipped,
-      created: labels.statusCreated,
-      created_with_errors: labels.statusCreatedWithErrors,
-      not_attempted: labels.statusNotAttempted,
-      disabled: labels.statusDisabled,
-    };
-    return statusLabels[status] ?? labels.statusUnknown;
-  };
-  const schedulerReasonText = (reason: string | null) => {
-    const reasonLabels: Record<string, string> = {
-      running: labels.reasonInProgress,
-      in_progress: labels.reasonInProgress,
-      no_due_backups: labels.reasonNoDueBackups,
-      disabled: labels.reasonDisabled,
-      backup_failures: labels.reasonBackupFailures,
-      completed: labels.reasonCompleted,
-      no_active_platform_owner: labels.reasonNoActiveOwner,
-      scheduler_error: labels.reasonSchedulerError,
-      backup_attempt: labels.reasonBackupAttempt,
-    };
-    return reason ? reasonLabels[reason] ?? reason : "—";
-  };
-  const schedulerSourceText = (source: string | null) => {
-    if (source === "vercel-cron") return labels.sourceVercel;
-    if (source === "server-poller") return labels.sourceServer;
-    return source ?? "—";
-  };
-
   if (!role || (role !== "platform_owner" && role !== "company_owner")) {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -22521,404 +16789,6 @@ function BackupRestore() {
         title={labels.title}
         detail={labels.detail}
       />
-      {isPlatformOwner && (
-        <Card className="mb-5">
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5">
-            <div>
-              <h2 className="font-display text-lg font-semibold">
-                {labels.schedulerStatusTitle}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {labels.schedulerStatusDetail}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              data-testid="refresh-backup-scheduler-status"
-              onClick={() => void refreshSchedulerStatus()}
-              disabled={schedulerStatusLoading}
-            >
-              {schedulerStatusLoading
-                ? labels.refreshingSchedulerStatus
-                : labels.refreshSchedulerStatus}
-            </Button>
-          </div>
-          <div className="space-y-4 p-5">
-            {schedulerStatusError && (
-              <div
-                role="alert"
-                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                {schedulerStatusError}
-              </div>
-            )}
-            {schedulerStatusLoading && !schedulerStatus ? (
-              <p className="text-sm text-muted-foreground" role="status">
-                {labels.scheduleLoading}
-              </p>
-            ) : schedulerStatus?.latestRun ? (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    {
-                      label: labels.runTime,
-                      value: formatSchedulerTime(
-                        schedulerStatus.latestRun.startedAt,
-                      ),
-                    },
-                    {
-                      label: labels.runSource,
-                      value: schedulerSourceText(
-                        schedulerStatus.latestRun.source,
-                      ),
-                    },
-                    {
-                      label: labels.runStatus,
-                      value: `${schedulerStatusText(schedulerStatus.latestRun.status)} · ${schedulerReasonText(schedulerStatus.latestRun.reason)}`,
-                    },
-                    {
-                      label: labels.platformCreatedCount,
-                      value: schedulerStatus.latestRun.platformCreated,
-                    },
-                    {
-                      label: labels.companyCreatedCount,
-                      value: schedulerStatus.latestRun.companyCreated,
-                    },
-                    {
-                      label: labels.backupFailureCount,
-                      value: schedulerStatus.latestRun.failureCount,
-                    },
-                    {
-                      label: labels.driveFailureCount,
-                      value: schedulerStatus.latestRun.driveFailed,
-                    },
-                  ].map((metric) => (
-                    <div
-                      key={metric.label}
-                      className="rounded-lg bg-muted/60 p-3"
-                    >
-                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {metric.label}
-                      </div>
-                      <div className="mt-1 font-medium">{metric.value}</div>
-                    </div>
-                  ))}
-                </div>
-                {schedulerStatus.latestRun.errorMessage && (
-                  <div
-                    role="alert"
-                    className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-                  >
-                    {schedulerStatus.latestRun.errorMessage}
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {labels.noSchedulerRun}
-              </p>
-            )}
-
-            {schedulerStatus && schedulerStatus.targets.length > 0 && (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[760px] text-sm">
-                  <caption className="sr-only">
-                    {labels.targetStatusTitle}
-                  </caption>
-                  <thead className="bg-muted/60 text-left">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">
-                        {labels.backupTarget}
-                      </th>
-                      <th className="px-3 py-2 font-semibold">
-                        {labels.backupTargetStatus}
-                      </th>
-                      <th className="px-3 py-2 font-semibold">
-                        {labels.backupTargetTime}
-                      </th>
-                      <th className="px-3 py-2 font-semibold">
-                        {labels.backupTargetCreated}
-                      </th>
-                      <th className="px-3 py-2 font-semibold">
-                        {labels.backupTargetError}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedulerStatus.targets.map((target) => {
-                      const isProblem =
-                        target.status === "failed" ||
-                        target.status === "created_with_errors" ||
-                        target.driveFailed > 0;
-                      const isNeutral = [
-                        "disabled",
-                        "not_attempted",
-                        "skipped",
-                      ].includes(target.status);
-                      const targetName =
-                        target.targetType === "platform"
-                          ? labels.platformTargetName
-                          : isArabic
-                            ? target.companyName || target.companyNameEn
-                            : target.companyNameEn || target.companyName;
-                      return (
-                        <tr
-                          key={`${target.targetType}-${target.companyId ?? "platform"}`}
-                          data-testid={`backup-scheduler-target-${target.targetType}-${target.companyId ?? "platform"}`}
-                          className="border-t border-border"
-                        >
-                          <td className="px-3 py-3 font-medium">
-                            {targetName}
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                  isProblem
-                                    ? "bg-destructive/10 text-destructive"
-                                    : target.status === "running"
-                                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                      : isNeutral
-                                        ? "bg-muted text-muted-foreground"
-                                        : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                }`}
-                              >
-                                {schedulerStatusText(target.status)}
-                              </span>
-                              {!target.scheduleEnabled && (
-                                <span className="text-xs text-muted-foreground">
-                                  {labels.off}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-muted-foreground">
-                            {formatSchedulerTime(target.startedAt)}
-                          </td>
-                          <td className="px-3 py-3">
-                            {target.startedAt ? target.backupsCreated : "—"}
-                          </td>
-                          <td className="max-w-[280px] whitespace-normal px-3 py-3 text-destructive">
-                            {target.errorMessage || "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-      {isPlatformOwner && (
-        <Card className="mb-5">
-          <div className="border-b border-border p-5">
-            <h2 className="font-display text-lg font-semibold">
-              {labels.scheduleTitle}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {labels.scheduleDetail}
-            </p>
-          </div>
-          <div className="space-y-4 p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold">
-                  {labels.platformFrequency}
-                </span>
-                <select
-                  aria-label={labels.platformFrequency}
-                  data-testid="platform-backup-frequency"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  value={schedule.platformBackupRunsPerDay}
-                  disabled={!scheduleLoaded || scheduleSaving}
-                  onChange={(event) =>
-                    setSchedule((current) => ({
-                      ...current,
-                      platformBackupRunsPerDay: Number(
-                        event.target.value,
-                      ),
-                    }))
-                  }
-                >
-                  <option value={0}>{labels.off}</option>
-                  <option value={1}>{labels.onceDaily}</option>
-                  <option value={2}>{labels.twiceDaily}</option>
-                  <option value={4}>{labels.fourTimesDaily}</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold">
-                  {labels.companyFrequency}
-                </span>
-                <select
-                  aria-label={labels.companyFrequency}
-                  data-testid="company-backup-frequency"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  value={schedule.companyBackupIntervalMinutes}
-                  disabled={!scheduleLoaded || scheduleSaving}
-                  onChange={(event) =>
-                    setSchedule((current) => ({
-                      ...current,
-                      companyBackupIntervalMinutes: Number(
-                        event.target.value,
-                      ),
-                    }))
-                  }
-                >
-                  <option value={0}>{labels.off}</option>
-                  <option value={1440}>{labels.daily}</option>
-                  <option value={10080}>{labels.weekly}</option>
-                </select>
-              </label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {labels.scheduleRuntime}
-            </p>
-            {scheduleError && (
-              <div
-                role="alert"
-                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                {scheduleError}
-              </div>
-            )}
-            {scheduleLoaded && !schedule.schedulerReady && (
-              <div
-                role="alert"
-                data-testid="backup-scheduler-setup-warning"
-                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                {labels.schedulerNeedsSecret}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {labels.keepAllBackups}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                data-testid="save-backup-schedule"
-                onClick={() => void saveSchedule()}
-                disabled={!scheduleLoaded || scheduleSaving}
-              >
-                {scheduleSaving ? labels.savingSchedule : labels.saveSchedule}
-              </Button>
-              {scheduleLoading && (
-                <span className="text-sm text-muted-foreground" role="status">
-                  {labels.scheduleLoading}
-                </span>
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
-      {isPlatformOwner && (
-        <Card className="mb-5">
-          <div className="border-b border-border p-5">
-            <h2 className="font-display text-lg font-semibold">
-              {labels.driveTitle}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {labels.driveDetail}
-            </p>
-          </div>
-          <div className="space-y-4 p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  driveStatus?.connected
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {driveLoading
-                  ? labels.driveLoading
-                  : driveStatus?.connected
-                    ? `${labels.driveConnected} ${driveStatus.connectedEmail ?? ""}`
-                    : labels.driveDisconnected}
-              </span>
-              {driveStatus && driveStatus.pendingBackups > 0 && (
-                <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  {labels.drivePending}: {driveStatus.pendingBackups}
-                </span>
-              )}
-            </div>
-            {driveStatus?.backupFolderUrl && (
-              <a
-                className="inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                href={driveStatus.backupFolderUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {labels.driveFolder}
-              </a>
-            )}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                onClick={connectGoogleDrive}
-                disabled={
-                  driveLoading ||
-                  driveAction !== "" ||
-                  !driveStatus?.configured
-                }
-              >
-                {driveStatus?.connected
-                  ? labels.driveReconnect
-                  : labels.driveConnect}
-              </Button>
-              {driveStatus?.connected && (
-                <Button
-                  variant="outline"
-                  onClick={() => void disconnectGoogleDrive()}
-                  disabled={driveAction !== ""}
-                >
-                  {labels.driveDisconnect}
-                </Button>
-              )}
-              {driveStatus && driveStatus.pendingBackups > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => void retryGoogleDrive()}
-                  disabled={
-                    driveAction !== "" ||
-                    !driveStatus.configured ||
-                    !driveStatus.connected
-                  }
-                >
-                  {driveAction === "retry"
-                    ? labels.driveRetrying
-                    : labels.driveRetry}
-                </Button>
-              )}
-            </div>
-            {driveStatus && !driveStatus.configured && (
-              <div
-                role="alert"
-                className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-200"
-              >
-                {labels.driveNotConfigured}
-              </div>
-            )}
-            {driveStatus &&
-              scheduleLoaded &&
-              schedule.platformBackupRunsPerDay <= 0 &&
-              schedule.companyBackupIntervalMinutes <= 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {labels.driveNeedsSchedule}
-                </p>
-              )}
-            {driveMessage && (
-              <div
-                role="alert"
-                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                {driveMessage}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
       <Card>
         <div className="border-b border-border p-5">
           <div className="flex items-start justify-between gap-3">
@@ -22974,11 +16844,6 @@ function BackupRestore() {
                           backup.status === "safety" ? "completed" : "active"
                         }
                       />
-                      {backup.metadata.creationMode === "scheduled" && (
-                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                          {labels.automatic}
-                        </span>
-                      )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(backup.createdAt).toLocaleString(
@@ -22988,16 +16853,6 @@ function BackupRestore() {
                     <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">
                       {labels.integrity}: {backup.checksum}
                     </p>
-                      {backup.scope === "platform" &&
-                        backup.metadata.creationMode === "scheduled" && (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {backup.metadata.googleDrive?.state === "uploaded"
-                              ? labels.driveUploaded
-                              : backup.metadata.googleDrive?.state === "failed"
-                                ? labels.driveUploadFailed
-                                : labels.driveUploadPending}
-                          </p>
-                        )}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
                     <Info
@@ -23025,19 +16880,6 @@ function BackupRestore() {
                     <Download size={14} />
                     {labels.download}
                   </Button>
-                  {backup.scope === "platform" &&
-                    backup.metadata.googleDrive?.state === "uploaded" &&
-                    backup.metadata.googleDrive.webViewLink && (
-                      <a
-                        className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-input px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                        href={backup.metadata.googleDrive.webViewLink}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <ArrowUpRight size={14} />
-                        {labels.openDriveFile}
-                      </a>
-                    )}
                   <Button
                     variant="quiet"
                     onClick={() => void remove(backup)}
@@ -23130,13 +16972,7 @@ type AdminEntity = {
 };
 type AdminData = AdminEntity & { rows: Array<Record<string, unknown>> };
 type AdminDataResponse = AdminData & { entity?: string };
-type DatabaseCompany = {
-  id: string;
-  name: string;
-  nameEn?: string;
-  slug: string;
-  active: boolean;
-};
+type DatabaseCompany = { id: string; name: string; slug: string; active: boolean };
 type AdminHistoryEntry = {
   id: string;
   action: string;
@@ -23227,7 +17063,6 @@ const databaseEntityTranslationKeys: Record<string, AppCopyKey> = {
   attendance: "databaseAttendance",
   holidays: "databaseHolidays",
   leave_requests: "databaseLeaveRequests",
-  leave_balances: "databaseLeaveBalances",
   permission_requests: "databasePermissionRequests",
   payroll_periods: "databasePayrollPeriods",
   payroll_calculations: "databasePayrollCalculations",
@@ -23246,13 +17081,6 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   id: "databaseId",
   company_id: "databaseCompanyId",
   company_name: "databaseCompanyName",
-  employee_name: "databaseEmployeeName",
-  employee_id: "databaseEmployeeName",
-  type: "leaveType",
-  allocated: "allocatedDays",
-  used: "usedDays",
-  pending: "pendingLeaveDays",
-  remaining: "daysRemaining",
   name: "databaseName",
   name_ar: "databaseArabicName",
   description: "databaseDescription",
@@ -23271,9 +17099,6 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   status: "databaseStatus",
   role: "databaseRole",
   joined_on: "databaseJoinedOn",
-  pay_basis: "payBasis",
-  work_days_per_month: "referenceWorkdaysPerMonth",
-  working_hours: "referenceHoursPerDay",
   city: "databaseCity",
   gps_enabled: "databaseGpsEnabled",
   latitude: "databaseLatitude",
@@ -23339,7 +17164,6 @@ const databaseGroups = [
     label: "Leave, payroll and platform support",
     keys: [
       "leave_requests",
-      "leave_balances",
       "permission_requests",
       "payroll_periods",
       "payroll_calculations",
@@ -23361,12 +17185,7 @@ function DatabaseAdministration() {
     const query = new URLSearchParams(location.split("?")[1] ?? "");
     return query.get("entity") ?? "";
   });
-  const selectEntity = (key: string) => {
-    setEntity(key);
-    setLocation(`/platform/database?entity=${encodeURIComponent(key)}`);
-  };
   const [companyFilter, setCompanyFilter] = useState("");
-  const [missingWorkdaysOnly, setMissingWorkdaysOnly] = useState(false);
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
   const [search, setSearch] = useState("");
@@ -23374,49 +17193,10 @@ function DatabaseAdministration() {
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
-  const [editCompanyId, setEditCompanyId] = useState("");
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
-  const [employeeSupport, setEmployeeSupport] = useState<any>(null);
-  const [editReason, setEditReason] = useState("");
-  const [balanceEditing, setBalanceEditing] =
-    useState<Record<string, unknown> | null>(null);
-  const [balanceAllocated, setBalanceAllocated] = useState("");
-  const [balanceUsed, setBalanceUsed] = useState("");
-  const [balanceRemaining, setBalanceRemaining] = useState("");
-  const [balanceReason, setBalanceReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
-  const backupActionCopy =
-    locale === "ar"
-      ? {
-          download: "تنزيل النسخة",
-          delete: "حذف النسخة",
-          deleted: "تم حذف النسخة الاحتياطية.",
-          downloadFailed: "تعذر تنزيل النسخة الاحتياطية.",
-          platform: "المنصة بالكامل",
-          company: "نسخة شركة",
-          ready: "جاهزة",
-          safety: "نسخة أمان",
-        }
-      : {
-          download: "Download backup",
-          delete: "Delete backup",
-          deleted: "Backup deleted.",
-          downloadFailed: "Could not download this backup.",
-          platform: "Full platform",
-          company: "Company",
-          ready: "Ready",
-          safety: "Safety backup",
-        };
-  const backupCompanyName = (row: Record<string, unknown>) => {
-    if (row.scope === "platform") return backupActionCopy.platform;
-    const arabicName = String(row.company_name ?? "");
-    const englishName = String(row.company_name_en ?? "");
-    return arabicName && arabicName !== "Unknown company"
-      ? localizedName(locale, arabicName, englishName)
-      : t("unknownCompany");
-  };
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -23445,7 +17225,7 @@ function DatabaseAdministration() {
         await (() => {
           const entityDefinition = entities.find((item) => item.key === entity);
           return authRequest<AdminDataResponse>(
-          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}${entity === "employees" && missingWorkdaysOnly ? "&missingReferenceWorkdays=true" : ""}`,
+          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}`,
           ).then((result) => ({
             ...result,
             key: result.key ?? result.entity ?? entity,
@@ -23471,7 +17251,7 @@ function DatabaseAdministration() {
   }, []);
   useEffect(() => {
     if (entity) void load();
-  }, [entity, companyFilter, missingWorkdaysOnly]);
+  }, [entity, companyFilter]);
   const usesSupportEditor =
     Boolean(data?.supportEditable?.length) &&
     supportedDatabaseActions.has(data?.key ?? "");
@@ -23502,310 +17282,34 @@ function DatabaseAdministration() {
       setPending("");
     }
   };
-  const openEdit = async (row: Record<string, unknown>) => {
-    const rowCompanyId = String(row.company_id ?? "");
-    const scopeCompanyId = rowCompanyId || companyFilter;
-    if (
-      !scopeCompanyId ||
-      (companyFilter && rowCompanyId && companyFilter !== rowCompanyId)
-    ) {
-      setError(t("supportSelectCompany"));
-      return;
-    }
-    setError("");
-    setEditReason("");
-    setEditCompanyId(scopeCompanyId);
-    if (!companyFilter && rowCompanyId) setCompanyFilter(rowCompanyId);
-    if (data?.key === "employees") {
-      setPending("employee-edit-load");
-      try {
-        const result = await authRequest<any>(
-          `/api/platform/database/employees/${encodeURIComponent(String(row.id))}/support?companyId=${encodeURIComponent(scopeCompanyId)}`,
-        );
-        setEmployeeSupport(result);
-        setEditValues({
-          ...(result.values ?? {}),
-          schedule_id: result.currentScheduleId ?? "",
-        });
-        setEditing(row);
-      } catch (cause) {
-        setError(apiErrorMessage(cause, t("couldNotLoadData")));
-      } finally {
-        setPending("");
-      }
-      return;
-    }
-    setEmployeeSupport(null);
+  const openEdit = (row: Record<string, unknown>) => {
     setEditing(row);
     setEditValues(
-      Object.fromEntries(editFields.map((key) => [key, row[key] ?? ""])),
+      Object.fromEntries(
+        editFields.map((key) => [key, row[key] ?? ""]),
+      ),
     );
-  };
-  const openBalanceEdit = (row: Record<string, unknown>) => {
-    const rowCompanyId = String(row.company_id ?? "");
-    if (!rowCompanyId || (companyFilter && companyFilter !== rowCompanyId)) {
-      setError(t("supportSelectCompany"));
-      return;
-    }
-    setError("");
-    const allocated = Number(row.allocated ?? 0);
-    const used = Number(row.used ?? 0);
-    const pending = Number(row.pending ?? 0);
-    setBalanceAllocated(String(allocated));
-    setBalanceUsed(String(used));
-    setBalanceRemaining(String(Math.round((allocated - used - pending) * 100) / 100));
-    setBalanceReason("");
-    setBalanceEditing(row);
-    if (!companyFilter) setCompanyFilter(rowCompanyId);
-  };
-  const roundLeaveDays = (value: number) => Math.round(value * 100) / 100;
-  const hasTwoLeaveDecimals = (value: number) =>
-    Math.abs(value * 100 - Math.round(value * 100)) < 1e-8;
-  const updateBalanceFromTotal = (value: string) => {
-    setBalanceAllocated(value);
-    if (!value.trim()) return;
-    const allocated = Number(value);
-    const used = Number(balanceUsed);
-    const pendingDays = Number(balanceEditing?.pending ?? 0);
-    if (Number.isFinite(allocated) && Number.isFinite(used)) {
-      setBalanceRemaining(
-        String(roundLeaveDays(allocated - used - pendingDays)),
-      );
-    }
-  };
-  const updateBalanceFromUsed = (value: string) => {
-    setBalanceUsed(value);
-    if (!value.trim()) return;
-    const allocated = Number(balanceAllocated);
-    const used = Number(value);
-    const pendingDays = Number(balanceEditing?.pending ?? 0);
-    if (Number.isFinite(allocated) && Number.isFinite(used)) {
-      setBalanceRemaining(
-        String(roundLeaveDays(allocated - used - pendingDays)),
-      );
-    }
-  };
-  const updateBalanceFromRemaining = (value: string) => {
-    setBalanceRemaining(value);
-    if (!value.trim()) return;
-    const allocated = Number(balanceAllocated);
-    const remaining = Number(value);
-    const pendingDays = Number(balanceEditing?.pending ?? 0);
-    if (Number.isFinite(allocated) && Number.isFinite(remaining)) {
-      setBalanceUsed(
-        String(roundLeaveDays(allocated - pendingDays - remaining)),
-      );
-    }
-  };
-  const saveBalanceEdit = async () => {
-    if (!balanceEditing) return;
-    const companyId = String(balanceEditing.company_id ?? "");
-    const allocated = Number(balanceAllocated);
-    const used = Number(balanceUsed);
-    const remaining = Number(balanceRemaining);
-    const pendingDays = Number(balanceEditing.pending ?? 0);
-    if (
-      !companyId ||
-      !Number.isFinite(allocated) ||
-      !Number.isFinite(used) ||
-      !Number.isFinite(remaining) ||
-      allocated < 0 ||
-      allocated > 9999.99 ||
-      used < 0 ||
-      used > 9999.99 ||
-      remaining < 0 ||
-      remaining > 9999.99 ||
-      !hasTwoLeaveDecimals(allocated) ||
-      !hasTwoLeaveDecimals(used) ||
-      !hasTwoLeaveDecimals(remaining) ||
-      roundLeaveDays(allocated - used - pendingDays) !== remaining
-    ) {
-      setError(t("supportAnnualLeaveTotalInvalid"));
-      return;
-    }
-    if (
-      allocated === Number(balanceEditing.allocated ?? 0) &&
-      used === Number(balanceEditing.used ?? 0)
-    ) {
-      setError(t("supportNoChanges"));
-      return;
-    }
-    if (balanceReason.trim().length < 10) {
-      setError(t("supportReasonRequired"));
-      return;
-    }
-    setPending("leave-balance");
-    setError("");
-    try {
-      await authRequest(`/api/platform/leave-balances/${balanceEditing.id}/support`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          companyId,
-          allocated,
-          used,
-          reason: balanceReason.trim(),
-        }),
-      });
-      setBalanceEditing(null);
-      toast.success(t("annualLeaveTotalSaved"));
-      await load();
-    } catch (cause) {
-      setError(
-        cause instanceof Error && cause.message !== "Request failed."
-          ? cause.message
-          : t("couldNotSaveSupportedChanges"),
-      );
-    } finally {
-      setPending("");
-    }
   };
   const saveEdit = async () => {
     if (!editing || !data) return;
-    const valuesForSave = { ...editValues };
-    const scopeCompanyId = editCompanyId || companyFilter;
-    if (!scopeCompanyId) {
-      setError(t("supportSelectCompany"));
-      return;
-    }
-    if (editReason.trim().length < 10) {
-      setError(t("supportReasonRequired"));
-      return;
-    }
-    if (data.key === "employees") {
-      const employeeNumber = String(editValues.employee_number ?? "").trim();
-      const arabicName = [
-        editValues.first_name,
-        editValues.last_name,
-      ]
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean)
-        .join(" ");
-      const englishName = [
-        editValues.first_name_en,
-        editValues.last_name_en,
-      ]
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean)
-        .join(" ");
-      const salary = Number(editValues.salary);
-      const workingHours = Number(editValues.working_hours);
-      const workDays = Number(editValues.work_days_per_month);
-      if (
-        !/^[1-9][0-9]*$/.test(employeeNumber) ||
-        !arabicName ||
-        !String(editValues.phone ?? "").trim() ||
-        !String(editValues.joined_on ?? "") ||
-        !String(editValues.branch_id ?? "") ||
-        (editValues.pay_basis === "monthly" &&
-          !String(editValues.schedule_id ?? employeeSupport?.currentScheduleId ?? "")) ||
-        !Number.isFinite(salary) ||
-        salary < 0 ||
-        !Number.isFinite(workingHours) ||
-        workingHours <= 0 ||
-        workingHours > 24 ||
-        !Number.isInteger(workDays) ||
-        workDays < 1 ||
-        workDays > 31
-      ) {
-        setError(t("couldNotSaveRecord"));
-        return;
-      }
-      const arabicParts = splitEmployeeFullName(arabicName);
-      const englishParts = splitEmployeeFullName(englishName);
-      valuesForSave.first_name = arabicParts.firstName;
-      valuesForSave.last_name = arabicParts.lastName;
-      valuesForSave.first_name_en = englishParts.firstName;
-      valuesForSave.last_name_en = englishParts.lastName;
-    }
-    const valuesToSave = usesSupportEditor
-      ? Object.fromEntries(
-          editFields
-            .filter(
-              (key) =>
-                data.key === "employees"
-                  ? String(valuesForSave[key] ?? "") !==
-                    String(employeeSupport?.values?.[key] ?? "")
-                  : String(editValues[key] ?? "") !==
-                    String(editing[key] ?? ""),
-            )
-            .map((key) => [key, valuesForSave[key]]),
-        )
-      : editValues;
-    const selectedScheduleId = String(
-      valuesForSave.schedule_id ?? employeeSupport?.currentScheduleId ?? "",
-    );
-    const employeeScheduleChanged =
-      data.key === "employees" &&
-      valuesForSave.pay_basis === "monthly" &&
-      selectedScheduleId &&
-      (selectedScheduleId !==
-        String(employeeSupport?.currentScheduleId ?? "") ||
-        !employeeSupport?.scheduleAssignment);
-    const scheduleAssignment = employeeScheduleChanged
-      ? {
-          scheduleId: selectedScheduleId,
-          effectiveFrom:
-            employeeSupport?.scheduleAssignment?.effectiveFrom ??
-            (employeeSupport?.values?.pay_basis === "hourly"
-              ? employeeSupport?.today ??
-                new Date().toISOString().slice(0, 10)
-              : String(valuesForSave.joined_on ?? "")),
-          effectiveTo:
-            employeeSupport?.scheduleAssignment?.effectiveTo ?? null,
-        }
-      : undefined;
-    if (
-      usesSupportEditor &&
-      !Object.keys(valuesToSave).length &&
-      !scheduleAssignment
-    ) {
-      setError(t("supportNoChanges"));
-      return;
-    }
-    if (
-      usesSupportEditor &&
-      data.key === "employees" &&
-      "work_days_per_month" in valuesToSave &&
-      (!Number.isInteger(Number(valuesToSave.work_days_per_month)) ||
-        Number(valuesToSave.work_days_per_month) < 1 ||
-        Number(valuesToSave.work_days_per_month) > 31)
-    ) {
-      setError(t("supportWorkdaysInvalid"));
-      return;
-    }
     setPending("save");
     try {
       const endpoint = usesSupportEditor
         ? `/api/platform/database/${data.key}/${editing.id}/support`
         : `/api/platform/database/${data.key}/${editing.id}`;
-      const result = await authRequest<{ payrollRefreshWarning?: boolean }>(endpoint, {
+      await authRequest(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({
-          values: valuesToSave,
-          companyId: scopeCompanyId,
-          reason: editReason.trim(),
-          ...(scheduleAssignment ? { scheduleAssignment } : {}),
-        }),
+        body: JSON.stringify({ values: editValues }),
       });
       setEditing(null);
-      setEditCompanyId("");
-      setEmployeeSupport(null);
-      if (result.payrollRefreshWarning) {
-        toast.warning(t("supportPayrollRefreshWarning"));
-      } else {
-        toast.success(t("supportChangeSaved"));
-      }
       await load();
     } catch (cause) {
-      const fallback = t(
-        usesSupportEditor
-          ? "couldNotSaveSupportedChanges"
-          : "couldNotSaveRecord",
-      );
       setError(
-        cause instanceof Error && cause.message !== "Request failed."
-          ? cause.message
-          : fallback,
+        t(
+          usesSupportEditor
+            ? "couldNotSaveSupportedChanges"
+            : "couldNotSaveRecord",
+        ),
       );
     } finally {
       setPending("");
@@ -23852,66 +17356,6 @@ function DatabaseAdministration() {
       setPending("");
     }
   };
-  const downloadBackupRow = async (row: Record<string, unknown>) => {
-    const id = String(row.id ?? "");
-    if (!id) return;
-    setPending(`backup-download-${id}`);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/backups/${encodeURIComponent(id)}/download`,
-        { credentials: "include" },
-      );
-      if (!response.ok) throw new Error(backupActionCopy.downloadFailed);
-      const url = URL.createObjectURL(await response.blob());
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `var-hr-${String(row.scope ?? "backup")}-backup-${id.slice(0, 8)}.json`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError(backupActionCopy.downloadFailed);
-    } finally {
-      setPending("");
-    }
-  };
-  const deleteBackupRow = async (row: Record<string, unknown>) => {
-    const id = String(row.id ?? "");
-    if (!id) return;
-    const createdAt = row.created_at
-      ? new Date(String(row.created_at)).toLocaleString(locale)
-      : "";
-    const confirmationDetails = [
-      `${t("databaseCompanyName")}: ${backupCompanyName(row)}`,
-      `${locale === "ar" ? "النطاق" : "Scope"}: ${
-        row.scope === "company"
-          ? backupActionCopy.company
-          : backupActionCopy.platform
-      }`,
-      `${t("databaseCreatedAt")}: ${createdAt || "—"}`,
-      `${t("databaseId")}: ${id}`,
-    ].join("\n");
-    if (
-      !window.confirm(
-        `${t("deleteRecordConfirmation")}\n\n${confirmationDetails}`,
-      )
-    ) {
-      return;
-    }
-    setPending(`backup-delete-${id}`);
-    setError("");
-    try {
-      await authRequest(`/api/backups/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      toast.success(backupActionCopy.deleted);
-      await load();
-    } catch (cause) {
-      setError(apiErrorMessage(cause, t("recordCouldNotBeDeleted")));
-    } finally {
-      setPending("");
-    }
-  };
   const openHistory = async (row: Record<string, unknown>) => {
     if (!data) return;
     setPending("history");
@@ -23930,307 +17374,103 @@ function DatabaseAdministration() {
     }
   };
   const visibleColumns = data ? safeDatabaseColumns(data.columns) : [];
-  const compactEmployeeTable = data?.key === "employees";
-  const compactTechnicalColumns = new Set([
-    "id",
-    "company_id",
-    "employee_id",
-    "department_id",
-    "branch_id",
-    "shift_id",
-    "created_at",
-    "updated_at",
-  ]);
-  const compactColumnPriority = [
-    "employee_name",
-    "employee_number",
-    "name",
-    "type",
-    "status",
-    "date",
-    "email",
-    "phone",
-    "from",
-    "to",
-    "amount",
-    "allocated",
-    "used",
-    "remaining",
-    "active",
-  ];
-  const compactColumnCandidates = visibleColumns.filter(
-    (column) => !compactTechnicalColumns.has(column),
-  );
-  const orderedCompactColumns = [...compactColumnCandidates].sort(
-    (left, right) => {
-      const leftPriority = compactColumnPriority.indexOf(left);
-      const rightPriority = compactColumnPriority.indexOf(right);
-      const leftRank =
-        leftPriority < 0
-          ? compactColumnPriority.length + compactColumnCandidates.indexOf(left)
-          : leftPriority;
-      const rightRank =
-        rightPriority < 0
-          ? compactColumnPriority.length + compactColumnCandidates.indexOf(right)
-          : rightPriority;
-      return leftRank - rightRank;
-    },
-  );
-  const tableColumns = compactEmployeeTable
-    ? ["employee_number", "employee_name", "phone", "status"]
-    : data?.key === "backups"
-      ? ["company_name", "scope", "status", "created_at"]
-      : orderedCompactColumns.length
-      ? orderedCompactColumns.slice(0, 3)
-      : visibleColumns.slice(0, 3);
-  const hasHiddenTableColumns = visibleColumns.some(
-    (column) => !tableColumns.includes(column),
-  );
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
-  const hasTableActions = Boolean(
-    supportsDatabaseActions ||
-      data?.key === "backups" ||
-      data?.key === "leave_balances" ||
-      editFields.length ||
-      data?.canArchive ||
-      data?.canDelete ||
-      hasHiddenTableColumns,
-  );
   const databaseValue = (key: string, value: unknown) => {
-    if (data?.key === "backups" && key === "scope") {
-      return value === "company"
-        ? backupActionCopy.company
-        : backupActionCopy.platform;
-    }
-    if (data?.key === "backups" && key === "status") {
-      if (value === "ready") return backupActionCopy.ready;
-      if (value === "safety") return backupActionCopy.safety;
-    }
-    if (
-      data?.key === "backups" &&
-      key === "created_at" &&
-      typeof value === "string"
-    ) {
-      const createdAt = new Date(value);
-      return Number.isNaN(createdAt.getTime())
-        ? value
-        : createdAt.toLocaleString(locale);
-    }
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
-    if (
-      key === "work_days_per_month" &&
-      (value === null || value === undefined || value === "")
-    ) {
-      return t("missingReferenceWorkdays");
-    }
-    if (key === "pay_basis" && typeof value === "string") {
-      if (value === "monthly") return t("monthlyPayBasis");
-      if (value === "hourly") return t("hourlyPayBasis");
-    }
     if (typeof value === "string" && databaseStatusTranslationKeys[value]) {
       return t(databaseStatusTranslationKeys[value]);
     }
     return String(value ?? "—");
   };
-  const databaseColumnLabel = (column: string) => {
-    if (data?.key === "departments") {
-      if (column === "name") return t("arabicName");
-      if (column === "name_en") return t("englishName");
-    }
-    return databaseColumnTranslationKeys[column]
-      ? t(databaseColumnTranslationKeys[column])
-      : locale === "ar"
-        ? t("databaseDataField")
-        : column.replaceAll("_", " ");
-  };
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
         eyebrow={t("platformOwnerOnly")}
         title={t("databaseAdministration")}
-        detail={t("databaseAdminDetail")}
+         detail={t("databaseAdminDetail")}
       />
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          {
-            label: t("databaseCompanies"),
-            value: companies.length,
-            icon: Building2,
-          },
-          {
-            label: t("databaseActiveCompanies"),
-            value: companies.filter((company) => company.active).length,
-            icon: Users,
-          },
-          {
-            label: t("databaseVisibleRecords"),
-            value: data?.rows.length ?? 0,
-            icon: Database,
-          },
-        ].map(({ label, value, icon: Icon }) => (
-          <Card
-            className="flex items-center justify-between gap-4 p-4 shadow-sm"
-            key={label}
-          >
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
-                {label}
-              </p>
-              <p className="mt-2 font-display text-2xl font-semibold tabular-nums">
-                {value}
-              </p>
-            </div>
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
-              <Icon size={20} />
-            </span>
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          {[
+           [t("databaseCompanies"), companies.length],
+           [t("databaseActiveCompanies"), companies.filter((company) => company.active).length],
+           [t("databaseVisibleRecords"), data?.rows.length ?? 0],
+        ].map(([label, value]) => (
+          <Card className="p-4" key={String(label)}>
+            <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+              {label}
+            </p>
+            <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
           </Card>
         ))}
       </div>
-
-      <div className="grid items-start gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="hidden xl:block">
-          <Card className="sticky top-4 overflow-hidden p-3 shadow-sm">
-            <div className="flex items-center gap-2 px-3 py-3">
-              <span className="grid size-9 place-items-center rounded-lg bg-primary/12 text-primary">
-                <Database size={17} />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{t("dataExplorer")}</p>
-                <p className="text-xs text-muted-foreground">
-                  {t("databaseEntity")}
-                </p>
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        {databaseGroups.map((group) => {
+           const available = group.keys.filter((key) =>
+            entities.some((item) => item.key === key),
+          );
+          if (!available.length) return null;
+          return (
+             <Card className="p-4" key={group.label}>
+               <p className="text-sm font-semibold">
+                 {t(databaseGroupTranslationKeys[group.label])}
+               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {available.map((key) => (
+                  <button
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors hover:border-primary hover:text-primary",
+                      entity === key
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground",
+                    )}
+                    key={key}
+                    onClick={() => setEntity(key)}
+                  >
+                     {databaseEntityTranslationKeys[key]
+                       ? t(databaseEntityTranslationKeys[key])
+                       : entities.find((item) => item.key === key)?.label ?? key}
+                  </button>
+                ))}
               </div>
-            </div>
-            <nav aria-label={t("dataExplorer")} className="mt-2 space-y-5">
-              {databaseGroups.map((group) => {
-                const available = group.keys.filter((key) =>
-                  entities.some((item) => item.key === key),
-                );
-                if (!available.length) return null;
-                return (
-                  <section key={group.label}>
-                    <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">
-                      {t(databaseGroupTranslationKeys[group.label])}
-                    </p>
-                    <div className="space-y-1">
-                      {available.map((key) => {
-                        const label = databaseEntityTranslationKeys[key]
-                          ? t(databaseEntityTranslationKeys[key])
-                          : entities.find((item) => item.key === key)?.label ??
-                            key;
-                        const selected = entity === key;
-                        return (
-                          <button
-                            aria-current={selected ? "page" : undefined}
-                            className={cn(
-                              "flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm font-medium transition-colors",
-                              selected
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                            key={key}
-                            onClick={() => selectEntity(key)}
-                            type="button"
-                          >
-                            <span className="truncate">{label}</span>
-                            {data?.key === key && (
-                              <span
-                                className={cn(
-                                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
-                                  selected
-                                    ? "bg-primary-foreground/15 text-primary-foreground"
-                                    : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {data.rows.length}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })}
-            </nav>
-            <div className="mt-5 flex items-start gap-2 rounded-lg bg-muted/55 p-3 text-xs leading-relaxed text-muted-foreground">
-              <Eye className="mt-0.5 shrink-0" size={14} />
-              <span>{t("inspectionOnly")}</span>
-            </div>
-          </Card>
-        </aside>
-
-        {entity === "users" ? (
-          <Accounts embedded />
-        ) : (
-        <Card className="min-w-0 overflow-hidden shadow-sm">
-          <div className="border-b border-border bg-gradient-to-br from-primary/[0.08] via-background to-background p-5 md:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-primary">
-                  <Database size={14} />
-                  {t("dataExplorer")}
-                </p>
-                <h2 className="mt-2 truncate text-xl font-semibold tracking-tight md:text-2xl">
-                  {databaseEntityTranslationKeys[entity]
-                    ? t(databaseEntityTranslationKeys[entity])
-                    : entities.find((item) => item.key === entity)?.label ??
-                      entity}
-                </h2>
-              </div>
-              <span className="rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                {t("databaseVisibleRecords")}:{" "}
-                <span className="font-bold tabular-nums text-foreground">
-                  {data?.rows.length ?? 0}
-                </span>
-              </span>
-            </div>
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-sm leading-relaxed text-muted-foreground">
-              <ShieldCheck className="mt-0.5 shrink-0 text-primary" size={16} />
-              <span>{t("supportScopeHint")}</span>
-            </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-[minmax(180px,.85fr)_minmax(280px,1.25fr)_auto_auto] 2xl:items-end">
-            <label className="text-sm font-semibold xl:hidden">
+            </Card>
+          );
+        })}
+      </div>
+      <Card className="overflow-hidden">
+        <div className="border-b border-border p-5">
+           <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
+             {t("dataExplorer")}
+          </p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto] lg:items-end">
+            <label className="text-sm font-semibold">
               {t("databaseEntity")}
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={entity}
-                 onChange={(event) => selectEntity(event.target.value)}
+                onChange={(event) => setEntity(event.target.value)}
               >
-                {databaseGroups.map((group) => (
-                  <optgroup
-                    key={group.label}
-                    label={t(databaseGroupTranslationKeys[group.label])}
-                  >
-                    {group.keys
-                      .filter((key) =>
-                        entities.some((item) => item.key === key),
-                      )
-                      .map((key) => (
-                        <option key={key} value={key}>
-                          {databaseEntityTranslationKeys[key]
-                            ? t(databaseEntityTranslationKeys[key])
-                            : entities.find((item) => item.key === key)?.label ??
-                              key}
-                        </option>
-                      ))}
-                  </optgroup>
+                {entities.map((item) => (
+                  <option key={item.key} value={item.key}>
+                     {databaseEntityTranslationKeys[item.key]
+                       ? t(databaseEntityTranslationKeys[item.key])
+                       : item.label}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="text-sm font-semibold">
-              {t("companyContext")}
+               {t("companyContext")}
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={companyFilter}
                 onChange={(event) => setCompanyFilter(event.target.value)}
               >
-                <option value="">{t("allCompanies")}</option>
+                 <option value="">{t("allCompanies")}</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {localizedName(locale, company.name, company.nameEn)}
+                    {company.name}
                   </option>
                 ))}
               </select>
@@ -24250,51 +17490,29 @@ function DatabaseAdministration() {
                 />
               </div>
             </label>
-            {entity === "employees" && (
-              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-muted/25 px-3 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={missingWorkdaysOnly}
-                  onChange={(event) =>
-                    setMissingWorkdaysOnly(event.target.checked)
-                  }
-                  className="size-4 accent-primary"
-                />
-                {t("missingReferenceWorkdaysOnly")}
-              </label>
-            )}
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                onClick={() => void load()}
-                disabled={pending !== "" || loading}
-              >
-                <RefreshCw size={14} />
-                {t("refresh")}
-              </Button>
-              <Button
-                className="flex-1"
-                variant="outline"
-                onClick={() => void exportData()}
-                disabled={pending !== "" || !data}
-              >
-                <Download size={14} />
-                {pending === "export" ? "…" : t("exportExcel")}
-              </Button>
-            </div>
+          <Button
+            variant="outline"
+            onClick={() => void load()}
+            disabled={pending !== "" || loading}
+          >
+            {t("refresh")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void exportData()}
+            disabled={pending !== "" || !data}
+          >
+            <Download size={14} />
+            {pending === "export" ? "…" : t("exportExcel")}
+          </Button>
           </div>
         </div>
         {error && (
-          <div
-            aria-live="polite"
-            className="mx-4 mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive md:mx-6"
-          >
-            <AlertCircle className="mt-0.5 shrink-0" size={16} />
+          <div className="m-5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
-        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground xl:hidden">
+        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-5 py-3 text-xs text-muted-foreground">
           <Eye size={14} />
           {t("inspectionOnly")}
         </div>
@@ -24306,142 +17524,36 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div
-            className={cn(
-              "w-full",
-              data.key === "backups" ? "overflow-x-auto" : "overflow-hidden",
-            )}
-          >
-            <table
-              className={cn(
-                "w-full table-fixed text-left text-sm rtl:text-right",
-                data.key === "backups" && "min-w-[760px]",
-              )}
-            >
-              <colgroup>
-                {tableColumns.map((column) => (
-                  <col
-                    key={column}
-                    style={{
-                      width: `${
-                        (hasTableActions
-                          ? compactEmployeeTable
-                            ? 66
-                            : 62
-                          : 100) / Math.max(tableColumns.length, 1)
-                      }%`,
-                    }}
-                  />
-                ))}
-                {hasTableActions ? (
-                  <col
-                    style={{ width: compactEmployeeTable ? "34%" : "38%" }}
-                  />
-                ) : null}
-              </colgroup>
-              <thead className="sticky top-0 z-10 bg-muted/90 text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
+              <thead className="bg-muted/60">
                 <tr>
-                  {tableColumns.map((column) => (
-                    <th
-                      className="break-words px-2 py-2 font-bold leading-tight"
-                      key={column}
-                    >
-                      {databaseColumnLabel(column)}
+                   {visibleColumns.map((column) => (
+                     <th className="p-3 font-semibold" key={column}>
+                       {databaseColumnTranslationKeys[column]
+                         ? t(databaseColumnTranslationKeys[column])
+                         : locale === "ar"
+                           ? t("databaseDataField")
+                           : column.replaceAll("_", " ")}
                     </th>
                   ))}
-                  {hasTableActions && (
-                    <th className="break-words px-2 py-2 text-center font-semibold leading-tight">
-                      {t("actions")}
-                    </th>
+                    {(supportsDatabaseActions ||
+                      editFields.length ||
+                      data.canArchive ||
+                      data.canDelete) && (
+                    <th className="p-3 font-semibold">{t("actions")}</th>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {data.rows.map((row) => (
-                  <tr
-                    className="transition-colors hover:bg-muted/35"
-                    key={String(row.id)}
-                  >
-                    {tableColumns.map((column) => (
+                  <tr key={String(row.id)}>
+                     {visibleColumns.map((column) => (
                       <td
-                        className="max-w-0 truncate px-2 py-2 align-middle leading-tight"
+                        className="max-w-[240px] truncate p-3 align-top"
                         key={column}
-                        title={
-                          column === "employee_name"
-                            ? localizedName(
-                                locale,
-                                String(
-                                  row.employee_name ??
-                                    [
-                                      row.first_name,
-                                      row.last_name,
-                                    ]
-                                      .map((value) => String(value ?? "").trim())
-                                      .filter(Boolean)
-                                      .join(" "),
-                                ),
-                                String(
-                                  row.employee_name_en ??
-                                    [
-                                      row.first_name_en,
-                                      row.last_name_en,
-                                    ]
-                                      .map((value) => String(value ?? "").trim())
-                                      .filter(Boolean)
-                                      .join(" "),
-                                ),
-                              )
-                            : column === "company_name" &&
-                                data.key === "backups"
-                              ? backupCompanyName(row)
-                            : String(row[column] ?? "")
-                        }
                       >
-                        {column === "employee_name" ? (
-                          <span className="block truncate font-medium">
-                            {localizedName(
-                              locale,
-                              String(
-                                row.employee_name ??
-                                  [
-                                    row.first_name,
-                                    row.last_name,
-                                  ]
-                                    .map((value) => String(value ?? "").trim())
-                                    .filter(Boolean)
-                                    .join(" "),
-                              ),
-                              String(
-                                row.employee_name_en ??
-                                  [
-                                    row.first_name_en,
-                                    row.last_name_en,
-                                  ]
-                                    .map((value) => String(value ?? "").trim())
-                                    .filter(Boolean)
-                                    .join(" "),
-                              ),
-                            )}
-                          </span>
-                        ) : column === "company_name" &&
-                          data.key === "backups" ? (
-                          row.company_id ? (
-                            <button
-                              className="block max-w-full truncate font-semibold text-primary hover:underline"
-                              onClick={() =>
-                                setLocation(
-                                  `/platform/companies/${encodeURIComponent(String(row.company_id))}`,
-                                )
-                              }
-                            >
-                              {backupCompanyName(row)}
-                            </button>
-                          ) : (
-                            <span className="block truncate font-semibold">
-                              {backupCompanyName(row)}
-                            </span>
-                          )
-                        ) : column === "company_name" && row.company_id ? (
+                        {column === "company_name" && row.company_id ? (
                           <button
                             className="font-semibold text-primary hover:underline"
                             onClick={() =>
@@ -24450,150 +17562,46 @@ function DatabaseAdministration() {
                               )
                             }
                           >
-                            {String(row[column] ?? t("unknownCompany"))}
+                           {String(row[column] ?? t("unknownCompany"))}
                           </button>
-                        ) : column === "work_days_per_month" &&
-                          (row[column] === null ||
-                            row[column] === undefined ||
-                            row[column] === "") ? (
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
-                            <AlertCircle size={13} />
-                            {t("missingReferenceWorkdays")}
-                          </span>
-                        ) : row[column] !== null &&
-                          typeof row[column] === "object" ? (
-                          JSON.stringify(row[column])
-                        ) : (
-                          databaseValue(column, row[column])
-                        )}
+                        ) : typeof row[column] === "object"
+                          ? JSON.stringify(row[column])
+                          : databaseValue(column, row[column])}
                       </td>
                     ))}
-                    {hasTableActions && (
-                      <td className="px-2 py-1.5 align-middle">
-                        <div className="flex flex-wrap items-center gap-1">
-                          {data.key === "backups" ? (
-                            <>
-                              <Button
-                                className="h-8 gap-1.5 px-2 text-xs"
-                                variant="outline"
-                                aria-label={backupActionCopy.download}
-                                title={backupActionCopy.download}
-                                disabled={pending !== ""}
-                                onClick={() => void downloadBackupRow(row)}
-                              >
-                                <Download size={14} />
-                                {pending === `backup-download-${String(row.id)}`
-                                  ? "…"
-                                  : backupActionCopy.download}
-                              </Button>
-                              <Button
-                                className="h-8 gap-1.5 px-2 text-xs"
-                                variant="danger"
-                                aria-label={backupActionCopy.delete}
-                                title={backupActionCopy.delete}
-                                disabled={pending !== ""}
-                                onClick={() => void deleteBackupRow(row)}
-                              >
-                                <Trash2 size={14} />
-                                {pending === `backup-delete-${String(row.id)}`
-                                  ? "…"
-                                  : backupActionCopy.delete}
-                              </Button>
-                            </>
-                          ) : null}
-                          {supportsDatabaseActions ? (
-                            <>
-                              <Button
-                                className={
-                                  compactEmployeeTable
-                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
-                                    : "h-8 gap-1.5 px-2 text-xs"
-                                }
-                                variant="outline"
-                                aria-label={t("viewDetails")}
-                                title={t("viewDetails")}
-                                onClick={() => setDetails(row)}
-                              >
-                                <Eye size={14} />
-                                {t("viewDetails")}
-                              </Button>
-                              <Button
-                                className={
-                                  compactEmployeeTable
-                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
-                                    : "h-8 gap-1.5 px-2 text-xs"
-                                }
-                                variant="outline"
-                                aria-label={t("history")}
-                                title={t("history")}
-                                onClick={() => void openHistory(row)}
-                              >
-                                <Activity size={14} />
-                                {t("history")}
-                              </Button>
-                            </>
-                          ) : null}
+                      {(supportsDatabaseActions ||
+                        editFields.length ||
+                        data.canArchive ||
+                        data.canDelete) && (
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                           {supportsDatabaseActions ? (
+                             <>
+                               <Button variant="outline" onClick={() => setDetails(row)}>
+                                  {t("viewDetails")}
+                               </Button>
+                               <Button variant="outline" onClick={() => void openHistory(row)}>
+                                 {t("history")}
+                               </Button>
+                             </>
+                           ) : null}
                           {editFields.length ? (
-                            <Button
-                                className={
-                                  compactEmployeeTable
-                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
-                                    : "h-8 gap-1.5 px-2 text-xs"
-                                }
-                              variant="outline"
-                                aria-label={t("edit")}
-                                title={t("edit")}
-                              disabled={
-                                pending !== "" ||
-                                (!companyFilter && !row.company_id)
-                              }
-                              onClick={() => openEdit(row)}
-                            >
-                              <Pencil size={14} />
+                            <Button variant="outline" onClick={() => openEdit(row)}>
                               {t("edit")}
-                            </Button>
-                          ) : null}
-                          {data.key === "leave_balances" &&
-                          ["annual", "annual leave"].includes(
-                            String(row.type ?? "").trim().toLowerCase(),
-                          ) ? (
-                            <Button
-                              className="h-8 gap-1.5 px-2 text-xs"
-                              variant="outline"
-                              disabled={pending !== ""}
-                              onClick={() => openBalanceEdit(row)}
-                            >
-                              <Pencil size={14} />
-                              {t("adjustAnnualLeaveTotal")}
                             </Button>
                           ) : null}
                           {data.canArchive ? (
                             <Button
-                              className={
-                                compactEmployeeTable
-                                  ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
-                                  : "h-8 px-2 text-xs"
-                              }
                               variant="quiet"
-                              aria-label={t("archive")}
-                              title={t("archive")}
                               disabled={pending !== ""}
                               onClick={() => void archive(row)}
                             >
-                              {compactEmployeeTable ? <Archive size={14} /> : null}
-                              {t("archive")}
+                               {t("archive")}
                             </Button>
                           ) : null}
                           {data.canDelete ? (
                             <Button
-                                className={
-                                  compactEmployeeTable
-                                    ? "h-7 shrink-0 gap-1 rounded-full px-2 text-[10px]"
-                                    : "h-8 gap-1.5 px-2 text-xs"
-                                }
                               variant="danger"
-                                aria-label={t("deleteRecord")}
-                                title={t("deleteRecord")}
                               disabled={pending !== ""}
                               onClick={() => void deleteRecord(row)}
                             >
@@ -24615,446 +17623,30 @@ function DatabaseAdministration() {
             detail={t("tryAnotherEntityOrFilter")}
           />
         )}
-        </Card>
-        )}
-      </div>
-      {balanceEditing && (
-        <Modal
-          title={t("adjustAnnualLeaveTotal")}
-          onClose={() => setBalanceEditing(null)}
-          className="max-w-xl"
-        >
-          <p className="mb-4 rounded-lg bg-muted/60 p-3 text-sm leading-relaxed text-muted-foreground">
-            {t("annualLeaveTotalHint")}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs font-semibold text-muted-foreground">
-                {t("databaseEmployeeName")}
-              </p>
-              <p className="mt-1 font-medium">
-                {String(balanceEditing.employee_name ?? balanceEditing.employee_id ?? "—")}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs font-semibold text-muted-foreground">
-                {t("pendingLeaveDays")}
-              </p>
-              <p className="mt-1 font-medium">{String(balanceEditing.pending ?? 0)}</p>
-            </div>
-            <Field
-              label={t("allocatedDays")}
-              value={balanceAllocated}
-              type="number"
-              min={0}
-              max={9999.99}
-              step={0.01}
-              onChange={updateBalanceFromTotal}
-            />
-            <Field
-              label={t("usedDays")}
-              value={balanceUsed}
-              type="number"
-              min={0}
-              max={9999.99}
-              step={0.01}
-              onChange={updateBalanceFromUsed}
-            />
-            <Field
-              label={t("daysRemaining")}
-              value={balanceRemaining}
-              type="number"
-              min={0}
-              max={9999.99}
-              step={0.01}
-              onChange={updateBalanceFromRemaining}
-            />
-            <label className="block text-sm font-semibold sm:col-span-2">
-              <span>{t("supportReasonLabel")}</span>
-              <textarea
-                className="mt-2 min-h-24 w-full rounded-xl border border-input bg-background px-3.5 py-3 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                value={balanceReason}
-                onChange={(event) => setBalanceReason(event.target.value)}
-                minLength={10}
-                maxLength={500}
-                required
-              />
-            </label>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => setBalanceEditing(null)}>
-              {t("cancel")}
-            </Button>
-            <Button
-              onClick={() => void saveBalanceEdit()}
-              disabled={pending !== ""}
-            >
-              {pending === "leave-balance" ? "…" : t("saveChanges")}
-            </Button>
-          </div>
-        </Modal>
-      )}
+      </Card>
       {editing && data && (
         <Modal
            title={`${t("editRecord")} · ${t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")}`}
-          onClose={() => {
-            setEditing(null);
-            setEditCompanyId("");
-          }}
+          onClose={() => setEditing(null)}
           className="max-w-2xl"
         >
           <p className="mb-4 text-sm text-muted-foreground">
              {t(usesSupportEditor ? "supportEditHint" : "databaseEditHint")}
           </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {data.key === "employees" ? (
-              <>
-                <Field
-                  label={t("employeeNumber")}
-                  value={String(editValues.employee_number ?? "")}
-                  inputMode="numeric"
-                  required
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      employee_number: value,
-                    }))
-                  }
-                />
-                <p className="md:col-span-2 -mt-2 text-xs text-muted-foreground">
-                  {t("employeeNumberEditHint")}
-                </p>
-                <Field
-                  label={t("arabicName")}
-                  value={`${String(editValues.first_name ?? "")} ${String(editValues.last_name ?? "")}`.trim()}
-                  required
-                  onChange={(value) => {
-                    const parts = splitEmployeeFullName(value);
-                    setEditValues((current) => ({
-                      ...current,
-                      first_name: parts.firstName,
-                      last_name: parts.lastName,
-                    }));
-                  }}
-                />
-                <Field
-                  label={t("englishName")}
-                  value={`${String(editValues.first_name_en ?? "")} ${String(editValues.last_name_en ?? "")}`.trim()}
-                  onChange={(value) => {
-                    const parts = splitEmployeeFullName(value);
-                    setEditValues((current) => ({
-                      ...current,
-                      first_name_en: parts.firstName,
-                      last_name_en: parts.lastName,
-                    }));
-                  }}
-                />
-                <Field
-                  label={t("phoneNumber")}
-                  value={String(editValues.phone ?? "")}
-                  inputMode="tel"
-                  onChange={(value) =>
-                    setEditValues((current) => ({ ...current, phone: value }))
-                  }
-                />
-                <Field
-                  label={t("nationalId")}
-                  value={String(editValues.national_id ?? "")}
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      national_id: value,
-                    }))
-                  }
-                />
-                <Field
-                  label={t("biometricCode")}
-                  value={String(editValues.biometric_code ?? "")}
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      biometric_code: value,
-                    }))
-                  }
-                />
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("payBasis")}</span>
-                  <select
-                    value={String(editValues.pay_basis ?? "monthly")}
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        pay_basis: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="monthly">{t("monthlyPayBasis")}</option>
-                    <option value="hourly">{t("hourlyPayBasis")}</option>
-                  </select>
-                </label>
-                <Field
-                  label={t("referenceHoursPerDay")}
-                  type="number"
-                  min={0.01}
-                  max={24}
-                  step={0.01}
-                  value={String(editValues.working_hours ?? 8)}
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      working_hours: value,
-                    }))
-                  }
-                />
-                <Field
-                  label={
-                    editValues.pay_basis === "hourly"
-                      ? t("referenceMonthlySalary")
-                      : t("monthlySalary")
-                  }
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={String(editValues.salary ?? 0)}
-                  onChange={(value) =>
-                    setEditValues((current) => ({ ...current, salary: value }))
-                  }
-                />
-                <Field
-                  label={t("referenceWorkdaysPerMonth")}
-                  type="number"
-                  required
-                  min={1}
-                  max={31}
-                  step={1}
-                  value={String(editValues.work_days_per_month ?? "")}
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      work_days_per_month: value,
-                    }))
-                  }
-                />
-                <div className="rounded-xl border border-primary/20 bg-primary/[0.035] p-4 md:col-span-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t("calculatedHourlyRate")}
-                  </div>
-                  <div className="mt-1 text-xl font-bold text-primary">
-                    {Number(editValues.salary) >= 0 &&
-                    Number(editValues.work_days_per_month) > 0 &&
-                    Number(editValues.working_hours) > 0
-                      ? `${money(
-                          Number(editValues.salary) /
-                            (Number(editValues.work_days_per_month) *
-                              Number(editValues.working_hours)),
-                          employeeSupport?.company?.currency ?? "EGP",
-                        )} / ${t("perHour")}`
-                      : t("notAvailable")}
-                  </div>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    {t("hourlyRateDerivationHint")}{" "}
-                    {editValues.pay_basis === "hourly"
-                      ? t("hourlyPayAttendanceHint")
-                      : ""}
-                  </p>
-                </div>
-                <Field
-                  label={t("employmentStartDate")}
-                  type="date"
-                  value={String(editValues.joined_on ?? "")}
-                  required
-                  onChange={(value) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      joined_on: value,
-                    }))
-                  }
-                />
-                {editValues.pay_basis === "monthly" && (
-                  <label className="block text-sm font-semibold">
-                    <span className="mb-2 block">{t("shift")}</span>
-                    <select
-                      value={String(editValues.schedule_id ?? "")}
-                      required
-                      disabled={!employeeSupport?.schedules?.length}
-                      onChange={(event) =>
-                        setEditValues((current) => ({
-                          ...current,
-                          schedule_id: event.target.value,
-                        }))
-                      }
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                    >
-                      <option value="">
-                        {employeeSupport?.schedules?.length
-                          ? t("selectSchedule")
-                          : t("noShifts")}
-                      </option>
-                      {employeeSupport?.schedules?.map((schedule: any) => (
-                        <option key={schedule.id} value={schedule.id}>
-                          {localizedName(
-                            locale,
-                            schedule.nameAr || schedule.name,
-                            schedule.nameEn || schedule.name,
-                          )}{" "}
-                          · {schedule.startTime}–{schedule.endTime}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("department")}</span>
-                  <select
-                    value={String(editValues.department_id ?? "")}
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        department_id: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="">—</option>
-                    {employeeSupport?.departments?.map((item: any) => (
-                      <option key={item.id} value={item.id}>
-                        {localizedName(locale, item.name, item.nameEn)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("branch")}</span>
-                  <select
-                    value={String(editValues.branch_id ?? "")}
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        branch_id: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    {employeeSupport?.branches?.map((item: any) => (
-                      <option key={item.id} value={item.id}>
-                        {localizedName(locale, item.name, item.nameEn)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("status")}</span>
-                  <select
-                    value={String(editValues.status ?? "active")}
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        status: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="active">{t("active")}</option>
-                    <option value="inactive">{t("inactive")}</option>
-                  </select>
-                </label>
-                <label className="block text-sm font-semibold">
-                  <span className="mb-2 block">{t("role")}</span>
-                  <select
-                    value={String(editValues.role ?? "employee")}
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        role: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                  >
-                    <option value="employee">{t("roleEmployee")}</option>
-                    <option value="manager">{t("roleManager")}</option>
-                  </select>
-                </label>
-                <EmployeeAttendanceLocationMode
-                  locale={locale}
-                  variableLocation={
-                    editValues.location_attendance_enabled === true ||
-                    editValues.location_attendance_enabled === "true"
-                  }
-                  onChange={(variableLocation) =>
-                    setEditValues((current) => ({
-                      ...current,
-                      location_attendance_enabled: variableLocation,
-                    }))
-                  }
-                />
-                <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm md:col-span-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1 accent-primary"
-                    checked={
-                      editValues.automatic_annual_leave_eligible === true ||
-                      editValues.automatic_annual_leave_eligible === "true"
-                    }
-                    onChange={(event) =>
-                      setEditValues((current) => ({
-                        ...current,
-                        automatic_annual_leave_eligible:
-                          event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    <span className="block font-semibold">
-                      {t("automaticAnnualLeaveEligible")}
-                    </span>
-                    <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
-                      {t("automaticAnnualLeaveEligibleHint")}
-                    </span>
-                  </span>
-                </label>
-              </>
-            ) : (
-              editFields.map((key) => (
-                <Field
-                  key={key}
-                  label={databaseColumnLabel(key)}
-                  value={String(editValues[key] ?? "")}
-                  type={key === "work_days_per_month" ? "number" : "text"}
-                  min={key === "work_days_per_month" ? 1 : undefined}
-                  max={key === "work_days_per_month" ? 31 : undefined}
-                  step={key === "work_days_per_month" ? 1 : undefined}
-                  onChange={(value) =>
-                    setEditValues((current) => ({ ...current, [key]: value }))
-                  }
-                />
-              ))
-            )}
-            {data.key === "employees" && (
-              <p className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground md:col-span-2">
-                {t("supportPayrollRefreshHint")}
-              </p>
-            )}
-            <label className="block text-sm font-semibold md:col-span-2">
-              <span>{t("supportReasonLabel")}</span>
-              <textarea
-                className="mt-2 min-h-24 w-full rounded-xl border border-input bg-background px-3.5 py-3 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                value={editReason}
-                onChange={(event) => setEditReason(event.target.value)}
-                minLength={10}
-                maxLength={500}
-                required
+          <div className="space-y-3">
+            {editFields.map((key) => (
+              <Field
+                key={key}
+                 label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
+                value={String(editValues[key] ?? "")}
+                onChange={(value) =>
+                  setEditValues((current) => ({ ...current, [key]: value }))
+                }
               />
-            </label>
+            ))}
           </div>
           <div className="mt-5 flex justify-end gap-2">
-            <Button
-              variant="quiet"
-              onClick={() => {
-                setEditing(null);
-                setEditCompanyId("");
-              }}
-            >
+            <Button variant="quiet" onClick={() => setEditing(null)}>
               {t("cancel")}
             </Button>
             <Button onClick={() => void saveEdit()} disabled={pending !== ""}>
@@ -25073,7 +17665,11 @@ function DatabaseAdministration() {
             {visibleColumns.map((key) => (
               <div className="rounded-lg border border-border p-3" key={key}>
                 <p className="text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
-                  {databaseColumnLabel(key)}
+                {databaseColumnTranslationKeys[key]
+                  ? t(databaseColumnTranslationKeys[key])
+                  : locale === "ar"
+                    ? t("databaseDataField")
+                    : key.replaceAll("_", " ")}
                 </p>
                 <p className="mt-1 break-words text-sm">
                   {details[key] && typeof details[key] === "object"
@@ -25128,16 +17724,9 @@ function DatabaseAdministration() {
                   </div>
                 )}
                 {entry.metadata && (
-                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    <p>
-                      {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
-                    </p>
-                    {entry.metadata.reason ? (
-                      <p>
-                        {t("supportReasonLabel")}: {String(entry.metadata.reason)}
-                      </p>
-                    ) : null}
-                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                     {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
+                  </p>
                 )}
               </div>
             )) : <Empty title={t("noHistoryFound")} detail={t("noHistoryDetail")} />}
@@ -25229,380 +17818,10 @@ function PlatformAccountSettings() {
   );
 }
 
-function PlatformSiteBranding() {
-  const { t, locale } = useI18n();
-  const auth = useAuth();
-  const branding = useSiteBranding();
-  const [siteName, setSiteName] = useState(branding.siteName);
-  const [logoVariant, setLogoVariant] = useState<SiteLogoVariant>(
-    branding.logoVariant,
-  );
-  const [socialLinks, setSocialLinks] = useState<PlatformSocialLinks>(
-    branding.socialLinks,
-  );
-  const [pending, setPending] = useState(false);
-  const [pwaIconPending, setPwaIconPending] = useState(false);
-  const logoOptions: Array<{
-    value: SiteLogoVariant;
-    label: string;
-    source: string;
-  }> = [
-    {
-      value: "square",
-      label: t("siteLogoSquare"),
-      source: squareLogo,
-    },
-    {
-      value: "short",
-      label: t("siteLogoShort"),
-      source: shortLogo,
-    },
-    {
-      value: "horizontal",
-      label: t("siteLogoHorizontal"),
-      source: horizontalLogo,
-    },
-    {
-      value: "arabic",
-      label: t("siteLogoArabic"),
-      source: arabicLoginLogo,
-    },
-  ];
-  const socialFields: Array<{
-    key: keyof PlatformSocialLinks;
-    label: string;
-    placeholder: string;
-  }> = [
-    {
-      key: "facebook",
-      label: "Facebook",
-      placeholder: "https://facebook.com/your-page",
-    },
-    {
-      key: "instagram",
-      label: "Instagram",
-      placeholder: "https://instagram.com/your-account",
-    },
-    {
-      key: "linkedin",
-      label: "LinkedIn",
-      placeholder: "https://linkedin.com/company/your-company",
-    },
-    { key: "x", label: "X", placeholder: "https://x.com/your-account" },
-    {
-      key: "youtube",
-      label: "YouTube",
-      placeholder: "https://youtube.com/@your-channel",
-    },
-    {
-      key: "tiktok",
-      label: "TikTok",
-      placeholder: "https://tiktok.com/@your-account",
-    },
-    {
-      key: "whatsapp",
-      label: "WhatsApp",
-      placeholder: "+201000000000",
-    },
-  ];
-
-  useEffect(() => {
-    setSiteName(branding.siteName);
-    setLogoVariant(branding.logoVariant);
-    setSocialLinks(normalizeSocialLinks(branding.socialLinks));
-  }, [branding.siteName, branding.logoVariant, branding.socialLinks]);
-
-  if (auth.account.accountType !== "platform_owner") {
-    return <WorkspaceState kind="unauthorized" />;
-  }
-
-  const save = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPending(true);
-    try {
-      const result = await authRequest<SiteSettings>("/api/platform/site-settings", {
-        method: "PATCH",
-        body: JSON.stringify({ siteName, logoVariant, socialLinks }),
-      });
-      branding.setSiteSettings(result);
-      toast.success(t("siteBrandingUpdated"));
-    } catch (cause) {
-      toast.error(apiErrorMessage(cause, t("couldNotUpdateSiteBranding")));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const uploadPwaIcon = async (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    input.value = "";
-    if (!file) return;
-    if (
-      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
-      file.size > 10 * 1024 * 1024
-    ) {
-      toast.error(t("pwaIconInvalidFile"));
-      return;
-    }
-
-    setPwaIconPending(true);
-    try {
-      const uploadedPaths: {
-        icon180Path: string;
-        icon192Path: string;
-        icon512Path: string;
-      } = { icon180Path: "", icon192Path: "", icon512Path: "" };
-
-      for (const size of [180, 192, 512] as const) {
-        const image = await renderPwaIcon(file, size);
-        const upload = await authRequest<{
-          uploadURL: string;
-          objectPath: string;
-        }>("/api/platform/site-settings/pwa-icons/upload-url", {
-          method: "POST",
-          body: JSON.stringify({ iconSize: size, fileSize: image.size }),
-        });
-        const response = await fetch(upload.uploadURL, {
-          method: "PUT",
-          headers: { "Content-Type": "image/png" },
-          body: image,
-        });
-        if (!response.ok) {
-          throw new Error(t("couldNotUpdatePwaIcon"));
-        }
-        if (size === 180) uploadedPaths.icon180Path = upload.objectPath;
-        if (size === 192) uploadedPaths.icon192Path = upload.objectPath;
-        if (size === 512) uploadedPaths.icon512Path = upload.objectPath;
-      }
-
-      const updated = await authRequest<SiteSettings>(
-        "/api/platform/site-settings/pwa-icons",
-        { method: "PATCH", body: JSON.stringify(uploadedPaths) },
-      );
-      branding.setSiteSettings(updated);
-      toast.success(t("pwaIconUpdated"));
-    } catch (cause) {
-      toast.error(apiErrorMessage(cause, t("couldNotUpdatePwaIcon")));
-    } finally {
-      setPwaIconPending(false);
-    }
-  };
-
-  const restoreDefaultPwaIcon = async () => {
-    setPwaIconPending(true);
-    try {
-      const updated = await authRequest<SiteSettings>(
-        "/api/platform/site-settings/pwa-icons",
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            icon180Path: null,
-            icon192Path: null,
-            icon512Path: null,
-          }),
-        },
-      );
-      branding.setSiteSettings(updated);
-      toast.success(t("pwaIconRestored"));
-    } catch (cause) {
-      toast.error(apiErrorMessage(cause, t("couldNotUpdatePwaIcon")));
-    } finally {
-      setPwaIconPending(false);
-    }
-  };
-
-  return (
-    <div className="animate-in">
-      <SectionTitle
-        eyebrow={t("platformOwnerOnly")}
-        title={t("siteBranding")}
-        detail={t("siteBrandingDetail")}
-      />
-      <form onSubmit={save} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="p-5">
-          <div className="space-y-4">
-            <Field
-              label={t("siteName")}
-              required
-              value={siteName}
-              onChange={setSiteName}
-            />
-            <div>
-              <p className="text-sm font-semibold">{t("siteLogo")}</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                {logoOptions.map((option) => {
-                  const isSelected = logoVariant === option.value;
-                  return (
-                    <div
-                      key={option.value}
-                      className={cn(
-                        "rounded-xl border p-3 transition-colors",
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-background",
-                      )}
-                    >
-                      <div className="flex h-24 items-center justify-center rounded-lg bg-white p-2">
-                        <img
-                          src={option.source}
-                          alt={option.label}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold">
-                          {option.label}
-                        </span>
-                        <Button
-                          type="button"
-                          variant={isSelected ? "primary" : "outline"}
-                          className="h-8 px-2 text-xs"
-                          onClick={() => setLogoVariant(option.value)}
-                        >
-                          {isSelected ? t("selected") : t("changeLogo")}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <section className="space-y-4 border-t border-border pt-5">
-              <div>
-                <h2 className="text-sm font-semibold">{t("pwaIconHeading")}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("pwaIconDetail")}
-                </p>
-              </div>
-              <div className="flex flex-col gap-4 rounded-xl border border-border p-4 sm:flex-row sm:items-center">
-                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
-                  <img
-                    src={branding.pwaIconUrls.icon512 || "/icons/icon-512.png"}
-                    alt={t("pwaIconCurrent")}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 space-y-3">
-                  <p className="text-sm font-semibold">{t("pwaIconCurrent")}</p>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {t("pwaIconFileHelp")}
-                  </p>
-                  <label
-                    htmlFor="platform-pwa-icon-file"
-                    className={cn(
-                      "block text-sm font-medium",
-                      pwaIconPending && "opacity-60",
-                    )}
-                  >
-                    {t("pwaIconChoose")}
-                  </label>
-                  <input
-                    id="platform-pwa-icon-file"
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={pwaIconPending}
-                    onChange={(event) => void uploadPwaIcon(event)}
-                    className="block w-full max-w-lg text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-semibold file:text-primary-foreground disabled:opacity-60"
-                  />
-                  {pwaIconPending && (
-                    <p role="status" className="text-sm text-muted-foreground">
-                      {t("pwaIconUploading")}
-                    </p>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={pwaIconPending || !branding.pwaIconUrls.icon512}
-                    onClick={() => void restoreDefaultPwaIcon()}
-                  >
-                    {t("pwaIconReset")}
-                  </Button>
-                </div>
-              </div>
-            </section>
-            <section className="space-y-4 border-t border-border pt-5">
-              <div>
-                <h2 className="text-sm font-semibold">
-                  {t("socialLinksHeading")}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("socialLinksDetail")}
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {socialFields.map(({ key, label, placeholder }) => {
-                  const isWhatsApp = key === "whatsapp";
-                  return (
-                    <div key={key}>
-                      <Field
-                        label={
-                          isWhatsApp
-                            ? locale === "ar"
-                              ? "رقم هاتف واتساب"
-                              : "WhatsApp phone number"
-                            : label
-                        }
-                        name={`social-link-${key}`}
-                        type={isWhatsApp ? "tel" : "url"}
-                        inputMode={isWhatsApp ? "tel" : "url"}
-                        placeholder={placeholder}
-                        value={socialLinks[key]}
-                        onChange={(value) =>
-                          setSocialLinks((current) => ({
-                            ...current,
-                            [key]: value,
-                          }))
-                        }
-                      />
-                      {isWhatsApp && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {locale === "ar"
-                            ? "اكتب الرقم مع مفتاح الدولة، من غير رابط. يمكن كتابة الرقم المصري المحلي أيضًا. مثال: ‎+201000000000"
-                            : "Enter a phone number, not a link. Include the country code; Egyptian local numbers are also accepted. Example: +201000000000"}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-            <div className="flex justify-end">
-              <Button type="submit" disabled={pending || !siteName.trim()}>
-                {pending ? "…" : t("saveSiteBranding")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-5">
-          <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
-            {t("siteLogo")}
-          </p>
-          <div className="mt-4 flex min-h-40 items-center justify-center rounded-xl bg-secondary p-6">
-            <div className="w-full max-w-[220px] overflow-hidden rounded-lg bg-white p-2 shadow-sm">
-              <BrandLogo
-                variant="horizontal"
-                source={siteLogoSource(logoVariant, "horizontal")}
-                className="w-full"
-                alt={siteName}
-              />
-            </div>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {t("siteBrandingDetail")}
-          </p>
-        </Card>
-      </form>
-    </div>
-  );
-}
-
-function Accounts({ embedded = false }: { embedded?: boolean }) {
+function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
-  const [accountSearch, setAccountSearch] = useState("");
-  const [companyFilter, setCompanyFilter] = useState("");
   const [permissions, setPermissions] = useState<
     Array<{ key: string; label: string; description?: string }>
   >([]);
@@ -25610,13 +17829,11 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     fullName?: string;
-    username?: string;
     primaryPhone?: string;
     password?: string;
   }>({});
   const [form, setForm] = useState({
     fullName: "",
-    fullNameEn: "",
     primaryPhone: "",
     displayRole: "HR",
     password: "",
@@ -25627,60 +17844,12 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   );
   const [editForm, setEditForm] = useState({
     fullName: "",
-    fullNameEn: "",
-    username: "",
     primaryPhone: "",
     displayRole: "",
     password: "",
     active: true,
     permissions: [] as string[],
   });
-  const isPlatformOwner = workspace.data?.role === "platform_owner";
-  const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
-  const accountCompanies = useMemo(() => {
-    const companies = new Map<string, { id: string; name: string }>();
-    for (const account of accounts) {
-      if (!account.companyId) continue;
-      companies.set(account.companyId, {
-        id: account.companyId,
-        name: localizedName(
-          locale,
-          account.companyName || account.companyId,
-          account.companyNameEn,
-        ),
-      });
-    }
-    return [...companies.values()].sort((left, right) =>
-      left.name.localeCompare(right.name, locale),
-    );
-  }, [accounts, locale]);
-  const filteredAccounts = useMemo(() => {
-    const query = accountSearch.trim().toLocaleLowerCase(locale);
-    const queryDigits = query.replace(/\D/g, "");
-    return accounts.filter((account) => {
-      if (companyFilter && account.companyId !== companyFilter) return false;
-      if (!query) return true;
-
-      const searchableText = [
-        accountDisplayName(locale, account),
-        account.fullName,
-        account.fullNameEn,
-        account.username,
-        account.primaryPhone,
-        ...account.backupPhones,
-      ]
-        .filter(Boolean)
-        .some((value) => value.toLocaleLowerCase(locale).includes(query));
-      const searchableNumbers = [
-        account.username,
-        account.primaryPhone,
-        ...account.backupPhones,
-      ]
-        .filter(Boolean)
-        .some((value) => value.replace(/\D/g, "").includes(queryDigits));
-      return searchableText || (queryDigits.length > 0 && searchableNumbers);
-    });
-  }, [accounts, accountSearch, companyFilter, locale]);
   const load = async () => {
     setLoading(true);
     try {
@@ -25727,7 +17896,6 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
       setAccounts((current) => [...current, result.account]);
       setForm({
         fullName: "",
-        fullNameEn: "",
         primaryPhone: "",
         displayRole: "HR",
         password: "",
@@ -25750,8 +17918,6 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
     setEditingAccount(account);
     setEditForm({
       fullName: account.fullName,
-      fullNameEn: account.fullNameEn || "",
-      username: account.username,
       primaryPhone: account.primaryPhone || account.username,
       displayRole: account.displayRole,
       password: "",
@@ -25762,37 +17928,17 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   const saveAccount = async (event: FormEvent) => {
     event.preventDefault();
     if (!editingAccount) return;
-    if (isPlatformOwner && editingAccount.isCurrentAccount) return;
     setFieldErrors({});
     if (editForm.fullName.trim().length < 1) {
       setFieldErrors({ fullName: authLabel(locale, "employeeNameInvalid") });
       return;
     }
-    if (
-      isPlatformOwner
-        ? editForm.username.trim().length < 3
-        : !/^\+?[0-9 ()-]{7,20}$/.test(editForm.primaryPhone.trim())
-    ) {
-      setFieldErrors(
-        isPlatformOwner
-          ? { username: text("Enter a valid login username.", "أدخل اسم مستخدم صالحًا لتسجيل الدخول.") }
-          : { primaryPhone: authLabel(locale, "phoneInvalid") },
-      );
+    if (!/^\+?[0-9 ()-]{7,20}$/.test(editForm.primaryPhone.trim())) {
+      setFieldErrors({ primaryPhone: authLabel(locale, "phoneInvalid") });
       return;
     }
-    const minimumPasswordLength = isPlatformOwner ? 10 : 6;
-    if (
-      editForm.password &&
-      editForm.password.length < minimumPasswordLength
-    ) {
-      setFieldErrors({
-        password: isPlatformOwner
-          ? text(
-              "New passwords must contain at least 10 characters.",
-              "كلمة المرور الجديدة يجب ألا تقل عن 10 أحرف.",
-            )
-          : authLabel(locale, "passwordTooShort"),
-      });
+    if (editForm.password && editForm.password.length < 6) {
+      setFieldErrors({ password: authLabel(locale, "passwordTooShort") });
       return;
     }
     setSaving(true);
@@ -25803,10 +17949,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
           method: "PATCH",
           body: JSON.stringify({
             fullName: editForm.fullName,
-            fullNameEn: editForm.fullNameEn,
-            ...(isPlatformOwner
-              ? { username: editForm.username.trim() }
-              : { primaryPhone: editForm.primaryPhone }),
+            primaryPhone: editForm.primaryPhone,
             displayRole: editForm.displayRole,
             active: editForm.active,
             permissions: editForm.permissions,
@@ -25816,13 +17959,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
       );
       setAccounts((current) =>
         current.map((account) =>
-          account.id === result.account.id
-            ? {
-                ...result.account,
-                companyName: account.companyName,
-                companyNameEn: account.companyNameEn,
-              }
-            : account,
+          account.id === result.account.id ? result.account : account,
         ),
       );
       setEditingAccount(null);
@@ -25848,141 +17985,34 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
     permissions.every((permission) =>
       editForm.permissions.includes(permission.key),
     );
-  const accountSummary = [
-    {
-      label: isPlatformOwner
-        ? text("All accounts", "كل الحسابات")
-        : authLabel(locale, "staffAccounts"),
-      value: filteredAccounts.length,
-      icon: <Users size={18} aria-hidden="true" />,
-      testId: "text-account-count",
-    },
-    {
-      label: authLabel(locale, "active"),
-      value: filteredAccounts.filter((account) => account.active).length,
-      icon: <Activity size={18} aria-hidden="true" />,
-      testId: "text-active-account-count",
-    },
-    {
-      label: authLabel(locale, "inactive"),
-      value: filteredAccounts.filter((account) => !account.active).length,
-      icon: <ShieldCheck size={18} aria-hidden="true" />,
-      testId: "text-inactive-account-count",
-    },
-  ];
-  if (
-    workspace.data?.role !== "company_owner" &&
-    workspace.data?.role !== "platform_owner"
-  )
+  if (workspace.data?.role !== "company_owner")
     return <WorkspaceState kind="unauthorized" />;
   return (
-    <div className="animate-in space-y-6">
+    <div className="animate-in">
       <SectionTitle
-        eyebrow={
-          embedded
-            ? text("Platform administration", "إدارة المنصة")
-            : isPlatformOwner
-            ? text("All accounts", "كل الحسابات")
-            : authLabel(locale, "staffAccounts")
-        }
-        title={
-          embedded
-            ? text("Users and accounts", "المستخدمون والحسابات")
-            : authLabel(locale, "accountManagement")
-        }
-        detail={
-          embedded
-            ? text(
-                "View and manage platform and company user accounts from one place.",
-                "اعرض حسابات المنصة والشركات وأدرها من مكان واحد.",
-              )
-            : authLabel(locale, "managementDetail")
-        }
+        eyebrow={authLabel(locale, "staffAccounts")}
+        title={authLabel(locale, "accountManagement")}
+        detail={authLabel(locale, "managementDetail")}
         action={
-          <Button
-            variant="outline"
-            onClick={() => void load()}
-            className="min-h-10 rounded-xl px-4"
-            data-testid="button-refresh-accounts"
-          >
-            <RefreshCw size={15} aria-hidden="true" />
+          <Button variant="outline" onClick={() => void load()}>
+            <RefreshCw size={15} />
             {tSafe(locale, "refresh")}
           </Button>
         }
       />
-      {loading ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-        </div>
-      ) : (
-        <section
-          aria-label={
-            isPlatformOwner
-              ? text("All accounts", "كل الحسابات")
-              : authLabel(locale, "staffAccounts")
-          }
-          className="grid gap-3 sm:grid-cols-3"
-        >
-          {accountSummary.map((item, index) => (
-            <Card key={item.testId} className="relative overflow-hidden p-4 sm:p-5">
-              <div
-                aria-hidden="true"
-                className={cn(
-                  "absolute inset-y-0 start-0 w-1",
-                  index === 0
-                    ? "bg-primary"
-                    : index === 1
-                      ? "bg-emerald-500"
-                      : "bg-secondary",
-                )}
-              />
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <p
-                    className="mt-1 font-display text-2xl font-bold tabular-nums"
-                    data-testid={item.testId}
-                  >
-                    {item.value}
-                  </p>
-                </div>
-                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                  {item.icon}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </section>
-      )}
-      <div
-        className={cn(
-          "grid gap-6",
-          isPlatformOwner ? "xl:grid-cols-1" : "xl:grid-cols-[.8fr_1.2fr]",
-        )}
-      >
-        {!isPlatformOwner && (
-        <Card className="min-w-0 overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-border bg-muted/20 p-5 sm:p-6">
-            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-              <UserPlus size={19} aria-hidden="true" />
-            </div>
-            <div>
+      <div className="grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
+        <Card>
+          <div className="border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">
               {authLabel(locale, "createStaff")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {authLabel(locale, "managementDetail")}
             </p>
-            </div>
           </div>
-          <form onSubmit={submit} className="space-y-5 p-4 sm:p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={submit} className="space-y-4 p-5">
             <Field
-              label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
+              label={authLabel(locale, "employeeName")}
               value={form.fullName}
               onChange={(value) => {
                 setFieldErrors((current) => ({
@@ -26009,11 +18039,6 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
               required
             />
             <Field
-              label={locale === "ar" ? "الاسم الكامل بالإنجليزية" : "Full name (English)"}
-              value={form.fullNameEn}
-              onChange={(value) => setForm({ ...form, fullNameEn: value })}
-            />
-            <Field
               label={authLabel(locale, "role")}
               value={form.displayRole}
               onChange={(value) => setForm({ ...form, displayRole: value })}
@@ -26033,7 +18058,6 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
               error={fieldErrors.password}
               required
             />
-            </div>
             <div>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold">
@@ -26042,7 +18066,7 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                 <Button
                   type="button"
                   variant="quiet"
-                  className="min-h-8 rounded-lg px-3 text-xs"
+                  className="px-2 py-1 text-xs"
                   disabled={permissions.length === 0}
                   onClick={() =>
                     setForm({
@@ -26059,16 +18083,15 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   )}
                 </Button>
               </div>
-              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-xl border border-border bg-muted/20 p-3">
+              <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
                 {permissions.map((permission) => (
                   <label
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent bg-background p-3 text-sm transition-colors hover:border-primary/30"
+                    className="flex items-start gap-2 text-sm"
                     key={permission.key}
                   >
                     <input
                       type="checkbox"
                       checked={form.permissions.includes(permission.key)}
-                      className="mt-0.5 size-4 shrink-0 accent-primary"
                       onChange={(event) =>
                         setForm({
                           ...form,
@@ -26080,190 +18103,83 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                         })
                       }
                     />
-                    <span className="min-w-0">
-                      <span className="font-medium">
-                        {permissionLabel(locale, permission)}
-                      </span>
+                    <span>
+                      {permissionLabel(locale, permission)}
                       {permissionDescription(locale, permission) && (
-                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground">
                           {permissionDescription(locale, permission)}
                         </span>
                       )}
-                      <code className="mt-1 block break-all text-[10px] text-muted-foreground/80">
+                      <span className="block text-xs text-muted-foreground">
                         {permission.key}
-                      </code>
+                      </span>
                     </span>
                   </label>
                 ))}
               </div>
             </div>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="min-h-11 w-full rounded-xl sm:w-auto"
-            >
-              <UserPlus size={15} aria-hidden="true" />
+            <Button type="submit" disabled={saving}>
+              <UserPlus size={15} />
               {saving
                 ? authLabel(locale, "signingIn")
                 : authLabel(locale, "createStaff")}
             </Button>
           </form>
         </Card>
-        )}
-        <Card className="min-w-0 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/20 p-5 sm:p-6">
-            <div>
-              <h2 className="font-display text-lg font-semibold">
-                {isPlatformOwner
-                  ? text("All user accounts", "كل حسابات المستخدمين")
-                  : authLabel(locale, "staffAccounts")}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {loading
-                  ? authLabel(locale, "loading")
-                  : authLabel(locale, "accountsCount").replace(
-                      "{count}",
-                      String(filteredAccounts.length),
-                    )}
-              </p>
-            </div>
-            {!loading && (
-              <span className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                {filteredAccounts.length}
-              </span>
-            )}
-          </div>
-          <div
-            className={cn(
-              "grid gap-3 border-b border-border bg-muted/10 p-4 sm:p-5",
-              isPlatformOwner &&
-                "md:grid-cols-[minmax(200px,.8fr)_minmax(260px,1.2fr)]",
-            )}
-          >
-            {isPlatformOwner && (
-              <label className="text-sm font-semibold">
-                {text("Company", "الشركة")}
-                <select
-                  id="account-company-filter"
-                  data-testid="select-account-company"
-                  className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 font-normal outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={companyFilter}
-                  onChange={(event) => setCompanyFilter(event.target.value)}
-                >
-                  <option value="">{text("All companies", "كل الشركات")}</option>
-                  {accountCompanies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="text-sm font-semibold">
-              {text("Search accounts", "البحث عن حساب")}
-              <div className="relative mt-2">
-                <Search
-                  className="absolute start-3 top-3 text-muted-foreground"
-                  size={16}
-                  aria-hidden="true"
-                />
-                <input
-                  id="account-search"
-                  data-testid="input-account-search"
-                  aria-label={text("Search accounts", "البحث عن حساب")}
-                  className="h-11 w-full rounded-xl border border-input bg-background ps-10 pe-3 font-normal outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={accountSearch}
-                  onChange={(event) => setAccountSearch(event.target.value)}
-                  placeholder={text(
-                    "Search by name or phone / username",
-                    "ابحث بالاسم أو رقم الهاتف أو اسم المستخدم",
+        <Card>
+          <div className="border-b border-border p-5">
+            <h2 className="font-display text-lg font-semibold">
+              {authLabel(locale, "staffAccounts")}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {loading
+                ? authLabel(locale, "loading")
+                : authLabel(locale, "accountsCount").replace(
+                    "{count}",
+                    String(accounts.length),
                   )}
-                  type="search"
-                />
-              </div>
-            </label>
+            </p>
           </div>
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-16" />
               <Skeleton className="h-16" />
             </div>
-          ) : filteredAccounts.length ? (
+          ) : accounts.length ? (
             <div className="divide-y divide-border">
-              {filteredAccounts.map((account) => (
+              {accounts.map((account) => (
                 <div
-                  className="flex min-w-0 flex-col gap-4 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                  className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
                   key={account.id}
-                  data-testid={`row-auth-account-${account.id}`}
                 >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-dark">
-                      <UserRound size={19} aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="break-words font-semibold">
-                          {accountDisplayName(locale, account) ||
-                            account.username}
-                        </span>
+                  <div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      {account.fullName || account.username}
                       <Badge tone={account.active ? "good" : "neutral"}>
                         {account.active
                           ? authLabel(locale, "active")
                           : authLabel(locale, "inactive")}
                       </Badge>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                        <span>{account.primaryPhone || account.username}</span>
-                        <span>{account.displayRole}</span>
-                        <span>
-                          {account.permissions.length}{" "}
-                          {authLabel(locale, "permissionsCount")}
-                        </span>
-                      </div>
-                      {isPlatformOwner && (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                          <span>{account.accountType}</span>
-                          <span aria-hidden="true">·</span>
-                          <span>
-                            {account.companyId
-                              ? localizedName(
-                                  locale,
-                                  account.companyName || account.companyId,
-                                  account.companyNameEn,
-                                )
-                              : text("Platform account", "حساب المنصة")}
-                          </span>
-                          <span aria-hidden="true">·</span>
-                          <span className="inline-flex items-center gap-1">
-                            <KeyRound size={12} aria-hidden="true" />
-                            {account.passwordSet
-                              ? text("Password set", "كلمة المرور معيّنة")
-                              : text(
-                                  "No password set",
-                                  "لا توجد كلمة مرور معيّنة",
-                                )}
-                          </span>
-                        </div>
-                      )}
                     </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {account.primaryPhone || account.username} ·{" "}
+                      {account.displayRole} · {account.permissions.length}{" "}
+                      {authLabel(locale, "permissionsCount")}
+                    </p>
                   </div>
-                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      className="min-h-10 rounded-xl px-3"
                       onClick={() => selectAccount(account)}
-                      data-testid={`button-view-account-${account.id}`}
                     >
-                      <Eye size={15} aria-hidden="true" />
+                      <Eye size={15} />
                       {authLabel(locale, "viewAccount")}
                     </Button>
                     <Button
-                      variant="quiet"
-                      className="min-h-10 rounded-xl px-3"
+                      variant="outline"
                       onClick={() => selectAccount(account)}
-                      data-testid={`button-edit-account-${account.id}`}
                     >
-                      <ShieldCheck size={15} aria-hidden="true" />
+                      <ShieldCheck size={15} />
                       {authLabel(locale, "editAccount")}
                     </Button>
                   </div>
@@ -26272,20 +18188,11 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             </div>
           ) : (
             <Empty
-              title={
-                isPlatformOwner
-                  ? text("No matching accounts", "لا توجد حسابات مطابقة")
-                  : authLabel(locale, "staffAccounts")
-              }
+              title={authLabel(locale, "staffAccounts")}
               detail={
-                isPlatformOwner
-                  ? text(
-                      "Try another company or search term.",
-                      "جرّب شركة أو كلمة بحث مختلفة.",
-                    )
-                  : locale === "ar"
-                    ? "لا توجد حسابات موظفين بعد."
-                    : "No staff accounts yet."
+                locale === "ar"
+                  ? "لا توجد حسابات موظفين بعد."
+                  : "No staff accounts yet."
               }
             />
           )}
@@ -26299,105 +18206,27 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
             setFieldErrors({});
           }}
           className="max-w-2xl"
-          footer={
-            <div className="mt-4 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
-              <Button
-                type="button"
-                variant="quiet"
-                className="min-h-10 rounded-xl px-4"
-                onClick={() => {
-                  setEditingAccount(null);
-                  setFieldErrors({});
-                }}
-                data-testid="button-cancel-edit-account"
-              >
-                {tSafe(locale, "refresh") === "Refresh" ? "Cancel" : "إلغاء"}
-              </Button>
-              <Button
-                type="submit"
-                form="edit-account-form"
-                disabled={saving}
-                className="min-h-10 rounded-xl px-4"
-                data-testid="button-save-account"
-              >
-                {saving ? "…" : authLabel(locale, "saveAccount")}
-              </Button>
-            </div>
-          }
         >
-          <form
-            id="edit-account-form"
-            onSubmit={saveAccount}
-            className="space-y-5"
-          >
-            {isPlatformOwner && (
-              <div className="rounded-xl border border-primary/20 bg-primary/[.06] p-4 text-sm leading-6">
-                <p className="font-medium">
-                  {editingAccount.passwordSet
-                    ? text(
-                        "A password is set for this account.",
-                        "تم تعيين كلمة مرور لهذا الحساب.",
-                      )
-                    : text(
-                        "No password is set for this account.",
-                        "لم يتم تعيين كلمة مرور لهذا الحساب.",
-                      )}
-                </p>
-                <p className="mt-1.5 text-muted-foreground">
-                  {text(
-                    "The current password cannot be viewed. Enter a new password below to replace it.",
-                    "لا يمكن عرض كلمة المرور الحالية. أدخل كلمة مرور جديدة أدناه لاستبدالها.",
-                  )}
-                </p>
-                {editingAccount.isCurrentAccount && (
-                  <p className="mt-1 font-medium text-destructive">
-                    {text(
-                      "Use Account Settings to change your own password or details.",
-                      "استخدم إعدادات الحساب لتغيير كلمة مرورك أو بياناتك.",
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
-            <div className="grid gap-4 rounded-2xl border border-border bg-muted/15 p-4 sm:grid-cols-2 sm:p-5">
+          <form onSubmit={saveAccount} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label={locale === "ar" ? "الاسم الكامل بالعربية" : "Full name (Arabic)"}
+                label={authLabel(locale, "employeeName")}
                 value={editForm.fullName}
-                disabled={isPlatformOwner && editingAccount.isCurrentAccount}
                 onChange={(value) =>
                   setEditForm({ ...editForm, fullName: value })
                 }
                 error={fieldErrors.fullName}
                 required
               />
-              {isPlatformOwner ? (
-                <Field
-                  label={authLabel(locale, "loginUsername")}
-                  value={editForm.username}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, username: value })
-                  }
-                  error={fieldErrors.username}
-                  required
-                  disabled={editingAccount.isCurrentAccount}
-                />
-              ) : (
-                <Field
-                  label={authLabel(locale, "phoneNumber")}
-                  type="tel"
-                  value={editForm.primaryPhone}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, primaryPhone: value })
-                  }
-                  error={fieldErrors.primaryPhone}
-                  required
-                />
-              )}
               <Field
-                label={locale === "ar" ? "الاسم الكامل بالإنجليزية" : "Full name (English)"}
-                value={editForm.fullNameEn}
-                onChange={(value) => setEditForm({ ...editForm, fullNameEn: value })}
-                disabled={isPlatformOwner && editingAccount.isCurrentAccount}
+                label={authLabel(locale, "phoneNumber")}
+                type="tel"
+                value={editForm.primaryPhone}
+                onChange={(value) =>
+                  setEditForm({ ...editForm, primaryPhone: value })
+                }
+                error={fieldErrors.primaryPhone}
+                required
               />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -26422,42 +18251,28 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
               error={fieldErrors.password}
               placeholder={authLabel(locale, "optional")}
             />
-            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors hover:border-primary/35 hover:bg-muted/20">
-              <span className="flex min-w-0 items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={editForm.active}
-                  disabled={
-                    isPlatformOwner && editingAccount.isCurrentAccount
-                  }
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, active: event.target.checked })
-                  }
-                  className="size-4 shrink-0 accent-primary"
-                  data-testid="input-account-active"
-                />
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary-dark">
-                  <ShieldCheck size={16} aria-hidden="true" />
-                </span>
-                <span className="text-sm font-semibold">
-                  {authLabel(locale, "accountStatus")}
-                </span>
-              </span>
-              <Badge tone={editForm.active ? "good" : "neutral"}>
-                {editForm.active
-                  ? authLabel(locale, "active")
-                  : authLabel(locale, "inactive")}
-              </Badge>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={editForm.active}
+                onChange={(event) =>
+                  setEditForm({ ...editForm, active: event.target.checked })
+                }
+              />
+              {authLabel(locale, "accountStatus")}:{" "}
+              {editForm.active
+                ? authLabel(locale, "active")
+                : authLabel(locale, "inactive")}
             </label>
             <div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold">
                   {authLabel(locale, "permissions")}
                 </p>
                 <Button
                   type="button"
                   variant="quiet"
-                  className="min-h-8 rounded-lg px-3 text-xs"
+                  className="px-2 py-1 text-xs"
                   disabled={permissions.length === 0}
                   onClick={() =>
                     setEditForm({
@@ -26474,16 +18289,15 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                   )}
                 </Button>
               </div>
-              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-xl border border-border bg-muted/20 p-3">
+              <div className="mt-2 max-h-56 space-y-2 overflow-auto rounded-lg border border-border p-3">
                 {permissions.map((permission) => (
                   <label
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent bg-background p-3 text-sm transition-colors hover:border-primary/30"
+                    className="flex items-start gap-2 text-sm"
                     key={`edit-${permission.key}`}
                   >
                     <input
                       type="checkbox"
                       checked={editForm.permissions.includes(permission.key)}
-                      className="mt-0.5 size-4 shrink-0 accent-primary"
                       onChange={(event) =>
                         setEditForm({
                           ...editForm,
@@ -26495,12 +18309,10 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                         })
                       }
                     />
-                    <span className="min-w-0">
-                      <span className="font-medium">
-                        {permissionLabel(locale, permission)}
-                      </span>
+                    <span>
+                      {permissionLabel(locale, permission)}
                       {permissionDescription(locale, permission) && (
-                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground">
                           {permissionDescription(locale, permission)}
                         </span>
                       )}
@@ -26509,6 +18321,18 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
                 ))}
               </div>
             </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setEditingAccount(null)}
+              >
+                {tSafe(locale, "refresh") === "Refresh" ? "Cancel" : "إلغاء"}
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "…" : authLabel(locale, "saveAccount")}
+              </Button>
+            </div>
           </form>
         </Modal>
       )}
@@ -26516,20 +18340,12 @@ function Accounts({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-function AccountsRoute() {
-  const auth = useAuth();
-  if (auth.account.accountType === "platform_owner") {
-    return <Redirect to="/platform/database?entity=users" />;
-  }
-  return <Accounts />;
-}
-
 function tSafe(locale: Locale, key: "refresh") {
   return locale === "ar" ? "تحديث" : "Refresh";
 }
 
 function Devices() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const workspace = useGetWorkspace();
   const canAdminister =
     workspace.data?.role === "company_owner" ||
@@ -26576,9 +18392,6 @@ function Devices() {
     radiusMeters: "100",
     active: true,
   });
-  const [locationGpsState, setLocationGpsState] = useState<
-    "idle" | "requesting"
-  >("idle");
   const [showLocation, setShowLocation] = useState(false);
   const activeDevice = q.data?.find(
     (device: any) => device.id === selectedDeviceId,
@@ -26595,80 +18408,6 @@ function Devices() {
       queryKey: getListBiometricDeviceEventsQueryKey(selectedDeviceId),
     },
   });
-  const eventDirectionLabel = (direction: string) =>
-    direction === "in"
-      ? t("directionIn")
-      : direction === "out"
-        ? t("directionOut")
-        : direction;
-  const eventTypeLabel = (eventType: string) =>
-    eventType === "attendance" ? t("eventTypeAttendance") : eventType;
-  const processingStatusLabel = (status: string) => {
-    const statusKeys: Record<string, AppCopyKey> = {
-      mapped: "processingStatusMapped",
-      received: "processingStatusReceived",
-      rejected: "processingStatusRejected",
-      pending_adapter: "processingStatusPendingAdapter",
-      failed: "processingStatusFailed",
-    };
-    const key = statusKeys[status];
-    return key ? t(key) : status;
-  };
-  const providerCopyKeys: Record<
-    string,
-    { name: AppCopyKey; description: AppCopyKey }
-  > = {
-    mock: {
-      name: "providerMockName",
-      description: "providerMockDescription",
-    },
-    generic: {
-      name: "providerGenericName",
-      description: "providerGenericDescription",
-    },
-    "zkteco-adms": {
-      name: "providerAdmsName",
-      description: "providerAdmsDescription",
-    },
-    "zkteco-usb": {
-      name: "providerUsbName",
-      description: "providerUsbDescription",
-    },
-  };
-  const connectionTypeLabel = (connectionType: string | undefined) => {
-    const keys: Record<string, AppCopyKey> = {
-      lan: "deviceConnectionLan",
-      http: "deviceConnectionHttp",
-      cloud: "deviceConnectionCloud",
-      usb: "deviceConnectionUsb",
-      unknown: "deviceConnectionUnknown",
-    };
-    return connectionType && keys[connectionType]
-      ? t(keys[connectionType])
-      : connectionType || t("deviceConnectionUnknown");
-  };
-  const connectionStateLabel = (connectionState: string | undefined) => {
-    const keys: Record<string, AppCopyKey> = {
-      connected: "statusConnected",
-      unreachable: "connectionStateUnreachable",
-      auth_failure: "connectionStateAuthFailure",
-      unsupported: "connectionStateUnsupported",
-      config_error: "connectionStateConfigError",
-      unknown: "connectionStateUnknown",
-    };
-    return connectionState && keys[connectionState]
-      ? t(keys[connectionState])
-      : connectionState || t("connectionStateUnknown");
-  };
-  const adapterLabel = (adapterKey: string | undefined) => {
-    const keys: Record<string, AppCopyKey> = {
-      mock: "adapterMock",
-      generic: "adapterGeneric",
-      "zkteco-adms": "adapterAdms",
-      "zkteco-usb": "adapterUsb",
-    };
-    return adapterKey && keys[adapterKey] ? t(keys[adapterKey]) : adapterKey || t("notRecorded");
-  };
   function submit(e: FormEvent) {
     e.preventDefault();
     const data = {
@@ -26721,13 +18460,11 @@ function Devices() {
           });
           qc.invalidateQueries({ queryKey: getListDevicesQueryKey() });
         },
-        onError: (error) =>
-          toast.error(apiErrorMessage(error, t("mappingFailed"))),
+        onError: () => toast.error(t("mappingFailed")),
       },
     );
   }
   function openLocation(location?: any) {
-    setLocationGpsState("idle");
     setLocationForm(
       location
         ? {
@@ -26748,35 +18485,6 @@ function Devices() {
           },
     );
     setShowLocation(true);
-  }
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      toast.warning(t("gpsUnavailable"));
-      return;
-    }
-    setLocationGpsState("requesting");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationForm((current) => ({
-          ...current,
-          latitude: String(position.coords.latitude),
-          longitude: String(position.coords.longitude),
-        }));
-        setLocationGpsState("idle");
-        toast.success(t("attendanceLocationCaptured"));
-      },
-      (error) => {
-        setLocationGpsState("idle");
-        toast.warning(
-          error.code === 1 ? t("gpsPermissionDenied") : t("gpsUnavailable"),
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      },
-    );
   }
   function submitLocation(e: FormEvent) {
     e.preventDefault();
@@ -26842,15 +18550,9 @@ function Devices() {
                   key={provider.key}
                 >
                   <div>
-                    <div className="font-semibold">
-                      {providerCopyKeys[provider.key]
-                        ? t(providerCopyKeys[provider.key].name)
-                        : provider.name}
-                    </div>
+                    <div className="font-semibold">{provider.name}</div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {providerCopyKeys[provider.key]
-                        ? t(providerCopyKeys[provider.key].description)
-                        : provider.description}
+                      {provider.description}
                     </p>
                     {provider.key === "mock" && (
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -26948,25 +18650,14 @@ function Devices() {
                                 qc.invalidateQueries({
                                   queryKey: getListDevicesQueryKey(),
                                 });
-                                qc.invalidateQueries({
-                                  queryKey: getListDeviceSyncHistoryQueryKey(d.id),
-                                });
-                                qc.invalidateQueries({
-                                  queryKey: getListBiometricDeviceEventsQueryKey(d.id),
-                                });
                               },
-                              onError: (error) =>
-                                toast.error(
-                                  apiErrorMessage(error, t("syncUnavailable")),
-                                ),
+                              onError: () => toast.error(t("syncUnavailable")),
                             },
                           )
                         }
                       >
                         <RefreshCw size={15} />
-                        {["zkteco-adms", "zkteco-usb"].includes(d.adapterKey)
-                          ? t("requestAttendanceHistory")
-                          : t("sync")}
+                        {t("sync")}
                       </Button>
                     </div>
                   </div>
@@ -26977,7 +18668,7 @@ function Devices() {
                     />
                     <Info
                       label={t("connection")}
-                      value={`${connectionTypeLabel(d.connectionType)} · ${connectionStateLabel(d.connectionState)}`}
+                      value={`${d.connectionType || t("deviceConnectionUnknown")} · ${d.connectionState || t("connectionStateUnknown")}`}
                     />
                     <Info
                       label={t("identifier")}
@@ -26993,7 +18684,7 @@ function Devices() {
                     />
                     <Info
                       label={t("adapter")}
-                      value={adapterLabel(d.adapterKey)}
+                      value={d.adapterKey || t("notRecorded")}
                     />
                     <Info
                       label={t("lastHealthCheck")}
@@ -27070,7 +18761,7 @@ function Devices() {
                   <option value="">{t("selectEmployee")}</option>
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
-                    {employeeDisplayName(locale, employee)}
+                      {employee.firstName} {employee.lastName}
                     </option>
                   ))}
                 </select>
@@ -27157,10 +18848,10 @@ function Devices() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="font-display text-lg font-semibold">
-                  {t("importedPunches")}
+                    Imported punches
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {t("importedPunchesDetail")}
+                    Raw events received from this device, kept separate from calculated attendance.
                   </p>
                 </div>
                 <Button
@@ -27188,13 +18879,10 @@ function Devices() {
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <div>
                           <div className="font-semibold">
-                            {mapping?.employee?.name ||
-                              `${t("deviceUser")} ${event.deviceEmployeeId}`}
+                            {mapping?.employee?.name || `Device user ${event.deviceEmployeeId}`}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {event.deviceEmployeeId} ·{" "}
-                            {eventDirectionLabel(event.direction)} ·{" "}
-                            {eventTypeLabel(event.eventType)}
+                            {event.deviceEmployeeId} · {event.direction} · {event.eventType}
                           </div>
                         </div>
                         <div className="text-end text-xs text-muted-foreground">
@@ -27202,23 +18890,9 @@ function Devices() {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <Badge
-                          tone={
-                            event.processingStatus === "mapped"
-                              ? "good"
-                              : event.processingStatus === "rejected" ||
-                                  event.processingStatus === "failed"
-                                ? "bad"
-                                : "warn"
-                          }
-                        >
-                          {processingStatusLabel(event.processingStatus)}
+                        <Badge tone={event.processingStatus === "mapped" ? "good" : "warn"}>
+                          {event.processingStatus}
                         </Badge>
-                        {typeof event.rawPayload?.rejectionReason === "string" && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {event.rawPayload.rejectionReason}
-                          </p>
-                        )}
                       </div>
                     </div>
                   );
@@ -27226,8 +18900,8 @@ function Devices() {
               </div>
             ) : (
               <Empty
-                title={t("noImportedPunches")}
-                detail={t("noImportedPunchesDetail")}
+                title="No imported punches"
+                detail="A real ADMS upload will appear here after the device sends attendance data."
               />
             )}
           </Card>
@@ -27364,7 +19038,7 @@ function Devices() {
                 <option value="">{t("selectBranch")}</option>
                 {branches.data?.map((b: any) => (
                   <option key={b.id} value={b.id}>
-                    {branchLabel(b.name, t, locale, b.nameEn)}
+                    {branchLabel(b.name, t)}
                   </option>
                 ))}
               </select>
@@ -27420,7 +19094,7 @@ function Devices() {
                 <option value="">{t("selectBranch")}</option>
                 {branches.data?.map((branch: any) => (
                   <option key={branch.id} value={branch.id}>
-                    {branchLabel(branch.name, t, locale, branch.nameEn)}
+                    {branchLabel(branch.name, t)}
                   </option>
                 ))}
               </select>
@@ -27436,16 +19110,16 @@ function Devices() {
         <Modal
           title={
             registrationMode === "usb"
-              ? t("registrationKeyUsbTitle")
-              : t("registrationKeyAdmsTitle")
+              ? "ZKTeco USB connector key"
+              : "ZKTeco ADMS registration key"
           }
           onClose={() => setRegistrationKey(null)}
         >
           <div className="space-y-4">
             <div className="rounded-lg border border-accent/30 bg-accent/10 p-4 text-sm">
               {registrationMode === "usb"
-                ? t("registrationKeyUsbNotice")
-                : t("registrationKeyAdmsNotice")}
+                ? "Save this key now. It is shown only once and is used by the VAR HR Windows USB Connector."
+                : "Save this key now. It is shown only once and is used as the device Comm Key."}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
               <code className="min-w-0 flex-1 break-all text-sm">{registrationKey}</code>
@@ -27453,24 +19127,22 @@ function Devices() {
                 variant="outline"
                 onClick={() => void navigator.clipboard?.writeText(registrationKey)}
               >
-                {t("copy")}
+                Copy
               </Button>
             </div>
             <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
               {registrationMode === "usb" ? (
-                t("registrationKeyUsbInstructions")
+                "Enter this key in the connector configuration together with the device ID. The connector must run on the Windows computer connected to the LX15."
               ) : (
                 <>
-                  {t("registrationKeyAdmsInstructions")}
+                  Configure the K50 Pro to use your published HTTPS host with ADMS path
                   <code className="mx-1 font-semibold text-foreground">/iclock</code>.
-                  {t("deviceIdentifierSerialHint")}
+                  Keep the device ID equal to its Serial Number.
                 </>
               )}
             </div>
             <div className="flex justify-end">
-              <Button onClick={() => setRegistrationKey(null)}>
-                {t("done")}
-              </Button>
+              <Button onClick={() => setRegistrationKey(null)}>Done</Button>
             </div>
           </div>
         </Modal>
@@ -27509,18 +19181,6 @@ function Devices() {
                 }
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={useCurrentLocation}
-              disabled={locationGpsState === "requesting"}
-              className="w-full"
-            >
-              <MapPin size={15} />
-              {locationGpsState === "requesting"
-                ? t("gpsRequesting")
-                : t("useCurrentLocation")}
-            </Button>
             <Field
               label={t("radiusMeters")}
               required
@@ -27651,7 +19311,6 @@ function Platform() {
   const [employeeLimit, setEmployeeLimit] = useState("");
   const [companyForm, setCompanyForm] = useState({
     name: "",
-    nameEn: "",
     address: "",
     timezone: "",
     currency: "",
@@ -27710,7 +19369,6 @@ function Platform() {
   };
   const updateCompany = async (next: {
     name?: string;
-    nameEn?: string;
     address?: string;
     timezone?: string;
     currency?: string;
@@ -28120,7 +19778,7 @@ function Platform() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate font-semibold">{localizedName(locale, company.name, company.nameEn)}</div>
+                    <div className="truncate font-semibold">{company.name}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {company.slug}
                     </div>
@@ -28266,7 +19924,7 @@ function Platform() {
             </p>
           </div>
         </div>
-        <div className="grid gap-4 p-5 sm:grid-cols-2">
+        <div className="grid gap-4 p-5 sm:grid-cols-3">
           <Info
             label={text("Company Owner accounts", "حسابات مالكي الشركات")}
             value={summary!.companies.filter((company) => company.owner).length}
@@ -28280,13 +19938,6 @@ function Platform() {
             className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary"
           >
             {text("Open backup administration", "فتح إدارة النسخ الاحتياطية")}{" "}
-            <ArrowUpRight size={14} />
-          </Link>
-          <Link
-            href="/platform/database?entity=employees"
-            className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary"
-          >
-            {text("Open company support tools", "فتح أدوات دعم الشركات")}{" "}
             <ArrowUpRight size={14} />
           </Link>
         </div>
@@ -28358,7 +20009,7 @@ function Platform() {
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <Info
                       label={text("Company name", "اسم الشركة")}
-                      value={localizedName(locale, companyDetails.company.name, companyDetails.company.nameEn)}
+                      value={companyDetails.company.name}
                     />
                     <Info
                       label={text("Address", "العنوان")}
@@ -28419,7 +20070,7 @@ function Platform() {
                           key={account.id}
                         >
                           <div className="font-semibold">
-                            {accountDisplayName(locale, account) || account.username}
+                            {account.fullName || account.username}
                           </div>
                           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                             <Info
@@ -28496,9 +20147,8 @@ function Platform() {
                         {companyDetails.employees.length ? (
                           companyDetails.employees.map((employee) => (
                             <div key={String(employee.id)}>
-                              {locale === "ar"
-                                ? `${String(employee.first_name ?? "")} ${String(employee.last_name ?? "")}`
-                                : `${String(employee.first_name_en ?? employee.first_name ?? "")} ${String(employee.last_name_en ?? employee.last_name ?? "")}`}
+                              {String(employee.first_name ?? "")}{" "}
+                              {String(employee.last_name ?? "")}
                             </div>
                           ))
                         ) : (
@@ -28517,7 +20167,7 @@ function Platform() {
                         {companyDetails.staff.length ? (
                           companyDetails.staff.map((account) => (
                             <div key={account.id}>
-                               {accountDisplayName(locale, account) || account.username}{" "}
+                              {account.fullName || account.username}{" "}
                               <span className="text-muted-foreground">
                                 · {account.username}
                               </span>
@@ -28599,7 +20249,7 @@ function Platform() {
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-semibold">
-                  {text("Company name (Arabic)", "اسم الشركة بالعربية")}
+                  {text("Company name", "اسم الشركة")}
                   <input
                     className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
                     value={companyForm.name}
@@ -28608,16 +20258,6 @@ function Platform() {
                         ...companyForm,
                         name: event.target.value,
                       })
-                    }
-                  />
-                </label>
-                <label className="text-sm font-semibold">
-                  {text("Company name (English)", "اسم الشركة بالإنجليزية")}
-                  <input
-                    className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 font-normal"
-                    value={companyForm.nameEn}
-                    onChange={(event) =>
-                      setCompanyForm({ ...companyForm, nameEn: event.target.value })
                     }
                   />
                 </label>
@@ -28679,7 +20319,6 @@ function Platform() {
                   onClick={() =>
                     void updateCompany({
                       name: companyForm.name,
-                      nameEn: companyForm.nameEn,
                       address: companyForm.address,
                       timezone: companyForm.timezone,
                       currency: companyForm.currency,
@@ -29494,7 +21133,7 @@ function PlatformCompaniesPage({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate font-semibold">{localizedName(locale, company.name, company.nameEn)}</div>
+                    <div className="truncate font-semibold">{company.name}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {company.slug}
                     </div>
@@ -29936,7 +21575,6 @@ function PlatformCompanyDetailsPage() {
   const [newOwners, setNewOwners] = useState<NewCompanyOwner[]>([]);
   const [companyForm, setCompanyForm] = useState({
     name: "",
-    nameEn: "",
     address: "",
     timezone: "",
     currency: "",
@@ -29963,7 +21601,6 @@ function PlatformCompanyDetailsPage() {
       setBackups(nextBackups);
       setCompanyForm({
         name: nextDetails.company.name,
-        nameEn: nextDetails.company.nameEn || "",
         address: nextDetails.company.address,
         timezone: nextDetails.company.timezone,
         currency: nextDetails.company.currency,
@@ -30010,7 +21647,6 @@ function PlatformCompanyDetailsPage() {
           method: "PATCH",
           body: JSON.stringify({
             name: companyForm.name,
-            nameEn: companyForm.nameEn,
             address: companyForm.address,
             timezone: companyForm.timezone,
             currency: companyForm.currency,
@@ -30065,7 +21701,6 @@ function PlatformCompanyDetailsPage() {
         body: JSON.stringify({
           username: account.username,
           fullName: account.fullName,
-          fullNameEn: account.fullNameEn,
           primaryPhone: account.primaryPhone,
           backupPhones: account.backupPhones,
           email: account.email,
@@ -30086,7 +21721,6 @@ function PlatformCompanyDetailsPage() {
   };
   const emptyOwner = (): NewCompanyOwner => ({
     fullName: "",
-    fullNameEn: "",
     username: "",
     password: "",
     primaryPhone: "",
@@ -30139,7 +21773,6 @@ function PlatformCompanyDetailsPage() {
                 id: account.id,
                 username: account.username,
                 fullName: account.fullName,
-                fullNameEn: account.fullNameEn,
                 primaryPhone: account.primaryPhone,
                 backupPhones: account.backupPhones,
                 email: account.email,
@@ -30148,7 +21781,6 @@ function PlatformCompanyDetailsPage() {
               ...newOwners.map((owner) => ({
                 username: owner.username,
                 fullName: owner.fullName,
-                fullNameEn: owner.fullNameEn,
                 password: owner.password,
                 primaryPhone: owner.primaryPhone,
                 backupPhones: owner.backupPhones
@@ -30325,7 +21957,7 @@ function PlatformCompanyDetailsPage() {
       </div>
       <SectionTitle
         eyebrow={text("Platform administration", "إدارة المنصة")}
-        title={localizedName(locale, details.company.name, details.company.nameEn)}
+        title={details.company.name}
         detail={text(
           "Company details and support controls",
           "تفاصيل الشركة وأدوات الدعم",
@@ -30355,7 +21987,7 @@ function PlatformCompanyDetailsPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Info
             label={text("Company name", "اسم الشركة")}
-            value={localizedName(locale, details.company.name, details.company.nameEn)}
+            value={details.company.name}
           />
           <Info
             label={text("Address", "العنوان")}
@@ -30457,7 +22089,7 @@ function PlatformCompanyDetailsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold">
-                        {accountDisplayName(locale, account) || account.username}
+                        {account.fullName || account.username}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {account.username} ·{" "}
@@ -30478,7 +22110,7 @@ function PlatformCompanyDetailsPage() {
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <Field
-                      label={text("Owner full name (Arabic)", "الاسم الكامل للمالك بالعربية")}
+                      label={text("Owner full name", "الاسم الكامل للمالك")}
                       value={account.fullName}
                       onChange={(value) =>
                         setDetails((current) =>
@@ -30488,24 +22120,6 @@ function PlatformCompanyDetailsPage() {
                                 owners: current.owners.map((item) =>
                                   item.id === account.id
                                     ? { ...item, fullName: value }
-                                    : item,
-                                ),
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                    <Field
-                      label={text("Owner full name (English)", "الاسم الكامل للمالك بالإنجليزية")}
-                      value={account.fullNameEn ?? ""}
-                      onChange={(value) =>
-                        setDetails((current) =>
-                          current
-                            ? {
-                                ...current,
-                                owners: current.owners.map((item) =>
-                                  item.id === account.id
-                                    ? { ...item, fullNameEn: value }
                                     : item,
                                 ),
                               }
@@ -30681,26 +22295,13 @@ function PlatformCompanyDetailsPage() {
                   </div>
                   <div className="space-y-3">
                     <Field
-                      label={text("Owner full name (Arabic)", "الاسم الكامل للمالك بالعربية")}
+                      label={text("Owner full name", "الاسم الكامل للمالك")}
                       value={owner.fullName}
                       onChange={(value) =>
                         setNewOwners((current) =>
                           current.map((item, itemIndex) =>
                             itemIndex === index
                               ? { ...item, fullName: value }
-                              : item,
-                          ),
-                        )
-                      }
-                    />
-                    <Field
-                      label={text("Owner full name (English)", "الاسم الكامل للمالك بالإنجليزية")}
-                      value={owner.fullNameEn}
-                      onChange={(value) =>
-                        setNewOwners((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, fullNameEn: value }
                               : item,
                           ),
                         )
@@ -30877,7 +22478,7 @@ function PlatformCompanyDetailsPage() {
               {details.staff.length ? (
                 details.staff.map((account) => (
                   <div key={account.id}>
-                    {accountDisplayName(locale, account) || account.username}{" "}
+                    {account.fullName || account.username}{" "}
                     <span className="text-muted-foreground">
                       · {account.displayRole}
                     </span>
@@ -30949,7 +22550,7 @@ function PlatformCompanyDetailsPage() {
                   {accounts.length ? (
                     accounts.map((account) => (
                       <div key={account.id}>
-                        {accountDisplayName(locale, account) || account.username}
+                        {account.fullName || account.username}
                         <span className="text-muted-foreground">
                           {" "}· {account.displayRole} ·{" "}
                           {account.active
@@ -31056,17 +22657,10 @@ function PlatformCompanyDetailsPage() {
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Field
-            label={text("Company name (Arabic)", "اسم الشركة بالعربية")}
+            label={text("Company name", "اسم الشركة")}
             value={companyForm.name}
             onChange={(value) =>
               setCompanyForm({ ...companyForm, name: value })
-            }
-          />
-          <Field
-            label={text("Company name (English)", "اسم الشركة بالإنجليزية")}
-            value={companyForm.nameEn}
-            onChange={(value) =>
-              setCompanyForm({ ...companyForm, nameEn: value })
             }
           />
           <Field
@@ -31203,7 +22797,6 @@ function AddCompanyPage() {
   const text = (en: string, ar: string) => (locale === "ar" ? ar : en);
   const emptyOwner = (): NewCompanyOwner => ({
     fullName: "",
-    fullNameEn: "",
     username: "",
     password: "",
     primaryPhone: "",
@@ -31213,7 +22806,6 @@ function AddCompanyPage() {
   });
   const [company, setCompany] = useState({
     name: "",
-    nameEn: "",
     address: "",
     currency: "",
     employeeLimit: "",
@@ -31249,7 +22841,6 @@ function AddCompanyPage() {
         method: "POST",
         body: JSON.stringify({
           name: company.name,
-          nameEn: company.nameEn,
           address: company.address,
           ...(company.currency
             ? { currency: company.currency.toUpperCase() }
@@ -31373,15 +22964,10 @@ function AddCompanyPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field
-                label={text("Company name (Arabic)", "اسم الشركة بالعربية")}
+                label={text("Company name", "اسم الشركة")}
                 required
                 value={company.name}
                 onChange={(value) => setCompany({ ...company, name: value })}
-              />
-              <Field
-                label={text("Company name (English)", "اسم الشركة بالإنجليزية")}
-                value={company.nameEn}
-                onChange={(value) => setCompany({ ...company, nameEn: value })}
               />
               <Field
                 label={text("Currency", "العملة")}
@@ -31500,8 +23086,7 @@ function AddCompanyPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {(
                       [
-                         ["fullName", text("Full name (Arabic)", "الاسم الكامل بالعربية")],
-                         ["fullNameEn", text("Full name in English", "الاسم الكامل بالإنجليزية")],
+                        ["fullName", text("Full name", "الاسم الكامل")],
                         ["username", text("Username", "اسم المستخدم")],
                         [
                           "password",
@@ -31595,7 +23180,7 @@ function Modal({
   footer?: ReactNode;
 }) {
   const { t } = useI18n();
-  return createPortal(
+  return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-secondary/45 p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
@@ -31621,8 +23206,7 @@ function Modal({
           {footer}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
 function Field({
@@ -31638,7 +23222,6 @@ function Field({
   required = false,
   autoComplete,
   placeholder,
-  disabled = false,
   showPasswordToggle = false,
   showPasswordLabel = "",
   hidePasswordLabel = "",
@@ -31666,7 +23249,6 @@ function Field({
   required?: boolean;
   autoComplete?: string;
   placeholder?: string;
-  disabled?: boolean;
   showPasswordToggle?: boolean;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
@@ -31706,7 +23288,6 @@ function Field({
           autoCorrect={authStyle ? "off" : undefined}
           autoComplete={autoComplete}
           placeholder={placeholder}
-          disabled={disabled}
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           className={`mt-2 h-11 w-full rounded-xl border border-input bg-background px-3.5 text-sm font-normal outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 ${
@@ -31768,7 +23349,7 @@ function EmployeeProfileSection({
 }
 
 function EmployeeMovementPage() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const auth = useAuth();
   const [, setLocation] = useLocation();
   const { employeeId = "" } = useParams<{ employeeId: string }>();
@@ -31781,13 +23362,6 @@ function EmployeeMovementPage() {
   });
   const isSelf = auth.account.accountType === "employee";
   const canPrint = !isSelf;
-  const canManualPunch =
-    !isSelf &&
-    (workspace.data?.capabilities?.includes("attendance.punch") ?? false);
-  const canManagePayroll =
-    !isSelf &&
-    ((workspace.data?.capabilities?.includes("payroll.manage") ?? false) ||
-      (workspace.data?.capabilities?.includes("payroll.view") ?? false));
 
   if (isSelf && auth.account.employeeId !== employeeId) {
     return <Redirect to="/profile" />;
@@ -31852,7 +23426,7 @@ function EmployeeMovementPage() {
                 {t("employeeProfile")}
               </p>
               <h1 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">
-                {employeeDisplayName(locale, employee.data)}
+                {employee.data.firstName} {employee.data.lastName}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("employeeNumber")}: {employee.data.employeeNumber}
@@ -31867,199 +23441,11 @@ function EmployeeMovementPage() {
       </Card>
       <EmployeeAttendanceMovement
         employeeId={employee.data.id}
-        employeeName={employeeDisplayName(locale, employee.data)}
-        payBasis={employee.data.payBasis ?? "monthly"}
+        employeeName={`${employee.data.firstName} ${employee.data.lastName}`}
         biometricCode={employee.data.biometricCode}
         canPrint={canPrint}
-        canManualPunch={canManualPunch}
-        canManagePayroll={canManagePayroll}
         fullPage
       />
-    </div>
-  );
-}
-
-function EmployeeWorkLocationsPage() {
-  const { t, locale } = useI18n();
-  const auth = useAuth();
-  const [, setLocation] = useLocation();
-  const { employeeId = "" } = useParams<{ employeeId: string }>();
-  const workspace = useGetWorkspace();
-  const employee = useGetEmployee(employeeId, {
-    query: {
-      enabled: Boolean(employeeId),
-      queryKey: getGetEmployeeQueryKey(employeeId),
-    },
-  });
-  const workLocations = useListEmployeeWorkLocations(employeeId, {
-    query: {
-      enabled: Boolean(employeeId),
-      queryKey: getListEmployeeWorkLocationsQueryKey(employeeId),
-    },
-  });
-  const isEmployee = auth.account.accountType === "employee";
-  const isSelf = isEmployee && auth.account.employeeId === employeeId;
-  const returnPath = isEmployee ? "/profile" : `/employees/${employeeId}`;
-  const localeTag =
-    locale === "ar"
-      ? "ar-EG"
-      : locale === "fr"
-        ? "fr-FR"
-        : locale === "de"
-          ? "de-DE"
-          : "en-US";
-  const entriesByDay = new Map<
-    string,
-    NonNullable<typeof workLocations.data>
-  >();
-  for (const entry of workLocations.data ?? []) {
-    const existing = entriesByDay.get(entry.workDate) ?? [];
-    existing.push(entry);
-    entriesByDay.set(entry.workDate, existing);
-  }
-
-  if (isEmployee && !isSelf) {
-    return <Redirect to="/profile" />;
-  }
-  if (!employeeId || employee.isLoading || workspace.isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-44" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-52" />
-      </div>
-    );
-  }
-  if (employee.isError || !employee.data) {
-    return (
-      <div className="space-y-5">
-        <Button
-          variant="quiet"
-          onClick={() => setLocation(returnPath)}
-          data-testid="button-back-from-work-locations"
-        >
-          <ArrowLeft size={16} />
-          {t("backToEmployeeProfile")}
-        </Button>
-        <Card>
-          <Empty
-            title={t("employeeProfileLoadFailed")}
-            detail={t("checkWorkspace")}
-            action={
-              <Button variant="outline" onClick={() => employee.refetch()}>
-                {t("retry")}
-              </Button>
-            }
-          />
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="animate-in space-y-5">
-      <Button
-        variant="quiet"
-        onClick={() => setLocation(returnPath)}
-        data-testid="button-back-from-work-locations"
-      >
-        <ArrowLeft size={16} />
-        {t("backToEmployeeProfile")}
-      </Button>
-      <SectionTitle
-        eyebrow={t("employeeProfile")}
-        title={t("workLocations")}
-        detail={t("workLocationHistoryDetail")}
-      />
-      <p className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
-        {t("workLocationInfoOnly")}
-      </p>
-      {workLocations.isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
-      ) : workLocations.isError ? (
-        <Card>
-          <Empty
-            title={t("workLocationSaveFailed")}
-            detail={t("checkWorkspace")}
-            action={
-              <Button
-                variant="outline"
-                onClick={() => workLocations.refetch()}
-              >
-                {t("retry")}
-              </Button>
-            }
-          />
-        </Card>
-      ) : entriesByDay.size === 0 ? (
-        <Card>
-          <Empty
-            title={t("noWorkLocations")}
-            detail={t("noWorkLocationsDetail")}
-          />
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {[...entriesByDay.entries()].map(([workDate, entries]) => (
-            <details
-              key={workDate}
-              className="group rounded-2xl border border-border bg-card"
-              data-testid={`work-location-day-${workDate}`}
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-                <span className="font-display font-semibold">
-                  {new Intl.DateTimeFormat(localeTag, {
-                    dateStyle: "full",
-                    timeZone: "UTC",
-                  }).format(new Date(`${workDate}T00:00:00Z`))}
-                </span>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                  {entries.length}
-                </span>
-              </summary>
-              <div className="space-y-3 border-t border-border p-4 sm:p-5">
-                {entries.map((entry) => (
-                  <article
-                    key={entry.id}
-                    className="rounded-xl bg-muted/50 p-4"
-                    data-testid={`work-location-entry-${entry.id}`}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-semibold">
-                          {new Intl.DateTimeFormat(localeTag, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                            timeZone:
-                              workspace.data?.company?.timezone || undefined,
-                          }).format(new Date(entry.recordedAt))}
-                        </p>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                          {entry.comment}
-                        </p>
-                      </div>
-                      <a
-                        href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                        data-testid={`link-work-location-map-${entry.id}`}
-                      >
-                        <MapPin size={16} />
-                        {t("openWorkLocationMap")}
-                        <ArrowUpRight size={14} />
-                      </a>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </details>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -32161,14 +23547,10 @@ function Router() {
   const isOwnMovementPath =
     /^\/employees\/[^/]+\/movement$/.test(location) &&
     location.split("/")[2] === auth.account.employeeId;
-  const isOwnWorkLocationsPath =
-    /^\/employees\/[^/]+\/work-locations$/.test(location) &&
-    location.split("/")[2] === auth.account.employeeId;
   if (
     auth.account.accountType === "employee" &&
     !employeeAllowedPaths.includes(location) &&
-    !isOwnMovementPath &&
-    !isOwnWorkLocationsPath
+    !isOwnMovementPath
   ) {
     return <Redirect to="/" />;
   }
@@ -32181,10 +23563,6 @@ function Router() {
         <Route
           path="/employees/:employeeId/movement"
           component={EmployeeMovementPage}
-        />
-        <Route
-          path="/employees/:employeeId/work-locations"
-          component={EmployeeWorkLocationsPage}
         />
         <Route path="/employees/:employeeId" component={EmployeeProfilePage} />
         <Route path="/employees" component={Employees} />
@@ -32206,8 +23584,7 @@ function Router() {
           path="/platform/account-settings"
           component={PlatformAccountSettings}
         />
-        <Route path="/platform/site-branding" component={PlatformSiteBranding} />
-        <Route path="/accounts" component={AccountsRoute} />
+        <Route path="/accounts" component={Accounts} />
         <Route path="/subscription" component={Subscription} />
         <Route path="/platform/companies/new" component={AddCompanyPage} />
         <Route
@@ -32236,85 +23613,17 @@ function Router() {
   );
 }
 function App() {
-  const [siteSettings, setSiteSettings] =
-    useState<SiteSettings>(defaultSiteSettings);
-  useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/platform/site-settings", { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Site settings unavailable.");
-        return (await response.json()) as Partial<SiteSettings>;
-      })
-      .then((settings) => {
-        if (cancelled) return;
-        const logoVariant = settings.logoVariant;
-        setSiteSettings({
-          siteName:
-            typeof settings.siteName === "string" && settings.siteName.trim()
-              ? settings.siteName.trim()
-              : defaultSiteSettings.siteName,
-          logoVariant:
-            logoVariant === "square" ||
-            logoVariant === "short" ||
-            logoVariant === "horizontal" ||
-            logoVariant === "arabic"
-              ? logoVariant
-              : defaultSiteSettings.logoVariant,
-          socialLinks: normalizeSocialLinks(settings.socialLinks),
-          pwaIconUrls: {
-            icon180:
-              typeof settings.pwaIconUrls?.icon180 === "string"
-                ? settings.pwaIconUrls.icon180
-                : null,
-            icon192:
-              typeof settings.pwaIconUrls?.icon192 === "string"
-                ? settings.pwaIconUrls.icon192
-                : null,
-            icon512:
-              typeof settings.pwaIconUrls?.icon512 === "string"
-                ? settings.pwaIconUrls.icon512
-                : null,
-          },
-        });
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  useEffect(() => {
-    let favicon = document.querySelector<HTMLLinkElement>(
-      'link[rel~="icon"]',
-    );
-    if (!favicon) {
-      favicon = document.createElement("link");
-      favicon.rel = "icon";
-      document.head.appendChild(favicon);
-    }
-    favicon.href =
-      siteSettings.pwaIconUrls.icon192 ||
-      siteLogoSource(siteSettings.logoVariant, "square");
-    const appleTouchIcon = document.querySelector<HTMLLinkElement>(
-      'link[rel="apple-touch-icon"]',
-    );
-    if (appleTouchIcon) {
-      appleTouchIcon.href =
-        siteSettings.pwaIconUrls.icon180 || "/icons/icon-180.png";
-    }
-  }, [siteSettings]);
   return (
-    <SiteBrandingContext.Provider value={{ ...siteSettings, setSiteSettings }}>
-      <QueryClientProvider client={queryClient}>
-        <I18nProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <ErrorBoundary FallbackComponent={LocalizedErrorFallback}>
-              <AuthGate />
-            </ErrorBoundary>
-          </WouterRouter>
-        </I18nProvider>
-        <Toaster position="bottom-right" richColors />
-      </QueryClientProvider>
-    </SiteBrandingContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <ErrorBoundary FallbackComponent={LocalizedErrorFallback}>
+            <AuthGate />
+          </ErrorBoundary>
+        </WouterRouter>
+      </I18nProvider>
+      <Toaster position="bottom-right" richColors />
+    </QueryClientProvider>
   );
 }
 export default App;
