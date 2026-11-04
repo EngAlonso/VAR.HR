@@ -15718,11 +15718,17 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                       </div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <Info label={t("startTime")} value={schedule.startTime} />
-                      <Info
-                        label={t("endTime")}
-                        value={`${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`}
-                      />
+                      {schedule.shiftType === "flexible" ? (
+                        <Info label={t("shiftType")} value={t("flexibleShift")} />
+                      ) : (
+                        <>
+                          <Info label={t("startTime")} value={schedule.startTime} />
+                          <Info
+                            label={t("endTime")}
+                            value={`${schedule.endTime}${schedule.endTime <= schedule.startTime ? ` · ${t("overnightSchedule")}` : ""}`}
+                          />
+                        </>
+                      )}
                       <Info
                         label={t("requiredHours")}
                         value={`${schedule.requiredHours}h`}
@@ -16000,8 +16006,10 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   value={effectiveSchedule.name}
                 />
                 <Info
-                  label={t("startTime")}
-                  value={`${effectiveSchedule.startTime} → ${effectiveSchedule.endTime}`}
+                  label={t("shiftType")}
+                  value={effectiveSchedule.shiftType === "flexible"
+                    ? t("flexibleShift")
+                    : `${effectiveSchedule.startTime} → ${effectiveSchedule.endTime}`}
                 />
               </div>
             </div>
