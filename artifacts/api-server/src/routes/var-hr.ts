@@ -1292,6 +1292,7 @@ async function effectiveScheduleFor(
   if (assignment) {
     return {
       name: assignment.schedule.name,
+      shiftType: assignment.schedule.shiftType,
       workingDays: rules.workingDays,
       startTime: assignment.schedule.startTime,
       endTime: assignment.schedule.endTime,
@@ -1344,6 +1345,7 @@ async function effectiveScheduleFor(
     if (schedule) {
       return {
         name: schedule.name,
+        shiftType: schedule.shiftType,
         workingDays: rules.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
@@ -1379,6 +1381,7 @@ async function effectiveScheduleFor(
   return schedule
     ? {
         name: schedule.name,
+        shiftType: schedule.shiftType,
         workingDays: rules.workingDays,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
@@ -1992,13 +1995,19 @@ async function attendanceCalculationFor(
     ? 0
     : holiday
       ? finalWorkedMinutes
-      : overtimeMinutesAfterScheduleEnd({
-        checkIn: attendance.checkIn,
-        checkOut: attendance.checkOut,
-        attendanceDate: attendance.date,
-        schedule: calculationSchedule,
-        timeZone: context.company.timezone,
-      });
+      : calculationSchedule.shiftType === "flexible"
+        ? Math.max(
+            0,
+            metrics.netWorkedMinutes -
+              Math.round(calculationSchedule.requiredHours * 60),
+          )
+        : overtimeMinutesAfterScheduleEnd({
+            checkIn: attendance.checkIn,
+            checkOut: attendance.checkOut,
+            attendanceDate: attendance.date,
+            schedule: calculationSchedule,
+            timeZone: context.company.timezone,
+          });
   const automaticOvertimeMinutes =
     calculationSchedule.overtimeEligible &&
     rawAutomaticOvertimeMinutes >= calculationSchedule.overtimeAfterMinutes
