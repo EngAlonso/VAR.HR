@@ -71,7 +71,7 @@ test("company-required GPS punches explain when no attendance geofence is config
   assert.match(i18n, /gpsLocationPolicyUnconfigured:\s*"لم يُسجَّل الحضور/);
 });
 
-test("variable-location check-in and check-out punches wait for approval", () => {
+test("variable-location check-in and check-out punches are recorded automatically", () => {
   const attendanceRoute = route.slice(
     route.indexOf("async function recordCurrentAttendance"),
     route.indexOf('router.post("/attendance/check-in"'),
@@ -82,51 +82,21 @@ test("variable-location check-in and check-out punches wait for approval", () =>
   );
 
   assert.match(attendanceRoute, /locationRequiredForEmployee && !location/);
-  assert.equal(
-    (
-      attendanceRoute.match(
-        /rules\.gpsPolicy === "required"\s*&&\s*!locationRequiredForEmployee\s*&&\s*locationValidation\.status !== "verified"/g,
-      ) ?? []
-    ).length,
-    2,
-  );
-  assert.match(
-    attendanceRoute,
-    /rules\.gpsPolicy as string\) === "required"\s*&&\s*!location\s*&&\s*!locationRequiredForEmployee/s,
-  );
-  assert.match(
-    attendanceRoute,
-    /locationValidation\.status === "pending"\s*\?\s*message\(req,\s*"gpsLocationCapturedForReview"\)/s,
-  );
+  assert.match(attendanceRoute, /if \(locationRequiredForEmployee\) \{[\s\S]*?\n  \}/);
+  assert.doesNotMatch(attendanceRoute, /insert\(attendancePunchRequestsTable\)/);
+  assert.match(attendanceRoute, /insert\(attendanceTable\)/);
+  assert.match(attendanceRoute, /update\(attendanceTable\)/);
   assert.match(attendanceRoute, /checkIn: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
-  assert.match(attendanceRoute, /direction: "out"/);
-  assert.match(
-    attendanceRoute,
-    /checkOut: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/,
-  );
-  assert.match(punchDecisionRoute, /row\.request\.direction === "out"/);
-  assert.match(punchDecisionRoute, /checkOut: row\.request\.occurredAt/);
-  assert.match(
-    punchDecisionRoute,
-    /await attendanceCalculationFor\(context, approvedAttendance, true\)/,
-  );
+  assert.match(attendanceRoute, /checkOut: \{ \.\.\.location, capturedAt: eventAt\.toISOString\(\) \}/);
+  assert.match(attendanceRoute, /await attendanceCalculationFor\(context, created, true\)/);
+  assert.match(attendanceRoute, /await attendanceCalculationFor\(context, updated, true\)/);
   assert.match(frontend, /تسجيل الحركة بالموقع \(موقع متغير\)/);
   assert.match(frontend, /تسجيل الحركة بالموقع \(موقع ثابت\)/);
   assert.match(frontend, /Attendance movement with location \(variable location\)/);
   assert.match(frontend, /Attendance movement with location \(fixed location\)/);
-  assert.match(
-    frontend,
-    /Variable-location check-in and check-out punches stay out of attendance and calculations until approved\./,
-  );
-  assert.equal(
-    (frontend.match(/<EmployeeAttendanceLocationMode/g) ?? []).length,
-    2,
-  );
-  assert.match(frontend, /name="employee-attendance-location-mode"/);
-  assert.match(frontend, /checked=\{!variableLocation\}/);
-  assert.match(frontend, /checked=\{variableLocation\}/);
-  assert.match(frontend, /من أي مكان/);
+  assert.equal((frontend.match(/<EmployeeAttendanceLocationMode/g) ?? []).length, 2);
 });
+
 
 test("attendance responses accept payroll-generated absence records, not punch input", () => {
   const eventInput = apiSpec.slice(
