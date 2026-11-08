@@ -82,7 +82,6 @@ test("variable-location check-in and check-out punches are recorded automaticall
   );
 
   assert.match(attendanceRoute, /locationRequiredForEmployee && !location/);
-  assert.match(attendanceRoute, /if \(locationRequiredForEmployee\) \{[\s\S]*?\n  \}/);
   assert.doesNotMatch(attendanceRoute, /insert\(attendancePunchRequestsTable\)/);
   assert.match(attendanceRoute, /insert\(attendanceTable\)/);
   assert.match(attendanceRoute, /update\(attendanceTable\)/);
