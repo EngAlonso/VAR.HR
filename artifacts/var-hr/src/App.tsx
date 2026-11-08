@@ -570,6 +570,13 @@ const companyAdminNav: NavItem[] = [
     capability: "schedules.view",
   },
   {
+    href: "/attendance",
+    key: "attendance",
+    icon: Clock3,
+    roles: ["company_owner"],
+    capability: "attendance.view",
+  },
+  {
     href: "/rules",
     key: "companyNavRules",
     icon: SlidersHorizontal,
@@ -10809,18 +10816,16 @@ function Attendance() {
     value ? new Date(value).toISOString().slice(0, 16) : "";
   const displayTime = (value?: string | null) =>
     value ? time(value) : t("missing");
-  function openAttendanceLocations(location: any) {
-    const points = [location?.checkIn, location?.checkOut].filter((point: any) =>
-      Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude))
-    );
-    if (!points.length) {
-      toast.info("لا توجد إحداثيات محفوظة لهذه الحركة");
+  function openAttendancePoint(point: any, label: string) {
+    if (!Number.isFinite(Number(point?.latitude)) || !Number.isFinite(Number(point?.longitude))) {
+      toast.info(`لا توجد إحداثيات محفوظة لـ${label}`);
       return;
     }
-    const url = points.length === 1
-      ? `https://www.google.com/maps?q=${points[0].latitude},${points[0].longitude}`
-      : `https://www.google.com/maps/dir/${points.map((point: any) => `${point.latitude},${point.longitude}`).join("/")}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://www.google.com/maps?q=${point.latitude},${point.longitude}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
   function locationLabel(value?: string | null) {
     return value === "verified"
@@ -11164,11 +11169,24 @@ function Attendance() {
                       <span className="text-[10px] text-muted-foreground">
                         {locationLabel(x.locationStatus)}
                       </span>
-                      {x.location && (x.location.checkIn || x.location.checkOut) && (
-                        <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                          <MapPin size={13} /> {"عرض الخريطة"}
+                      <div className="flex flex-wrap justify-end gap-1">
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          disabled={!x.location?.checkIn || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
+                          onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}
+                        >
+                          <MapPin size={13} /> {"موقع الحضور"}
                         </Button>
-                      )}
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          disabled={!x.location?.checkOut || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
+                          onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}
+                        >
+                          <MapPin size={13} /> {"موقع الانصراف"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -11248,7 +11266,8 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      <th className="px-5 py-3">{"عرض الخريطة"}</th>
+                      <th className="px-5 py-3">{"موقع الحضور"}</th>
+                      <th className="px-5 py-3">{"موقع الانصراف"}</th>
                       {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
@@ -11268,11 +11287,24 @@ function Attendance() {
                           <Status value={x.status} />
                         </td>
                         <td className="px-5 py-4">
-                          {x.location && (x.location.checkIn || x.location.checkOut) ? (
-                            <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                              <MapPin size={13} /> {"عرض الخريطة"}
-                            </Button>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                          <Button
+                            variant="outline"
+                            className="text-xs"
+                            disabled={!x.location?.checkIn || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
+                            onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}
+                          >
+                            <MapPin size={13} /> {"موقع الحضور"}
+                          </Button>
+                        </td>
+                        <td className="px-5 py-4">
+                          <Button
+                            variant="outline"
+                            className="text-xs"
+                            disabled={!x.location?.checkOut || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
+                            onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}
+                          >
+                            <MapPin size={13} /> {"موقع الانصراف"}
+                          </Button>
                         </td>
                         {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
@@ -16656,58 +16688,147 @@ type BackupSummary = {
 
 
 function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
+  const [, setLocation] = useLocation();
   const { locale } = useI18n();
-  const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<Array<{
-    id: string; workDate: string; latitude: number; longitude: number;
-    accuracyMeters: number | null; comment: string; recordedAt: string;
-  }>>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const isArabic = locale === "ar";
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      const result = await authRequest<typeof rows>(`/api/employees/${employeeId}/work-locations`);
-      setRows(result);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : (isArabic ? "تعذر تحميل مواقع العمل" : "Could not load work locations"));
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => { if (open) void load(); }, [open, employeeId]);
   return (
-    <div className="contents">
-      <Button variant="outline" onClick={() => setOpen(value => !value)} data-testid={`button-employee-work-locations-${employeeId}`}>
-        <MapPin size={16} /> {isArabic ? "مواقع العمل" : "Work locations"}
+    <Button
+      variant="outline"
+      onClick={() => setLocation(`/employees/${employeeId}/work-locations`)}
+      data-testid={`button-employee-work-locations-${employeeId}`}
+    >
+      <MapPin size={16} />
+      {locale === "ar" ? "مواقع العمل" : "Work locations"}
+    </Button>
+  );
+}
+
+function EmployeeWorkLocationsPage() {
+  const { locale } = useI18n();
+  const { employeeId = "" } = useParams<{ employeeId: string }>();
+  const [, setLocation] = useLocation();
+  const employee = useGetEmployee(employeeId, {
+    query: { enabled: Boolean(employeeId), queryKey: getGetEmployeeQueryKey(employeeId) },
+  });
+  const [rows, setRows] = useState<Array<{
+    id: string;
+    workDate: string;
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+    comment: string;
+    recordedAt: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const isArabic = locale === "ar";
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await authRequest<typeof rows>(`/api/employees/${employeeId}/work-locations`);
+        if (active) setRows(result);
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : (isArabic ? "تعذر تحميل مواقع العمل" : "Could not load work locations"));
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    if (employeeId) void load();
+    return () => { active = false; };
+  }, [employeeId, isArabic]);
+
+  const grouped = useMemo(() => {
+    const groups = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const key = row.workDate;
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([workDate, entries]) => ({
+        workDate,
+        entries: entries.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt)),
+      }));
+  }, [rows]);
+
+  useEffect(() => {
+    if (grouped.length && !grouped.some((group) => group.workDate === selectedDate)) {
+      setSelectedDate(grouped[0].workDate);
+    }
+  }, [grouped, selectedDate]);
+
+  const selectedGroup = grouped.find((group) => group.workDate === selectedDate);
+  const employeeName = employee.data
+    ? `${employee.data.firstName} ${employee.data.lastName}`
+    : (isArabic ? "الموظف" : "Employee");
+
+  return (
+    <div className="animate-in space-y-5">
+      <Button variant="quiet" onClick={() => setLocation(`/employees/${employeeId}`)}>
+        <ArrowLeft size={16} /> {isArabic ? "العودة لملف الموظف" : "Back to employee"}
       </Button>
-      {open && (
-        <div className="basis-full rounded-lg border border-border p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="font-semibold">{isArabic ? "سجل مواقع العمل" : "Work location history"}</h3>
-            <Button variant="quiet" onClick={() => setOpen(false)}>{isArabic ? "إغلاق" : "Close"}</Button>
-          </div>
-          {loading ? <Skeleton className="h-16" /> : error ? <p className="text-sm text-destructive">{error}</p> : rows.length ? (
-            <div className="space-y-2">
-              {rows.map(row => (
-                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted/40 p-3 text-sm">
-                  <div>
-                    <div className="font-medium">{date(row.workDate)} · {time(row.recordedAt)}</div>
-                    <div className="text-xs text-muted-foreground">{row.comment}{row.accuracyMeters != null ? ` · ±${Math.round(row.accuracyMeters)}m` : ""}</div>
-                  </div>
-                  <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${row.latitude},${row.longitude}`}>{isArabic ? "فتح الخريطة" : "Open map"}</a>
-                </div>
+      <SectionTitle
+        eyebrow={isArabic ? "مواقع العمل" : "Work locations"}
+        title={employeeName}
+        detail={isArabic ? "اختر تاريخًا لعرض جميع مواقع العمل المسجلة في هذا اليوم." : "Choose a date to view every work location recorded that day."}
+      />
+      {loading ? (
+        <Card className="p-5"><Skeleton className="h-24" /></Card>
+      ) : error ? (
+        <Card className="p-5"><p className="text-sm text-destructive">{error}</p></Card>
+      ) : grouped.length ? (
+        <>
+          <Card className="p-4">
+            <h3 className="mb-3 font-semibold">{isArabic ? "الأيام المسجلة" : "Recorded days"}</h3>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {grouped.map((group) => (
+                <Button
+                  key={group.workDate}
+                  variant={selectedDate === group.workDate ? "primary" : "outline"}
+                  className="justify-between"
+                  onClick={() => setSelectedDate(group.workDate)}
+                  data-testid={`button-work-location-date-${group.workDate}`}
+                >
+                  <span>{date(group.workDate)}</span>
+                  <span className="text-xs opacity-75">{group.entries.length} {isArabic ? "موقع" : "locations"}</span>
+                </Button>
               ))}
             </div>
-          ) : <p className="text-sm text-muted-foreground">{isArabic ? "لا توجد مواقع مسجلة" : "No work locations recorded"}</p>}
-        </div>
+          </Card>
+          {selectedGroup && (
+            <Card className="divide-y divide-border">
+              <div className="p-5">
+                <h3 className="font-display text-lg font-semibold">{date(selectedGroup.workDate)}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{selectedGroup.entries.length} {isArabic ? "موقع مسجل" : "recorded locations"}</p>
+              </div>
+              {selectedGroup.entries.map((row) => (
+                <div key={row.id} className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="font-semibold">{time(row.recordedAt)}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {row.comment || (isArabic ? "موقع عمل" : "Work location")}
+                      {row.accuracyMeters != null ? ` · ±${Math.round(row.accuracyMeters)}m` : ""}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground" dir="ltr">{row.latitude}, {row.longitude}</div>
+                  </div>
+                  <a className="inline-flex items-center gap-2 text-sm font-semibold text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${row.latitude},${row.longitude}`}>
+                    <MapPin size={15} /> {isArabic ? "فتح الموقع على الخريطة" : "Open location on map"}
+                  </a>
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
+      ) : (
+        <Card className="p-5"><Empty title={isArabic ? "لا توجد مواقع عمل مسجلة" : "No work locations recorded"} detail={isArabic ? "ستظهر المواقع هنا بمجرد تسجيلها." : "Locations will appear here once recorded."} /></Card>
       )}
     </div>
   );
 }
-
 function BackupRestore() {
   const { locale, t } = useI18n();
   const workspace = useGetWorkspace();
@@ -23725,6 +23846,10 @@ function Router() {
         <Route path="/" component={Overview} />
         <Route path="/profile" component={Profile} />
         <Route path="/employees/new" component={AddEmployeePage} />
+        <Route
+          path="/employees/:employeeId/work-locations"
+          component={EmployeeWorkLocationsPage}
+        />
         <Route
           path="/employees/:employeeId/movement"
           component={EmployeeMovementPage}
