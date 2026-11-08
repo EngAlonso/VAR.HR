@@ -267,16 +267,38 @@ router.post("/backups/:id/restore", async (req, res): Promise<void> => {
     createdBy: context.accountId,
     status: "safety",
   });
+  // restoreBackup resolves only after the database transaction COMMITs.
+  // Audit logging is deliberately best-effort after that point: an audit
+  // storage error must never turn a completed restore into a misleading
+  // HTTP failure that could prompt the operator to restore a second time.
   await restoreBackup(record.id, scope, companyId, context.accountId);
-  await writeAuthAudit({
-    accountId: context.accountId,
-    companyId,
-    action: "backup_restored",
-    entityType: "backup",
-    entityId: record.id,
-    metadata: { scope },
+  let auditRecorded = true;
+  try {
+    await writeAuthAudit({
+      accountId: context.accountId,
+      companyId,
+      action: "backup_restored",
+      entityType: "backup",
+      entityId: record.id,
+      metadata: { scope },
+    });
+  } catch (auditError) {
+    auditRecorded = false;
+    console.error("[backup-restore] Database restore committed, but audit logging failed.", {
+      backupId: record.id,
+      scope,
+      error: auditError instanceof Error ? auditError.message : String(auditError),
+    });
+  }
+  res.json({
+    restored: true,
+    scope,
+    backupId: record.id,
+    auditRecorded,
+    message: auditRecorded
+      ? "Backup restored successfully."
+      : "Backup restored successfully, but the audit log could not be written.",
   });
-  res.json({ restored: true, scope, backupId: record.id });
 });
 
 export default router;
