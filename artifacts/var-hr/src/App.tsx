@@ -55,6 +55,7 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
+  MapPin,
   MoreHorizontal,
   Network,
   Plus,
@@ -11247,6 +11248,7 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
+                      <th className="px-5 py-3">{t("viewLocationMap") || "الخريطة"}</th>
                       {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
@@ -11264,6 +11266,13 @@ function Attendance() {
                         <td className="px-4 py-4 font-mono">{x.workedHours}</td>
                         <td className="px-5 py-4">
                           <Status value={x.status} />
+                        </td>
+                        <td className="px-5 py-4">
+                          {x.location && (x.location.checkIn || x.location.checkOut) ? (
+                            <Button size="sm" variant="outline" onClick={() => openAttendanceLocations(x.location)}>
+                              <MapPin size={13} /> {t("viewLocationMap") || "الخريطة"}
+                            </Button>
+                          ) : <span className="text-xs text-muted-foreground">—</span>}
                         </td>
                         {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
