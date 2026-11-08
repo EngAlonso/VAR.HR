@@ -11270,7 +11270,7 @@ function Attendance() {
                         <td className="px-5 py-4">
                           {x.location && (x.location.checkIn || x.location.checkOut) ? (
                             <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                              <MapPin size={13} /> {t("viewLocationMap") || "الخريطة"}
+                              <MapPin size={13} /> {"عرض الخريطة"}
                             </Button>
                           ) : <span className="text-xs text-muted-foreground">—</span>}
                         </td>
