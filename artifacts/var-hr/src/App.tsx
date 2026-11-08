@@ -9861,6 +9861,7 @@ function EmployeeProfilePage() {
                   <Activity size={16} />
                   {t("showAttendanceMovement")}
                 </Button>
+                <EmployeeWorkLocations employeeId={employee.data.id} />
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -10807,6 +10808,19 @@ function Attendance() {
     value ? new Date(value).toISOString().slice(0, 16) : "";
   const displayTime = (value?: string | null) =>
     value ? time(value) : t("missing");
+  function openAttendanceLocations(location: any) {
+    const points = [location?.checkIn, location?.checkOut].filter((point: any) =>
+      Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude))
+    );
+    if (!points.length) {
+      toast.info(t("attendanceLocationUnavailable") || "لا توجد إحداثيات محفوظة لهذه الحركة");
+      return;
+    }
+    const url = points.length === 1
+      ? `https://www.google.com/maps?q=${points[0].latitude},${points[0].longitude}`
+      : `https://www.google.com/maps/dir/${points.map((point: any) => `${point.latitude},${point.longitude}`).join("/")}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
   function locationLabel(value?: string | null) {
     return value === "verified"
       ? t("locationVerified")
@@ -11149,6 +11163,11 @@ function Attendance() {
                       <span className="text-[10px] text-muted-foreground">
                         {locationLabel(x.locationStatus)}
                       </span>
+                      {x.location && (x.location.checkIn || x.location.checkOut) && (
+                        <Button size="sm" variant="outline" onClick={() => openAttendanceLocations(x.location)}>
+                          <MapPin size={13} /> {t("viewLocationMap") || "الخريطة"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -16625,6 +16644,60 @@ type BackupSummary = {
   };
   createdAt: string;
 };
+
+
+function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<Array<{
+    id: string; workDate: string; latitude: number; longitude: number;
+    accuracyMeters: number | null; comment: string; recordedAt: string;
+  }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const isArabic = locale === "ar";
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authRequest<typeof rows>(`/api/employees/${employeeId}/work-locations`);
+      setRows(result);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (isArabic ? "تعذر تحميل مواقع العمل" : "Could not load work locations"));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { if (open) void load(); }, [open, employeeId]);
+  return (
+    <div className="contents">
+      <Button variant="outline" onClick={() => setOpen(value => !value)} data-testid={`button-employee-work-locations-${employeeId}`}>
+        <MapPin size={16} /> {isArabic ? "مواقع العمل" : "Work locations"}
+      </Button>
+      {open && (
+        <div className="basis-full rounded-lg border border-border p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="font-semibold">{isArabic ? "سجل مواقع العمل" : "Work location history"}</h3>
+            <Button variant="quiet" size="sm" onClick={() => setOpen(false)}>{isArabic ? "إغلاق" : "Close"}</Button>
+          </div>
+          {loading ? <Skeleton className="h-16" /> : error ? <p className="text-sm text-destructive">{error}</p> : rows.length ? (
+            <div className="space-y-2">
+              {rows.map(row => (
+                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted/40 p-3 text-sm">
+                  <div>
+                    <div className="font-medium">{date(row.workDate)} · {time(row.recordedAt)}</div>
+                    <div className="text-xs text-muted-foreground">{row.comment}{row.accuracyMeters != null ? ` · ±${Math.round(row.accuracyMeters)}m` : ""}</div>
+                  </div>
+                  <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${row.latitude},${row.longitude}`}>{isArabic ? "فتح الخريطة" : "Open map"}</a>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted-foreground">{isArabic ? "لا توجد مواقع مسجلة" : "No work locations recorded"}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function BackupRestore() {
   const { locale, t } = useI18n();
