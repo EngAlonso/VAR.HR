@@ -16901,9 +16901,36 @@ function BackupRestore() {
       } catch {
         throw new Error(labels.invalidFile);
       }
+      // Vercel Functions reject request bodies larger than 4.5 MB before
+      // Express can process them. Compress the JSON payload in the browser so
+      // large (multi-megabyte) backups can pass through the platform limit.
+      if (typeof CompressionStream === "undefined") {
+        throw new Error(
+          isArabic
+            ? "المتصفح لا يدعم ضغط ملف النسخة الاحتياطية. افتح النظام بأحدث إصدار من Chrome أو Edge."
+            : "This browser cannot compress backup uploads. Please use the latest Chrome or Edge.",
+        );
+      }
+      const jsonBody = new Blob([JSON.stringify({ backup })], {
+        type: "application/json",
+      });
+      const compressedBody = new Blob([
+        await new Response(
+          jsonBody.stream().pipeThrough(new CompressionStream("gzip")),
+        ).arrayBuffer(),
+      ]);
+      const maxCompressedBytes = 4 * 1024 * 1024;
+      if (compressedBody.size > maxCompressedBytes) {
+        throw new Error(
+          isArabic
+            ? "حجم النسخة بعد الضغط ما زال أكبر من حد Vercel الآمن (4 ميجابايت). يلزم رفعها بطريقة تخزين مباشر."
+            : "The compressed backup still exceeds Vercel's safe 4 MB upload limit. Direct object-storage upload is required.",
+        );
+      }
       const imported = await authRequest<BackupSummary>("/api/backups/upload", {
         method: "POST",
-        body: JSON.stringify({ backup }),
+        headers: { "content-encoding": "gzip" },
+        body: compressedBody,
       });
       setUploadedBackup(imported);
       toast.success(labels.uploaded);
