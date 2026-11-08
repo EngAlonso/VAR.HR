@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { backupRecordsTable, companiesTable, db } from "@workspace/db";
 import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName, retainLatestBackups } from "../lib/backups";
@@ -99,12 +99,15 @@ async function dbSelectPlatform(companyId?: string) {
     .select()
     .from(backupRecordsTable)
     .where(
-      companyId
-        ? and(
-            eq(backupRecordsTable.scope, "company"),
-            eq(backupRecordsTable.companyId, companyId),
-          )
-        : isNull(backupRecordsTable.companyId),
+      and(
+        companyId
+          ? and(
+              eq(backupRecordsTable.scope, "company"),
+              eq(backupRecordsTable.companyId, companyId),
+            )
+          : isNull(backupRecordsTable.companyId),
+        sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
+      ),
     )
     .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
     .limit(4);
@@ -118,6 +121,7 @@ async function dbSelectCompany(companyId: string) {
       and(
         eq(backupRecordsTable.scope, "company"),
         eq(backupRecordsTable.companyId, companyId),
+        sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
       ),
     )
     .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
