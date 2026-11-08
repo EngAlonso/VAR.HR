@@ -16755,12 +16755,6 @@ function EmployeeWorkLocationsPage() {
       }));
   }, [rows]);
 
-  useEffect(() => {
-    if (grouped.length && !grouped.some((group) => group.workDate === selectedDate)) {
-      setSelectedDate(grouped[0].workDate);
-    }
-  }, [grouped, selectedDate]);
-
   const selectedGroup = grouped.find((group) => group.workDate === selectedDate);
   const employeeName = employee.data
     ? `${employee.data.firstName} ${employee.data.lastName}`
