@@ -10814,7 +10814,7 @@ function Attendance() {
       Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude))
     );
     if (!points.length) {
-      toast.info(t("attendanceLocationUnavailable") || "لا توجد إحداثيات محفوظة لهذه الحركة");
+      toast.info("لا توجد إحداثيات محفوظة لهذه الحركة");
       return;
     }
     const url = points.length === 1
@@ -11165,8 +11165,8 @@ function Attendance() {
                         {locationLabel(x.locationStatus)}
                       </span>
                       {x.location && (x.location.checkIn || x.location.checkOut) && (
-                        <Button size="sm" variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                          <MapPin size={13} /> {t("viewLocationMap") || "الخريطة"}
+                        <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
+                          <MapPin size={13} /> {"عرض الخريطة"}
                         </Button>
                       )}
                     </div>
@@ -16687,7 +16687,7 @@ function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
         <div className="basis-full rounded-lg border border-border p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-semibold">{isArabic ? "سجل مواقع العمل" : "Work location history"}</h3>
-            <Button variant="quiet" size="sm" onClick={() => setOpen(false)}>{isArabic ? "إغلاق" : "Close"}</Button>
+            <Button variant="quiet" onClick={() => setOpen(false)}>{isArabic ? "إغلاق" : "Close"}</Button>
           </div>
           {loading ? <Skeleton className="h-16" /> : error ? <p className="text-sm text-destructive">{error}</p> : rows.length ? (
             <div className="space-y-2">
