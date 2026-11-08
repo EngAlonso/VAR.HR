@@ -726,6 +726,10 @@ function normalizeRestoreRow(
     case "var_hr_work_schedules":
       return {
         ...row,
+        // Older backup snapshots predate shift_type. The schema default is
+        // "fixed", so preserve explicit flexible values and backfill only
+        // missing/null values to the legacy fixed-shift behavior.
+        shift_type: row.shift_type ?? "fixed",
         name_ar: row.name_ar ?? "",
         name_en: row.name_en ?? row.name ?? "",
         working_days: row.working_days ?? ["Sun", "Mon", "Tue", "Wed", "Thu"],
