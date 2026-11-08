@@ -17323,7 +17323,7 @@ function BackupRestore() {
                   )}
                   <Button
                     variant="quiet"
-                    onClick={() => void remove(backup)
+                    onClick={() => void remove(backup)}
                     disabled={pending !== ""}
                   >
                     <X size={14} />
