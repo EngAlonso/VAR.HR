@@ -11159,7 +11159,7 @@ function Attendance() {
                         {locationLabel(x.locationStatus)}
                       </span>
                       <div className="flex flex-wrap justify-end gap-1">
-                        <Button variant="outline" disabled={!x.location?.checkIn?.latitude || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button>
+                        <Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button>
                         <Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"موقع الانصراف"}</Button>
                       </div>
                     </div>
