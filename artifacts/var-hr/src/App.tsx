@@ -16759,66 +16759,107 @@ function EmployeeWorkLocationsPage() {
   const employeeName = employee.data
     ? `${employee.data.firstName} ${employee.data.lastName}`
     : (isArabic ? "الموظف" : "Employee");
+  const formatWeekday = (value: string) =>
+    new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-US", { weekday: "long" }).format(new Date(`${value}T12:00:00`));
+  const openWorkLocation = (row: (typeof rows)[number]) => {
+    if (!Number.isFinite(Number(row.latitude)) || !Number.isFinite(Number(row.longitude))) {
+      toast.info(isArabic ? "إحداثيات الموقع غير متاحة" : "Location coordinates are unavailable");
+      return;
+    }
+    window.open(
+      `https://www.google.com/maps?q=${encodeURIComponent(String(row.latitude))},${encodeURIComponent(String(row.longitude))}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
 
   return (
-    <div className="animate-in space-y-5">
-      <Button variant="quiet" onClick={() => setLocation(`/employees/${employeeId}`)}>
-        <ArrowLeft size={16} /> {isArabic ? "العودة لملف الموظف" : "Back to employee"}
+    <div className="animate-in mx-auto max-w-4xl space-y-5">
+      <Button variant="quiet" onClick={() => selectedDate ? setSelectedDate("") : setLocation(`/employees/${employeeId}`)}>
+        <ArrowLeft size={16} /> {selectedDate
+          ? (isArabic ? "العودة إلى الأيام" : "Back to days")
+          : (isArabic ? "العودة لملف الموظف" : "Back to employee")}
       </Button>
       <SectionTitle
-        eyebrow={isArabic ? "مواقع العمل" : "Work locations"}
+        eyebrow={isArabic ? "سجل مواقع العمل" : "Work location history"}
         title={employeeName}
-        detail={isArabic ? "اختر تاريخًا لعرض جميع مواقع العمل المسجلة في هذا اليوم." : "Choose a date to view every work location recorded that day."}
+        detail={selectedGroup
+          ? (isArabic ? "اختر أي موقع لعرض مكان تسجيله على الخريطة." : "Choose a location to view where it was recorded on the map.")
+          : (isArabic ? "الأيام التي تم فيها تسجيل أو تغيير مواقع العمل." : "Days when work locations were recorded or changed.")}
       />
       {loading ? (
-        <Card className="p-5"><Skeleton className="h-24" /></Card>
+        <Card className="p-5"><Skeleton className="h-28" /></Card>
       ) : error ? (
         <Card className="p-5"><p className="text-sm text-destructive">{error}</p></Card>
-      ) : grouped.length ? (
-        <>
-          <Card className="p-4">
-            <h3 className="mb-3 font-semibold">{isArabic ? "الأيام المسجلة" : "Recorded days"}</h3>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {grouped.map((group) => (
-                <Button
-                  key={group.workDate}
-                  variant={selectedDate === group.workDate ? "primary" : "outline"}
-                  className="justify-between"
-                  onClick={() => setSelectedDate(group.workDate)}
-                  data-testid={`button-work-location-date-${group.workDate}`}
-                >
-                  <span>{date(group.workDate)}</span>
-                  <span className="text-xs opacity-75">{group.entries.length} {isArabic ? "موقع" : "locations"}</span>
-                </Button>
-              ))}
+      ) : !grouped.length ? (
+        <Card className="p-5"><Empty title={isArabic ? "لا توجد مواقع عمل مسجلة" : "No work locations recorded"} detail={isArabic ? "ستظهر الأيام هنا بمجرد تسجيل مواقع العمل." : "Days will appear here once work locations are recorded."} /></Card>
+      ) : selectedGroup ? (
+        <div className="space-y-3">
+          <Card className="overflow-hidden border-primary/20">
+            <div className="flex items-center justify-between gap-3 bg-primary/5 p-4">
+              <div>
+                <p className="text-xs font-semibold text-primary">{isArabic ? "مواقع يوم" : "Locations for"}</p>
+                <h3 className="mt-1 text-lg font-bold">{formatWeekday(selectedGroup.workDate)} · {date(selectedGroup.workDate)}</h3>
+              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                {selectedGroup.entries.length} {isArabic ? "موقع" : "locations"}
+              </span>
             </div>
           </Card>
-          {selectedGroup && (
-            <Card className="divide-y divide-border">
-              <div className="p-5">
-                <h3 className="font-display text-lg font-semibold">{date(selectedGroup.workDate)}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{selectedGroup.entries.length} {isArabic ? "موقع مسجل" : "recorded locations"}</p>
+          {selectedGroup.entries.map((row, index) => (
+            <button
+              key={row.id}
+              type="button"
+              onClick={() => openWorkLocation(row)}
+              className="group flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              data-testid={`button-work-location-map-${row.id}`}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <MapPin size={20} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">{row.comment || (isArabic ? `موقع عمل ${index + 1}` : `Work location ${index + 1}`)}</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{time(row.recordedAt)}{row.accuracyMeters != null ? ` · ±${Math.round(row.accuracyMeters)}m` : ""}</span>
+                  <span className="mt-1 block truncate text-xs text-muted-foreground" dir="ltr">{row.latitude}, {row.longitude}</span>
+                </span>
               </div>
-              {selectedGroup.entries.map((row) => (
-                <div key={row.id} className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-center">
-                  <div>
-                    <div className="font-semibold">{time(row.recordedAt)}</div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {row.comment || (isArabic ? "موقع عمل" : "Work location")}
-                      {row.accuracyMeters != null ? ` · ±${Math.round(row.accuracyMeters)}m` : ""}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground" dir="ltr">{row.latitude}, {row.longitude}</div>
-                  </div>
-                  <a className="inline-flex items-center gap-2 text-sm font-semibold text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${row.latitude},${row.longitude}`}>
-                    <MapPin size={15} /> {isArabic ? "فتح الموقع على الخريطة" : "Open location on map"}
-                  </a>
-                </div>
-              ))}
-            </Card>
-          )}
-        </>
+              <span className="shrink-0 rounded-lg border border-primary/20 px-3 py-2 text-xs font-semibold text-primary group-hover:bg-primary group-hover:text-primary-foreground">
+                {isArabic ? "عرض على الخريطة" : "View map"}
+              </span>
+            </button>
+          ))}
+        </div>
       ) : (
-        <Card className="p-5"><Empty title={isArabic ? "لا توجد مواقع عمل مسجلة" : "No work locations recorded"} detail={isArabic ? "ستظهر المواقع هنا بمجرد تسجيلها." : "Locations will appear here once recorded."} /></Card>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-semibold">{isArabic ? "الأيام المسجلة" : "Recorded days"}</h3>
+            <span className="text-xs text-muted-foreground">{grouped.length} {isArabic ? "يوم" : "days"}</span>
+          </div>
+          {grouped.map((group) => (
+            <button
+              key={group.workDate}
+              type="button"
+              onClick={() => setSelectedDate(group.workDate)}
+              className="group flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              data-testid={`button-work-location-date-${group.workDate}`}
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <CalendarDays size={19} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">{formatWeekday(group.workDate)}</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{date(group.workDate)}</span>
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{group.entries.length} {isArabic ? "موقع" : "locations"}</span>
+                <ArrowLeft size={16} className="text-muted-foreground transition group-hover:-translate-x-1 group-hover:text-primary" />
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
