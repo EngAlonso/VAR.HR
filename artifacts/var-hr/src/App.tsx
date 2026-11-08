@@ -570,6 +570,13 @@ const companyAdminNav: NavItem[] = [
     capability: "schedules.view",
   },
   {
+    href: "/attendance",
+    key: "attendance",
+    icon: Clock3,
+    roles: ["company_owner"],
+    capability: "attendance.view",
+  },
+  {
     href: "/rules",
     key: "companyNavRules",
     icon: SlidersHorizontal,
@@ -11159,8 +11166,8 @@ function Attendance() {
                         {locationLabel(x.locationStatus)}
                       </span>
                       <div className="flex flex-wrap justify-end gap-1">
-                        <Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button>
-                        <Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"موقع الانصراف"}</Button>
+                        <Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"عرض موقع الحضور"}</Button>
+                        <Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"عرض موقع الانصراف"}</Button>
                       </div>
                     </div>
                   </div>
@@ -11241,8 +11248,8 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      <th className="px-5 py-3">{"موقع الحضور"}</th>
-                      <th className="px-5 py-3">{"موقع الانصراف"}</th>
+                      <th className="px-5 py-3">{"عرض موقع الحضور"}</th>
+                      <th className="px-5 py-3">{"عرض موقع الانصراف"}</th>
                       {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
@@ -11261,8 +11268,8 @@ function Attendance() {
                         <td className="px-5 py-4">
                           <Status value={x.status} />
                         </td>
-                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button></td>
-                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"موقع الانصراف"}</Button></td>
+                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"عرض موقع الحضور"}</Button></td>
+                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"عرض موقع الانصراف"}</Button></td>
                         {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
                             <div className="flex justify-end gap-2">
