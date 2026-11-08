@@ -2,7 +2,7 @@ export * from "./organization";
 export * from "./operations";
 export * from "./payroll";
 export * from "./integrations";
-export * from "./scheduling";
+export * from "./scheduling-bootstrap-0009";
 export * from "./hr-records";
 export * from "./auth";
 export * from "./backups";
