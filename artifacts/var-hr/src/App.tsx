@@ -16762,7 +16762,7 @@ function EmployeeWorkLocationsPage() {
   const formatWeekday = (value: string) =>
     new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-US", { weekday: "long" }).format(new Date(`${value}T12:00:00`));
   const openWorkLocation = (row: (typeof rows)[number]) => {
-    if (!Number.isFinite(Number(row.latitude)) || !Number.isFinite(Number(row.longitude))) {
+    if (row.latitude == null || row.longitude == null || !Number.isFinite(Number(row.latitude)) || !Number.isFinite(Number(row.longitude))) {
       toast.info(isArabic ? "إحداثيات الموقع غير متاحة" : "Location coordinates are unavailable");
       return;
     }
