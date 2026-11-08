@@ -6,7 +6,7 @@ import {
   emptyPlatformSocialLinks,
   pool,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 export const BACKUP_FORMAT_VERSION = 1;
 export const BACKUP_SCHEMA_VERSION = "2026-10-01";
@@ -257,6 +257,42 @@ export async function buildBackupPayload(
   }
 }
 
+export async function retainLatestBackups(
+  scope: BackupScope,
+  companyId: string | null,
+  keepCount = 4,
+): Promise<number> {
+  if (scope === "company" && !companyId) {
+    throw new Error("Company backup retention requires a company id.");
+  }
+  return db.transaction(async (tx) => {
+    const scopeCondition = scope === "platform"
+      ? and(eq(backupRecordsTable.scope, "platform"), isNull(backupRecordsTable.companyId))
+      : and(eq(backupRecordsTable.scope, "company"), eq(backupRecordsTable.companyId, companyId!));
+    const generatedCondition = and(
+      scopeCondition,
+      sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
+    );
+    const retentionCondition = and(
+      generatedCondition,
+      sql`(${backupRecordsTable.metadata} ->> 'creationMode' IS DISTINCT FROM 'scheduled' OR COALESCE(${backupRecordsTable.metadata} -> 'googleDrive' ->> 'state', 'pending') = 'uploaded')`,
+    );
+    const retained = await tx
+      .select({ id: backupRecordsTable.id })
+      .from(backupRecordsTable)
+      .where(retentionCondition)
+      .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
+      .limit(keepCount);
+    const retainedIds = retained.map((row) => row.id);
+    if (retainedIds.length === 0) return 0;
+    const deleted = await tx
+      .delete(backupRecordsTable)
+      .where(and(retentionCondition, notInArray(backupRecordsTable.id, retainedIds)))
+      .returning({ id: backupRecordsTable.id });
+    return deleted.length;
+  });
+}
+
 export async function createBackup(input: {
   scope: BackupScope;
   companyId: string | null;
@@ -265,6 +301,7 @@ export async function createBackup(input: {
   creationMode?: "scheduled";
   scheduleIntervalMinutes?: number;
   scheduleFrequencyPerDay?: number;
+  retain?: boolean;
 }) {
   const built = await buildBackupPayload(input.scope, input.companyId);
   const [record] = await db
@@ -299,6 +336,18 @@ export async function createBackup(input: {
       payload: built.payload,
     })
     .returning();
+  if (input.retain !== false) {
+    try {
+      await retainLatestBackups(input.scope, input.companyId, 4);
+    } catch (error) {
+      console.error("[backup-retention] Could not prune older backups after creation.", {
+        backupId: record.id,
+        scope: input.scope,
+        companyId: input.companyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   return record;
 }
 

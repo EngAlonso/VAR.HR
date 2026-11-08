@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { backupRecordsTable, companiesTable, db } from "@workspace/db";
-import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName } from "../lib/backups";
+import { createBackup, createUploadedBackup, restoreBackup, backupDownloadName, retainLatestBackups } from "../lib/backups";
 import { runAutomaticBackupScheduler } from "../lib/backup-scheduler";
 import { writeAuthAudit } from "../lib/auth";
 import {
@@ -75,6 +75,14 @@ function serialize(record: typeof backupRecordsTable.$inferSelect) {
 router.get("/backups", async (req, res): Promise<void> => {
   const context = await getWorkspaceContext(req);
   if (!canManageBackups(context.role)) throw new WorkspaceAccessError();
+  if (context.role === "platform_owner" && req.query.scope === "company") {
+    const companyId = String(req.query.companyId ?? "");
+    if (companyId) await retainLatestBackups("company", companyId, 4);
+  } else if (context.role === "platform_owner") {
+    await retainLatestBackups("platform", null, 4);
+  } else {
+    await retainLatestBackups("company", context.companyId, 4);
+  }
   const rows =
     context.role === "platform_owner"
       ? await dbSelectPlatform(
@@ -91,14 +99,18 @@ async function dbSelectPlatform(companyId?: string) {
     .select()
     .from(backupRecordsTable)
     .where(
-      companyId
-        ? and(
-            eq(backupRecordsTable.scope, "company"),
-            eq(backupRecordsTable.companyId, companyId),
-          )
-        : isNull(backupRecordsTable.companyId),
+      and(
+        companyId
+          ? and(
+              eq(backupRecordsTable.scope, "company"),
+              eq(backupRecordsTable.companyId, companyId),
+            )
+          : isNull(backupRecordsTable.companyId),
+        sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
+      ),
     )
-    .orderBy(desc(backupRecordsTable.createdAt));
+    .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
+    .limit(4);
 }
 
 async function dbSelectCompany(companyId: string) {
@@ -109,9 +121,11 @@ async function dbSelectCompany(companyId: string) {
       and(
         eq(backupRecordsTable.scope, "company"),
         eq(backupRecordsTable.companyId, companyId),
+        sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
       ),
     )
-    .orderBy(desc(backupRecordsTable.createdAt));
+    .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
+    .limit(4);
 }
 
 router.post("/backups", async (req, res): Promise<void> => {
@@ -266,12 +280,23 @@ router.post("/backups/:id/restore", async (req, res): Promise<void> => {
     companyId,
     createdBy: context.accountId,
     status: "safety",
+    retain: false,
   });
   // restoreBackup resolves only after the database transaction COMMITs.
   // Audit logging is deliberately best-effort after that point: an audit
   // storage error must never turn a completed restore into a misleading
   // HTTP failure that could prompt the operator to restore a second time.
   await restoreBackup(record.id, scope, companyId, context.accountId);
+  try {
+    await retainLatestBackups(scope, companyId, 4);
+  } catch (retentionError) {
+    console.error("[backup-retention] Restore succeeded, but older backup cleanup failed.", {
+      backupId: record.id,
+      scope,
+      companyId,
+      error: retentionError instanceof Error ? retentionError.message : String(retentionError),
+    });
+  }
   let auditRecorded = true;
   try {
     await writeAuthAudit({
