@@ -18,6 +18,10 @@ import {
   QueryClientProvider,
   useQueryClient,
 } from "@tanstack/react-query";
+import type {
+  GoogleDriveRetryResult,
+  GoogleDriveStatus,
+} from "@workspace/api-client-react";
 import {
   Link,
   Redirect,
@@ -16646,6 +16650,13 @@ type BackupSummary = {
     tableCounts?: Record<string, number>;
     includesExternalFiles?: boolean;
     sourceChecksum?: string;
+    creationMode?: string;
+    googleDrive?: {
+      state?: string;
+      webViewLink?: string;
+      fileName?: string;
+      attempts?: number;
+    };
   };
   createdAt: string;
 };
@@ -16681,6 +16692,25 @@ function EmployeeWorkLocationsPage() {
   </div>;
 }
 
+type BackupSchedule = {
+  platformBackupRunsPerDay: number;
+  companyBackupIntervalMinutes: number;
+  schedulerReady: boolean;
+  schedulerStatus?: {
+    latestRun: {
+      startedAt: string;
+      status: string;
+      platformCreated: number;
+      companyCreated: number;
+      failureCount: number;
+      driveUploaded: number;
+      driveFailed: number;
+      drivePending: number;
+      errorMessage: string | null;
+    } | null;
+  };
+};
+
 function BackupRestore() {
   const { locale, t } = useI18n();
   const workspace = useGetWorkspace();
@@ -16693,6 +16723,19 @@ function BackupRestore() {
     null,
   );
   const [selectedFilename, setSelectedFilename] = useState("");
+  const [schedule, setSchedule] = useState<BackupSchedule>({
+    platformBackupRunsPerDay: 0,
+    companyBackupIntervalMinutes: 0,
+    schedulerReady: false,
+  });
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveAction, setDriveAction] = useState("");
+  const [driveMessage, setDriveMessage] = useState("");
   const isArabic = locale === "ar";
   const role = workspace.data?.role;
   const isPlatformOwner = role === "platform_owner";
@@ -16735,6 +16778,43 @@ function BackupRestore() {
         integrity: "سلامة SHA-256",
         records: "سجلات البيانات",
         size: "الحجم",
+        scheduleTitle: "إعدادات النسخ التلقائي",
+        scheduleDetail: "حدد عدد نسخ المنصة يوميًا، وتكرار النسخ الاحتياطي لكل شركة.",
+        platformFrequency: "عدد نسخ المنصة يوميًا",
+        companyFrequency: "تكرار نسخة كل شركة",
+        off: "متوقف",
+        daily: "يوميًا",
+        weekly: "أسبوعيًا",
+        saveSchedule: "حفظ الإعدادات",
+        savingSchedule: "جارٍ الحفظ…",
+        scheduleLoading: "جارٍ تحميل إعدادات النسخ…",
+        scheduleSaved: "تم حفظ إعدادات النسخ التلقائي.",
+        scheduleFailed: "تعذر تحميل أو حفظ إعدادات النسخ التلقائي.",
+        scheduleTimes: "مواعيد نسخ المنصة بتوقيت القاهرة",
+        schedulerReady: "الجدولة جاهزة للتشغيل.",
+        schedulerNeedsSecret: "الجدولة غير مفعّلة على Vercel: يلزم ضبط CRON_SECRET في إعدادات النشر.",
+        automatic: "نسخة تلقائية",
+        driveTitle: "النسخ الخارجية على Google Drive",
+        driveDetail: "اربط حساب Google لحفظ نسخة إضافية من نسخ المنصة التلقائية في مجلد VAR HR Backups.",
+        driveLoading: "جارٍ التحقق من اتصال Google Drive…",
+        driveConnected: "متصل بالحساب",
+        driveDisconnected: "غير متصل",
+        driveConnect: "ربط Google Drive",
+        driveReconnect: "إعادة ربط Google Drive",
+        driveDisconnect: "فصل Google Drive",
+        driveConfirmDisconnect: "هل تريد فصل Google Drive؟ الملفات الموجودة لن يتم حذفها.",
+        driveFolder: "فتح مجلد النسخ على Google Drive",
+        drivePending: "نسخ في انتظار الرفع",
+        driveRetry: "إعادة محاولة رفع النسخ",
+        driveRetrying: "جارٍ إعادة المحاولة…",
+        driveConfiguredMissing: "إعدادات Google OAuth أو مفتاح تشفير التوكن غير مكتملة على الخادم.",
+        driveConnectedToast: "تم ربط Google Drive بنجاح.",
+        driveDisconnectedToast: "تم فصل Google Drive، مع الاحتفاظ بالملفات الموجودة.",
+        driveError: "تعذر تنفيذ طلب Google Drive. راجع إعدادات الربط وحالة الخادم.",
+        driveUploaded: "تم رفع النسخة إلى Google Drive",
+        driveUploadPending: "النسخة في انتظار الرفع إلى Google Drive",
+        driveUploadFailed: "فشل رفع النسخة إلى Google Drive",
+        openDriveFile: "فتح النسخة على Drive",
       }
     : {
         title: "Backup & restore",
@@ -16775,6 +16855,43 @@ function BackupRestore() {
         integrity: "SHA-256 integrity",
         records: "Data records",
         size: "Size",
+        scheduleTitle: "Automatic backup settings",
+        scheduleDetail: "Choose the number of full-platform backups per day and the backup frequency for each company.",
+        platformFrequency: "Platform backups per day",
+        companyFrequency: "Company backup frequency",
+        off: "Off",
+        daily: "Daily",
+        weekly: "Weekly",
+        saveSchedule: "Save settings",
+        savingSchedule: "Saving…",
+        scheduleLoading: "Loading backup settings…",
+        scheduleSaved: "Automatic backup settings saved.",
+        scheduleFailed: "Automatic backup settings could not be loaded or saved.",
+        scheduleTimes: "Platform backup times (Cairo time)",
+        schedulerReady: "The scheduler is ready.",
+        schedulerNeedsSecret: "Scheduling is not enabled on Vercel: configure CRON_SECRET in deployment settings.",
+        automatic: "Automatic backup",
+        driveTitle: "External backups on Google Drive",
+        driveDetail: "Connect a Google account to store an additional copy of scheduled platform backups in the VAR HR Backups folder.",
+        driveLoading: "Checking Google Drive connection…",
+        driveConnected: "Connected as",
+        driveDisconnected: "Not connected",
+        driveConnect: "Connect Google Drive",
+        driveReconnect: "Reconnect Google Drive",
+        driveDisconnect: "Disconnect Google Drive",
+        driveConfirmDisconnect: "Disconnect Google Drive? Existing files will not be deleted.",
+        driveFolder: "Open Google Drive backup folder",
+        drivePending: "Backups waiting to upload",
+        driveRetry: "Retry backup uploads",
+        driveRetrying: "Retrying…",
+        driveConfiguredMissing: "Google OAuth settings or the token encryption key are incomplete on the server.",
+        driveConnectedToast: "Google Drive connected successfully.",
+        driveDisconnectedToast: "Google Drive disconnected; existing files were kept.",
+        driveError: "Could not complete the Google Drive request. Check the connection settings and server status.",
+        driveUploaded: "Backup uploaded to Google Drive",
+        driveUploadPending: "Backup is waiting to upload to Google Drive",
+        driveUploadFailed: "Backup upload to Google Drive failed",
+        openDriveFile: "Open Drive backup",
       };
 
   const load = async () => {
@@ -16788,9 +16905,121 @@ function BackupRestore() {
       setLoading(false);
     }
   };
+  const loadSchedule = async () => {
+    setScheduleLoading(true);
+    setScheduleError("");
+    try {
+      const result = await authRequest<BackupSchedule>("/api/platform/backup-schedule");
+      setSchedule({
+        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
+        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
+        schedulerReady: result.schedulerReady,
+        schedulerStatus: result.schedulerStatus,
+      });
+      setScheduleLoaded(true);
+    } catch {
+      setScheduleError(labels.scheduleFailed);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+  const loadDriveStatus = async () => {
+    setDriveLoading(true);
+    try {
+      setDriveStatus(await authRequest<GoogleDriveStatus>("/api/platform/google-drive"));
+      setDriveMessage("");
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveLoading(false);
+    }
+  };
   useEffect(() => {
     if (role === "platform_owner" || role === "company_owner") void load();
+    if (role === "platform_owner") {
+      void loadSchedule();
+      void loadDriveStatus();
+    }
   }, [role]);
+  useEffect(() => {
+    if (!isPlatformOwner) return;
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("drive");
+    if (!result) return;
+    if (result === "connected") {
+      toast.success(labels.driveConnectedToast);
+      void loadDriveStatus();
+    } else if (result === "cancelled") {
+      setDriveMessage(isArabic ? "تم إلغاء ربط Google Drive." : "Google Drive connection was cancelled.");
+    } else {
+      setDriveMessage(labels.driveError);
+    }
+    params.delete("drive");
+    const query = params.toString();
+    window.history.replaceState(window.history.state, "", window.location.pathname + (query ? "?" + query : "") + window.location.hash);
+  }, [isPlatformOwner]);
+
+  const saveSchedule = async () => {
+    setScheduleSaving(true);
+    setScheduleError("");
+    try {
+      const result = await authRequest<BackupSchedule>("/api/platform/backup-schedule", {
+        method: "PATCH",
+        body: JSON.stringify({
+          platformBackupRunsPerDay: schedule.platformBackupRunsPerDay,
+          companyBackupIntervalMinutes: schedule.companyBackupIntervalMinutes,
+        }),
+      });
+      setSchedule({
+        platformBackupRunsPerDay: result.platformBackupRunsPerDay,
+        companyBackupIntervalMinutes: result.companyBackupIntervalMinutes,
+        schedulerReady: result.schedulerReady,
+        schedulerStatus: result.schedulerStatus,
+      });
+      toast.success(labels.scheduleSaved);
+    } catch {
+      setScheduleError(labels.scheduleFailed);
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
+  const connectGoogleDrive = () => {
+    const returnTo = window.location.pathname + window.location.search + window.location.hash;
+    window.location.assign("/api/platform/google-drive/oauth/start?returnTo=" + encodeURIComponent(returnTo));
+  };
+  const disconnectGoogleDrive = async () => {
+    if (!window.confirm(labels.driveConfirmDisconnect)) return;
+    setDriveAction("disconnect");
+    setDriveMessage("");
+    try {
+      await authRequest("/api/platform/google-drive", { method: "DELETE" });
+      toast.success(labels.driveDisconnectedToast);
+      await loadDriveStatus();
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveAction("");
+    }
+  };
+  const retryGoogleDrive = async () => {
+    setDriveAction("retry");
+    setDriveMessage("");
+    try {
+      const result = await authRequest<GoogleDriveRetryResult>("/api/platform/google-drive/retry", {
+        method: "POST",
+        body: JSON.stringify({ force: true }),
+      });
+      const summary = result.uploaded + (isArabic ? " مرفوعة، " : " uploaded, ") + result.failed + (isArabic ? " فشلت، " : " failed, ") + result.pending + (isArabic ? " معلقة" : " pending") + (result.errorCodes.length ? " · " + result.errorCodes.join(", ") : "");
+      if (result.failed > 0 || result.errorCodes.length > 0) toast.error(summary);
+      else if (result.processed === 0 && result.pending > 0) toast.info(summary);
+      else toast.success(summary);
+      await Promise.all([loadDriveStatus(), load()]);
+    } catch {
+      setDriveMessage(labels.driveError);
+    } finally {
+      setDriveAction("");
+    }
+  };
 
   const create = async () => {
     setPending("create");
@@ -16927,6 +17156,70 @@ function BackupRestore() {
         title={labels.title}
         detail={labels.detail}
       />
+      {isPlatformOwner && (
+        <Card className="mb-5">
+          <div className="border-b border-border p-5">
+            <h2 className="font-display text-lg font-semibold">{labels.scheduleTitle}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{labels.scheduleDetail}</p>
+          </div>
+          <div className="space-y-4 p-5">
+            {scheduleError && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{scheduleError}</div>}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{labels.platformFrequency}</span>
+                <select aria-label={labels.platformFrequency} data-testid="platform-backup-frequency" className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm" value={schedule.platformBackupRunsPerDay} disabled={!scheduleLoaded || scheduleSaving} onChange={(event) => setSchedule(current => ({ ...current, platformBackupRunsPerDay: Number(event.target.value) }))}>
+                  <option value={0}>{labels.off}</option>
+                  <option value={1}>1 {isArabic ? "مرة يوميًا" : "time per day"}</option>
+                  <option value={2}>2 {isArabic ? "مرتين يوميًا" : "times per day"}</option>
+                  <option value={4}>4 {isArabic ? "مرات يوميًا" : "times per day"}</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{labels.companyFrequency}</span>
+                <select aria-label={labels.companyFrequency} data-testid="company-backup-frequency" className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm" value={schedule.companyBackupIntervalMinutes} disabled={!scheduleLoaded || scheduleSaving} onChange={(event) => setSchedule(current => ({ ...current, companyBackupIntervalMinutes: Number(event.target.value) }))}>
+                  <option value={0}>{labels.off}</option>
+                  <option value={1440}>{labels.daily}</option>
+                  <option value={10080}>{labels.weekly}</option>
+                </select>
+              </label>
+            </div>
+            {schedule.platformBackupRunsPerDay > 0 && (
+              <p className="text-xs text-muted-foreground">{labels.scheduleTimes}: {schedule.platformBackupRunsPerDay === 1 ? "13:00" : schedule.platformBackupRunsPerDay === 2 ? "01:00 · 13:00" : "01:00 · 07:00 · 13:00 · 19:00"}</p>
+            )}
+            <p className="text-xs text-muted-foreground">{isArabic ? "النسخ اليومية للشركات تُنفّذ بعد الساعة 13:00، والنسخ الأسبوعية بعد مرور 7 أيام من آخر نسخة." : "Daily company backups run after 13:00 Cairo time; weekly backups run after seven days from the previous backup."}</p>
+            {scheduleLoaded && !schedule.schedulerReady && <div role="alert" data-testid="backup-scheduler-setup-warning" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{labels.schedulerNeedsSecret}</div>}
+            {scheduleLoaded && schedule.schedulerReady && <p className="text-xs text-muted-foreground">{labels.schedulerReady}</p>}
+            {scheduleLoading && <p className="text-sm text-muted-foreground" role="status">{labels.scheduleLoading}</p>}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button data-testid="save-backup-schedule" onClick={() => void saveSchedule()} disabled={!scheduleLoaded || scheduleSaving}>{scheduleSaving ? labels.savingSchedule : labels.saveSchedule}</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+      {isPlatformOwner && (
+        <Card className="mb-5">
+          <div className="border-b border-border p-5">
+            <h2 className="font-display text-lg font-semibold">{labels.driveTitle}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{labels.driveDetail}</p>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={driveStatus?.connected ? "rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300" : "rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"}>
+                {driveLoading ? labels.driveLoading : driveStatus?.connected ? labels.driveConnected + " " + (driveStatus.connectedEmail ?? "") : labels.driveDisconnected}
+              </span>
+              {driveStatus && driveStatus.pendingBackups > 0 && <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">{labels.drivePending}: {driveStatus.pendingBackups}</span>}
+            </div>
+            {driveStatus?.backupFolderUrl && <a className="inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline" href={driveStatus.backupFolderUrl} target="_blank" rel="noreferrer">{labels.driveFolder}</a>}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={connectGoogleDrive} disabled={driveLoading || driveAction !== "" || !driveStatus?.configured}>{driveStatus?.connected ? labels.driveReconnect : labels.driveConnect}</Button>
+              {driveStatus?.connected && <Button variant="outline" onClick={() => void disconnectGoogleDrive()} disabled={driveAction !== ""}>{labels.driveDisconnect}</Button>}
+              {driveStatus && driveStatus.pendingBackups > 0 && <Button variant="outline" onClick={() => void retryGoogleDrive()} disabled={driveAction !== "" || !driveStatus.configured || !driveStatus.connected}>{driveAction === "retry" ? labels.driveRetrying : labels.driveRetry}</Button>}
+            </div>
+            {driveStatus && !driveStatus.configured && <div role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-200">{labels.driveConfiguredMissing}</div>}
+            {driveMessage && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{driveMessage}</div>}
+          </div>
+        </Card>
+      )}
       <Card>
         <div className="border-b border-border p-5">
           <div className="flex items-start justify-between gap-3">
@@ -16991,6 +17284,11 @@ function BackupRestore() {
                     <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">
                       {labels.integrity}: {backup.checksum}
                     </p>
+                    {isPlatformOwner && backup.scope === "platform" && backup.metadata.creationMode === "scheduled" && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {backup.metadata.googleDrive?.state === "uploaded" ? labels.driveUploaded : backup.metadata.googleDrive?.state === "failed" ? labels.driveUploadFailed : labels.driveUploadPending}
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:min-w-[360px]">
                     <Info
@@ -17018,6 +17316,11 @@ function BackupRestore() {
                     <Download size={14} />
                     {labels.download}
                   </Button>
+                  {isPlatformOwner && backup.scope === "platform" && backup.metadata.googleDrive?.state === "uploaded" && backup.metadata.googleDrive.webViewLink && (
+                    <a className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-input px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted" href={backup.metadata.googleDrive.webViewLink} target="_blank" rel="noreferrer">
+                      <ArrowUpRight size={14} /> {labels.openDriveFile}
+                    </a>
+                  )}
                   <Button
                     variant="quiet"
                     onClick={() => void remove(backup)}
