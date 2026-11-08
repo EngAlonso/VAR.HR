@@ -10809,18 +10809,12 @@ function Attendance() {
     value ? new Date(value).toISOString().slice(0, 16) : "";
   const displayTime = (value?: string | null) =>
     value ? time(value) : t("missing");
-  function openAttendanceLocations(location: any) {
-    const points = [location?.checkIn, location?.checkOut].filter((point: any) =>
-      Number.isFinite(Number(point?.latitude)) && Number.isFinite(Number(point?.longitude))
-    );
-    if (!points.length) {
-      toast.info("لا توجد إحداثيات محفوظة لهذه الحركة");
+  function openAttendancePoint(point: any, label: string) {
+    if (!point || point.latitude == null || point.longitude == null || !Number.isFinite(Number(point.latitude)) || !Number.isFinite(Number(point.longitude))) {
+      toast.info(`لا توجد إحداثيات محفوظة لـ${label}`);
       return;
     }
-    const url = points.length === 1
-      ? `https://www.google.com/maps?q=${points[0].latitude},${points[0].longitude}`
-      : `https://www.google.com/maps/dir/${points.map((point: any) => `${point.latitude},${point.longitude}`).join("/")}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(`https://www.google.com/maps?q=${point.latitude},${point.longitude}`, "_blank", "noopener,noreferrer");
   }
   function locationLabel(value?: string | null) {
     return value === "verified"
@@ -11164,11 +11158,10 @@ function Attendance() {
                       <span className="text-[10px] text-muted-foreground">
                         {locationLabel(x.locationStatus)}
                       </span>
-                      {x.location && (x.location.checkIn || x.location.checkOut) && (
-                        <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                          <MapPin size={13} /> {"عرض الخريطة"}
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap justify-end gap-1">
+                        <Button variant="outline" disabled={!x.location?.checkIn?.latitude || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button>
+                        <Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"موقع الانصراف"}</Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -11248,7 +11241,8 @@ function Attendance() {
                       <th className="px-4 py-3">{t("checkOut")}</th>
                       <th className="px-4 py-3">{t("hours")}</th>
                       <th className="px-5 py-3">{t("status")}</th>
-                      <th className="px-5 py-3">{"عرض الخريطة"}</th>
+                      <th className="px-5 py-3">{"موقع الحضور"}</th>
+                      <th className="px-5 py-3">{"موقع الانصراف"}</th>
                       {(canCorrect || canAdjust) && (
                         <th className="px-5 py-3 text-right">Actions</th>
                       )}
@@ -11267,13 +11261,8 @@ function Attendance() {
                         <td className="px-5 py-4">
                           <Status value={x.status} />
                         </td>
-                        <td className="px-5 py-4">
-                          {x.location && (x.location.checkIn || x.location.checkOut) ? (
-                            <Button variant="outline" onClick={() => openAttendanceLocations(x.location)}>
-                              <MapPin size={13} /> {"عرض الخريطة"}
-                            </Button>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
-                        </td>
+                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null} onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}><MapPin size={13}/> {"موقع الحضور"}</Button></td>
+                        <td className="px-5 py-4"><Button variant="outline" disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null} onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}><MapPin size={13}/> {"موقع الانصراف"}</Button></td>
                         {(canCorrect || canAdjust) && (
                           <td className="px-5 py-4 text-right">
                             <div className="flex justify-end gap-2">
