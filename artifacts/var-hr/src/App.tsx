@@ -11173,7 +11173,7 @@ function Attendance() {
                         <Button
                           variant="outline"
                           className="text-xs"
-                          disabled={!x.location?.checkIn || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
+                          disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
                           onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}
                         >
                           <MapPin size={13} /> {"موقع الحضور"}
@@ -11181,7 +11181,7 @@ function Attendance() {
                         <Button
                           variant="outline"
                           className="text-xs"
-                          disabled={!x.location?.checkOut || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
+                          disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
                           onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}
                         >
                           <MapPin size={13} /> {"موقع الانصراف"}
@@ -11290,7 +11290,7 @@ function Attendance() {
                           <Button
                             variant="outline"
                             className="text-xs"
-                            disabled={!x.location?.checkIn || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
+                            disabled={!x.location?.checkIn || x.location.checkIn.latitude == null || x.location.checkIn.longitude == null || !Number.isFinite(Number(x.location.checkIn.latitude)) || !Number.isFinite(Number(x.location.checkIn.longitude))}
                             onClick={() => openAttendancePoint(x.location?.checkIn, "الحضور")}
                           >
                             <MapPin size={13} /> {"موقع الحضور"}
@@ -11300,7 +11300,7 @@ function Attendance() {
                           <Button
                             variant="outline"
                             className="text-xs"
-                            disabled={!x.location?.checkOut || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
+                            disabled={!x.location?.checkOut || x.location.checkOut.latitude == null || x.location.checkOut.longitude == null || !Number.isFinite(Number(x.location.checkOut.latitude)) || !Number.isFinite(Number(x.location.checkOut.longitude))}
                             onClick={() => openAttendancePoint(x.location?.checkOut, "الانصراف")}
                           >
                             <MapPin size={13} /> {"موقع الانصراف"}
