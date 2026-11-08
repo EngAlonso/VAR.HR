@@ -273,17 +273,21 @@ export async function retainLatestBackups(
       scopeCondition,
       sql`${backupRecordsTable.metadata} ->> 'sourceChecksum' IS NULL`,
     );
+    const retentionCondition = and(
+      generatedCondition,
+      sql`(${backupRecordsTable.metadata} ->> 'creationMode' IS DISTINCT FROM 'scheduled' OR COALESCE(${backupRecordsTable.metadata} -> 'googleDrive' ->> 'state', 'pending') = 'uploaded')`,
+    );
     const retained = await tx
       .select({ id: backupRecordsTable.id })
       .from(backupRecordsTable)
-      .where(generatedCondition)
+      .where(retentionCondition)
       .orderBy(desc(backupRecordsTable.createdAt), desc(backupRecordsTable.id))
       .limit(keepCount);
     const retainedIds = retained.map((row) => row.id);
     if (retainedIds.length === 0) return 0;
     const deleted = await tx
       .delete(backupRecordsTable)
-      .where(and(generatedCondition, notInArray(backupRecordsTable.id, retainedIds)))
+      .where(and(retentionCondition, notInArray(backupRecordsTable.id, retainedIds)))
       .returning({ id: backupRecordsTable.id });
     return deleted.length;
   });
