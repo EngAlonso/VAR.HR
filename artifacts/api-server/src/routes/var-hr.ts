@@ -6437,76 +6437,8 @@ async function recordCurrentAttendance(
       });
       return;
     }
-    if (locationRequiredForEmployee) {
-      const [pending] = await db
-        .select()
-        .from(attendancePunchRequestsTable)
-        .where(
-          and(
-            eq(attendancePunchRequestsTable.companyId, context.companyId),
-            eq(attendancePunchRequestsTable.employeeId, context.employeeId),
-            eq(attendancePunchRequestsTable.attendanceDate, attendanceDate),
-            eq(attendancePunchRequestsTable.direction, "in"),
-            eq(attendancePunchRequestsTable.status, "pending"),
-          ),
-        )
-        .limit(1);
-      if (pending) {
-        res.status(409).json({
-          error: "Your first location attendance punch is already waiting for approval.",
-          code: "ATTENDANCE_PUNCH_APPROVAL_PENDING",
-        });
-        return;
-      }
-      const [department] = currentEmployee.departmentId
-        ? await db
-            .select({ name: departmentsTable.name })
-            .from(departmentsTable)
-            .where(eq(departmentsTable.id, currentEmployee.departmentId))
-            .limit(1)
-        : [undefined];
-      const [request] = await db
-        .insert(attendancePunchRequestsTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: context.employeeId,
-          attendanceDate,
-          direction: "in",
-          occurredAt: eventAt,
-          source: parsed.data.source,
-          deviceType,
-          locationStatus: locationValidation.status,
-          location: {
-            checkIn: { ...location, capturedAt: eventAt.toISOString() },
-          },
-          explanation:
-            locationValidation.status === "pending"
-              ? message(req, "gpsLocationCapturedForReview")
-              : locationValidation.explanation,
-          requestedBy: context.accountId,
-        })
-        .returning();
-      res.status(202).json({
-        id: request.id,
-        employee: employeeReference(
-          currentEmployee,
-          department?.name ?? "—",
-        ),
-        attendanceDate: request.attendanceDate,
-        direction: request.direction,
-        occurredAt: request.occurredAt.toISOString(),
-        source: request.source,
-        deviceType: request.deviceType,
-        locationStatus: request.locationStatus,
-        location: request.location,
-        explanation: request.explanation,
-        status: request.status,
-        requestedAt: request.requestedAt.toISOString(),
-        decidedAt: null,
-        decisionReason: null,
-      });
-      return;
-    }
+    // Variable-location punches are recorded immediately after GPS validation.
+  // GPS is retained on the attendance record; no manager approval request is created.
     const metrics = attendanceMetrics({
       checkIn: eventAt,
       checkOut: null,
@@ -6612,76 +6544,7 @@ async function recordCurrentAttendance(
     });
     return;
   }
-  if (locationRequiredForEmployee) {
-    const [pending] = await db
-      .select()
-      .from(attendancePunchRequestsTable)
-      .where(
-        and(
-          eq(attendancePunchRequestsTable.companyId, context.companyId),
-          eq(attendancePunchRequestsTable.employeeId, context.employeeId),
-          eq(attendancePunchRequestsTable.attendanceDate, attendanceDate),
-          eq(attendancePunchRequestsTable.direction, "out"),
-          eq(attendancePunchRequestsTable.status, "pending"),
-        ),
-      )
-      .limit(1);
-    if (pending) {
-      res.status(409).json({
-        error: "Your check-out location attendance punch is already waiting for approval.",
-        code: "ATTENDANCE_PUNCH_APPROVAL_PENDING",
-      });
-      return;
-    }
-    const [department] = currentEmployee.departmentId
-      ? await db
-          .select({ name: departmentsTable.name })
-          .from(departmentsTable)
-          .where(eq(departmentsTable.id, currentEmployee.departmentId))
-          .limit(1)
-      : [undefined];
-    const [request] = await db
-      .insert(attendancePunchRequestsTable)
-      .values({
-        companyId: context.companyId,
-        employeeId: context.employeeId,
-        attendanceDate,
-        direction: "out",
-        occurredAt: eventAt,
-        source: parsed.data.source,
-          deviceType,
-        locationStatus: locationValidation.status,
-        location: {
-          checkOut: { ...location, capturedAt: eventAt.toISOString() },
-        },
-        explanation:
-          locationValidation.status === "pending"
-            ? message(req, "gpsLocationCapturedForReview")
-            : locationValidation.explanation,
-        requestedBy: context.accountId,
-      })
-      .returning();
-    res.status(202).json({
-      id: request.id,
-      employee: employeeReference(
-        currentEmployee,
-        department?.name ?? "—",
-      ),
-      attendanceDate: request.attendanceDate,
-      direction: request.direction,
-      occurredAt: request.occurredAt.toISOString(),
-      source: request.source,
-      deviceType: request.deviceType,
-      locationStatus: request.locationStatus,
-      location: request.location,
-      explanation: request.explanation,
-      status: request.status,
-      requestedAt: request.requestedAt.toISOString(),
-      decidedAt: null,
-      decisionReason: null,
-    });
-    return;
-  }
+  // Variable-location check-out is applied immediately to the open attendance record.
   const checkIn = existing.checkIn ?? now;
   const metrics = attendanceMetrics({
     checkIn,
