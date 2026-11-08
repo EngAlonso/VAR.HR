@@ -6,7 +6,7 @@ import {
   emptyPlatformSocialLinks,
   pool,
 } from "@workspace/db";
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, notInArray, sql } from "drizzle-orm";
 
 export const BACKUP_FORMAT_VERSION = 1;
 export const BACKUP_SCHEMA_VERSION = "2026-10-01";
