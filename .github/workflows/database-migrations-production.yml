@@ -25,7 +25,6 @@ concurrency:
 jobs:
   migrate-aiven:
     name: Review, test, migrate, and verify Aiven
-    if: ${{ inputs.backup_verified == 'yes' && inputs.confirm_production_migration == 'APPLY-0011' }}
     runs-on: ubuntu-latest
     environment:
       name: aiven-production
@@ -67,15 +66,31 @@ jobs:
 
       - name: Validate explicit production authorization and secrets
         shell: bash
+        env:
+          BACKUP_VERIFIED: ${{ inputs.backup_verified }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.confirm_production_migration }}
         run: |
-          test "${{ inputs.backup_verified }}" = "yes"
-          test "${{ inputs.confirm_production_migration }}" = "APPLY-0011"
-          test -n "$AIVEN_MIGRATION_DATABASE_URL"
-          test -n "$AIVEN_CA_CERT"
-          if [[ "$AIVEN_MIGRATION_DATABASE_URL" != *".aivencloud.com"* ]]; then
-            echo "::error::The migration URL does not point to an Aiven host."
+          if [[ "$BACKUP_VERIFIED" != "yes" ]]; then
+            echo "::error::Production migration blocked: select 'yes' only after confirming a recent, restorable Aiven backup."
             exit 1
           fi
+          if [[ "$PRODUCTION_CONFIRMATION" != "APPLY-0011" ]]; then
+            echo "::error::Production migration blocked: confirmation must match APPLY-0011 exactly."
+            exit 1
+          fi
+          if [[ -z "$AIVEN_MIGRATION_DATABASE_URL" ]]; then
+            echo "::error::Production migration blocked: GitHub Environment secret AIVEN_MIGRATION_DATABASE_URL is missing or unavailable."
+            exit 1
+          fi
+          if [[ -z "$AIVEN_CA_CERT" ]]; then
+            echo "::error::Production migration blocked: GitHub Environment secret AIVEN_CA_CERT is missing or unavailable."
+            exit 1
+          fi
+          if [[ "$AIVEN_MIGRATION_DATABASE_URL" != *".aivencloud.com"* ]]; then
+            echo "::error::Production migration blocked: AIVEN_MIGRATION_DATABASE_URL does not point to an Aiven host."
+            exit 1
+          fi
+          echo "Authorization inputs and required secrets are present. Continuing with read-only baseline checks.";
 
       - name: Inspect live Aiven schema (read-only)
         run: pnpm --filter @workspace/db run inspect:aiven
