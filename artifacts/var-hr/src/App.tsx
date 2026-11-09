@@ -8295,6 +8295,10 @@ function EmployeeAttendanceMovement({
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const qc = useQueryClient();
+  const workspace = useGetWorkspace();
+  const canConvertAbsence = workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
+  const [convertingAttendanceId, setConvertingAttendanceId] = useState("");
   const [open, setOpen] = useState(fullPage);
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
@@ -8370,6 +8374,27 @@ function EmployeeAttendanceMovement({
   const hours = (value?: number) =>
     `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
+  async function convertAbsenceToAnnualLeave(attendanceId: string) {
+    if (!window.confirm(locale === "ar" ? "هل تريد تحويل يوم الغياب إلى إجازة سنوية وخصم يوم من رصيد الموظف؟" : "Convert this absence to annual leave and deduct one day from the employee's balance?")) return;
+    setConvertingAttendanceId(attendanceId);
+    try {
+      await authRequest(`/api/attendance/${attendanceId}/annual-leave`, {
+        method: "POST",
+        body: JSON.stringify({ reason: locale === "ar" ? "تحويل يوم غياب إلى إجازة سنوية من ملف الموظف" : "Absence converted to annual leave from employee profile" }),
+      });
+      toast.success(locale === "ar" ? "تم تحويل الغياب وخصم يوم من رصيد الإجازة السنوية." : "Absence converted and one annual-leave day deducted.");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() }),
+        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() }),
+        qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) }),
+      ]);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحويل يوم الغياب إلى إجازة سنوية." : "Could not convert this absence to annual leave."));
+    } finally {
+      setConvertingAttendanceId("");
+    }
+  }
 
   function printMovement() {
     if (!report.data) return;
@@ -8546,6 +8571,17 @@ function EmployeeAttendanceMovement({
                         {t("earlyCheckoutMinutes").toLowerCase()}
                       </p>
                     </div>
+                    {canConvertAbsence && row.attendanceStatus === "absent" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)}
+                        disabled={convertingAttendanceId === (row as any).attendanceId}
+                        data-testid={`button-convert-absence-${(row as any).attendanceId}`}
+                      >
+                        {convertingAttendanceId === (row as any).attendanceId ? (locale === "ar" ? "جارٍ التحويل..." : "Converting...") : (locale === "ar" ? "تحويل الغياب لإجازة سنوية" : "Convert absence to annual leave")}
+                      </Button>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -8606,7 +8642,14 @@ function EmployeeAttendanceMovement({
                           {hours(row.workedHours)}
                         </td>
                         <td className="px-4 py-3">
-                          <Status value={row.attendanceStatus || "—"} />
+                          <div className="flex flex-col items-start gap-2">
+                            <Status value={row.attendanceStatus || "—"} />
+                            {canConvertAbsence && row.attendanceStatus === "absent" ? (
+                              <Button size="sm" variant="outline" onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)} disabled={convertingAttendanceId === (row as any).attendanceId}>
+                                {locale === "ar" ? "إجازة سنوية" : "Annual leave"}
+                              </Button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}
