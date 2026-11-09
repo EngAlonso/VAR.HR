@@ -8868,6 +8868,10 @@ function Branches() {
   const update = useUpdateBranch();
   const remove = useDeleteBranch();
   const [selected, setSelected] = useState<any | null>(null);
+  const [branchSearch, setBranchSearch] = useState("");
+  const filteredBranches = (branches.data ?? []).filter((branch: any) =>
+    `${branch.name} ${branch.city}`.toLowerCase().includes(branchSearch.trim().toLowerCase()),
+  );
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -8949,7 +8953,15 @@ function Branches() {
       ) : branches.data?.length ? (
         <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
           <div className="space-y-3">
-            {branches.data.map((branch: any) => (
+            <input
+              type="search"
+              value={branchSearch}
+              onChange={(event) => setBranchSearch(event.target.value)}
+              placeholder={locale === "ar" ? "ابحث باسم الفرع أو المدينة..." : "Search branch or city..."}
+              className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              aria-label={locale === "ar" ? "بحث الفروع" : "Search branches"}
+            />
+            {filteredBranches.map((branch: any) => (
               <Card
                 key={branch.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
@@ -9046,6 +9058,10 @@ function Departments() {
   const remove = useDeleteDepartment();
   const updateEmployee = useUpdateEmployee();
   const [selected, setSelected] = useState<string | null>(null);
+  const [departmentSearch, setDepartmentSearch] = useState("");
+  const filteredDepartments = (departments.data ?? []).filter((item: any) =>
+    String(item.name ?? "").toLowerCase().includes(departmentSearch.trim().toLowerCase()),
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -9156,7 +9172,15 @@ function Departments() {
       ) : departments.data?.length ? (
         <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
           <div className="space-y-3">
-            {departments.data.map((item: any) => (
+            <input
+              type="search"
+              value={departmentSearch}
+              onChange={(event) => setDepartmentSearch(event.target.value)}
+              placeholder={locale === "ar" ? "ابحث عن قسم..." : "Search departments..."}
+              className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              aria-label={locale === "ar" ? "بحث الأقسام" : "Search departments"}
+            />
+            {filteredDepartments.map((item: any) => (
               <Card
                 key={item.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
@@ -16202,6 +16226,10 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     },
   });
   const bulkAssign = useBulkAssignEmployeeSchedules();
+  const [scheduleSearch, setScheduleSearch] = useState("");
+  const filteredSchedules = (schedules.data ?? []).filter((schedule: any) =>
+    `${schedule.name} ${schedule.nameAr ?? ""}`.toLowerCase().includes(scheduleSearch.trim().toLowerCase()),
+  );
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({
@@ -16426,8 +16454,16 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             ) : schedules.isError ? (
               <ErrorState retry={() => schedules.refetch()} />
             ) : schedules.data?.length ? (
-              <div className="divide-y divide-border">
-                {schedules.data.map((schedule: any) => (
+              <div className="space-y-3 p-4">
+                <input
+                  type="search"
+                  value={scheduleSearch}
+                  onChange={(event) => setScheduleSearch(event.target.value)}
+                  placeholder={t("search") || (locale === "ar" ? "ابحث عن شيفت..." : "Search shifts...")}
+                  className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  aria-label={locale === "ar" ? "بحث الشيفتات" : "Search shifts"}
+                />
+                {filteredSchedules.map((schedule: any) => (
                   <div className="p-5" key={schedule.id}>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
@@ -19116,6 +19152,10 @@ function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
+  const [accountSearch, setAccountSearch] = useState("");
+  const filteredAccounts = accounts.filter((account) =>
+    `${account.fullName} ${account.primaryPhone || account.username} ${account.displayRole}`.toLowerCase().includes(accountSearch.trim().toLowerCase()),
+  );
   const [permissions, setPermissions] = useState<
     Array<{ key: string; label: string; description?: string }>
   >([]);
@@ -19440,8 +19480,17 @@ function Accounts() {
               <Skeleton className="h-16" />
             </div>
           ) : accounts.length ? (
-            <div className="divide-y divide-border">
-              {accounts.map((account) => (
+            <div className="space-y-3 p-4">
+              <input
+                type="search"
+                value={accountSearch}
+                onChange={(event) => setAccountSearch(event.target.value)}
+                placeholder={locale === "ar" ? "ابحث بالاسم أو الهاتف أو الدور..." : "Search by name, phone, or role..."}
+                className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                aria-label={locale === "ar" ? "بحث الحسابات" : "Search accounts"}
+              />
+              <div className="divide-y divide-border">
+              {filteredAccounts.map((account) => (
                 <div
                   className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
                   key={account.id}
@@ -19479,6 +19528,7 @@ function Accounts() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           ) : (
             <Empty
