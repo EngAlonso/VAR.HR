@@ -11009,6 +11009,48 @@ function Employees() {
   );
 }
 
+function getBrowserPosition(timeoutMs = 15000): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("GEOLOCATION_UNSUPPORTED"));
+      return;
+    }
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("GEOLOCATION_TIMEOUT"));
+    }, timeoutMs);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve(position);
+        },
+        (error) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: timeoutMs,
+          maximumAge: 0,
+        },
+      );
+    } catch (error) {
+      if (!settled) {
+        settled = true;
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    }
+  });
+}
+
 function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
   const { locale } = useI18n();
   const [pending, setPending] = useState(false);
@@ -11025,13 +11067,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
     }
     setPending(true);
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        });
-      });
+      const position = await getBrowserPosition(15000);
       await authRequest(`/api/employees/${employeeId}/work-locations`, {
         method: "POST",
         body: JSON.stringify({
@@ -11043,13 +11079,18 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       });
       toast.success(isArabic ? "تم تسجيل موقع العمل بنجاح." : "Work location recorded successfully.");
     } catch (error) {
-      toast.error(
-        Boolean(error && typeof error === "object" && "code" in error)
-          ? isArabic ? "تعذر تحديد موقعك. اسمح للمتصفح بالوصول إلى الموقع وحاول مرة أخرى." : "Could not get your location. Allow location access and try again."
-          : error instanceof Error
-            ? error.message
-            : isArabic ? "تعذر تسجيل موقع العمل." : "Could not record the work location.",
-      );
+      const geolocationError =
+        error instanceof Error &&
+        (error.message.startsWith("GEOLOCATION_") ||
+          Boolean(error && typeof error === "object" && "code" in error));
+      const message = geolocationError
+        ? error instanceof Error && error.message === "GEOLOCATION_TIMEOUT"
+          ? isArabic ? "انتهت مهلة تحديد الموقع. فعّل إذن الموقع للمتصفح وتأكد من تشغيل GPS ثم حاول مرة أخرى." : "Location request timed out. Allow browser location access, turn on GPS, and try again."
+          : isArabic ? "تعذر تحديد موقعك. اسمح للمتصفح بالوصول إلى الموقع ثم حاول مرة أخرى." : "Could not get your location. Allow browser location access and try again."
+        : error instanceof Error
+          ? error.message
+          : isArabic ? "تعذر تسجيل موقع العمل بسبب خطأ غير معروف." : "Could not record the work location due to an unknown error.";
+      toast.error(message);
     } finally {
       setPending(false);
     }
@@ -11177,14 +11218,7 @@ function Attendance() {
     } | null = null;
     if (navigator.geolocation) {
       try {
-        const position = await new Promise<GeolocationPosition>(
-          (resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 30000,
-            }),
-        );
+        const position = await getBrowserPosition(12000);
         location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
