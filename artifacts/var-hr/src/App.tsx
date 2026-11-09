@@ -12243,7 +12243,7 @@ function Attendance() {
 }
 
 function Requests() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
   const capabilities = workspaceQuery.data?.capabilities || [];
