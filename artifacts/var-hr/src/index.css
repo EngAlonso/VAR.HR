@@ -126,11 +126,15 @@
     animation: page-enter .38s cubic-bezier(.2,.75,.25,1) both;
   }
   .animate-in > .grid > div > .rounded-2xl,
-  .animate-in > .grid > .rounded-2xl {
+  .animate-in > .grid > .rounded-2xl,
+  .management-page > .grid > div > .rounded-xl,
+  .management-page > .grid > .rounded-2xl {
     animation: panel-enter .42s cubic-bezier(.2,.75,.25,1) both;
   }
-  .animate-in > .grid > div:nth-child(2) > .rounded-2xl { animation-delay: .06s; }
-  .animate-in > .grid > div:nth-child(3) > .rounded-2xl { animation-delay: .12s; }
+  .animate-in > .grid > div:nth-child(2) > .rounded-2xl,
+  .management-page > .grid > div:nth-child(2) > .rounded-xl { animation-delay: .06s; }
+  .animate-in > .grid > div:nth-child(3) > .rounded-2xl,
+  .management-page > .grid > div:nth-child(3) > .rounded-xl { animation-delay: .12s; }
   .animate-in :is(button, a, [role="button"]) {
     transition:
       transform .18s ease,
@@ -217,7 +221,9 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-in,
   .animate-in > .grid > div > .rounded-2xl,
-  .animate-in > .grid > .rounded-2xl {
+  .animate-in > .grid > .rounded-2xl,
+  .management-page > .grid > div > .rounded-xl,
+  .management-page > .grid > .rounded-2xl {
     animation: none !important;
   }
   .animate-in :is(button, a, [role="button"], .rounded-2xl.border) {
