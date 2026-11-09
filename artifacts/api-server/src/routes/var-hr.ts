@@ -11976,15 +11976,22 @@ async function calculatePayrollPeriod(
     const employeeAdjustments = adjustments.filter(
       (adjustment) => adjustment.employeeId === row.employee.id,
     );
+    // Read-only employee summaries can cover only part of a payroll period.
+    // Allocate period-level adjustments by the same scheduled-day ratio used
+    // for monthly basic salary so a partial date range never receives the
+    // entire period's additions or deductions.
+    const adjustmentProration = options.persist
+      ? 1
+      : scheduledDates.length / Math.max(1, fullPeriodScheduledDates.length);
     const additions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "addition")
-        .reduce((total, item) => total + item.amount, 0),
+        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
     );
     const adjustmentDeductions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "deduction")
-        .reduce((total, item) => total + item.amount, 0),
+        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
     );
     const attendanceDeductions = hourlyEmployee
       ? 0
@@ -12625,11 +12632,21 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
     )
     .orderBy(desc(payrollPeriodsTable.to))
     .limit(1);
-  const cycleRange = employee.payrollCycle
-    ? cyclePeriodRange(employee.payrollCycle.startDay, query.data.to)
-    : null;
-  const fallbackFrom = cycleRange?.from ?? query.data.from;
-  const fallbackTo = cycleRange?.to ?? query.data.to;
+  const cycleRange = cyclePeriodRange(
+    employee.payrollCycle?.startDay ?? 1,
+    query.data.to,
+  );
+  if (!period && query.data.from < cycleRange.from) {
+    res.status(400).json({
+      error:
+        requestedLocale(req) === "ar"
+          ? "الفترة المحددة تتجاوز دورة رواتب واحدة. اختر فترة داخل دورة الرواتب أو أنشئ فترة رواتب تغطي النطاق كاملًا."
+          : "The selected range crosses payroll cycles. Choose a range within one payroll cycle or create a payroll period covering the full range.",
+    });
+    return;
+  }
+  const fallbackFrom = cycleRange.from;
+  const fallbackTo = cycleRange.to;
   const calculationPeriod = period ?? {
     id: "00000000-0000-0000-0000-000000000000",
     companyId: context.companyId,
