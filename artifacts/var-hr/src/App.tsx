@@ -12545,8 +12545,8 @@ function Requests() {
             </div>
           ) : (
             <Empty
-              title={t("queueClear")}
-              detail={t("requestsAppear")}
+              title={rows.length ? (locale === "ar" ? "لا توجد طلبات مطابقة" : "No matching requests") : t("queueClear")}
+              detail={rows.length ? (locale === "ar" ? "غيّر كلمات البحث أو حالة الطلب." : "Change the search or status filter.") : t("requestsAppear")}
               action={
                 canCreateCurrent ? (
                   <Button onClick={openRequest}>
