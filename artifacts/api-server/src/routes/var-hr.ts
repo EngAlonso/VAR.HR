@@ -4558,81 +4558,133 @@ router.post(
       .update(parsed.data.deviceToken)
       .digest("hex");
     const now = new Date();
-    let shouldAuditRequest = false;
-    let [device] = await db
-      .select()
-      .from(employeeAttendanceDevicesTable)
-      .where(
-        and(
-          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
-          eq(employeeAttendanceDevicesTable.employeeId, employee.id),
-          eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
-        ),
-      )
-      .limit(1);
+    const registration = await db.transaction(async (tx) => {
+      // Serialize first-browser registration so two browsers cannot both
+      // become the employee's initial trusted browser at the same time.
+      await tx
+        .select({ id: employeesTable.id })
+        .from(employeesTable)
+        .where(
+          and(
+            eq(employeesTable.id, employee.id),
+            eq(employeesTable.companyId, context.companyId),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      const [activeDevice] = await tx
+        .select({ id: employeeAttendanceDevicesTable.id })
+        .from(employeeAttendanceDevicesTable)
+        .where(
+          and(
+            eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+            eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+            eq(employeeAttendanceDevicesTable.status, "active"),
+          ),
+        )
+        .limit(1);
+      let [device] = await tx
+        .select()
+        .from(employeeAttendanceDevicesTable)
+        .where(
+          and(
+            eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+            eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+            eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+          ),
+        )
+        .limit(1);
+      let shouldAuditRequest = false;
+      let firstBrowserBound = false;
 
-    if (device && ["rejected", "revoked"].includes(device.status)) {
-      shouldAuditRequest = true;
-      [device] = await db
-        .update(employeeAttendanceDevicesTable)
-        .set({
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          status: "pending",
-          requestedAt: now,
-          approvedAt: null,
-          approvedBy: null,
-          updatedAt: now,
-        })
-        .where(eq(employeeAttendanceDevicesTable.id, device.id))
-        .returning();
-    } else if (device?.status === "pending") {
-      [device] = await db
-        .update(employeeAttendanceDevicesTable)
-        .set({
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          updatedAt: now,
-        })
-        .where(eq(employeeAttendanceDevicesTable.id, device.id))
-        .returning();
-    } else if (!device) {
-      shouldAuditRequest = true;
-      [device] = await db
-        .insert(employeeAttendanceDevicesTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: employee.id,
-          tokenHash,
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          status: "pending",
-        })
-        .onConflictDoNothing({
-          target: [
-            employeeAttendanceDevicesTable.companyId,
-            employeeAttendanceDevicesTable.employeeId,
-            employeeAttendanceDevicesTable.tokenHash,
-          ],
-        })
-        .returning();
-      if (!device) {
-        [device] = await db
-          .select()
-          .from(employeeAttendanceDevicesTable)
-          .where(
-            and(
-              eq(employeeAttendanceDevicesTable.companyId, context.companyId),
-              eq(employeeAttendanceDevicesTable.employeeId, employee.id),
-              eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
-            ),
-          )
-          .limit(1);
+      if (device && ["rejected", "revoked"].includes(device.status)) {
+        shouldAuditRequest = true;
+        [device] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            status: "pending",
+            requestedAt: now,
+            approvedAt: null,
+            approvedBy: null,
+            updatedAt: now,
+          })
+          .where(eq(employeeAttendanceDevicesTable.id, device.id))
+          .returning();
+      } else if (device?.status === "pending") {
+        const approveAsFirstBrowser = !activeDevice;
+        [device] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            ...(approveAsFirstBrowser
+              ? { status: "active", approvedAt: now, approvedBy: context.accountId }
+              : {}),
+            updatedAt: now,
+          })
+          .where(eq(employeeAttendanceDevicesTable.id, device.id))
+          .returning();
+        firstBrowserBound = approveAsFirstBrowser;
+        shouldAuditRequest = !approveAsFirstBrowser;
+      } else if (!device) {
+        const approveAsFirstBrowser = !activeDevice;
+        [device] = await tx
+          .insert(employeeAttendanceDevicesTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: employee.id,
+            tokenHash,
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            status: approveAsFirstBrowser ? "active" : "pending",
+            ...(approveAsFirstBrowser
+              ? { approvedAt: now, approvedBy: context.accountId }
+              : {}),
+          })
+          .onConflictDoNothing({
+            target: [
+              employeeAttendanceDevicesTable.companyId,
+              employeeAttendanceDevicesTable.employeeId,
+              employeeAttendanceDevicesTable.tokenHash,
+            ],
+          })
+          .returning();
+        if (!device) {
+          [device] = await tx
+            .select()
+            .from(employeeAttendanceDevicesTable)
+            .where(
+              and(
+                eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+                eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+                eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+              ),
+            )
+            .limit(1);
+        }
+        firstBrowserBound = approveAsFirstBrowser && device?.status === "active";
+        shouldAuditRequest = device?.status === "pending";
       }
-    }
-
+      return { device, shouldAuditRequest, firstBrowserBound };
+    });
+    const device = registration.device;
     if (!device) {
       res.status(500).json({ error: "Could not register this device." });
       return;
     }
-    if (shouldAuditRequest && device.status === "pending") {
+    if (registration.firstBrowserBound) {
+      await recordAudit(
+        context.companyId,
+        "attendance_first_browser_bound",
+        "employee_attendance_device",
+        device.id,
+        {
+          employeeId: employee.id,
+          deviceLabel: device.deviceLabel,
+          status: device.status,
+        },
+      );
+    }
+    if (registration.shouldAuditRequest && device.status === "pending") {
       await recordAudit(
         context.companyId,
         "attendance_device_registration_requested",
