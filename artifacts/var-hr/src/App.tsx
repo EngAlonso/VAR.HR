@@ -7138,8 +7138,8 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md sm:h-[72px] sm:px-8 sm:flex sm:gap-0">
-          <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
+        <header className="relative sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/90 px-3 py-2 backdrop-blur-md sm:h-[72px] sm:flex-row sm:items-center sm:gap-0 sm:px-8 sm:py-0">
+          <div className="flex min-h-10 w-full min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
               className="min-h-10 min-w-10 rounded-xl p-2 lg:hidden"
@@ -7165,6 +7165,16 @@ function Shell({ children }: { children: ReactNode }) {
                 className="hidden !h-full !w-full !max-w-none object-contain sm:block"
               />
             </span>
+            <Button
+              variant="outline"
+              className="ms-auto flex min-w-0 max-w-[58%] items-center gap-2 rounded-xl px-2 py-2 text-start sm:hidden"
+              onClick={() => setLocation("/profile")}
+              aria-label={t("profileEmployee")}
+              data-testid="button-mobile-profile"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-[10px] font-bold text-primary">{accountInitials}</span>
+              <span className="min-w-0 truncate text-xs font-semibold">{auth.account.fullName.trim().split(/\\s+/).filter(Boolean).slice(0, 3).join(" ")}</span>
+            </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
@@ -7183,7 +7193,7 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
+          <div className="flex min-h-10 w-full min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
@@ -7204,17 +7214,6 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
-            <Button
-              variant="outline"
-              className="grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
-              onClick={() => setLocation("/profile")}
-              aria-label={t("profileEmployee")}
-              data-testid="button-mobile-profile"
-            >
-              <span className="font-display text-xs font-bold">
-                {accountInitials}
-              </span>
-            </Button>
             <Button
               variant="quiet"
               className="hidden p-2 sm:inline-flex"
@@ -7259,7 +7258,7 @@ function Shell({ children }: { children: ReactNode }) {
                 key={`${href}-${key}`}
                 href={href}
                 className={cn(
-                  "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors",
+                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 transition-colors",
                   isActive
                     ? "bg-primary/15 text-primary-dark"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -7268,7 +7267,7 @@ function Shell({ children }: { children: ReactNode }) {
                 data-testid={`mobile-nav-${key}`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className="max-w-full truncate">{label}</span>
+                <span className="block max-w-full whitespace-normal break-words text-center leading-3">{label}</span>
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
@@ -7279,14 +7278,14 @@ function Shell({ children }: { children: ReactNode }) {
           })}
           <button
             type="button"
-            className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(true)}
             aria-controls="workspace-navigation"
             aria-expanded={open}
             data-testid="button-mobile-more"
           >
             <MoreHorizontal size={18} strokeWidth={1.8} />
-            <span className="max-w-full truncate">{t("more")}</span>
+            <span className="block max-w-full whitespace-normal break-words text-center leading-3">{t("more")}</span>
           </button>
         </nav>
       </div>
