@@ -8358,7 +8358,7 @@ function EmployeeAttendanceMovement({
 
   const rows = useMemo(
     () => [...(report.data?.rows ?? [])].sort((a, b) =>
-      String(b.date ?? "").localeCompare(String(a.date ?? "")),
+      String(a.date ?? "").localeCompare(String(b.date ?? "")),
     ),
     [report.data?.rows],
   );
@@ -17617,7 +17617,7 @@ function EmployeeWorkLocationsPage() {
   const [selectedDate,setSelectedDate] = useState("");
   const ar=locale==="ar";
   useEffect(()=>{let live=true;(async()=>{try{const data=await authRequest<typeof rows>(`/api/employees/${employeeId}/work-locations`);if(live)setRows(data);}catch(e){if(live)setError(e instanceof Error?e.message:(ar?"تعذر تحميل المواقع":"Could not load locations"));}finally{if(live)setLoading(false);}})();return()=>{live=false;};},[employeeId,ar]);
-  const days=useMemo(()=>{const m=new Map<string,typeof rows>();rows.forEach(r=>m.set(r.workDate,[...(m.get(r.workDate)||[]),r]));return [...m.entries()].sort(([x],[y])=>y.localeCompare(x));},[rows]);
+  const days=useMemo(()=>{const m=new Map<string,typeof rows>();rows.forEach(r=>m.set(r.workDate,[...(m.get(r.workDate)||[]),r]));return [...m.entries()].sort(([x],[y])=>x.localeCompare(y));},[rows]);
   const chosen=days.find(([d])=>d===selectedDate);
   const weekday=(d:string)=>new Intl.DateTimeFormat(ar?"ar-EG":"en-US",{weekday:"long"}).format(new Date(d+"T12:00:00"));
   const name=employee.data?`${employee.data.firstName} ${employee.data.lastName}`:(ar?"الموظف":"Employee");
@@ -17632,7 +17632,7 @@ function EmployeeWorkLocationsPage() {
         </section>
         <section className="min-w-0 space-y-3 md:sticky md:top-4">
           <h3 className="text-sm font-semibold text-muted-foreground">{ar?"تفاصيل مواقع اليوم":"Selected day locations"}</h3>
-          {chosen ? <><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{chosen[1].map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</> : <Card className="flex min-h-52 items-center justify-center p-6"><Empty title={ar?"اختر يومًا من القائمة":"Choose a day"} detail={ar?"ستظهر المواقع المسجلة في هذا الجزء":"Locations recorded on that day will appear here"}/></Card>}
+          {chosen ? <><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{[...chosen[1]].sort((a,b)=>String(a.recordedAt).localeCompare(String(b.recordedAt))).map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</> : <Card className="flex min-h-52 items-center justify-center p-6"><Empty title={ar?"اختر يومًا من القائمة":"Choose a day"} detail={ar?"ستظهر المواقع المسجلة في هذا الجزء":"Locations recorded on that day will appear here"}/></Card>}
         </section>
       </div>
       </>}
