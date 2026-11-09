@@ -11359,7 +11359,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
 }
 
 function Attendance() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const selfEmployee = useGetEmployee(workspace.data?.employeeId ?? "", {
