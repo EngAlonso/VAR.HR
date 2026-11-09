@@ -1158,7 +1158,7 @@ const copy = {
     periodsSuppliedByApi: "Periods are supplied by the operational API.",
     calculationHistory: "Calculation history",
     calculated: "Calculated",
-    calculationExplanation: "Calculation explanation",
+    calculationExplanation: "{locale === "ar" ? "توضيح طريقة الحساب" : "Calculation explanation"}",
     selectPeriodToCreatePreview:
       "Choose Calculate to create an explainable calculation preview.",
     payrollCalculationReady: "Payroll calculation ready",
@@ -11646,7 +11646,7 @@ function Attendance() {
       },
       {
         onSuccess: () => {
-          toast.success("Attendance adjustment submitted for approval.");
+          toast.success(locale === "ar" ? "تم إرسال تعديل الحضور للموافقة." : "Attendance adjustment submitted for approval.");
           setShowAdjustmentForm(false);
           setAdjustmentForm({
             minutes: "",
@@ -11663,7 +11663,7 @@ function Attendance() {
           });
         },
         onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, "Could not submit adjustment.")),
+          toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر إرسال التعديل." : "Could not submit adjustment.")),
       },
     );
   }
@@ -11672,7 +11672,7 @@ function Attendance() {
       { adjustmentId: id, data: { decision } },
       {
         onSuccess: () => {
-          toast.success(`Adjustment ${decision}.`);
+          toast.success(locale === "ar" ? (decision === "approved" ? "تم اعتماد التعديل." : "تم رفض التعديل.") : `Adjustment ${decision}.`);
           qc.invalidateQueries({
             queryKey:
               getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
@@ -11683,18 +11683,18 @@ function Attendance() {
           });
         },
         onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, "Could not update adjustment.")),
+          toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث التعديل." : "Could not update adjustment.")),
       },
     );
   }
   function reverseAdjustmentById(id: string) {
-    const reason = window.prompt("Reason for reversing this adjustment:");
+    const reason = window.prompt(locale === "ar" ? "اكتب سبب التراجع عن هذا التعديل:" : "Reason for reversing this adjustment:");
     if (!reason?.trim()) return;
     reverseAdjustment.mutate(
       { adjustmentId: id, data: { reason: reason.trim() } },
       {
         onSuccess: () => {
-          toast.success("Adjustment reversed.");
+          toast.success(locale === "ar" ? "تم التراجع عن التعديل." : "Adjustment reversed.");
           qc.invalidateQueries({
             queryKey:
               getListAttendanceTimeAdjustmentsQueryKey(selectedAttendanceId),
@@ -11705,7 +11705,7 @@ function Attendance() {
           });
         },
         onError: (error: unknown) =>
-          toast.error(apiErrorMessage(error, "Could not reverse adjustment.")),
+          toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر التراجع عن التعديل." : "Could not reverse adjustment.")),
       },
     );
   }
@@ -11854,7 +11854,7 @@ function Attendance() {
                         <div className="font-semibold">{x.employee.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {displayTime(x.checkIn)} → {displayTime(x.checkOut)} ·{" "}
-                          {x.workedHours}h
+                          {x.workedHours} {locale === "ar" ? "ساعة" : "h"}
                         </div>
                       </div>
                     </div>
@@ -11949,7 +11949,7 @@ function Attendance() {
                       <th className="px-5 py-3">{"عرض موقع الحضور"}</th>
                       <th className="px-5 py-3">{"عرض موقع الانصراف"}</th>
                       {(canCorrect || canAdjust) && (
-                        <th className="px-5 py-3 text-right">Actions</th>
+                        <th className="px-5 py-3 text-right">{locale === "ar" ? "الإجراءات" : "Actions"}</th>
                       )}
                     </tr>
                   </thead>
@@ -11976,7 +11976,7 @@ function Attendance() {
                                 className="text-xs"
                                 onClick={() => setSelectedAttendanceId(x.id)}
                               >
-                                Calculation
+                                {locale === "ar" ? "تفاصيل الحساب" : "Calculation"}
                               </Button>
                               {canAdjust && (
                                 <Button
@@ -11987,7 +11987,7 @@ function Attendance() {
                                     setShowAdjustmentForm(true);
                                   }}
                                 >
-                                  Adjust
+                                  {locale === "ar" ? "تعديل" : "Adjust"}
                                 </Button>
                               )}
                               {canCorrect && (
@@ -12090,7 +12090,7 @@ function Attendance() {
       )}
       {selectedAttendanceId && (
         <Modal
-          title="Attendance calculation and adjustments"
+          title={locale === "ar" ? "حساب الحضور والتعديلات" : "Attendance calculation and adjustments"}
           onClose={() => {
             setSelectedAttendanceId("");
             setShowAdjustmentForm(false);
@@ -12104,46 +12104,46 @@ function Attendance() {
             <div className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-3">
                 <Card className="bg-muted/40 p-3">
-                  <p className="text-xs text-muted-foreground">Original</p>
+                  <p className="text-xs text-muted-foreground">{locale === "ar" ? "الأصلي" : "Original"}</p>
                   <p className="mt-1 font-mono">
-                    {calculation.data.originalWorkedMinutes}m worked
+                    {calculation.data.originalWorkedMinutes} {locale === "ar" ? "دقيقة عمل" : "m worked"}
                   </p>
                   <p className="font-mono">
-                    {calculation.data.originalOvertimeMinutes}m overtime
+                    {calculation.data.originalOvertimeMinutes} {locale === "ar" ? "دقيقة إضافي" : "m overtime"}
                   </p>
                 </Card>
                 <Card className="bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Manual approved
+                    {locale === "ar" ? "التعديلات اليدوية المعتمدة" : "Manual approved"}
                   </p>
                   <p className="mt-1 font-mono">
-                    {calculation.data.manualMinutes}m time
+                    {calculation.data.manualMinutes} {locale === "ar" ? "دقيقة وقت" : "m time"}
                   </p>
                   <p className="font-mono">
-                    {calculation.data.manualOvertimeMinutes}m overtime
+                    {calculation.data.manualOvertimeMinutes} {locale === "ar" ? "دقيقة إضافي" : "m overtime"}
                   </p>
                 </Card>
                 <Card className="bg-primary/5 p-3">
-                  <p className="text-xs text-muted-foreground">Final</p>
+                  <p className="text-xs text-muted-foreground">{locale === "ar" ? "النهائي" : "Final"}</p>
                   <p className="mt-1 font-mono">
-                    {calculation.data.finalWorkedMinutes}m worked
+                    {calculation.data.finalWorkedMinutes} {locale === "ar" ? "دقيقة عمل" : "m worked"}
                   </p>
                   <p className="font-mono">
-                    {calculation.data.finalOvertimeMinutes}m overtime
+                    {calculation.data.finalOvertimeMinutes} {locale === "ar" ? "دقيقة إضافي" : "m overtime"}
                   </p>
                   <p className="font-mono">
-                    {calculation.data.finalPenaltyMinutes}m penalties
+                    {calculation.data.finalPenaltyMinutes} {locale === "ar" ? "دقيقة جزاءات" : "m penalties"}
                   </p>
                 </Card>
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Adjustment history</h3>
+                <h3 className="font-semibold">{locale === "ar" ? "سجل التعديلات" : "Adjustment history"}</h3>
                 {canAdjust && (
                   <Button
                     variant="outline"
                     onClick={() => setShowAdjustmentForm((value) => !value)}
                   >
-                    {showAdjustmentForm ? "Close form" : "Add adjustment"}
+                    {showAdjustmentForm ? (locale === "ar" ? "إغلاق النموذج" : "Close form") : (locale === "ar" ? "إضافة تعديل" : "Add adjustment")}
                   </Button>
                 )}
               </div>
@@ -12154,7 +12154,7 @@ function Attendance() {
                 >
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field
-                      label="Minutes (negative reduces time)"
+                      label={locale === "ar" ? "عدد الدقائق (القيمة السالبة تخصم من الوقت)" : "Minutes (negative reduces time)"}
                       type="number"
                       value={adjustmentForm.minutes}
                       onChange={(value) =>
@@ -12162,7 +12162,7 @@ function Attendance() {
                       }
                     />
                     <label className="block text-sm font-semibold">
-                      Type
+                      {locale === "ar" ? "نوع التعديل" : "Type"}
                       <select
                         value={adjustmentForm.adjustmentType}
                         onChange={(event) =>
@@ -12173,9 +12173,9 @@ function Attendance() {
                         }
                         className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                       >
-                        <option value="time">Worked time</option>
-                        <option value="overtime">Manual overtime</option>
-                        <option value="permission">Emergency permission</option>
+                        <option value="time">{locale === "ar" ? "وقت العمل" : "Worked time"}</option>
+                        <option value="overtime">{locale === "ar" ? "وقت إضافي يدوي" : "Manual overtime"}</option>
+                        <option value="permission">{locale === "ar" ? "إذن طارئ" : "Emergency permission"}</option>
                       </select>
                     </label>
                   </div>
@@ -12189,14 +12189,14 @@ function Attendance() {
                         reason: event.target.value,
                       })
                     }
-                    placeholder="Mandatory reason"
+                    placeholder={locale === "ar" ? "سبب التعديل (إجباري)" : "Mandatory reason"}
                     className="min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm"
                   />
                   <div className="flex justify-end">
                     <Button type="submit" disabled={createAdjustment.isPending}>
                       {createAdjustment.isPending
-                        ? "Submitting…"
-                        : "Submit for approval"}
+                        ? (locale === "ar" ? "جارٍ الإرسال…" : "Submitting…")
+                        : (locale === "ar" ? "إرسال للموافقة" : "Submit for approval")}
                     </Button>
                   </div>
                 </form>
@@ -12212,21 +12212,21 @@ function Attendance() {
                     >
                       <div>
                         <p className="font-semibold">
-                          {item.adjustmentType} · {item.minutes > 0 ? "+" : ""}
-                          {item.minutes} minutes
+                          {(locale === "ar" ? ({ time: "وقت عمل", overtime: "إضافي", permission: "إذن" } as Record<string, string>)[item.adjustmentType] : item.adjustmentType)} · {item.minutes > 0 ? "+" : ""}
+                          {item.minutes} {locale === "ar" ? "دقيقة" : "minutes"}
                         </p>
                         <p className="text-muted-foreground">{item.reason}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.status} · created by {item.createdBy} ·{" "}
+                          {(locale === "ar" ? ({ pending: "قيد المراجعة", approved: "معتمد", rejected: "مرفوض", reversed: "تم التراجع عنه" } as Record<string, string>)[item.status] ?? item.status : item.status)} · {locale === "ar" ? "بواسطة" : "created by"} {item.createdBy} ·{" "}
                           {date(item.createdAt)}
                           {item.approvedAt
-                            ? ` · approved ${date(item.approvedAt)}`
+                            ? (locale === "ar" ? ` · تم الاعتماد ${date(item.approvedAt)}` : ` · approved ${date(item.approvedAt)}`)
                             : ""}
                           {item.rejectedAt
-                            ? ` · rejected ${date(item.rejectedAt)}`
+                            ? (locale === "ar" ? ` · تم الرفض ${date(item.rejectedAt)}` : ` · rejected ${date(item.rejectedAt)}`)
                             : ""}
                           {item.reversedAt
-                            ? ` · reversed ${date(item.reversedAt)}`
+                            ? (locale === "ar" ? ` · تم التراجع ${date(item.reversedAt)}` : ` · reversed ${date(item.reversedAt)}`)
                             : ""}
                         </p>
                       </div>
@@ -12239,7 +12239,7 @@ function Attendance() {
                               decideAdjustmentById(item.id, "approved")
                             }
                           >
-                            Approve
+                            {locale === "ar" ? "اعتماد" : "Approve"}
                           </Button>
                           <Button
                             variant="outline"
@@ -12248,7 +12248,7 @@ function Attendance() {
                               decideAdjustmentById(item.id, "rejected")
                             }
                           >
-                            Reject
+                            {locale === "ar" ? "رفض" : "Reject"}
                           </Button>
                         </div>
                       )}
@@ -12258,7 +12258,7 @@ function Attendance() {
                           className="text-xs"
                           onClick={() => reverseAdjustmentById(item.id)}
                         >
-                          Reverse
+                          {locale === "ar" ? "تراجع" : "Reverse"}
                         </Button>
                       )}
                     </div>
@@ -12266,7 +12266,7 @@ function Attendance() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No attendance adjustments.
+                  {locale === "ar" ? "لا توجد تعديلات على الحضور." : "No attendance adjustments."}
                 </p>
               )}
               <details>
@@ -12419,17 +12419,17 @@ function Requests() {
   }
   function cancelRequest(id: string) {
     cancelLeave.mutate(
-      { requestId: id, data: { reason: "Cancelled by requester" } },
+      { requestId: id, data: { reason: locale === "ar" ? "تم الإلغاء بواسطة مقدم الطلب" : "Cancelled by requester" } },
       {
         onSuccess: () => {
-          toast.success("Leave request cancelled");
+          toast.success(locale === "ar" ? "تم إلغاء طلب الإجازة." : "Leave request cancelled");
           qc.invalidateQueries({ queryKey: getListLeaveRequestsQueryKey() });
           qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() });
           qc.invalidateQueries({
             queryKey: getListLeaveBalanceTransactionsQueryKey(),
           });
         },
-        onError: () => toast.error("Could not cancel leave request"),
+        onError: () => toast.error(locale === "ar" ? "تعذر إلغاء طلب الإجازة." : "Could not cancel leave request"),
       },
     );
   }
@@ -12567,7 +12567,7 @@ function Requests() {
                             onClick={() => cancelRequest(r.id)}
                             disabled={cancelLeave.isPending}
                           >
-                            Cancel request
+                            {locale === "ar" ? "إلغاء الطلب" : "Cancel request"}
                           </Button>
                         </div>
                       )}
