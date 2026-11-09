@@ -8972,7 +8972,7 @@ function Branches() {
     );
   }
   return (
-    <div className="animate-in">
+    <div className="animate-in management-page management-page--branches">
       <SectionTitle
         eyebrow={t("branchesEyebrow")}
         title={t("branchesTitle")}
@@ -9181,7 +9181,7 @@ function Departments() {
   }
   const activeDetail = detail.data as any;
   return (
-    <div className="animate-in">
+    <div className="animate-in management-page management-page--departments">
       <SectionTitle
         eyebrow={t("departmentsEyebrow")}
         title={t("departmentsTitle")}
@@ -12430,7 +12430,7 @@ function Requests() {
     return matchesSearch && (requestStatusFilter === "all" || row.status === requestStatusFilter);
   });
   return (
-    <div className="animate-in">
+    <div className="animate-in management-page management-page--requests">
       <SectionTitle
         eyebrow={t("decisionQueue")}
         title={t("requestsTitle")}
@@ -16460,7 +16460,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
   }
   const effectiveSchedule = effective.data?.schedule;
   return (
-    <div className="animate-in">
+    <div className="animate-in management-page management-page--schedules">
       {!embedded && (
         <SectionTitle
           eyebrow={t("rules")}
@@ -19380,7 +19380,7 @@ function Accounts() {
   if (workspace.data?.role !== "company_owner")
     return <WorkspaceState kind="unauthorized" />;
   return (
-    <div className="animate-in">
+    <div className="animate-in management-page management-page--accounts">
       <SectionTitle
         eyebrow={authLabel(locale, "staffAccounts")}
         title={authLabel(locale, "accountManagement")}
