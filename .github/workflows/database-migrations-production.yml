@@ -1,3 +1,4 @@
+
 name: VAR HR protected Aiven production migration
 
 on:
@@ -11,7 +12,7 @@ on:
           - "no"
           - "yes"
       confirm_production_migration:
-        description: "Type APPLY-0011 to authorize the production migration"
+        description: "Type APPLY-0012 to authorize migrations 0011 and 0012"
         required: true
         type: string
 
@@ -28,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: aiven-production
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -42,10 +44,12 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/var_hr_migration_test
       AIVEN_MIGRATION_DATABASE_URL: ${{ secrets.AIVEN_MIGRATION_DATABASE_URL }}
       AIVEN_CA_CERT: ${{ secrets.AIVEN_CA_CERT }}
+
     steps:
       - name: Check out reviewed code
         uses: actions/checkout@v4
@@ -64,69 +68,151 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate explicit production authorization and secrets
+      - name: Validate production authorization and secrets
         shell: bash
         env:
           BACKUP_VERIFIED: ${{ inputs.backup_verified }}
           PRODUCTION_CONFIRMATION: ${{ inputs.confirm_production_migration }}
         run: |
           if [[ "$BACKUP_VERIFIED" != "yes" ]]; then
-            echo "::error::Production migration blocked: select 'yes' only after confirming a recent, restorable Aiven backup."
+            echo "::error::Migration blocked: a recent restorable backup must be confirmed."
             exit 1
           fi
-          if [[ "$PRODUCTION_CONFIRMATION" != "APPLY-0011" ]]; then
-            echo "::error::Production migration blocked: confirmation must match APPLY-0011 exactly."
+
+          if [[ "$PRODUCTION_CONFIRMATION" != "APPLY-0012" ]]; then
+            echo "::error::Migration blocked: confirmation must match APPLY-0012 exactly."
             exit 1
           fi
+
           if [[ -z "$AIVEN_MIGRATION_DATABASE_URL" ]]; then
-            echo "::error::Production migration blocked: GitHub Environment secret AIVEN_MIGRATION_DATABASE_URL is missing or unavailable."
+            echo "::error::Missing GitHub Environment secret AIVEN_MIGRATION_DATABASE_URL."
             exit 1
           fi
+
           if [[ -z "$AIVEN_CA_CERT" ]]; then
-            echo "::error::Production migration blocked: GitHub Environment secret AIVEN_CA_CERT is missing or unavailable."
+            echo "::error::Missing GitHub Environment secret AIVEN_CA_CERT."
             exit 1
           fi
+
           if [[ "$AIVEN_MIGRATION_DATABASE_URL" != *".aivencloud.com"* ]]; then
-            echo "::error::Production migration blocked: AIVEN_MIGRATION_DATABASE_URL does not point to an Aiven host."
+            echo "::error::The configured database URL is not an Aiven host."
             exit 1
           fi
-          echo "Authorization inputs and required secrets are present. Continuing with read-only baseline checks.";
+
+          echo "Authorization and required secrets verified."
 
       - name: Inspect live Aiven schema (read-only)
         run: pnpm --filter @workspace/db run inspect:aiven
 
-      - name: Require the reviewed Aiven baseline and exact 0010 starting point
+      - name: Require reviewed 0010 baseline and repository migrations through 0012
         run: |
           node --input-type=module <<'NODE'
           import fs from "node:fs";
-          const p = JSON.parse(fs.readFileSync("lib/db/migrations/meta/aiven-baseline-report.json", "utf8"));
-          if (p.status !== "baselined") throw new Error("Aiven baseline is not current; production migration blocked.");
-          if (p.databaseName !== "defaultdb") throw new Error("Unexpected Aiven database name; review target before proceeding.");
-          if (p.matchingSnapshotMigration?.tag !== "0010_acoustic_sway") throw new Error("Aiven is not exactly at the reviewed 0010 baseline; no migration will run.");
-          if (p.latestRepositoryMigration?.tag !== "0011_flexible_work_schedules") throw new Error("Repository latest migration is not 0011_flexible_work_schedules.");
-          if (!p.migrationLedger?.exists) throw new Error("Aiven Drizzle migration ledger is missing.");
-          console.log("Aiven schema matches the reviewed 0010 baseline. Proceeding to disposable test.");
+
+          const p = JSON.parse(
+            fs.readFileSync(
+              "lib/db/migrations/meta/aiven-baseline-report.json",
+              "utf8"
+            )
+          );
+
+          if (p.status !== "baselined") {
+            throw new Error("Aiven baseline is not current. Production migration blocked.");
+          }
+
+          if (p.databaseName !== "defaultdb") {
+            throw new Error("Unexpected Aiven database name. Review target before proceeding.");
+          }
+
+          if (p.matchingSnapshotMigration?.tag !== "0010_acoustic_sway") {
+            throw new Error("Aiven is not at the reviewed 0010 starting schema. No migration will run.");
+          }
+
+          if (p.latestRepositoryMigration?.tag !== "0012_employee_attendance_location_mode") {
+            throw new Error("Repository latest migration is not 0012_employee_attendance_location_mode.");
+          }
+
+          if (!p.migrationLedger?.exists) {
+            throw new Error("Aiven Drizzle migration ledger is missing.");
+          }
+
+          if (!p.migrationLedger.entries?.some(
+            entry => entry.hash === p.baselineMigration?.hash
+          )) {
+            throw new Error("The reviewed baseline migration is missing from Aiven's ledger.");
+          }
+
+          console.log("Verified Aiven starting point at 0010. Pending migrations will be tested before production.");
           NODE
 
-      - name: Bootstrap and apply all pending migrations on disposable PostgreSQL
+      - name: Bootstrap and apply pending migrations on disposable PostgreSQL
         run: pnpm --filter @workspace/db run migrate:dev
 
-      - name: Verify disposable PostgreSQL reached migration 0011
+      - name: Verify disposable PostgreSQL reached migration 0012
         run: pnpm --filter @workspace/db run inspect:dev
 
-      - name: Apply development-tested migration(s) to Aiven
+      - name: Apply development-tested migrations to Aiven
         run: pnpm --filter @workspace/db exec node ./scripts/migration-control.mjs migrate:aiven --confirm-aiven-production
 
       - name: Verify Aiven schema and migration ledger after migration
         run: |
           pnpm --filter @workspace/db run inspect:aiven
+
           node --input-type=module <<'NODE'
           import fs from "node:fs";
-          const p = JSON.parse(fs.readFileSync("lib/db/migrations/meta/aiven-baseline-report.json", "utf8"));
-          if (p.status !== "baselined") throw new Error("Post-migration Aiven baseline verification failed.");
-          if (p.matchingSnapshotMigration?.tag !== "0011_flexible_work_schedules") throw new Error("Aiven schema does not match migration 0011.");
-          if (!p.migrationLedger?.entries?.some((entry) => entry.hash === p.latestRepositoryMigration?.hash)) throw new Error("Migration 0011 is missing from the Aiven migration ledger.");
-          const shiftType = p.columns?.find((column) => column.table_name === "var_hr_work_schedules" && column.column_name === "shift_type");
-          if (!shiftType || shiftType.data_type !== "text" || shiftType.not_null !== true) throw new Error("Expected shift_type column is missing or has the wrong type.");
-          console.log("Verified: Aiven schema and migration ledger are current through 0011; shift_type is present.");
+
+          const p = JSON.parse(
+            fs.readFileSync(
+              "lib/db/migrations/meta/aiven-baseline-report.json",
+              "utf8"
+            )
+          );
+
+          if (p.status !== "baselined") {
+            throw new Error("Post-migration Aiven baseline verification failed.");
+          }
+
+          if (p.matchingSnapshotMigration?.tag !== "0012_employee_attendance_location_mode") {
+            throw new Error("Aiven schema does not match migration 0012.");
+          }
+
+          const latest = p.latestRepositoryMigration;
+
+          if (latest?.tag !== "0012_employee_attendance_location_mode") {
+            throw new Error("Repository latest migration is not 0012.");
+          }
+
+          if (!p.migrationLedger?.exists ||
+              !p.migrationLedger.entries?.some(entry => entry.hash === latest.hash)) {
+            throw new Error("Migration 0012 is missing from Aiven's migration ledger.");
+          }
+
+          const modeColumn = p.columns?.find(
+            column =>
+              column.table_name === "var_hr_employees" &&
+              column.column_name === "attendance_location_mode"
+          );
+
+          if (
+            !modeColumn ||
+            modeColumn.data_type !== "text" ||
+            modeColumn.not_null !== true ||
+            modeColumn.default_value !== "'fixed'::text"
+          ) {
+            throw new Error("attendance_location_mode is missing or has an unexpected definition.");
+          }
+
+          const modeConstraint = p.constraints?.find(
+            constraint =>
+              constraint.table_name === "var_hr_employees" &&
+              constraint.constraint_name === "var_hr_employees_attendance_location_mode_chk"
+          );
+
+          if (!modeConstraint) {
+            throw new Error("Attendance location mode check constraint is missing.");
+          }
+
+          console.log("SUCCESS: Aiven is migrated through 0012.");
+          console.log("Verified: attendance_location_mode column and check constraint exist.");
+          console.log("Verified: migration 0012 is recorded in the Aiven migration ledger.");
           NODE
