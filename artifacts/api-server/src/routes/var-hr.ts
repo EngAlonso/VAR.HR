@@ -12049,16 +12049,6 @@ async function calculatePayrollPeriod(
             },
           ]
         : []),
-      ...(additions > 0
-        ? [
-            {
-              label: message(req, "additionsLineLabel"),
-              amount: additions,
-              type: "addition" as const,
-              explanation: message(req, "adjustmentAdditionExplanation"),
-            },
-          ]
-        : []),
       ...(lateDeduction > 0
         ? [
             {
