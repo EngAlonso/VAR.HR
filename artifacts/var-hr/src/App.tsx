@@ -16459,7 +16459,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   type="search"
                   value={scheduleSearch}
                   onChange={(event) => setScheduleSearch(event.target.value)}
-                  placeholder={t("search") || (locale === "ar" ? "ابحث عن شيفت..." : "Search shifts...")}
+                  placeholder={locale === "ar" ? "ابحث عن شيفت..." : "Search shifts..."}
                   className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   aria-label={locale === "ar" ? "بحث الشيفتات" : "Search shifts"}
                 />
