@@ -6335,7 +6335,9 @@ async function recordCurrentAttendance(
         }
       : null;
   const locationRequiredForEmployee =
-    currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
+    parsed.data.source !== "biometric" &&
+    (currentEmployee.attendanceLocationMode === "fixed" ||
+      currentEmployee.attendanceLocationMode === "variable");
   const variableLocationEmployee =
     locationRequiredForEmployee &&
     currentEmployee.attendanceLocationMode === "variable";
