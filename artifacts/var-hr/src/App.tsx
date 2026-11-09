@@ -8179,7 +8179,7 @@ function EmployeeHrProfile({
           {selfService && (
             <div className="mt-6 border-t border-border pt-6">
               <h3 className="font-display text-lg font-semibold">
-                Leave & attendance summary
+                {locale === "ar" ? "ملخص الإجازات والحضور" : "Leave & attendance summary"}
               </h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {(
@@ -8202,44 +8202,44 @@ function EmployeeHrProfile({
                   .map((balance) => (
                     <Fragment key={balance.type}>
                       <Info
-                        label="Annual balance"
-                        value={`${balance.total} days`}
+                        label={locale === "ar" ? "رصيد الإجازة السنوية" : "Annual balance"}
+                        value={`${balance.total} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                       <Info
-                        label="Used leave"
-                        value={`${balance.used} days`}
+                        label={locale === "ar" ? "الإجازات المستخدمة" : "Used leave"}
+                        value={`${balance.used} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                       <Info
-                        label="Deducted for absence"
-                        value={`${balance.absenceDeducted} days`}
+                        label={locale === "ar" ? "المخصوم بسبب الغياب" : "Deducted for absence"}
+                        value={`${balance.absenceDeducted} ${locale === "ar" ? "يوم" : "days"}`}
                       />
-                      <Info label="Pending" value={`${balance.pending} days`} />
+                      <Info label={locale === "ar" ? "قيد الانتظار" : "Pending"} value={`${balance.pending} ${locale === "ar" ? "يوم" : "days"}`} />
                       <Info
-                        label="Remaining"
-                        value={`${Math.max(0, balance.remaining)} days`}
+                        label={locale === "ar" ? "المتبقي" : "Remaining"}
+                        value={`${Math.max(0, balance.remaining)} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                       <Info
-                        label="Deduction months"
+                        label={locale === "ar" ? "شهور الخصم المسموح بها" : "Deduction months"}
                         value={balance.allowedBalanceMonths.join(", ")}
                       />
                       <Info
-                        label="Monthly maximum"
-                        value={`${balance.monthlyDeductionLimit} days`}
+                        label={locale === "ar" ? "الحد الأقصى الشهري" : "Monthly maximum"}
+                        value={`${balance.monthlyDeductionLimit} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                       <Info
-                        label="Deducted this month"
-                        value={`${balance.deductedThisMonth} days`}
+                        label={locale === "ar" ? "المخصوم هذا الشهر" : "Deducted this month"}
+                        value={`${balance.deductedThisMonth} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                       <Info
-                        label="Unauthorized absence"
-                        value={`${balance.unauthorizedAbsenceDays} days`}
+                        label={locale === "ar" ? "الغياب غير المصرح به" : "Unauthorized absence"}
+                        value={`${balance.unauthorizedAbsenceDays} ${locale === "ar" ? "يوم" : "days"}`}
                       />
                     </Fragment>
                   ))}
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Info
-                  label="Absence days"
+                  label={locale === "ar" ? "أيام الغياب" : "Absence days"}
                   value={
                     (attendanceHistory.data || []).filter((item: any) =>
                       ["absent", "unexcused_absence", "missing_attendance"].includes(
@@ -8249,13 +8249,13 @@ function EmployeeHrProfile({
                   }
                 />
                 <Info
-                  label="Approved leave days"
+                  label={locale === "ar" ? "أيام الإجازات المعتمدة" : "Approved leave days"}
                   value={(leaveRequests.data || [])
                     .filter((item: any) => item.status === "approved")
                     .reduce((sum: number, item: any) => sum + Number(item.days), 0)}
                 />
                 <Info
-                  label="Extra-pay days"
+                  label={locale === "ar" ? "أيام الأجر الإضافي" : "Extra-pay days"}
                   value={(attendanceHistory.data || []).filter(
                     (item: any) =>
                       item.status === "holiday" ||
@@ -8264,8 +8264,7 @@ function EmployeeHrProfile({
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Extra pay is calculated from the effective attendance rules and
-                the highest applicable holiday or weekly multiplier.
+                {locale === "ar" ? "يتم حساب الأجر الإضافي وفق قواعد الحضور السارية وأعلى معامل مطبق للعطلات أو أيام الأسبوع." : "Extra pay is calculated from the effective attendance rules and the highest applicable holiday or weekly multiplier."}
               </p>
             </div>
           )}
