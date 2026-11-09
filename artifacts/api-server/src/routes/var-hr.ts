@@ -2863,6 +2863,7 @@ function employeeResponse(
     nationalId: row.employee.nationalId,
     biometricCode: row.employee.biometricCode,
     locationAttendanceEnabled: row.employee.locationAttendanceEnabled,
+    attendanceLocationMode: row.employee.attendanceLocationMode as "fixed" | "variable",
     automaticAnnualLeaveEligible:
       row.employee.automaticAnnualLeaveEligible,
     workingHours: row.employee.workingHours,
@@ -4276,6 +4277,7 @@ router.post("/employees", async (req, res): Promise<void> => {
           nationalId: parsed.data.nationalId,
           biometricCode: parsed.data.biometricCode,
           locationAttendanceEnabled: parsed.data.locationAttendanceEnabled ?? false,
+          attendanceLocationMode: parsed.data.attendanceLocationMode ?? "fixed",
           automaticAnnualLeaveEligible:
             parsed.data.automaticAnnualLeaveEligible ?? false,
           automaticAnnualLeaveActivatedAt:
@@ -6334,10 +6336,12 @@ async function recordCurrentAttendance(
       : null;
   const locationRequiredForEmployee =
     currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
+  const variableLocationEmployee =
+    locationRequiredForEmployee &&
+    currentEmployee.attendanceLocationMode === "variable";
   if (
-    (rules.gpsPolicy as string) === "required" &&
-    !location &&
-    !locationRequiredForEmployee
+    ((rules.gpsPolicy as string) === "required" || locationRequiredForEmployee) &&
+    !location
   ) {
     res.status(400).json({ error: message(req, "gpsValidationRequired") });
     return;
@@ -6417,12 +6421,17 @@ async function recordCurrentAttendance(
       });
       return;
     }
-    const locationValidation = await resolveAttendanceLocation(
-      context,
-      location,
-      locationRequiredForEmployee ? "required" : rules.gpsPolicy,
-      locale,
-    );
+    const locationValidation = variableLocationEmployee
+      ? {
+          status: "recorded" as const,
+          explanation: "GPS coordinates recorded for variable work location.",
+        }
+      : await resolveAttendanceLocation(
+          context,
+          location,
+          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
+          locale,
+        );
     if (
       rules.gpsPolicy === "required" &&
       !locationRequiredForEmployee &&
@@ -6514,22 +6523,28 @@ async function recordCurrentAttendance(
     res.status(400).json({ error: message(req, "checkInRequired") });
     return;
   }
-  const locationValidation = location
-    ? await resolveAttendanceLocation(
-        context,
-        location,
-        locationRequiredForEmployee ? "required" : rules.gpsPolicy,
-        locale,
-      )
-    : {
-        status: existing.locationStatus as
-          | "not_required"
-          | "verified"
-          | "outside_geofence"
-          | "low_accuracy"
-          | "pending",
-        explanation: existing.explanation,
-      };
+  const locationValidation = variableLocationEmployee && location
+    ? {
+        status: "recorded" as const,
+        explanation: "GPS coordinates recorded for variable work location.",
+      }
+    : location
+      ? await resolveAttendanceLocation(
+          context,
+          location,
+          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
+          locale,
+        )
+      : {
+          status: existing.locationStatus as
+            | "not_required"
+            | "verified"
+            | "recorded"
+            | "outside_geofence"
+            | "low_accuracy"
+            | "pending",
+          explanation: existing.explanation,
+        };
   if (
     rules.gpsPolicy === "required" &&
     !locationRequiredForEmployee &&
