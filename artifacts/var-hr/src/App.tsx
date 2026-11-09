@@ -9631,6 +9631,8 @@ function EmployeeProfilePage() {
   const remove = useDeleteEmployee();
   const departments = useListDepartments();
   const branches = useListBranches();
+  const schedules = useListWorkSchedules();
+  const assignSchedule = useAssignEmployeeSchedule();
   const payrollCycles = useListPayrollCycles();
   const payrollCycleAssignments = useListEmployeePayrollCycleAssignments(
     employeeId,
@@ -9651,14 +9653,26 @@ function EmployeeProfilePage() {
     employeeNumber: "",
     firstName: "",
     lastName: "",
+    firstNameEn: "",
+    lastNameEn: "",
     phone: "",
     nationalId: "",
     biometricCode: "",
     workingHours: "8",
+    payBasis: "monthly",
+    workDaysPerMonth: "26",
     salary: "0",
     departmentId: "",
     branchId: "",
+    joinedOn: "",
+    scheduleId: "",
+    scheduleEffectiveFrom: new Date().toISOString().slice(0, 10),
+    payrollCycleId: "",
     status: "active",
+    role: "employee",
+    automaticOvertime: "default",
+    automaticAnnualLeaveEligible: true,
+    locationAttendanceEnabled: false,
   });
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
@@ -9674,14 +9688,30 @@ function EmployeeProfilePage() {
       employeeNumber: employee.data.employeeNumber,
       firstName: employee.data.firstName,
       lastName: employee.data.lastName,
+      firstNameEn: employee.data.firstNameEn ?? "",
+      lastNameEn: employee.data.lastNameEn ?? "",
       phone: employee.data.phone ?? "",
       nationalId: employee.data.nationalId ?? "",
       biometricCode: employee.data.biometricCode ?? "",
       workingHours: String(employee.data.workingHours ?? 8),
+      payBasis: employee.data.payBasis ?? "monthly",
+      workDaysPerMonth: String(employee.data.workDaysPerMonth ?? 26),
       salary: String(employee.data.salary ?? 0),
       departmentId: employee.data.department?.id ?? "",
       branchId: employee.data.branch?.id ?? "",
+      joinedOn: employee.data.joinedOn ?? "",
+      scheduleId: employeeSchedule.data?.schedule?.id ?? "",
+      scheduleEffectiveFrom:
+        employeeSchedule.data?.assignment?.effectiveFrom ??
+        new Date().toISOString().slice(0, 10),
+      payrollCycleId: employee.data.payrollCycle?.id ?? "",
       status: employee.data.status,
+      role: employee.data.role ?? "employee",
+      automaticOvertime: employee.data.automaticOvertime ?? "default",
+      automaticAnnualLeaveEligible:
+        employee.data.automaticAnnualLeaveEligible ?? false,
+      locationAttendanceEnabled:
+        employee.data.locationAttendanceEnabled ?? false,
     });
     setEditing(true);
   }
@@ -9697,6 +9727,23 @@ function EmployeeProfilePage() {
       toast.error(t("couldNotSaveRecord"));
       return;
     }
+    const workingHours = Number(editForm.workingHours);
+    const workDaysPerMonth = Number(editForm.workDaysPerMonth);
+    const salary = Number(editForm.salary);
+    if (
+      !editForm.joinedOn ||
+      !Number.isFinite(workingHours) ||
+      workingHours <= 0 ||
+      workingHours > 24 ||
+      !Number.isInteger(workDaysPerMonth) ||
+      workDaysPerMonth < 1 ||
+      workDaysPerMonth > 31 ||
+      !Number.isFinite(salary) ||
+      salary < 0
+    ) {
+      toast.error(t("couldNotSaveRecord"));
+      return;
+    }
     update.mutate(
       {
         employeeId,
@@ -9704,22 +9751,76 @@ function EmployeeProfilePage() {
           employeeNumber,
           firstName: editForm.firstName.trim(),
           lastName: editForm.lastName.trim(),
+          firstNameEn: editForm.firstNameEn.trim(),
+          lastNameEn: editForm.lastNameEn.trim(),
           phone: editForm.phone.trim(),
           nationalId: editForm.nationalId.trim(),
           biometricCode: editForm.biometricCode.trim(),
-          workingHours: Number(editForm.workingHours),
-          salary: Number(editForm.salary),
+          workingHours,
+          payBasis: editForm.payBasis as "monthly" | "hourly",
+          workDaysPerMonth,
+          salary,
           departmentId: editForm.departmentId || null,
           branchId: editForm.branchId,
-          status: editForm.status,
+          joinedOn: editForm.joinedOn,
+          status: editForm.status as "active" | "inactive",
+          role: editForm.role as "employee" | "manager",
+          automaticOvertime: editForm.automaticOvertime as
+            | "default"
+            | "enabled"
+            | "disabled",
+          automaticAnnualLeaveEligible:
+            editForm.automaticAnnualLeaveEligible,
+          locationAttendanceEnabled: editForm.locationAttendanceEnabled,
         } as any,
       },
       {
-        onSuccess: () => {
-          toast.success(t("employeeSaved"));
-          setEditing(false);
-          qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) });
+        onSuccess: async () => {
+          try {
+            if (
+              editForm.scheduleId &&
+              editForm.scheduleId !== employeeSchedule.data?.schedule?.id
+            ) {
+              await assignSchedule.mutateAsync({
+                employeeId,
+                data: {
+                  scheduleId: editForm.scheduleId,
+                  effectiveFrom: editForm.scheduleEffectiveFrom,
+                },
+              });
+            }
+            if (
+              editForm.payrollCycleId &&
+              editForm.payrollCycleId !== employee.data?.payrollCycle?.id
+            ) {
+              await assignPayrollCycle.mutateAsync({
+                employeeId,
+                data: {
+                  cycleId: editForm.payrollCycleId,
+                  effectiveFrom: new Date().toISOString().slice(0, 10),
+                },
+              });
+            }
+            toast.success(t("employeeSaved"));
+            setEditing(false);
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() }),
+              qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) }),
+              qc.invalidateQueries({ queryKey: getGetEmployeeScheduleQueryKey(employeeId) }),
+              qc.invalidateQueries({ queryKey: getListEmployeePayrollCycleAssignmentsQueryKey(employeeId) }),
+            ]);
+          } catch (error) {
+            toast.error(
+              apiErrorMessage(
+                error,
+                "تم حفظ بيانات الموظف، لكن تعذر تحديث الشيفت أو دورة الرواتب. راجع التعيينات ثم أعد المحاولة.",
+              ),
+            );
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: getGetEmployeeScheduleQueryKey(employeeId) }),
+              qc.invalidateQueries({ queryKey: getListEmployeePayrollCycleAssignmentsQueryKey(employeeId) }),
+            ]);
+          }
         },
         onError: (error: unknown) =>
           toast.error(apiErrorMessage(error, t("couldNotSaveRecord"))),
@@ -10310,120 +10411,113 @@ function EmployeeProfilePage() {
         <Modal
           title={t("edit")}
           onClose={() => setEditing(false)}
-          className="max-w-2xl"
+          className="max-w-4xl"
         >
-          <form onSubmit={saveEdit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label={t("employeeNumber")}
-                value={editForm.employeeNumber}
-                name="employeeNumber"
-                inputMode="numeric"
-                required
-                onChange={(value) => setEditForm({ ...editForm, employeeNumber: value })}
-              />
-              <p className="sm:col-span-2 -mt-2 text-xs text-muted-foreground">
-                {t("employeeNumberEditHint")}
-              </p>
-              <Field
-                label={t("firstName")}
-                value={editForm.firstName}
-                required
-                onChange={(value) => setEditForm({ ...editForm, firstName: value })}
-              />
-              <Field
-                label={t("lastName")}
-                value={editForm.lastName}
-                required
-                onChange={(value) => setEditForm({ ...editForm, lastName: value })}
-              />
-              <Field
-                label={t("phoneNumber")}
-                value={editForm.phone}
-                inputMode="tel"
-                onChange={(value) => setEditForm({ ...editForm, phone: value })}
-              />
-              <Field
-                label={t("nationalId")}
-                value={editForm.nationalId}
-                onChange={(value) => setEditForm({ ...editForm, nationalId: value })}
-              />
-              <Field
-                label={t("biometricCode")}
-                value={editForm.biometricCode}
-                onChange={(value) => setEditForm({ ...editForm, biometricCode: value })}
-              />
-              <Field
-                label={t("workingHours")}
-                type="number"
-                min={0}
-                max={24}
-                step={0.25}
-                value={editForm.workingHours}
-                onChange={(value) => setEditForm({ ...editForm, workingHours: value })}
-              />
-              <Field
-                label={t("salary")}
-                type="number"
-                min={0}
-                step={0.01}
-                value={editForm.salary}
-                onChange={(value) => setEditForm({ ...editForm, salary: value })}
-              />
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("department")}</span>
-                <select
-                  value={editForm.departmentId}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, departmentId: event.target.value })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="">—</option>
-                  {departments.data?.map((item: any) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("branch")}</span>
-                <select
-                  value={editForm.branchId}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, branchId: event.target.value })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  {branches.data?.map((item: any) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm font-semibold">
-                <span className="mb-2 block">{t("status")}</span>
-                <select
-                  value={editForm.status}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, status: event.target.value })
-                  }
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
-                >
-                  <option value="active">{t("active")}</option>
-                  <option value="inactive">{t("inactive")}</option>
-                </select>
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-border pt-4">
-              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
-                {t("cancel")}
-              </Button>
-              <Button type="submit" disabled={update.isPending}>
-                {t("saveChanges")}
-              </Button>
+          <form onSubmit={saveEdit} className="max-h-[78vh] space-y-5 overflow-y-auto pe-1">
+            <section className="space-y-3">
+              <h3 className="border-b border-border pb-2 text-sm font-bold text-primary">البيانات الشخصية والتعريفية</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t("employeeNumber")} value={editForm.employeeNumber} name="employeeNumber" inputMode="numeric" required onChange={(value) => setEditForm({ ...editForm, employeeNumber: value })} />
+                <Field label={t("firstName")} value={editForm.firstName} required onChange={(value) => setEditForm({ ...editForm, firstName: value })} />
+                <Field label={t("lastName")} value={editForm.lastName} required onChange={(value) => setEditForm({ ...editForm, lastName: value })} />
+                <Field label="الاسم الأول بالإنجليزية" value={editForm.firstNameEn} onChange={(value) => setEditForm({ ...editForm, firstNameEn: value })} />
+                <Field label="اسم العائلة بالإنجليزية" value={editForm.lastNameEn} onChange={(value) => setEditForm({ ...editForm, lastNameEn: value })} />
+                <Field label={t("phoneNumber")} value={editForm.phone} inputMode="tel" onChange={(value) => setEditForm({ ...editForm, phone: value })} />
+                <Field label={t("nationalId")} value={editForm.nationalId} onChange={(value) => setEditForm({ ...editForm, nationalId: value })} />
+                <Field label={t("biometricCode")} value={editForm.biometricCode} onChange={(value) => setEditForm({ ...editForm, biometricCode: value })} />
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="border-b border-border pb-2 text-sm font-bold text-primary">البيانات الوظيفية</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t("employmentStartDate")} type="date" value={editForm.joinedOn} required onChange={(value) => setEditForm({ ...editForm, joinedOn: value })} />
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("role")}</span>
+                  <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="employee">موظف</option>
+                    <option value="manager">{t("roleManager")}</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("department")}</span>
+                  <select value={editForm.departmentId} onChange={(event) => setEditForm({ ...editForm, departmentId: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="">—</option>
+                    {departments.data?.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("branch")}</span>
+                  <select required value={editForm.branchId} onChange={(event) => setEditForm({ ...editForm, branchId: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    {branches.data?.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("status")}</span>
+                  <select value={editForm.status} onChange={(event) => setEditForm({ ...editForm, status: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="active">{t("active")}</option>
+                    <option value="inactive">{t("inactive")}</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="border-b border-border pb-2 text-sm font-bold text-primary">الراتب ونظام العمل</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">أساس الأجر</span>
+                  <select value={editForm.payBasis} onChange={(event) => setEditForm({ ...editForm, payBasis: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="monthly">شهري</option>
+                    <option value="hourly">بالساعة</option>
+                  </select>
+                </label>
+                <Field label={editForm.payBasis === "hourly" ? "أجر الساعة" : t("monthlySalary")} type="number" min={0} step={0.01} value={editForm.salary} onChange={(value) => setEditForm({ ...editForm, salary: value })} />
+                <Field label={t("workingHours")} type="number" min={0.25} max={24} step={0.25} value={editForm.workingHours} onChange={(value) => setEditForm({ ...editForm, workingHours: value })} />
+                <Field label={t("workDaysPerMonth")} type="number" min={1} max={31} step={1} value={editForm.workDaysPerMonth} onChange={(value) => setEditForm({ ...editForm, workDaysPerMonth: value })} />
+                <label className="block text-sm font-semibold">
+                  <span className="mb-2 block">{t("shift")}</span>
+                  <select value={editForm.scheduleId} onChange={(event) => setEditForm({ ...editForm, scheduleId: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="">بدون تغيير الشيفت</option>
+                    {schedules.data?.filter((item: any) => item.active).map((item: any) => <option key={item.id} value={item.id}>{item.name} · {item.shiftType === "flexible" ? t("flexibleShift") : item.startTime+"–"+item.endTime}</option>)}
+                  </select>
+                </label>
+                <Field label="تاريخ سريان الشيفت الجديد" type="date" value={editForm.scheduleEffectiveFrom} onChange={(value) => setEditForm({ ...editForm, scheduleEffectiveFrom: value })} />
+                <label className="block text-sm font-semibold sm:col-span-2">
+                  <span className="mb-2 block">{t("payrollCycle")}</span>
+                  <select value={editForm.payrollCycleId} onChange={(event) => setEditForm({ ...editForm, payrollCycleId: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="">بدون تغيير دورة الرواتب الحالية</option>
+                    {payrollCycles.data?.filter((item: any) => item.active).map((item: any) => <option key={item.id} value={item.id}>{item.name} · {t("cycleStartDay")} {item.startDay}</option>)}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="border-b border-border pb-2 text-sm font-bold text-primary">إعدادات الحضور والاستحقاقات</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm">
+                  <input type="checkbox" checked={editForm.locationAttendanceEnabled} onChange={(event) => setEditForm({ ...editForm, locationAttendanceEnabled: event.target.checked })} className="size-4 accent-primary" />
+                  تفعيل تسجيل مواقع العمل للموظف
+                </label>
+                <label className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm">
+                  <input type="checkbox" checked={editForm.automaticAnnualLeaveEligible} onChange={(event) => setEditForm({ ...editForm, automaticAnnualLeaveEligible: event.target.checked })} className="size-4 accent-primary" />
+                  احتساب رصيد الإجازة السنوية تلقائيًا
+                </label>
+                <label className="block text-sm font-semibold sm:col-span-2">
+                  <span className="mb-2 block">{t("automaticOvertime")}</span>
+                  <select value={editForm.automaticOvertime} onChange={(event) => setEditForm({ ...editForm, automaticOvertime: event.target.value })} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal">
+                    <option value="default">{t("useCompanyDefault")}</option>
+                    <option value="enabled">{t("enabled")}</option>
+                    <option value="disabled">{t("disabledSetting")}</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <div className="flex justify-end gap-2 border-t border-border bg-background pt-4">
+              <Button type="button" variant="quiet" onClick={() => setEditing(false)}>{t("cancel")}</Button>
+              <Button type="submit" disabled={update.isPending || assignSchedule.isPending || assignPayrollCycle.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
         </Modal>
