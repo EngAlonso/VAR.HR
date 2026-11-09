@@ -4234,7 +4234,7 @@ const reportCopy = {
     earlyCheckoutMinutes: "Early checkout minutes",
     attendanceMovementTitle: "Employee movement record",
     attendanceMovementDetail:
-      "Full monthly attendance, fingerprint, deductions, and overtime details.",
+      "Attendance, fingerprint, deductions, and overtime details for the selected date range.",
     showAttendanceMovement: "View movement record",
     hideAttendanceMovement: "Hide movement record",
     backToEmployeeProfile: "Back to employee profile",
@@ -4336,7 +4336,7 @@ const reportCopy = {
     minutes: "دقيقة",
     attendanceMovementTitle: "سجل حركة الموظف",
     attendanceMovementDetail:
-      "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
+      "تفاصيل الحضور والبصمة والخصومات والعمل الإضافي خلال الفترة المحددة.",
     showAttendanceMovement: "عرض سجل الحركة",
     hideAttendanceMovement: "إخفاء سجل الحركة",
     backToEmployeeProfile: "العودة إلى ملف الموظف",
@@ -7155,9 +7155,9 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-9 w-[clamp(44px,15vw,58px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-9 w-[76px] shrink-0 items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
-                variant="short"
+                variant="horizontal"
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
               />
               <BrandLogo
