@@ -8619,7 +8619,7 @@ function EmployeeAttendanceMovement({
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
             <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
-              <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={setFrom} />
+              <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={(value) => { payrollRangeInitialized.current = true; setFrom(value); }} />
               <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
             </div>
             {canManagePayroll ? (
