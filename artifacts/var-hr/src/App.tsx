@@ -9047,7 +9047,7 @@ function Branches() {
 }
 
 function Departments() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage =
@@ -16183,7 +16183,7 @@ const scheduleDayOptions: Array<[string, AppCopyKey]> = [
 ];
 
 function Schedules({ embedded = false }: { embedded?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const role = workspace.data?.role as WorkspaceRole | undefined;
