@@ -4558,81 +4558,130 @@ router.post(
       .update(parsed.data.deviceToken)
       .digest("hex");
     const now = new Date();
-    let shouldAuditRequest = false;
-    let [device] = await db
-      .select()
-      .from(employeeAttendanceDevicesTable)
-      .where(
-        and(
-          eq(employeeAttendanceDevicesTable.companyId, context.companyId),
-          eq(employeeAttendanceDevicesTable.employeeId, employee.id),
-          eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
-        ),
-      )
-      .limit(1);
+    const registration = await db.transaction(async (tx) => {
+      // Serialize browser registration. Only the very first browser is
+      // trusted automatically; later browsers remain approval-gated even
+      // after an administrator revokes the original browser.
+      await tx
+        .select({ id: employeesTable.id })
+        .from(employeesTable)
+        .where(
+          and(
+            eq(employeesTable.id, employee.id),
+            eq(employeesTable.companyId, context.companyId),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      const existingDevices = await tx
+        .select({
+          id: employeeAttendanceDevicesTable.id,
+          status: employeeAttendanceDevicesTable.status,
+        })
+        .from(employeeAttendanceDevicesTable)
+        .where(
+          and(
+            eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+            eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+          ),
+        );
+      let [device] = await tx
+        .select()
+        .from(employeeAttendanceDevicesTable)
+        .where(
+          and(
+            eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+            eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+            eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+          ),
+        )
+        .limit(1);
+      let shouldAuditRequest = false;
+      let firstBrowserBound = false;
 
-    if (device && ["rejected", "revoked"].includes(device.status)) {
-      shouldAuditRequest = true;
-      [device] = await db
-        .update(employeeAttendanceDevicesTable)
-        .set({
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          status: "pending",
-          requestedAt: now,
-          approvedAt: null,
-          approvedBy: null,
-          updatedAt: now,
-        })
-        .where(eq(employeeAttendanceDevicesTable.id, device.id))
-        .returning();
-    } else if (device?.status === "pending") {
-      [device] = await db
-        .update(employeeAttendanceDevicesTable)
-        .set({
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          updatedAt: now,
-        })
-        .where(eq(employeeAttendanceDevicesTable.id, device.id))
-        .returning();
-    } else if (!device) {
-      shouldAuditRequest = true;
-      [device] = await db
-        .insert(employeeAttendanceDevicesTable)
-        .values({
-          companyId: context.companyId,
-          employeeId: employee.id,
-          tokenHash,
-          deviceLabel: parsed.data.deviceLabel.trim(),
-          status: "pending",
-        })
-        .onConflictDoNothing({
-          target: [
-            employeeAttendanceDevicesTable.companyId,
-            employeeAttendanceDevicesTable.employeeId,
-            employeeAttendanceDevicesTable.tokenHash,
-          ],
-        })
-        .returning();
-      if (!device) {
-        [device] = await db
-          .select()
-          .from(employeeAttendanceDevicesTable)
-          .where(
-            and(
-              eq(employeeAttendanceDevicesTable.companyId, context.companyId),
-              eq(employeeAttendanceDevicesTable.employeeId, employee.id),
-              eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
-            ),
-          )
-          .limit(1);
+      if (device && ["rejected", "revoked"].includes(device.status)) {
+        shouldAuditRequest = true;
+        [device] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            status: "pending",
+            requestedAt: now,
+            approvedAt: null,
+            approvedBy: null,
+            updatedAt: now,
+          })
+          .where(eq(employeeAttendanceDevicesTable.id, device.id))
+          .returning();
+      } else if (device?.status === "pending") {
+        // A pending browser is never auto-approved on a later request.
+        // This also prevents a previously revoked/rejected browser from
+        // regaining access by registering again.
+        [device] = await tx
+          .update(employeeAttendanceDevicesTable)
+          .set({
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            updatedAt: now,
+          })
+          .where(eq(employeeAttendanceDevicesTable.id, device.id))
+          .returning();
+      } else if (!device) {
+        const approveAsFirstBrowser = existingDevices.length === 0;
+        [device] = await tx
+          .insert(employeeAttendanceDevicesTable)
+          .values({
+            companyId: context.companyId,
+            employeeId: employee.id,
+            tokenHash,
+            deviceLabel: parsed.data.deviceLabel.trim(),
+            status: approveAsFirstBrowser ? "active" : "pending",
+            ...(approveAsFirstBrowser ? { approvedAt: now } : {}),
+          })
+          .onConflictDoNothing({
+            target: [
+              employeeAttendanceDevicesTable.companyId,
+              employeeAttendanceDevicesTable.employeeId,
+              employeeAttendanceDevicesTable.tokenHash,
+            ],
+          })
+          .returning();
+        if (!device) {
+          [device] = await tx
+            .select()
+            .from(employeeAttendanceDevicesTable)
+            .where(
+              and(
+                eq(employeeAttendanceDevicesTable.companyId, context.companyId),
+                eq(employeeAttendanceDevicesTable.employeeId, employee.id),
+                eq(employeeAttendanceDevicesTable.tokenHash, tokenHash),
+              ),
+            )
+            .limit(1);
+        }
+        firstBrowserBound = approveAsFirstBrowser && device?.status === "active";
+        shouldAuditRequest = device?.status === "pending";
       }
-    }
-
+      return { device, shouldAuditRequest, firstBrowserBound };
+    });
+    const device = registration.device;
     if (!device) {
       res.status(500).json({ error: "Could not register this device." });
       return;
     }
-    if (shouldAuditRequest && device.status === "pending") {
+    if (registration.firstBrowserBound) {
+      await recordAudit(
+        context.companyId,
+        "attendance_first_browser_bound",
+        "employee_attendance_device",
+        device.id,
+        {
+          employeeId: employee.id,
+          deviceLabel: device.deviceLabel,
+          status: device.status,
+        },
+      );
+    }
+    if (registration.shouldAuditRequest && device.status === "pending") {
       await recordAudit(
         context.companyId,
         "attendance_device_registration_requested",
@@ -6239,6 +6288,7 @@ async function recordCurrentAttendance(
   const attendanceSettings = await ensureAttendanceRules(context.companyId);
   if (
     attendanceSettings.attendanceDeviceApprovalRequired &&
+    parsed.data.source === "web" &&
     ["employee", "manager"].includes(context.role)
   ) {
     const token = parsed.data.deviceToken?.trim();
@@ -11924,15 +11974,22 @@ async function calculatePayrollPeriod(
     const employeeAdjustments = adjustments.filter(
       (adjustment) => adjustment.employeeId === row.employee.id,
     );
+    // Read-only employee summaries can cover only part of a payroll period.
+    // Allocate period-level adjustments by the same scheduled-day ratio used
+    // for monthly basic salary so a partial date range never receives the
+    // entire period's additions or deductions.
+    const adjustmentProration = options.persist
+      ? 1
+      : scheduledDates.length / Math.max(1, fullPeriodScheduledDates.length);
     const additions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "addition")
-        .reduce((total, item) => total + item.amount, 0),
+        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
     );
     const adjustmentDeductions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "deduction")
-        .reduce((total, item) => total + item.amount, 0),
+        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
     );
     const attendanceDeductions = hourlyEmployee
       ? 0
@@ -12573,11 +12630,21 @@ router.get("/payroll/employee-summary", async (req, res): Promise<void> => {
     )
     .orderBy(desc(payrollPeriodsTable.to))
     .limit(1);
-  const cycleRange = employee.payrollCycle
-    ? cyclePeriodRange(employee.payrollCycle.startDay, query.data.to)
-    : null;
-  const fallbackFrom = cycleRange?.from ?? query.data.from;
-  const fallbackTo = cycleRange?.to ?? query.data.to;
+  const cycleRange = cyclePeriodRange(
+    employee.payrollCycle?.startDay ?? 1,
+    query.data.to,
+  );
+  if (!period && query.data.from < cycleRange.from) {
+    res.status(400).json({
+      error:
+        requestedLocale(req) === "ar"
+          ? "الفترة المحددة تتجاوز دورة رواتب واحدة. اختر فترة داخل دورة الرواتب أو أنشئ فترة رواتب تغطي النطاق كاملًا."
+          : "The selected range crosses payroll cycles. Choose a range within one payroll cycle or create a payroll period covering the full range.",
+    });
+    return;
+  }
+  const fallbackFrom = cycleRange.from;
+  const fallbackTo = cycleRange.to;
   const calculationPeriod = period ?? {
     id: "00000000-0000-0000-0000-000000000000",
     companyId: context.companyId,

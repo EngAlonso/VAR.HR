@@ -4234,7 +4234,7 @@ const reportCopy = {
     earlyCheckoutMinutes: "Early checkout minutes",
     attendanceMovementTitle: "Employee movement record",
     attendanceMovementDetail:
-      "Full monthly attendance, fingerprint, deductions, and overtime details.",
+      "Attendance, fingerprint, deductions, and overtime details for the selected date range.",
     showAttendanceMovement: "View movement record",
     hideAttendanceMovement: "Hide movement record",
     backToEmployeeProfile: "Back to employee profile",
@@ -4336,7 +4336,7 @@ const reportCopy = {
     minutes: "دقيقة",
     attendanceMovementTitle: "سجل حركة الموظف",
     attendanceMovementDetail:
-      "تقرير شهري كامل للحضور والبصمة والخصومات والعمل الإضافي.",
+      "تفاصيل الحضور والبصمة والخصومات والعمل الإضافي خلال الفترة المحددة.",
     showAttendanceMovement: "عرض سجل الحركة",
     hideAttendanceMovement: "إخفاء سجل الحركة",
     backToEmployeeProfile: "العودة إلى ملف الموظف",
@@ -7138,8 +7138,8 @@ function Shell({ children }: { children: ReactNode }) {
         )}
       />
       <div className={isArabic ? "lg:pr-[248px]" : "lg:pl-[248px]"}>
-        <header className="relative sticky top-0 z-30 grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/80 bg-background/90 px-3 backdrop-blur-md sm:h-[72px] sm:px-8 sm:flex sm:gap-0">
-          <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
+        <header className="relative sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/90 px-3 py-2 backdrop-blur-md sm:h-[72px] sm:flex-row sm:items-center sm:gap-0 sm:px-8 sm:py-0">
+          <div className="flex min-h-10 w-full min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
             <Button
               variant="outline"
               className="min-h-10 min-w-10 rounded-xl p-2 lg:hidden"
@@ -7155,9 +7155,9 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-9 w-[clamp(44px,15vw,58px)] items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-9 w-[76px] shrink-0 items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
-                variant="short"
+                variant="horizontal"
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
               />
               <BrandLogo
@@ -7165,6 +7165,16 @@ function Shell({ children }: { children: ReactNode }) {
                 className="hidden !h-full !w-full !max-w-none object-contain sm:block"
               />
             </span>
+            <Button
+              variant="outline"
+              className="ms-auto flex min-w-0 max-w-[58%] items-center gap-2 rounded-xl px-2 py-2 text-start sm:hidden"
+              onClick={() => setLocation("/profile")}
+              aria-label={t("profileEmployee")}
+              data-testid="button-mobile-profile"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-[10px] font-bold text-primary">{accountInitials}</span>
+              <span className="min-w-0 truncate text-xs font-semibold">{auth.account.fullName.trim().split(/\s+/).filter(Boolean).slice(0, 3).join(" ")}</span>
+            </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
             </div>
@@ -7183,7 +7193,7 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
+          <div className="flex min-h-10 w-full min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
@@ -7204,17 +7214,6 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
-            <Button
-              variant="outline"
-              className="grid size-10 shrink-0 place-items-center rounded-xl p-0 sm:hidden"
-              onClick={() => setLocation("/profile")}
-              aria-label={t("profileEmployee")}
-              data-testid="button-mobile-profile"
-            >
-              <span className="font-display text-xs font-bold">
-                {accountInitials}
-              </span>
-            </Button>
             <Button
               variant="quiet"
               className="hidden p-2 sm:inline-flex"
@@ -7259,7 +7258,7 @@ function Shell({ children }: { children: ReactNode }) {
                 key={`${href}-${key}`}
                 href={href}
                 className={cn(
-                  "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors",
+                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 transition-colors",
                   isActive
                     ? "bg-primary/15 text-primary-dark"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -7268,7 +7267,7 @@ function Shell({ children }: { children: ReactNode }) {
                 data-testid={`mobile-nav-${key}`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className="max-w-full truncate">{label}</span>
+                <span className="block max-w-full whitespace-normal break-words text-center leading-3">{label}</span>
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
@@ -7279,14 +7278,14 @@ function Shell({ children }: { children: ReactNode }) {
           })}
           <button
             type="button"
-            className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(true)}
             aria-controls="workspace-navigation"
             aria-expanded={open}
             data-testid="button-mobile-more"
           >
             <MoreHorizontal size={18} strokeWidth={1.8} />
-            <span className="max-w-full truncate">{t("more")}</span>
+            <span className="block max-w-full whitespace-normal break-words text-center leading-3">{t("more")}</span>
           </button>
         </nav>
       </div>
@@ -8296,13 +8295,33 @@ function EmployeeAttendanceMovement({
   fullPage?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const qc = useQueryClient();
+  const workspace = useGetWorkspace();
+  const canConvertAbsence = workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
+  const canManagePayroll = workspace.data?.capabilities?.includes("payroll.manage") ?? false;
+  const payrollPeriods = useListPayrollPeriods({
+    query: { enabled: canManagePayroll, queryKey: getListPayrollPeriodsQueryKey() },
+  });
+  const createPayrollAdjustment = useCreatePayrollAdjustment();
+  const recalculatePayroll = useCalculatePayroll();
+  const [convertingAttendanceId, setConvertingAttendanceId] = useState("");
+  const [showPayrollAdjustment, setShowPayrollAdjustment] = useState(false);
+  const [payrollAdjustmentForm, setPayrollAdjustmentForm] = useState({
+    periodId: "",
+    type: "addition",
+    category: "variable",
+    amount: "",
+    reason: "",
+  });
+  const [payrollSummaryRefresh, setPayrollSummaryRefresh] = useState(0);
   const [open, setOpen] = useState(fullPage);
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [year, monthNumber] = month.split("-").map(Number);
-  const from = `${month}-01`;
-  const to = new Date(Date.UTC(year, monthNumber, 0))
-    .toISOString()
-    .slice(0, 10);
+  const localNow = new Date();
+  const today = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
+  const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
+  const [to, setTo] = useState(today);
+  const [payrollSummary, setPayrollSummary] = useState<any>(null);
+  const [payrollSummaryLoading, setPayrollSummaryLoading] = useState(false);
+  const [payrollSummaryError, setPayrollSummaryError] = useState("");
   const reportParams = useMemo(
     () => ({
       type: "attendance" as const,
@@ -8319,7 +8338,102 @@ function EmployeeAttendanceMovement({
     },
   });
 
-  const rows = report.data?.rows ?? [];
+  const rows = useMemo(
+    () => [...(report.data?.rows ?? [])].sort((a, b) =>
+      String(b.date ?? "").localeCompare(String(a.date ?? "")),
+    ),
+    [report.data?.rows],
+  );
+  useEffect(() => {
+    if (!open || !employeeId || !from || !to || from > to) {
+      setPayrollSummary(null);
+      setPayrollSummaryError("");
+      return;
+    }
+    let active = true;
+    setPayrollSummaryLoading(true);
+    setPayrollSummaryError("");
+    authRequest<any>(
+      `/api/payroll/employee-summary?employeeId=${encodeURIComponent(employeeId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    )
+      .then((summary) => {
+        if (active) setPayrollSummary(summary);
+      })
+      .catch((error) => {
+        if (active) {
+          setPayrollSummary(null);
+          setPayrollSummaryError(
+            error instanceof Error ? error.message : "تعذر حساب الراتب للفترة المحددة",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setPayrollSummaryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, employeeId, from, to, payrollSummaryRefresh]);
+  const editablePayrollPeriods = (payrollPeriods.data ?? []).filter((period: any) =>
+    period.from <= from &&
+    period.to >= to &&
+    !["approved", "finalized", "locked"].includes(String(period.status).toLowerCase()),
+  );
+  useEffect(() => {
+    if (!editablePayrollPeriods.some((period: any) => period.id === payrollAdjustmentForm.periodId)) {
+      setPayrollAdjustmentForm((current) => ({
+        ...current,
+        periodId: editablePayrollPeriods[0]?.id ?? "",
+      }));
+    }
+  }, [editablePayrollPeriods.map((period: any) => period.id).join("|"), payrollAdjustmentForm.periodId]);
+  async function submitPayrollAdjustment(event: FormEvent) {
+    event.preventDefault();
+    const amount = Number(payrollAdjustmentForm.amount);
+    if (!payrollAdjustmentForm.periodId || !Number.isFinite(amount) || amount <= 0 || !payrollAdjustmentForm.reason.trim()) {
+      toast.error(locale === "ar" ? "اختر فترة رواتب وأدخل مبلغًا وسببًا صحيحًا." : "Choose a payroll period and enter a valid amount and reason.");
+      return;
+    }
+    createPayrollAdjustment.mutate(
+      {
+        data: {
+          periodId: payrollAdjustmentForm.periodId,
+          employeeId,
+          type: payrollAdjustmentForm.type as "addition" | "deduction",
+          category: payrollAdjustmentForm.category as "fixed" | "variable",
+          amount,
+          reason: payrollAdjustmentForm.reason.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          setShowPayrollAdjustment(false);
+          setPayrollAdjustmentForm((current) => ({ ...current, amount: "", reason: "" }));
+          recalculatePayroll.mutate(
+            { periodId: payrollAdjustmentForm.periodId },
+            {
+              onSuccess: async () => {
+                toast.success(locale === "ar" ? "تمت إضافة الحركة وإعادة احتساب الرواتب." : "The adjustment was added and payroll was recalculated.");
+                setPayrollSummaryRefresh((value) => value + 1);
+                await Promise.all([
+                  qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() }),
+                  qc.invalidateQueries({ queryKey: getListPayrollAdjustmentsQueryKey({ periodId: payrollAdjustmentForm.periodId }) }),
+                  qc.invalidateQueries({ queryKey: getGetPayrollCalculationQueryKey(payrollAdjustmentForm.periodId) }),
+                  qc.invalidateQueries({ queryKey: getGetMyPayrollQueryKey() }),
+                  qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
+                ]);
+              },
+              onError: (error: unknown) => {
+                toast.error(apiErrorMessage(error, locale === "ar" ? "تم حفظ الحركة لكن تعذر إعادة احتساب الرواتب. أعد الحساب من صفحة الرواتب." : "Adjustment saved, but payroll recalculation failed. Recalculate from Payroll."));
+                setPayrollSummaryRefresh((value) => value + 1);
+              },
+            },
+          );
+        },
+        onError: (error: unknown) => toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment.")),
+      },
+    );
+  }
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
@@ -8336,6 +8450,27 @@ function EmployeeAttendanceMovement({
   const hours = (value?: number) =>
     `${Number(value ?? 0).toFixed(2)} ${t("hours").toLowerCase()}`;
   const minutes = (value?: number) => `${Number(value ?? 0)} ${t("minutes")}`;
+  async function convertAbsenceToAnnualLeave(attendanceId: string) {
+    if (!window.confirm(locale === "ar" ? "هل تريد تحويل يوم الغياب إلى إجازة سنوية وخصم يوم من رصيد الموظف؟" : "Convert this absence to annual leave and deduct one day from the employee's balance?")) return;
+    setConvertingAttendanceId(attendanceId);
+    try {
+      await authRequest(`/api/attendance/${attendanceId}/annual-leave`, {
+        method: "POST",
+        body: JSON.stringify({ reason: locale === "ar" ? "تحويل يوم غياب إلى إجازة سنوية من ملف الموظف" : "Absence converted to annual leave from employee profile" }),
+      });
+      toast.success(locale === "ar" ? "تم تحويل الغياب وخصم يوم من رصيد الإجازة السنوية." : "Absence converted and one annual-leave day deducted.");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() }),
+        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() }),
+        qc.invalidateQueries({ queryKey: getGetEmployeeQueryKey(employeeId) }),
+      ]);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحويل يوم الغياب إلى إجازة سنوية." : "Could not convert this absence to annual leave."));
+    } finally {
+      setConvertingAttendanceId("");
+    }
+  }
 
   function printMovement() {
     if (!report.data) return;
@@ -8382,7 +8517,7 @@ function EmployeeAttendanceMovement({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceMonth"))}: ${escapeHtml(periodLabel(month))}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("fromTo"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
@@ -8414,15 +8549,72 @@ function EmployeeAttendanceMovement({
           </Button>
         )}
       </div>
+      {showPayrollAdjustment ? (
+        <Modal
+          title={locale === "ar" ? "إضافة خصم أو إضافي للموظف" : "Add employee payroll adjustment"}
+          onClose={() => setShowPayrollAdjustment(false)}
+        >
+          <form onSubmit={submitPayrollAdjustment} className="space-y-4">
+            <label className="block text-sm font-semibold">
+              {locale === "ar" ? "فترة الرواتب" : "Payroll period"}
+              <select
+                value={payrollAdjustmentForm.periodId}
+                onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, periodId: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm"
+                required
+              >
+                {editablePayrollPeriods.map((period: any) => (
+                  <option key={period.id} value={period.id}>{period.label} · {period.from} – {period.to}</option>
+                ))}
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm font-semibold">
+                {locale === "ar" ? "نوع الحركة" : "Adjustment type"}
+                <select value={payrollAdjustmentForm.type} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, type: event.target.value })} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+                  <option value="addition">{locale === "ar" ? "إضافي" : "Addition"}</option>
+                  <option value="deduction">{locale === "ar" ? "خصم" : "Deduction"}</option>
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                {locale === "ar" ? "التصنيف" : "Category"}
+                <select value={payrollAdjustmentForm.category} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, category: event.target.value })} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+                  <option value="variable">{locale === "ar" ? "متغير" : "Variable"}</option>
+                  <option value="fixed">{locale === "ar" ? "ثابت" : "Fixed"}</option>
+                </select>
+              </label>
+            </div>
+            <Field label={locale === "ar" ? "المبلغ" : "Amount"} type="number" min={0.01} step="0.01" value={payrollAdjustmentForm.amount} onChange={(value) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, amount: value })} required/>
+            <label className="block text-sm font-semibold">
+              {locale === "ar" ? "السبب" : "Reason"}
+              <textarea value={payrollAdjustmentForm.reason} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, reason: event.target.value })} required className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"/>
+            </label>
+            {!editablePayrollPeriods.length ? <p className="text-xs text-amber-700">{locale === "ar" ? "لا توجد فترة رواتب مفتوحة تشمل الفترة المحددة. أنشئ فترة رواتب مناسبة أولًا." : "No editable payroll period covers the selected dates. Create a matching payroll period first."}</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setShowPayrollAdjustment(false)}>{locale === "ar" ? "إلغاء" : "Cancel"}</Button>
+              <Button type="submit" disabled={createPayrollAdjustment.isPending || !editablePayrollPeriods.length}>{createPayrollAdjustment.isPending ? (locale === "ar" ? "جارٍ الحفظ..." : "Saving...") : (locale === "ar" ? "حفظ الحركة" : "Save adjustment")}</Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
       {open && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
-            <Field
-              label={t("attendanceMonth")}
-              type="month"
-              value={month}
-              onChange={setMonth}
-            />
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+              <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={setFrom} />
+              <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
+            </div>
+            {canManagePayroll ? (
+              <Button
+                variant="outline"
+                onClick={() => setShowPayrollAdjustment(true)}
+                disabled={!editablePayrollPeriods.length}
+                data-testid={`button-add-payroll-adjustment-${employeeId}`}
+              >
+                <Coins size={16}/>
+                {locale === "ar" ? "إضافة خصم / إضافي" : "Add deduction / addition"}
+              </Button>
+            ) : null}
             {canPrint && (
               <Button
                 variant="outline"
@@ -8435,6 +8627,19 @@ function EmployeeAttendanceMovement({
               </Button>
             )}
           </div>
+          {from > to ? (
+            <Card className="p-4 text-sm text-destructive">{locale === "ar" ? "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" : "Start date must be before end date"}</Card>
+          ) : (
+            <Card className="grid gap-3 border-primary/20 bg-primary/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Info label={locale === "ar" ? "الراتب الأساسي للفترة" : "Basic salary for period"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.basicSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "الإضافات اليدوية" : "Manual additions"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.additions || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "مقابل العمل الإضافي" : "Overtime pay"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.overtime || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "بدلات ومضاعفات الوقت" : "Time multiplier premium"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.timeMultiplierPremium || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "إجمالي الخصومات" : "Total deductions"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${(Number(payrollSummary.attendanceDeductions || 0) + Number(payrollSummary.otherDeductions || 0)).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "صافي الراتب المستحق" : "Net salary due"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.netSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              {payrollSummaryError ? <p className="text-xs text-destructive sm:col-span-2 lg:col-span-3">{payrollSummaryError}</p> : null}
+            </Card>
+          )}
           {report.isLoading ? (
             <Skeleton className="h-56" />
           ) : report.isError ? (
@@ -8503,6 +8708,16 @@ function EmployeeAttendanceMovement({
                         {t("earlyCheckoutMinutes").toLowerCase()}
                       </p>
                     </div>
+                    {canConvertAbsence && row.attendanceStatus === "absent" ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)}
+                        disabled={convertingAttendanceId === (row as any).attendanceId}
+                        data-testid={`button-convert-absence-${(row as any).attendanceId}`}
+                      >
+                        {convertingAttendanceId === (row as any).attendanceId ? (locale === "ar" ? "جارٍ التحويل..." : "Converting...") : (locale === "ar" ? "تحويل الغياب لإجازة سنوية" : "Convert absence to annual leave")}
+                      </Button>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -8563,7 +8778,14 @@ function EmployeeAttendanceMovement({
                           {hours(row.workedHours)}
                         </td>
                         <td className="px-4 py-3">
-                          <Status value={row.attendanceStatus || "—"} />
+                          <div className="flex flex-col items-start gap-2">
+                            <Status value={row.attendanceStatus || "—"} />
+                            {canConvertAbsence && row.attendanceStatus === "absent" ? (
+                              <Button variant="outline" onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)} disabled={convertingAttendanceId === (row as any).attendanceId}>
+                                {locale === "ar" ? "إجازة سنوية" : "Annual leave"}
+                              </Button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -8661,6 +8883,10 @@ function Branches() {
   const update = useUpdateBranch();
   const remove = useDeleteBranch();
   const [selected, setSelected] = useState<any | null>(null);
+  const [branchSearch, setBranchSearch] = useState("");
+  const filteredBranches = (branches.data ?? []).filter((branch: any) =>
+    `${branch.name} ${branch.city}`.toLowerCase().includes(branchSearch.trim().toLowerCase()),
+  );
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -8742,7 +8968,15 @@ function Branches() {
       ) : branches.data?.length ? (
         <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
           <div className="space-y-3">
-            {branches.data.map((branch: any) => (
+            <input
+              type="search"
+              value={branchSearch}
+              onChange={(event) => setBranchSearch(event.target.value)}
+              placeholder={locale === "ar" ? "ابحث باسم الفرع أو المدينة..." : "Search branch or city..."}
+              className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              aria-label={locale === "ar" ? "بحث الفروع" : "Search branches"}
+            />
+            {filteredBranches.length ? filteredBranches.map((branch: any) => (
               <Card
                 key={branch.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
@@ -8762,7 +8996,7 @@ function Branches() {
                   <Info label={t("branchDevices")} value={branch.deviceCount} />
                 </div>
               </Card>
-            ))}
+            )) : <Empty title={locale === "ar" ? "لا توجد فروع مطابقة" : "No matching branches"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
           </div>
           {selected ? (
             <Card className="p-6">
@@ -8828,7 +9062,7 @@ function Branches() {
 }
 
 function Departments() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canManage =
@@ -8839,6 +9073,10 @@ function Departments() {
   const remove = useDeleteDepartment();
   const updateEmployee = useUpdateEmployee();
   const [selected, setSelected] = useState<string | null>(null);
+  const [departmentSearch, setDepartmentSearch] = useState("");
+  const filteredDepartments = (departments.data ?? []).filter((item: any) =>
+    String(item.name ?? "").toLowerCase().includes(departmentSearch.trim().toLowerCase()),
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -8949,7 +9187,15 @@ function Departments() {
       ) : departments.data?.length ? (
         <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
           <div className="space-y-3">
-            {departments.data.map((item: any) => (
+            <input
+              type="search"
+              value={departmentSearch}
+              onChange={(event) => setDepartmentSearch(event.target.value)}
+              placeholder={locale === "ar" ? "ابحث عن قسم..." : "Search departments..."}
+              className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              aria-label={locale === "ar" ? "بحث الأقسام" : "Search departments"}
+            />
+            {filteredDepartments.length ? filteredDepartments.map((item: any) => (
               <Card
                 key={item.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
@@ -8981,7 +9227,7 @@ function Departments() {
                   )}
                 </div>
               </Card>
-            ))}
+            )) : <Empty title={locale === "ar" ? "لا توجد أقسام مطابقة" : "No matching departments"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
           </div>
           <Card className="min-h-[360px] p-6">
             {activeDetail ? (
@@ -10120,6 +10366,7 @@ function EmployeeProfilePage() {
                   {t("showAttendanceMovement")}
                 </Button>
                 <EmployeeWorkLocations employeeId={employee.data.id} />
+                <EmployeeManualAttendance employeeId={employee.data.id} />
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -10157,6 +10404,7 @@ function EmployeeProfilePage() {
             </div>
           </Card>
 
+          {canEditEmployees ? <div className="mb-5"><EmployeeAttendanceDevices employeeId={employee.data.id}/></div> : null}
           <div className="grid gap-4 lg:grid-cols-2">
             <EmployeeProfileSection
               title={t("employeeIdentitySection")}
@@ -11113,7 +11361,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
 }
 
 function Attendance() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const selfEmployee = useGetEmployee(workspace.data?.employeeId ?? "", {
@@ -11237,7 +11485,61 @@ function Attendance() {
       setGpsState("unavailable");
       toast.warning(t("gpsUnavailable"));
     }
-    const data = location ? { source: "web", ...location } : { source: "web" };
+    let deviceToken: string | undefined;
+    try {
+      const devicePolicy = await authRequest<{ requireApproval: boolean }>(
+        "/api/attendance/device-approval",
+      );
+      if (devicePolicy.requireApproval) {
+        const employeeId = workspace.data?.employeeId;
+        if (!employeeId) throw new Error("تعذر تحديد حساب الموظف الحالي.");
+        const storageKey = `varhr-attendance-browser:${employeeId}`;
+        let savedToken = window.localStorage.getItem(storageKey);
+        if (!savedToken) {
+          if (!window.crypto?.randomUUID) {
+            throw new Error("المتصفح لا يدعم إنشاء رمز تحقق آمن.");
+          }
+          savedToken = window.crypto.randomUUID();
+          window.localStorage.setItem(storageKey, savedToken);
+        }
+        const registration = await authRequest<{ status: string }>(
+          "/api/attendance/device-registration",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              deviceToken: savedToken,
+              deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
+            }),
+          },
+        );
+        if (registration.status !== "active") {
+          setGpsState("not_required");
+          toast.warning(
+            locale === "ar"
+              ? "تم إرسال طلب اعتماد هذا المتصفح. لن يُسمح بالبصمة حتى توافق الإدارة."
+              : "This browser was submitted for approval. Attendance is blocked until an administrator approves it.",
+          );
+          return;
+        }
+        deviceToken = savedToken;
+      }
+    } catch (error) {
+      setGpsState("not_required");
+      toast.error(
+        apiErrorMessage(
+          error,
+          locale === "ar"
+            ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
+            : "Could not verify this attendance browser. No punch was recorded.",
+        ),
+      );
+      return;
+    }
+    const data = {
+      source: "web",
+      ...(location ?? {}),
+      ...(deviceToken ? { deviceToken } : {}),
+    };
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
       onSuccess: () => {
         setGpsState(location ? "captured" : "unavailable");
@@ -11956,7 +12258,7 @@ function Attendance() {
 }
 
 function Requests() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspaceQuery = useGetWorkspace();
   const capabilities = workspaceQuery.data?.capabilities || [];
@@ -11966,6 +12268,8 @@ function Requests() {
   const canApprovePermissions = capabilities.includes("permissions.approve");
   const currentEmployeeId = workspaceQuery.data?.employeeId;
   const [kind, setKind] = useState<"leave" | "permission">("leave");
+  const [requestSearch, setRequestSearch] = useState("");
+  const [requestStatusFilter, setRequestStatusFilter] = useState("all");
   const [show, setShow] = useState(false);
   const [decision, setDecision] = useState<{
     id: string;
@@ -12101,6 +12405,12 @@ function Requests() {
   }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
+  const filteredRows = rows.filter((row: any) => {
+    const matchesSearch = `${row.employee?.name ?? ""} ${row.type ?? ""} ${row.reason ?? ""}`
+      .toLowerCase()
+      .includes(requestSearch.trim().toLowerCase());
+    return matchesSearch && (requestStatusFilter === "all" || row.status === requestStatusFilter);
+  });
   return (
     <div className="animate-in">
       <SectionTitle
@@ -12152,13 +12462,29 @@ function Requests() {
                 {t("permission")}
               </Button>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {rows.length} {t("records")}
-            </span>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <input
+                type="search"
+                value={requestSearch}
+                onChange={(event) => setRequestSearch(event.target.value)}
+                placeholder={locale === "ar" ? "ابحث باسم الموظف أو نوع الطلب..." : "Search employee or request type..."}
+                className="h-10 min-w-0 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-64"
+                aria-label={locale === "ar" ? "بحث الطلبات" : "Search requests"}
+              />
+              <select value={requestStatusFilter} onChange={(event) => setRequestStatusFilter(event.target.value)} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
+                <option value="all">{locale === "ar" ? "كل الحالات" : "All statuses"}</option>
+                <option value="pending">{locale === "ar" ? "معلق" : "Pending"}</option>
+                <option value="approved">{locale === "ar" ? "مقبول" : "Approved"}</option>
+                <option value="rejected">{locale === "ar" ? "مرفوض" : "Rejected"}</option>
+              </select>
+              <span className="text-xs text-muted-foreground">
+                {filteredRows.length} {t("records")}
+              </span>
+            </div>
           </div>
-          {rows.length ? (
+          {filteredRows.length ? (
             <div className="divide-y divide-border">
-              {rows.map((r: any) => (
+              {filteredRows.map((r: any) => (
                 <div className="p-5" key={r.id}>
                   <div className="flex flex-col justify-between gap-3 sm:flex-row">
                     <div>
@@ -12221,8 +12547,8 @@ function Requests() {
             </div>
           ) : (
             <Empty
-              title={t("queueClear")}
-              detail={t("requestsAppear")}
+              title={rows.length ? (locale === "ar" ? "لا توجد طلبات مطابقة" : "No matching requests") : t("queueClear")}
+              detail={rows.length ? (locale === "ar" ? "غيّر كلمات البحث أو حالة الطلب." : "Change the search or status filter.") : t("requestsAppear")}
               action={
                 canCreateCurrent ? (
                   <Button onClick={openRequest}>
@@ -12955,7 +13281,42 @@ function Rules() {
     },
   });
   const balances = useListLeaveBalances();
+  const [deviceApprovalRequired, setDeviceApprovalRequired] = useState(false);
+  const [deviceApprovalLoading, setDeviceApprovalLoading] = useState(true);
+  const [deviceApprovalSaving, setDeviceApprovalSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
+  useEffect(() => {
+    let active = true;
+    authRequest<{ requireApproval: boolean }>("/api/attendance/device-approval")
+      .then((policy) => {
+        if (active) setDeviceApprovalRequired(Boolean(policy.requireApproval));
+      })
+      .catch((error) => {
+        if (active) toast.error(apiErrorMessage(error, "تعذر تحميل إعداد تحقق المتصفح."));
+      })
+      .finally(() => {
+        if (active) setDeviceApprovalLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+  async function saveDeviceApprovalPolicy() {
+    setDeviceApprovalSaving(true);
+    try {
+      const result = await authRequest<{ requireApproval: boolean }>(
+        "/api/attendance/device-approval",
+        {
+          method: "PUT",
+          body: JSON.stringify({ requireApproval: deviceApprovalRequired }),
+        },
+      );
+      setDeviceApprovalRequired(Boolean(result.requireApproval));
+      toast.success(locale === "ar" ? "تم تحديث تحقق متصفح الحضور." : "Attendance browser verification updated.");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث الإعداد." : "Could not update the setting."));
+    } finally {
+      setDeviceApprovalSaving(false);
+    }
+  }
   useEffect(() => {
     if (q.data && !form)
       setForm({
@@ -13060,6 +13421,44 @@ function Rules() {
         }
       />
       <div className="flex flex-col gap-6">
+        {account.accountType === "company_owner" ? (
+          <Card className="p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="font-display text-lg font-semibold">
+                  {locale === "ar" ? "التحقق من متصفح الحضور" : "Attendance browser verification"}
+                </h2>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                  {locale === "ar"
+                    ? "عند التفعيل، يُعتمد أول متصفح للموظف تلقائيًا، وأي متصفح آخر يحتاج موافقة الإدارة قبل تسجيل الحضور أو الانصراف."
+                    : "When enabled, the employee's first browser is trusted automatically. Any other browser requires administrator approval before attendance punches."}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={deviceApprovalRequired}
+                    disabled={deviceApprovalLoading || deviceApprovalSaving}
+                    onChange={(event) => setDeviceApprovalRequired(event.target.checked)}
+                    className="h-4 w-4 rounded border-input accent-primary"
+                    data-testid="toggle-attendance-browser-approval"
+                  />
+                  {deviceApprovalRequired
+                    ? (locale === "ar" ? "مفعل" : "Enabled")
+                    : (locale === "ar" ? "غير مفعل" : "Disabled")}
+                </label>
+                <Button
+                  onClick={saveDeviceApprovalPolicy}
+                  disabled={deviceApprovalLoading || deviceApprovalSaving}
+                  data-testid="button-save-attendance-browser-approval"
+                >
+                  {deviceApprovalSaving ? t("savingPolicy") : t("saveChanges")}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : null}
         <div className="contents">
           <Card className="order-1 p-6">
             <h2 className="font-display text-lg font-semibold">
@@ -15823,7 +16222,7 @@ const scheduleDayOptions: Array<[string, AppCopyKey]> = [
 ];
 
 function Schedules({ embedded = false }: { embedded?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const role = workspace.data?.role as WorkspaceRole | undefined;
@@ -15866,6 +16265,10 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
     },
   });
   const bulkAssign = useBulkAssignEmployeeSchedules();
+  const [scheduleSearch, setScheduleSearch] = useState("");
+  const filteredSchedules = (schedules.data ?? []).filter((schedule: any) =>
+    `${schedule.name} ${schedule.nameAr ?? ""}`.toLowerCase().includes(scheduleSearch.trim().toLowerCase()),
+  );
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({
@@ -16090,8 +16493,16 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
             ) : schedules.isError ? (
               <ErrorState retry={() => schedules.refetch()} />
             ) : schedules.data?.length ? (
-              <div className="divide-y divide-border">
-                {schedules.data.map((schedule: any) => (
+              <div className="space-y-3 p-4">
+                <input
+                  type="search"
+                  value={scheduleSearch}
+                  onChange={(event) => setScheduleSearch(event.target.value)}
+                  placeholder={locale === "ar" ? "ابحث عن شيفت..." : "Search shifts..."}
+                  className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  aria-label={locale === "ar" ? "بحث الشيفتات" : "Search shifts"}
+                />
+                {filteredSchedules.length ? filteredSchedules.map((schedule: any) => (
                   <div className="p-5" key={schedule.id}>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
@@ -16143,7 +16554,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                       />
                     </div>
                   </div>
-                ))}
+                )) : <Empty title={locale === "ar" ? "لا توجد شيفتات مطابقة" : "No matching shifts"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
               </div>
             ) : (
               <Empty
@@ -17030,6 +17441,153 @@ function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
   return <Button variant="outline" onClick={() => setLocation(`/employees/${employeeId}/work-locations`)}><MapPin size={16}/>{locale === "ar" ? "مواقع العمل" : "Work locations"}</Button>;
 }
 
+function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const ar = locale === "ar";
+  const workspace = useGetWorkspace();
+  const qc = useQueryClient();
+  const canManage = workspace.data?.capabilities?.includes("attendance.punch") ?? false;
+  const now = new Date();
+  const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const [open, setOpen] = useState(false);
+  const [direction, setDirection] = useState<"in" | "out">("in");
+  const [attendanceDate, setAttendanceDate] = useState(localToday);
+  const [occurredTime, setOccurredTime] = useState(now.toTimeString().slice(0, 5));
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  if (!canManage) return null;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!attendanceDate || !occurredTime || !reason.trim()) return;
+    setSaving(true);
+    try {
+      const occurredAt = new Date(`${attendanceDate}T${occurredTime}:00`);
+      if (Number.isNaN(occurredAt.getTime())) throw new Error("تاريخ أو وقت غير صحيح.");
+      await authRequest("/api/attendance/manual-event", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId,
+          attendanceDate,
+          occurredAt: occurredAt.toISOString(),
+          direction,
+          reason: reason.trim(),
+        }),
+      });
+      toast.success(ar ? "تمت إضافة البصمة اليدوية." : "Manual attendance punch added.");
+      setOpen(false);
+      setReason("");
+      await qc.invalidateQueries();
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, ar ? "تعذرت إضافة البصمة اليدوية." : "Could not add the manual punch."));
+    } finally {
+      setSaving(false);
+    }
+  }
+  return <>
+    <Button variant="outline" onClick={() => setOpen(true)} data-testid={`button-manual-attendance-${employeeId}`}>
+      <Fingerprint size={16}/>{ar ? "إضافة بصمة يدوية" : "Add manual punch"}
+    </Button>
+    {open ? <Modal title={ar ? "إضافة بصمة يدوية للموظف" : "Add a manual employee punch"} onClose={() => setOpen(false)}>
+      <form onSubmit={submit} className="space-y-4">
+        <label className="block text-sm font-semibold">{ar ? "نوع البصمة" : "Punch type"}
+          <select value={direction} onChange={(event) => setDirection(event.target.value as "in" | "out")} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+            <option value="in">{ar ? "حضور" : "Check-in"}</option>
+            <option value="out">{ar ? "انصراف" : "Check-out"}</option>
+          </select>
+        </label>
+        <Field label={ar ? "تاريخ يوم الحضور" : "Attendance date"} type="date" value={attendanceDate} onChange={setAttendanceDate} required/>
+        <Field label={ar ? "وقت البصمة" : "Punch time"} type="time" value={occurredTime} onChange={setOccurredTime} required/>
+        <label className="block text-sm font-semibold">{ar ? "سبب الإضافة" : "Reason"}
+          <textarea required value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal" placeholder={ar ? "اكتب سبب إضافة البصمة..." : "Explain why this punch is being added..."}/>
+        </label>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="quiet" onClick={() => setOpen(false)}>{ar ? "إلغاء" : "Cancel"}</Button>
+          <Button type="submit" disabled={saving}>{saving ? (ar ? "جارٍ الحفظ..." : "Saving...") : (ar ? "حفظ البصمة" : "Save punch")}</Button>
+        </div>
+      </form>
+    </Modal> : null}
+  </>;
+}
+
+function EmployeeAttendanceDevices({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const ar = locale === "ar";
+  const [devices, setDevices] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  async function loadDevices() {
+    setError("");
+    try {
+      const rows = await authRequest<Array<any>>(
+        `/api/employees/${employeeId}/attendance-devices`,
+      );
+      setDevices(rows);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (ar ? "تعذر تحميل المتصفحات" : "Could not load browsers"));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    let active = true;
+    authRequest<Array<any>>(`/api/employees/${employeeId}/attendance-devices`)
+      .then((rows) => { if (active) setDevices(rows); })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : (ar ? "تعذر تحميل المتصفحات" : "Could not load browsers")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [employeeId, ar]);
+  async function decide(deviceId: string, decision: "approve" | "reject" | "revoke") {
+    setBusy(deviceId);
+    try {
+      await authRequest(
+        `/api/employees/${employeeId}/attendance-devices/${deviceId}/decision`,
+        { method: "POST", body: JSON.stringify({ decision }) },
+      );
+      toast.success(ar ? "تم تحديث اعتماد المتصفح." : "Browser approval updated.");
+      await loadDevices();
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, ar ? "تعذر تحديث اعتماد المتصفح." : "Could not update browser approval."));
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">{ar ? "متصفحات الحضور المعتمدة" : "Approved attendance browsers"}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{ar ? "راجع طلبات المتصفحات الجديدة واسمح بها أو ارفضها أو ألغِ اعتماد متصفح حالي." : "Review new browser requests, approve or reject them, or revoke an existing browser."}</p>
+        </div>
+        <Button variant="outline" onClick={() => void loadDevices()} disabled={loading || Boolean(busy)}>
+          <RefreshCw size={15}/>{ar ? "تحديث" : "Refresh"}
+        </Button>
+      </div>
+      {loading ? <div className="mt-4"><Skeleton className="h-20"/></div> : error ? <p className="mt-4 text-sm text-destructive">{error}</p> : devices.length ? (
+        <div className="mt-4 divide-y divide-border">
+          {devices.map((device) => (
+            <div key={device.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="break-words text-sm font-semibold">{device.deviceLabel || (ar ? "متصفح غير معروف" : "Unknown browser")}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{ar ? "تاريخ الطلب: " : "Requested: "}{date(device.requestedAt)} · {ar ? "آخر استخدام: " : "Last used: "}{device.lastSeenAt ? date(device.lastSeenAt) : (ar ? "لم يستخدم بعد" : "Not used yet")}</div>
+                <div className="mt-2"><Status value={device.status}/></div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {device.status === "pending" ? <>
+                  <Button onClick={() => void decide(device.id, "approve")} disabled={busy === device.id}>{ar ? "موافقة" : "Approve"}</Button>
+                  <Button variant="danger" onClick={() => void decide(device.id, "reject")} disabled={busy === device.id}>{ar ? "رفض" : "Reject"}</Button>
+                </> : device.status === "active" ? (
+                  <Button variant="danger" onClick={() => void decide(device.id, "revoke")} disabled={busy === device.id}>{ar ? "إلغاء الاعتماد" : "Revoke access"}</Button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <div className="mt-4"><Empty title={ar ? "لا توجد متصفحات مسجلة" : "No registered browsers"} detail={ar ? "سيظهر هنا أول متصفح يستخدمه الموظف عند تفعيل التحقق." : "The employee's first browser will appear here when verification is enabled."}/></div>}
+    </Card>
+  );
+}
+
 function EmployeeWorkLocationsPage() {
   const { locale } = useI18n();
   const { employeeId = "" } = useParams<{employeeId:string}>();
@@ -17049,8 +17607,16 @@ function EmployeeWorkLocationsPage() {
     <Button variant="quiet" onClick={()=>selectedDate?setSelectedDate(""):setLocation(`/employees/${employeeId}`)}><ArrowLeft size={16}/>{selectedDate?(ar?"العودة للأيام":"Back to days"):(ar?"العودة لملف الموظف":"Back to employee")}</Button>
     <SectionTitle eyebrow={ar?"سجل مواقع العمل":"Work location history"} title={name} detail={chosen?(ar?"اضغط على الموقع لفتحه على الخريطة":"Select a location to open its map"):(ar?"اختر اليوم لعرض المواقع المسجلة فيه":"Choose a day to view its recorded locations")}/>
     {loading?<Card className="p-5"><Skeleton className="h-24"/></Card>:error?<Card className="p-5"><p className="text-sm text-destructive">{error}</p></Card>:!days.length?<Card className="p-5"><Empty title={ar?"لا توجد مواقع عمل مسجلة":"No work locations recorded"} detail={ar?"ستظهر الأيام هنا عند تسجيل المواقع":"Recorded days will appear here"}/></Card>:<>
-      <div className="space-y-3">{days.map(([d,items])=><button key={d} onClick={()=>setSelectedDate(current=>current===d?"":d)} aria-expanded={selectedDate===d} className={`flex w-full items-center justify-between rounded-xl border p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] ${selectedDate===d?"border-primary bg-primary/[0.04]":"border-border bg-card"}`} data-testid={`work-location-day-${d}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><CalendarDays size={20}/></span><span><span className="block font-semibold">{weekday(d)}</span><span className="text-sm text-muted-foreground">{date(d)}</span></span></span><span className="flex items-center gap-2"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{items.length} {ar?"موقع":"locations"}</span><ChevronDown size={16} className={`transition-transform ${selectedDate===d?"rotate-180":""}`}/></span></button>)}</div>
-      {chosen&&<div className="space-y-3"><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{chosen[1].map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</div>}
+      <div className="grid gap-4 md:grid-cols-[minmax(260px,0.85fr)_minmax(0,1.15fr)] md:items-start">
+        <section className="min-w-0 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">{ar?"الأيام المسجلة":"Recorded days"}</h3>
+          <div className="max-h-[65vh] space-y-3 overflow-y-auto pe-1">{days.map(([d,items])=><button key={d} onClick={()=>setSelectedDate(d)} aria-pressed={selectedDate===d} className={`flex w-full items-center justify-between rounded-xl border p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] ${selectedDate===d?"border-primary bg-primary/[0.04]":"border-border bg-card"}`} data-testid={`work-location-day-${d}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><CalendarDays size={20}/></span><span><span className="block font-semibold">{weekday(d)}</span><span className="text-sm text-muted-foreground">{date(d)}</span></span></span><span className="flex items-center gap-2"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{items.length} {ar?"موقع":"locations"}</span></span></button>)}</div>
+        </section>
+        <section className="min-w-0 space-y-3 md:sticky md:top-4">
+          <h3 className="text-sm font-semibold text-muted-foreground">{ar?"تفاصيل مواقع اليوم":"Selected day locations"}</h3>
+          {chosen ? <><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{chosen[1].map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</> : <Card className="flex min-h-52 items-center justify-center p-6"><Empty title={ar?"اختر يومًا من القائمة":"Choose a day"} detail={ar?"ستظهر المواقع المسجلة في هذا الجزء":"Locations recorded on that day will appear here"}/></Card>}
+        </section>
+      </div>
       </>}
   </div>;
 }
@@ -18626,6 +19192,10 @@ function Accounts() {
   const { locale } = useI18n();
   const workspace = useGetWorkspace();
   const [accounts, setAccounts] = useState<AuthAccount[]>([]);
+  const [accountSearch, setAccountSearch] = useState("");
+  const filteredAccounts = accounts.filter((account) =>
+    `${account.fullName} ${account.primaryPhone || account.username} ${account.displayRole}`.toLowerCase().includes(accountSearch.trim().toLowerCase()),
+  );
   const [permissions, setPermissions] = useState<
     Array<{ key: string; label: string; description?: string }>
   >([]);
@@ -18950,8 +19520,17 @@ function Accounts() {
               <Skeleton className="h-16" />
             </div>
           ) : accounts.length ? (
-            <div className="divide-y divide-border">
-              {accounts.map((account) => (
+            <div className="space-y-3 p-4">
+              <input
+                type="search"
+                value={accountSearch}
+                onChange={(event) => setAccountSearch(event.target.value)}
+                placeholder={locale === "ar" ? "ابحث بالاسم أو الهاتف أو الدور..." : "Search by name, phone, or role..."}
+                className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                aria-label={locale === "ar" ? "بحث الحسابات" : "Search accounts"}
+              />
+              <div className="divide-y divide-border">
+              {filteredAccounts.length ? filteredAccounts.map((account) => (
                 <div
                   className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
                   key={account.id}
@@ -18988,7 +19567,8 @@ function Accounts() {
                     </Button>
                   </div>
                 </div>
-              ))}
+              )) : <Empty title={locale === "ar" ? "لا توجد حسابات مطابقة" : "No matching accounts"} detail={locale === "ar" ? "جرّب البحث باسم أو رقم مختلف." : "Try a different name or number."} />}
+              </div>
             </div>
           ) : (
             <Empty
