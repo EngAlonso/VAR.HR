@@ -522,6 +522,7 @@ export interface Employee {
   /** @nullable */
   biometricCode?: string | null;
   locationAttendanceEnabled?: boolean;
+  attendanceLocationMode?: 'fixed' | 'variable';
   automaticAnnualLeaveEligible: boolean;
   /**
      * @minimum 0
@@ -577,6 +578,7 @@ export interface EmployeeInput {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  attendanceLocationMode?: 'fixed' | 'variable';
   automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0
@@ -649,6 +651,7 @@ export interface EmployeeUpdate {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  attendanceLocationMode?: 'fixed' | 'variable';
   automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0
