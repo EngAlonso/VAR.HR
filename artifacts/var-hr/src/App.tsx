@@ -8974,7 +8974,7 @@ function Branches() {
               className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               aria-label={locale === "ar" ? "بحث الفروع" : "Search branches"}
             />
-            {filteredBranches.map((branch: any) => (
+            {filteredBranches.length ? filteredBranches.map((branch: any) => (
               <Card
                 key={branch.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${selected?.id === branch.id ? "border-primary bg-primary/5" : ""}`}
@@ -8994,7 +8994,7 @@ function Branches() {
                   <Info label={t("branchDevices")} value={branch.deviceCount} />
                 </div>
               </Card>
-            ))}
+            )) : <Empty title={locale === "ar" ? "لا توجد فروع مطابقة" : "No matching branches"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
           </div>
           {selected ? (
             <Card className="p-6">
@@ -9193,7 +9193,7 @@ function Departments() {
               className="h-11 w-full rounded-xl border border-input bg-card px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               aria-label={locale === "ar" ? "بحث الأقسام" : "Search departments"}
             />
-            {filteredDepartments.map((item: any) => (
+            {filteredDepartments.length ? filteredDepartments.map((item: any) => (
               <Card
                 key={item.id}
                 className={`cursor-pointer p-5 transition-colors hover:border-primary/40 ${
@@ -9225,7 +9225,7 @@ function Departments() {
                   )}
                 </div>
               </Card>
-            ))}
+            )) : <Empty title={locale === "ar" ? "لا توجد أقسام مطابقة" : "No matching departments"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
           </div>
           <Card className="min-h-[360px] p-6">
             {activeDetail ? (
@@ -16500,7 +16500,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                   className="h-11 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   aria-label={locale === "ar" ? "بحث الشيفتات" : "Search shifts"}
                 />
-                {filteredSchedules.map((schedule: any) => (
+                {filteredSchedules.length ? filteredSchedules.map((schedule: any) => (
                   <div className="p-5" key={schedule.id}>
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
@@ -16552,7 +16552,7 @@ function Schedules({ embedded = false }: { embedded?: boolean }) {
                       />
                     </div>
                   </div>
-                ))}
+                )) : <Empty title={locale === "ar" ? "لا توجد شيفتات مطابقة" : "No matching shifts"} detail={locale === "ar" ? "جرّب كلمة بحث مختلفة." : "Try a different search term."} />}
               </div>
             ) : (
               <Empty
@@ -19527,7 +19527,7 @@ function Accounts() {
                 aria-label={locale === "ar" ? "بحث الحسابات" : "Search accounts"}
               />
               <div className="divide-y divide-border">
-              {filteredAccounts.map((account) => (
+              {filteredAccounts.length ? filteredAccounts.map((account) => (
                 <div
                   className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"
                   key={account.id}
@@ -19564,7 +19564,7 @@ function Accounts() {
                     </Button>
                   </div>
                 </div>
-              ))}
+              )) : <Empty title={locale === "ar" ? "لا توجد حسابات مطابقة" : "No matching accounts"} detail={locale === "ar" ? "جرّب البحث باسم أو رقم مختلف." : "Try a different name or number."} />}
               </div>
             </div>
           ) : (
