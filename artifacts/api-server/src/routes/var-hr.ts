@@ -12097,21 +12097,26 @@ async function calculatePayrollPeriod(
             },
           ]
         : []),
-      ...employeeAdjustments.map((adjustment) => ({
-        label: adjustment.reason,
-        amount:
-          adjustment.type === "addition"
-            ? adjustment.amount
-            : -adjustment.amount,
-        type:
-          adjustment.type === "addition"
-            ? ("addition" as const)
-            : ("deduction" as const),
-        explanation:
-          adjustment.category === "fixed"
-            ? message(req, "fixedAdjustmentExplanation")
-            : message(req, "variableAdjustmentExplanation"),
-      })),
+      ...employeeAdjustments.map((adjustment) => {
+        const allocatedAmount = moneyValue(
+          adjustment.amount * adjustmentProration,
+        );
+        return {
+          label: adjustment.reason,
+          amount:
+            adjustment.type === "addition"
+              ? allocatedAmount
+              : -allocatedAmount,
+          type:
+            adjustment.type === "addition"
+              ? ("addition" as const)
+              : ("deduction" as const),
+          explanation:
+            adjustment.category === "fixed"
+              ? message(req, "fixedAdjustmentExplanation")
+              : message(req, "variableAdjustmentExplanation"),
+        };
+      }),
     ];
     const calculatedItem = {
       employee: employeeReference(row.employee, row.department.name),
