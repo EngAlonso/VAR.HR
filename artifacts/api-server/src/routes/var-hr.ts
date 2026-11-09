@@ -4559,8 +4559,9 @@ router.post(
       .digest("hex");
     const now = new Date();
     const registration = await db.transaction(async (tx) => {
-      // Serialize first-browser registration so two browsers cannot both
-      // become the employee's initial trusted browser at the same time.
+      // Serialize browser registration. Only the very first browser is
+      // trusted automatically; later browsers remain approval-gated even
+      // after an administrator revokes the original browser.
       await tx
         .select({ id: employeesTable.id })
         .from(employeesTable)
@@ -4572,17 +4573,19 @@ router.post(
         )
         .for("update")
         .limit(1);
-      const [activeDevice] = await tx
-        .select({ id: employeeAttendanceDevicesTable.id })
+      const existingDevices = await tx
+        .select({
+          id: employeeAttendanceDevicesTable.id,
+          status: employeeAttendanceDevicesTable.status,
+        })
         .from(employeeAttendanceDevicesTable)
         .where(
           and(
             eq(employeeAttendanceDevicesTable.companyId, context.companyId),
             eq(employeeAttendanceDevicesTable.employeeId, employee.id),
-            eq(employeeAttendanceDevicesTable.status, "active"),
           ),
-        )
-        .limit(1);
+        );
+      const activeDevice = existingDevices.find((item) => item.status === "active");
       let [device] = await tx
         .select()
         .from(employeeAttendanceDevicesTable)
@@ -4612,7 +4615,10 @@ router.post(
           .where(eq(employeeAttendanceDevicesTable.id, device.id))
           .returning();
       } else if (device?.status === "pending") {
-        const approveAsFirstBrowser = !activeDevice;
+        const approveAsFirstBrowser =
+          !activeDevice &&
+          existingDevices.length === 1 &&
+          existingDevices[0]?.id === device.id;
         [device] = await tx
           .update(employeeAttendanceDevicesTable)
           .set({
@@ -4627,7 +4633,7 @@ router.post(
         firstBrowserBound = approveAsFirstBrowser;
         shouldAuditRequest = !approveAsFirstBrowser;
       } else if (!device) {
-        const approveAsFirstBrowser = !activeDevice;
+        const approveAsFirstBrowser = existingDevices.length === 0;
         [device] = await tx
           .insert(employeeAttendanceDevicesTable)
           .values({
