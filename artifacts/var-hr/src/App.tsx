@@ -8707,7 +8707,6 @@ function EmployeeAttendanceMovement({
                     </div>
                     {canConvertAbsence && row.attendanceStatus === "absent" ? (
                       <Button
-                        size="sm"
                         variant="outline"
                         onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)}
                         disabled={convertingAttendanceId === (row as any).attendanceId}
@@ -8779,7 +8778,7 @@ function EmployeeAttendanceMovement({
                           <div className="flex flex-col items-start gap-2">
                             <Status value={row.attendanceStatus || "—"} />
                             {canConvertAbsence && row.attendanceStatus === "absent" ? (
-                              <Button size="sm" variant="outline" onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)} disabled={convertingAttendanceId === (row as any).attendanceId}>
+                              <Button variant="outline" onClick={() => void convertAbsenceToAnnualLeave((row as any).attendanceId)} disabled={convertingAttendanceId === (row as any).attendanceId}>
                                 {locale === "ar" ? "إجازة سنوية" : "Annual leave"}
                               </Button>
                             ) : null}
@@ -17571,10 +17570,10 @@ function EmployeeAttendanceDevices({ employeeId }: { employeeId: string }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {device.status === "pending" ? <>
-                  <Button size="sm" onClick={() => void decide(device.id, "approve")} disabled={busy === device.id}>{ar ? "موافقة" : "Approve"}</Button>
-                  <Button size="sm" variant="danger" onClick={() => void decide(device.id, "reject")} disabled={busy === device.id}>{ar ? "رفض" : "Reject"}</Button>
+                  <Button onClick={() => void decide(device.id, "approve")} disabled={busy === device.id}>{ar ? "موافقة" : "Approve"}</Button>
+                  <Button variant="danger" onClick={() => void decide(device.id, "reject")} disabled={busy === device.id}>{ar ? "رفض" : "Reject"}</Button>
                 </> : device.status === "active" ? (
-                  <Button size="sm" variant="danger" onClick={() => void decide(device.id, "revoke")} disabled={busy === device.id}>{ar ? "إلغاء الاعتماد" : "Revoke access"}</Button>
+                  <Button variant="danger" onClick={() => void decide(device.id, "revoke")} disabled={busy === device.id}>{ar ? "إلغاء الاعتماد" : "Revoke access"}</Button>
                 ) : null}
               </div>
             </div>
