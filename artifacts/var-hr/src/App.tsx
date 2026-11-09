@@ -7155,7 +7155,7 @@ function Shell({ children }: { children: ReactNode }) {
                 <span className="h-0.5 w-full rounded-full bg-foreground" />
               </span>
             </Button>
-            <span className="flex h-9 w-[76px] shrink-0 items-center justify-center overflow-hidden sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+            <span className="flex h-10 w-[104px] shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card px-1.5 py-1 ring-1 ring-border/60 sm:absolute sm:left-1/2 sm:top-1/2 sm:h-9 sm:w-[120px] sm:-translate-x-1/2 sm:-translate-y-1/2">
               <BrandLogo
                 variant="horizontal"
                 className="!h-full !w-full !max-w-none object-contain sm:hidden"
@@ -7167,7 +7167,7 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
             <Button
               variant="outline"
-              className="ms-auto flex min-w-0 max-w-[58%] items-center gap-2 rounded-xl px-2 py-2 text-start sm:hidden"
+              className="ms-auto flex min-w-0 max-w-[52%] items-center gap-2 rounded-xl px-2 py-2 text-start sm:hidden"
               onClick={() => setLocation("/profile")}
               aria-label={t("profileEmployee")}
               data-testid="button-mobile-profile"
@@ -7234,7 +7234,7 @@ function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-24 pt-5 sm:px-8 sm:py-9">
+        <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-28 pt-5 sm:px-8 sm:py-9">
           {children}
         </main>
         <nav
@@ -7258,7 +7258,7 @@ function Shell({ children }: { children: ReactNode }) {
                 key={`${href}-${key}`}
                 href={href}
                 className={cn(
-                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 transition-colors",
+                  "relative flex min-h-[66px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-4 transition-colors",
                   isActive
                     ? "bg-primary/15 text-primary-dark"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -7267,7 +7267,7 @@ function Shell({ children }: { children: ReactNode }) {
                 data-testid={`mobile-nav-${key}`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className="block max-w-full whitespace-normal break-words text-center leading-3">{label}</span>
+                <span className="block max-w-full whitespace-normal break-words text-center leading-4">{label}</span>
                 {href === "/requests" && pendingRequests > 0 ? (
                   <span className="absolute ms-5 -mt-6 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {pendingRequests}
@@ -7278,7 +7278,7 @@ function Shell({ children }: { children: ReactNode }) {
           })}
           <button
             type="button"
-            className="flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-semibold leading-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-h-[66px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-4 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setOpen(true)}
             aria-controls="workspace-navigation"
             aria-expanded={open}
