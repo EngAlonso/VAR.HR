@@ -9216,7 +9216,7 @@ function AddEmployeePage() {
       !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
-      Number(form.workingHours) < 0 ||
+      Number(form.workingHours) <= 0 ||
       Number(form.workingHours) > 24 ||
       !Number.isInteger(Number(form.workDaysPerMonth)) ||
       Number(form.workDaysPerMonth) < 1 ||
@@ -10453,10 +10453,12 @@ function EmployeeProfilePage() {
           </div>
 
           <div className="border-t border-border pt-1">
+            {!editing && (
             <EmployeeHrPanel
               employeeId={employee.data.id}
               canEdit={canEditEmployees}
             />
+          )}
           </div>
 
           <EmployeeProfileSection
@@ -10655,6 +10657,7 @@ function EmployeeProfilePage() {
               <Button type="submit" disabled={update.isPending || assignSchedule.isPending || assignPayrollCycle.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
+          <EmployeeHrPanel employeeId={employeeId} canEdit={canEditEmployees} />
         </Modal>
       )}
     </div>
