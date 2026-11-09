@@ -15711,10 +15711,9 @@ function Payroll() {
                   <Button
                     variant="outline"
                     onClick={() => setShowAdjustment(true)}
-                    disabled={
-                      calculation.data.period.status === "finalized" ||
-                      calculation.data.period.status === "locked"
-                    }
+                    disabled={["finalized", "approved", "locked"].includes(
+                      String(selectedPeriod?.status ?? calculation.data.period.status),
+                    )}
                   >
                     <Plus size={15} />
                     {t("addAdjustment")}
