@@ -119,3 +119,193 @@
   }
 }
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Premium management workspace polish */
+@layer utilities {
+  .animate-in {
+    animation: page-enter .38s cubic-bezier(.2,.75,.25,1) both;
+  }
+  .animate-in > .grid > div > .rounded-2xl,
+  .animate-in > .grid > .rounded-2xl,
+  .management-page > .grid > div > .rounded-xl,
+  .management-page > .grid > .rounded-2xl {
+    animation: panel-enter .42s cubic-bezier(.2,.75,.25,1) both;
+  }
+  .animate-in > .grid > div:nth-child(2) > .rounded-2xl,
+  .management-page > .grid > div:nth-child(2) > .rounded-xl { animation-delay: .06s; }
+  .animate-in > .grid > div:nth-child(3) > .rounded-2xl,
+  .management-page > .grid > div:nth-child(3) > .rounded-xl { animation-delay: .12s; }
+  .animate-in :is(button, a, [role="button"]) {
+    transition:
+      transform .18s ease,
+      box-shadow .2s ease,
+      border-color .2s ease,
+      background-color .2s ease,
+      color .2s ease;
+  }
+  .animate-in button:not(:disabled):active,
+  .animate-in [role="button"]:not([aria-disabled="true"]):active {
+    transform: translateY(1px) scale(.985);
+  }
+  .animate-in button:focus-visible,
+  .animate-in a:focus-visible,
+  .animate-in input:focus-visible,
+  .animate-in select:focus-visible {
+    outline: 3px solid hsl(var(--ring) / .22);
+    outline-offset: 2px;
+  }
+  .animate-in input[type="search"],
+  .animate-in input:not([type="checkbox"]):not([type="radio"]),
+  .animate-in select,
+  .animate-in textarea {
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  .animate-in input:focus,
+  .animate-in select:focus,
+  .animate-in textarea:focus {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / .11);
+  }
+  .animate-in table thead {
+    background: linear-gradient(110deg, hsl(var(--secondary) / .07), hsl(var(--primary) / .10));
+  }
+  .animate-in table tbody tr {
+    transition: background-color .18s ease;
+  }
+  .animate-in table tbody tr:hover {
+    background: hsl(var(--primary) / .055);
+  }
+  .animate-in .rounded-2xl.border,
+  .animate-in .rounded-xl.border {
+    box-shadow: 0 1px 2px hsl(214 84% 10% / .035), 0 9px 24px hsl(214 84% 10% / .045);
+  }
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"]::before {
+    content: "";
+    position: absolute;
+    inset-block: 14px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: hsl(var(--primary));
+    opacity: 0;
+    transform: scaleY(.35);
+    transition: opacity .2s ease, transform .2s ease;
+    pointer-events: none;
+  }
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"]:hover,
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"][class*="border-primary"] {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px hsl(214 84% 10% / .09);
+  }
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"]:hover::before,
+  .animate-in .rounded-2xl.border[class*="cursor-pointer"][class*="border-primary"]::before {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  .animate-in [class*="bg-primary/5"] {
+    background-image: linear-gradient(135deg, hsl(var(--primary) / .10), hsl(var(--primary) / .025));
+  }
+}
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .animate-in > .grid > div > .rounded-2xl,
+  .animate-in > .grid > .rounded-2xl,
+  .management-page > .grid > div > .rounded-xl,
+  .management-page > .grid > .rounded-2xl {
+    animation: none !important;
+  }
+  .animate-in :is(button, a, [role="button"], .rounded-2xl.border) {
+    transition: none !important;
+  }
+}
+
+
+/* Page identity: each management area gets a restrained accent within VAR HR branding. */
+@layer utilities {
+  .management-page {
+    --management-accent: 43 80% 48%;
+    position: relative;
+    isolation: isolate;
+  }
+  .management-page::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block-start: -2.25rem;
+    inset-inline-end: -1rem;
+    width: min(34rem, 75vw);
+    height: 13rem;
+    border-radius: 999px;
+    background: radial-gradient(ellipse, hsl(var(--management-accent) / .12), transparent 68%);
+    pointer-events: none;
+  }
+  .management-page > .mobile-section-title {
+    position: relative;
+    padding: .25rem 0 1.15rem;
+    border-bottom: 1px solid hsl(var(--management-accent) / .18);
+  }
+  .management-page > .mobile-section-title::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-end: -1px;
+    width: 5.5rem;
+    height: 2px;
+    border-radius: 2px;
+    background: hsl(var(--management-accent));
+  }
+  .management-page > .mobile-section-title p {
+    color: hsl(var(--management-accent));
+  }
+  .management-page .rounded-xl.border,
+  .management-page .rounded-2xl.border {
+    box-shadow: 0 1px 2px hsl(214 84% 10% / .035), 0 10px 26px hsl(214 84% 10% / .055);
+    transition: border-color .2s ease, box-shadow .22s ease, transform .22s ease;
+  }
+  .management-page .rounded-xl.border[class*="cursor-pointer"] {
+    position: relative;
+    overflow: hidden;
+  }
+  .management-page .rounded-xl.border[class*="cursor-pointer"]:hover,
+  .management-page .rounded-xl.border[class*="cursor-pointer"][class*="border-primary"] {
+    border-color: hsl(var(--management-accent) / .55);
+    box-shadow: 0 12px 30px hsl(var(--management-accent) / .12);
+    transform: translateY(-2px);
+  }
+  .management-page .rounded-xl.border[class*="cursor-pointer"][class*="border-primary"] {
+    background: linear-gradient(125deg, hsl(var(--management-accent) / .12), hsl(var(--management-accent) / .035));
+  }
+  .management-page .rounded-xl.border[class*="cursor-pointer"]::after {
+    content: "";
+    position: absolute;
+    inset-block: 12px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: hsl(var(--management-accent));
+    opacity: 0;
+    transition: opacity .2s ease;
+    pointer-events: none;
+  }
+  .management-page .rounded-xl.border[class*="cursor-pointer"]:hover::after,
+  .management-page .rounded-xl.border[class*="cursor-pointer"][class*="border-primary"]::after {
+    opacity: 1;
+  }
+  .management-page--branches { --management-accent: 164 66% 39%; }
+  .management-page--departments { --management-accent: 262 63% 59%; }
+  .management-page--requests { --management-accent: 197 78% 43%; }
+  .management-page--schedules { --management-accent: 27 85% 52%; }
+  .management-page--accounts { --management-accent: 217 76% 55%; }
+}
