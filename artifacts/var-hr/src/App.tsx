@@ -9701,9 +9701,7 @@ function EmployeeProfilePage() {
       branchId: employee.data.branch?.id ?? "",
       joinedOn: employee.data.joinedOn ?? "",
       scheduleId: employeeSchedule.data?.schedule?.id ?? "",
-      scheduleEffectiveFrom:
-        employeeSchedule.data?.assignment?.effectiveFrom ??
-        new Date().toISOString().slice(0, 10),
+      scheduleEffectiveFrom: new Date().toISOString().slice(0, 10),
       payrollCycleId: employee.data.payrollCycle?.id ?? "",
       status: employee.data.status,
       role: employee.data.role ?? "employee",
@@ -9754,8 +9752,8 @@ function EmployeeProfilePage() {
           firstNameEn: editForm.firstNameEn.trim(),
           lastNameEn: editForm.lastNameEn.trim(),
           phone: editForm.phone.trim(),
-          nationalId: editForm.nationalId.trim(),
-          biometricCode: editForm.biometricCode.trim(),
+          nationalId: editForm.nationalId.trim() || undefined,
+          biometricCode: editForm.biometricCode.trim() || undefined,
           workingHours,
           payBasis: editForm.payBasis as "monthly" | "hourly",
           workDaysPerMonth,
@@ -10422,7 +10420,7 @@ function EmployeeProfilePage() {
                 <Field label={t("lastName")} value={editForm.lastName} required onChange={(value) => setEditForm({ ...editForm, lastName: value })} />
                 <Field label="الاسم الأول بالإنجليزية" value={editForm.firstNameEn} onChange={(value) => setEditForm({ ...editForm, firstNameEn: value })} />
                 <Field label="اسم العائلة بالإنجليزية" value={editForm.lastNameEn} onChange={(value) => setEditForm({ ...editForm, lastNameEn: value })} />
-                <Field label={t("phoneNumber")} value={editForm.phone} inputMode="tel" onChange={(value) => setEditForm({ ...editForm, phone: value })} />
+                <Field label={t("phoneNumber")} value={editForm.phone} required inputMode="tel" onChange={(value) => setEditForm({ ...editForm, phone: value })} />
                 <Field label={t("nationalId")} value={editForm.nationalId} onChange={(value) => setEditForm({ ...editForm, nationalId: value })} />
                 <Field label={t("biometricCode")} value={editForm.biometricCode} onChange={(value) => setEditForm({ ...editForm, biometricCode: value })} />
               </div>
