@@ -7976,7 +7976,7 @@ function EmployeeHrProfile({
 }: {
   employeeIdOverride?: string | null;
 } = {}) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [, setLocation] = useLocation();
   const workspace = useGetWorkspace();
   const employeeId = employeeIdOverride ?? workspace.data?.employeeId ?? "";
