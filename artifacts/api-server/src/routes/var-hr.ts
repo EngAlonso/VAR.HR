@@ -6433,8 +6433,8 @@ async function recordCurrentAttendance(
           locale,
         );
     if (
-      rules.gpsPolicy === "required" &&
-      !locationRequiredForEmployee &&
+      !variableLocationEmployee &&
+      (locationRequiredForEmployee || rules.gpsPolicy === "required") &&
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
@@ -6546,8 +6546,8 @@ async function recordCurrentAttendance(
           explanation: existing.explanation,
         };
   if (
-    rules.gpsPolicy === "required" &&
-    !locationRequiredForEmployee &&
+    !variableLocationEmployee &&
+    (locationRequiredForEmployee || rules.gpsPolicy === "required") &&
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({
