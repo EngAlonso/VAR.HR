@@ -461,13 +461,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "attendance_location_mode": {
-          "name": "attendance_location_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'fixed'"
         }
       },
       "indexes": {
@@ -595,10 +588,6 @@
         "var_hr_employees_hourly_rate_basis_chk": {
           "name": "var_hr_employees_hourly_rate_basis_chk",
           "value": "\"var_hr_employees\".\"pay_basis\" <> 'hourly' OR (\"var_hr_employees\".\"work_days_per_month\" IS NOT NULL AND \"var_hr_employees\".\"working_hours\" > 0)"
-        },
-        "var_hr_employees_attendance_location_mode_chk": {
-          "name": "var_hr_employees_attendance_location_mode_chk",
-          "value": "\"var_hr_employees\".\"attendance_location_mode\" IN ('fixed', 'variable')"
         }
       },
       "isRLSEnabled": false
