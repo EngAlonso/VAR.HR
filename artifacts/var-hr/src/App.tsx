@@ -8297,12 +8297,12 @@ function EmployeeAttendanceMovement({
 }) {
   const { locale, t } = useI18n();
   const [open, setOpen] = useState(fullPage);
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [year, monthNumber] = month.split("-").map(Number);
-  const from = `${month}-01`;
-  const to = new Date(Date.UTC(year, monthNumber, 0))
-    .toISOString()
-    .slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
+  const [to, setTo] = useState(today);
+  const [payrollSummary, setPayrollSummary] = useState<any>(null);
+  const [payrollSummaryLoading, setPayrollSummaryLoading] = useState(false);
+  const [payrollSummaryError, setPayrollSummaryError] = useState("");
   const reportParams = useMemo(
     () => ({
       type: "attendance" as const,
@@ -8319,7 +8319,42 @@ function EmployeeAttendanceMovement({
     },
   });
 
-  const rows = report.data?.rows ?? [];
+  const rows = useMemo(
+    () => [...(report.data?.rows ?? [])].sort((a, b) =>
+      String(b.date ?? "").localeCompare(String(a.date ?? "")),
+    ),
+    [report.data?.rows],
+  );
+  useEffect(() => {
+    if (!open || !employeeId || !from || !to || from > to) {
+      setPayrollSummary(null);
+      setPayrollSummaryError("");
+      return;
+    }
+    let active = true;
+    setPayrollSummaryLoading(true);
+    setPayrollSummaryError("");
+    authRequest<any>(
+      `/api/payroll/employee-summary?employeeId=${encodeURIComponent(employeeId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    )
+      .then((summary) => {
+        if (active) setPayrollSummary(summary);
+      })
+      .catch((error) => {
+        if (active) {
+          setPayrollSummary(null);
+          setPayrollSummaryError(
+            error instanceof Error ? error.message : "تعذر حساب الراتب للفترة المحددة",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setPayrollSummaryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, employeeId, from, to]);
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
@@ -8382,7 +8417,7 @@ function EmployeeAttendanceMovement({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("attendanceMonth"))}: ${escapeHtml(periodLabel(month))}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
+      `<html dir="${document.documentElement.dir || "ltr"}"><head><title>${escapeHtml(t("attendanceMovementTitle"))}</title><style>body{font-family:Arial,sans-serif;color:#152638;padding:28px}h1{margin:0 0 6px}p{color:#607080}.summary{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.chip{background:#edf4f4;border-radius:999px;padding:6px 10px;font-size:12px}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #d8e0e4;padding:7px;text-align:start}th{background:#edf4f4}@media print{body{padding:0}}</style></head><body><h1>${escapeHtml(t("attendanceMovementTitle"))}</h1><p>${escapeHtml(employeeName)} · ${escapeHtml(t("fromTo"))}: ${escapeHtml(from)} – ${escapeHtml(to)}</p><div class="summary"><span class="chip">${escapeHtml(t("records"))}: ${rows.length}</span><span class="chip">${escapeHtml(t("workedHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.workedHours || 0), 0)))}</span><span class="chip">${escapeHtml(t("overtimeHours"))}: ${escapeHtml(hours(rows.reduce((sum, row) => sum + Number(row.overtimeHours || 0), 0)))}</span></div><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>{window.print();window.close()}</script></body></html>`,
     );
     printWindow.document.close();
   }
@@ -8417,12 +8452,10 @@ function EmployeeAttendanceMovement({
       {open && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
-            <Field
-              label={t("attendanceMonth")}
-              type="month"
-              value={month}
-              onChange={setMonth}
-            />
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+              <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={setFrom} />
+              <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
+            </div>
             {canPrint && (
               <Button
                 variant="outline"
@@ -8435,6 +8468,17 @@ function EmployeeAttendanceMovement({
               </Button>
             )}
           </div>
+          {from > to ? (
+            <Card className="p-4 text-sm text-destructive">{locale === "ar" ? "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" : "Start date must be before end date"}</Card>
+          ) : (
+            <Card className="grid gap-3 border-primary/20 bg-primary/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Info label={locale === "ar" ? "الراتب الأساسي للفترة" : "Basic salary for period"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.basicSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "الإضافات" : "Additions"} value={payrollSummary ? `${Number(payrollSummary.additions || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "الخصومات" : "Deductions"} value={payrollSummary ? `${(Number(payrollSummary.attendanceDeductions || 0) + Number(payrollSummary.otherDeductions || 0)).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "صافي الراتب المستحق" : "Net salary due"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.netSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              {payrollSummaryError ? <p className="text-xs text-destructive sm:col-span-2 lg:col-span-4">{payrollSummaryError}</p> : null}
+            </Card>
+          )}
           {report.isLoading ? (
             <Skeleton className="h-56" />
           ) : report.isError ? (
@@ -17049,8 +17093,16 @@ function EmployeeWorkLocationsPage() {
     <Button variant="quiet" onClick={()=>selectedDate?setSelectedDate(""):setLocation(`/employees/${employeeId}`)}><ArrowLeft size={16}/>{selectedDate?(ar?"العودة للأيام":"Back to days"):(ar?"العودة لملف الموظف":"Back to employee")}</Button>
     <SectionTitle eyebrow={ar?"سجل مواقع العمل":"Work location history"} title={name} detail={chosen?(ar?"اضغط على الموقع لفتحه على الخريطة":"Select a location to open its map"):(ar?"اختر اليوم لعرض المواقع المسجلة فيه":"Choose a day to view its recorded locations")}/>
     {loading?<Card className="p-5"><Skeleton className="h-24"/></Card>:error?<Card className="p-5"><p className="text-sm text-destructive">{error}</p></Card>:!days.length?<Card className="p-5"><Empty title={ar?"لا توجد مواقع عمل مسجلة":"No work locations recorded"} detail={ar?"ستظهر الأيام هنا عند تسجيل المواقع":"Recorded days will appear here"}/></Card>:<>
-      <div className="space-y-3">{days.map(([d,items])=><button key={d} onClick={()=>setSelectedDate(current=>current===d?"":d)} aria-expanded={selectedDate===d} className={`flex w-full items-center justify-between rounded-xl border p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] ${selectedDate===d?"border-primary bg-primary/[0.04]":"border-border bg-card"}`} data-testid={`work-location-day-${d}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><CalendarDays size={20}/></span><span><span className="block font-semibold">{weekday(d)}</span><span className="text-sm text-muted-foreground">{date(d)}</span></span></span><span className="flex items-center gap-2"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{items.length} {ar?"موقع":"locations"}</span><ChevronDown size={16} className={`transition-transform ${selectedDate===d?"rotate-180":""}`}/></span></button>)}</div>
-      {chosen&&<div className="space-y-3"><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{chosen[1].map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</div>}
+      <div className="grid gap-4 md:grid-cols-[minmax(260px,0.85fr)_minmax(0,1.15fr)] md:items-start">
+        <section className="min-w-0 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">{ar?"الأيام المسجلة":"Recorded days"}</h3>
+          <div className="max-h-[65vh] space-y-3 overflow-y-auto pe-1">{days.map(([d,items])=><button key={d} onClick={()=>setSelectedDate(d)} aria-pressed={selectedDate===d} className={`flex w-full items-center justify-between rounded-xl border p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03] ${selectedDate===d?"border-primary bg-primary/[0.04]":"border-border bg-card"}`} data-testid={`work-location-day-${d}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><CalendarDays size={20}/></span><span><span className="block font-semibold">{weekday(d)}</span><span className="text-sm text-muted-foreground">{date(d)}</span></span></span><span className="flex items-center gap-2"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">{items.length} {ar?"موقع":"locations"}</span></span></button>)}</div>
+        </section>
+        <section className="min-w-0 space-y-3 md:sticky md:top-4">
+          <h3 className="text-sm font-semibold text-muted-foreground">{ar?"تفاصيل مواقع اليوم":"Selected day locations"}</h3>
+          {chosen ? <><Card className="p-4"><div className="font-bold">{weekday(chosen[0])} · {date(chosen[0])}</div><div className="mt-1 text-xs text-muted-foreground">{chosen[1].length} {ar?"موقع مسجل":"recorded locations"}</div></Card>{chosen[1].map((r,i)=><button key={r.id} onClick={()=>{if(r.latitude==null||r.longitude==null||!Number.isFinite(Number(r.latitude))||!Number.isFinite(Number(r.longitude))){toast.info(ar?"إحداثيات الموقع غير متاحة":"Location coordinates unavailable");return;}window.open(`https://www.google.com/maps?q=${r.latitude},${r.longitude}`,"_blank","noopener,noreferrer");}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-start shadow-sm transition hover:border-primary/50 hover:bg-primary/[0.03]" data-testid={`work-location-point-${r.id}`}><span className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-3 text-primary"><MapPin size={20}/></span><span><span className="block font-semibold">{r.comment||(ar?`موقع العمل ${i+1}`:`Work location ${i+1}`)}</span><span className="text-sm text-muted-foreground">{time(r.recordedAt)}</span></span></span><span className="text-xs font-semibold text-primary">{ar?"فتح الخريطة":"Open map"} ↗</span></button>)}</> : <Card className="flex min-h-52 items-center justify-center p-6"><Empty title={ar?"اختر يومًا من القائمة":"Choose a day"} detail={ar?"ستظهر المواقع المسجلة في هذا الجزء":"Locations recorded on that day will appear here"}/></Card>}
+        </section>
+      </div>
       </>}
   </div>;
 }
