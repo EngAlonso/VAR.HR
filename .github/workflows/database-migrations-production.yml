@@ -184,8 +184,8 @@ jobs:
           if (
             latestRepositoryMigration?.tag !== "0012_employee_attendance_location_mode" ||
             Number(latestRepositoryMigration?.createdAt) !== 1794247200000 ||
-            typeof latestRepositoryMigration?.hash !== "string" ||
-            latestRepositoryMigration.hash.length !== 64
+            latestRepositoryMigration.hash !==
+  "4a3abbc307e639a5dc99f72ce410c4e018ceacf6e25c6ca0a380cc83c6a1fad4"
           ) {
             fail("The repository's latest migration is not the expected 0012 migration.");
           }
