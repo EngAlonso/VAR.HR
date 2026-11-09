@@ -8622,7 +8622,7 @@ function EmployeeAttendanceMovement({
               <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={(value) => { payrollRangeInitialized.current = true; setFrom(value); }} />
               <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
             </div>
-            <EmployeeManualAttendance employeeId={employeeId} />
+            <EmployeeManualAttendance employeeId={employeeId} employeeName={employeeName} />
             {canManagePayroll ? (
               <Button
                 variant="outline"
@@ -17459,7 +17459,7 @@ function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
   return <Button variant="outline" onClick={() => setLocation(`/employees/${employeeId}/work-locations`)}><MapPin size={16}/>{locale === "ar" ? "مواقع العمل" : "Work locations"}</Button>;
 }
 
-function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
+function EmployeeManualAttendance({ employeeId, employeeName }: { employeeId: string; employeeName: string }) {
   const { locale } = useI18n();
   const ar = locale === "ar";
   const workspace = useGetWorkspace();
@@ -17472,11 +17472,16 @@ function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
   const [attendanceDate, setAttendanceDate] = useState(localToday);
   const [occurredTime, setOccurredTime] = useState(now.toTimeString().slice(0, 5));
   const [reason, setReason] = useState("");
+  const [employeeNameConfirmation, setEmployeeNameConfirmation] = useState("");
   const [saving, setSaving] = useState(false);
   if (!canManage) return null;
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!attendanceDate || !occurredTime || !reason.trim()) return;
+    if (!employeeId || !employeeName.trim() || !attendanceDate || !occurredTime || !reason.trim()) return;
+    if (employeeNameConfirmation.trim().toLocaleLowerCase() !== employeeName.trim().toLocaleLowerCase()) {
+      toast.error(ar ? "اكتب اسم الموظف الظاهر كما هو لتأكيد هوية صاحب البصمة." : "Enter the displayed employee name exactly to confirm the punch target.");
+      return;
+    }
     setSaving(true);
     try {
       const occurredAt = new Date(`${attendanceDate}T${occurredTime}:00`);
@@ -17502,11 +17507,17 @@ function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
     }
   }
   return <>
-    <Button variant="outline" onClick={() => setOpen(true)} data-testid={`button-manual-attendance-${employeeId}`}>
+    <Button variant="outline" onClick={() => { setEmployeeNameConfirmation(""); setOpen(true); }} data-testid={`button-manual-attendance-${employeeId}`}>
       <Fingerprint size={16}/>{ar ? "إضافة بصمة يدوية" : "Add manual punch"}
     </Button>
     {open ? <Modal title={ar ? "إضافة بصمة يدوية للموظف" : "Add a manual employee punch"} onClose={() => setOpen(false)}>
       <form onSubmit={submit} className="space-y-4">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="text-xs font-semibold text-muted-foreground">{ar ? "البصمة ستُسجّل للموظف التالي فقط" : "This punch will be recorded for this employee only"}</div>
+          <div className="mt-1 text-base font-bold">{employeeName}</div>
+          <div className="mt-1 break-all text-xs text-muted-foreground" dir="ltr">{employeeId}</div>
+        </div>
+        <Field label={ar ? "اكتب اسم الموظف لتأكيد الهوية" : "Type the employee name to confirm"} value={employeeNameConfirmation} onChange={setEmployeeNameConfirmation} required placeholder={employeeName}/>
         <label className="block text-sm font-semibold">{ar ? "نوع البصمة" : "Punch type"}
           <select value={direction} onChange={(event) => setDirection(event.target.value as "in" | "out")} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
             <option value="in">{ar ? "حضور" : "Check-in"}</option>
@@ -17520,7 +17531,7 @@ function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
         </label>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="quiet" onClick={() => setOpen(false)}>{ar ? "إلغاء" : "Cancel"}</Button>
-          <Button type="submit" disabled={saving}>{saving ? (ar ? "جارٍ الحفظ..." : "Saving...") : (ar ? "حفظ البصمة" : "Save punch")}</Button>
+          <Button type="submit" disabled={saving || !employeeId || employeeNameConfirmation.trim().toLocaleLowerCase() !== employeeName.trim().toLocaleLowerCase()}>{saving ? (ar ? "جارٍ الحفظ..." : "Saving...") : (ar ? "حفظ البصمة" : "Save punch")}</Button>
         </div>
       </form>
     </Modal> : null}
