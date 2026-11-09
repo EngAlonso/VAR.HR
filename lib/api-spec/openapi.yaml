@@ -3113,6 +3113,7 @@ components:
         nationalId: { type: ["string", "null"] }
         biometricCode: { type: ["string", "null"] }
         locationAttendanceEnabled: { type: boolean }
+        attendanceLocationMode: { type: string, enum: [fixed, variable] }
         automaticAnnualLeaveEligible: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
         payBasis:
@@ -3155,6 +3156,7 @@ components:
         nationalId: { type: string, minLength: 1 }
         biometricCode: { type: string, minLength: 1 }
         locationAttendanceEnabled: { type: boolean, default: false }
+        attendanceLocationMode: { type: string, enum: [fixed, variable], default: fixed }
         automaticAnnualLeaveEligible: { type: boolean, default: false }
         workingHours: { type: number, minimum: 0, maximum: 24, default: 8 }
         payBasis:
@@ -3185,6 +3187,7 @@ components:
         nationalId: { type: string, minLength: 1 }
         biometricCode: { type: string, minLength: 1 }
         locationAttendanceEnabled: { type: boolean }
+        attendanceLocationMode: { type: string, enum: [fixed, variable] }
         automaticAnnualLeaveEligible: { type: boolean }
         workingHours: { type: number, minimum: 0, maximum: 24 }
         payBasis:

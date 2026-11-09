@@ -835,88 +835,84 @@ async function resolveAttendanceLocation(
       explanation: translateApiMessage(locale, "checkInFromWorkspace"),
     };
   }
-  const locations = await db
-    .select()
-    .from(attendanceLocationsTable)
-    .where(
-      and(
-        eq(attendanceLocationsTable.companyId, context.companyId),
-        eq(attendanceLocationsTable.active, true),
+
+  const [locations, branchRows] = await Promise.all([
+    db
+      .select()
+      .from(attendanceLocationsTable)
+      .where(
+        and(
+          eq(attendanceLocationsTable.companyId, context.companyId),
+          eq(attendanceLocationsTable.active, true),
+        ),
       ),
-    );
-  if (!locations.length) {
-    const branch = context.employeeId
-      ? (
-          await db
-            .select({ branch: branchesTable })
-            .from(employeesTable)
-            .innerJoin(
-              branchesTable,
-              eq(employeesTable.branchId, branchesTable.id),
-            )
-            .where(
-              and(
-                eq(employeesTable.id, context.employeeId),
-                eq(employeesTable.companyId, context.companyId),
-              ),
-            )
-            .limit(1)
-        )[0]?.branch
-      : undefined;
-    if (
-      branch?.gpsEnabled &&
-      finiteNumber(branch.latitude) &&
-      finiteNumber(branch.longitude) &&
-      finiteNumber(branch.radiusMeters)
-    ) {
-      const distance = haversineMeters(
-        input.latitude,
-        input.longitude,
-        branch.latitude,
-        branch.longitude,
-      );
-      if (
-        input.accuracyMeters != null &&
-        input.accuracyMeters > branch.radiusMeters
-      ) {
-        return {
-          status: "low_accuracy",
-          explanation: translateApiMessage(locale, "gpsLowAccuracy"),
-        };
-      }
-      return distance <= branch.radiusMeters
-        ? {
-            status: "verified",
-            explanation: translateApiMessage(locale, "checkInLocationVerified"),
-          }
-        : {
-            status: "outside_geofence",
-            explanation: translateApiMessage(locale, "gpsOutsideGeofence"),
-          };
-    }
+    context.employeeId
+      ? db
+          .select({ branch: branchesTable })
+          .from(employeesTable)
+          .innerJoin(
+            branchesTable,
+            eq(employeesTable.branchId, branchesTable.id),
+          )
+          .where(
+            and(
+              eq(employeesTable.id, context.employeeId),
+              eq(employeesTable.companyId, context.companyId),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
+
+  const branch = branchRows[0]?.branch;
+  const geofences = [
+    ...locations.map((location) => ({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radiusMeters: location.radiusMeters,
+    })),
+    ...(branch?.gpsEnabled &&
+    finiteNumber(branch.latitude) &&
+    finiteNumber(branch.longitude) &&
+    finiteNumber(branch.radiusMeters)
+      ? [{
+          latitude: branch.latitude,
+          longitude: branch.longitude,
+          radiusMeters: branch.radiusMeters,
+        }]
+      : []),
+  ];
+
+  if (!geofences.length) {
     return {
       status: "pending",
       explanation: translateApiMessage(locale, "checkInLocationPending"),
     };
   }
-  const radius = Math.min(
-    ...locations.map((location) => location.radiusMeters),
+
+  const minimumRadius = Math.min(
+    ...geofences.map((geofence) => geofence.radiusMeters),
   );
-  if (input.accuracyMeters != null && input.accuracyMeters > radius) {
+  if (
+    input.accuracyMeters != null &&
+    input.accuracyMeters > minimumRadius
+  ) {
     return {
       status: "low_accuracy",
       explanation: translateApiMessage(locale, "gpsLowAccuracy"),
     };
   }
-  const inside = locations.some(
-    (location) =>
+
+  const inside = geofences.some(
+    (geofence) =>
       haversineMeters(
         input.latitude,
         input.longitude,
-        location.latitude,
-        location.longitude,
-      ) <= location.radiusMeters,
+        geofence.latitude,
+        geofence.longitude,
+      ) <= geofence.radiusMeters,
   );
+
   return inside
     ? {
         status: "verified",
@@ -927,7 +923,6 @@ async function resolveAttendanceLocation(
         explanation: translateApiMessage(locale, "gpsOutsideGeofence"),
       };
 }
-
 const defaultAttendanceRules = {
   workStart: "09:00",
   workEnd: "17:00",
@@ -2863,6 +2858,7 @@ function employeeResponse(
     nationalId: row.employee.nationalId,
     biometricCode: row.employee.biometricCode,
     locationAttendanceEnabled: row.employee.locationAttendanceEnabled,
+    attendanceLocationMode: row.employee.attendanceLocationMode as "fixed" | "variable",
     automaticAnnualLeaveEligible:
       row.employee.automaticAnnualLeaveEligible,
     workingHours: row.employee.workingHours,
@@ -4276,6 +4272,7 @@ router.post("/employees", async (req, res): Promise<void> => {
           nationalId: parsed.data.nationalId,
           biometricCode: parsed.data.biometricCode,
           locationAttendanceEnabled: parsed.data.locationAttendanceEnabled ?? false,
+          attendanceLocationMode: parsed.data.attendanceLocationMode ?? "fixed",
           automaticAnnualLeaveEligible:
             parsed.data.automaticAnnualLeaveEligible ?? false,
           automaticAnnualLeaveActivatedAt:
@@ -6333,11 +6330,15 @@ async function recordCurrentAttendance(
         }
       : null;
   const locationRequiredForEmployee =
-    currentEmployee.locationAttendanceEnabled && parsed.data.source !== "biometric";
+    parsed.data.source !== "biometric" &&
+    (currentEmployee.attendanceLocationMode === "fixed" ||
+      currentEmployee.attendanceLocationMode === "variable");
+  const variableLocationEmployee =
+    locationRequiredForEmployee &&
+    currentEmployee.attendanceLocationMode === "variable";
   if (
-    (rules.gpsPolicy as string) === "required" &&
-    !location &&
-    !locationRequiredForEmployee
+    ((rules.gpsPolicy as string) === "required" || locationRequiredForEmployee) &&
+    !location
   ) {
     res.status(400).json({ error: message(req, "gpsValidationRequired") });
     return;
@@ -6417,15 +6418,20 @@ async function recordCurrentAttendance(
       });
       return;
     }
-    const locationValidation = await resolveAttendanceLocation(
-      context,
-      location,
-      locationRequiredForEmployee ? "required" : rules.gpsPolicy,
-      locale,
-    );
+    const locationValidation = variableLocationEmployee
+      ? {
+          status: "recorded" as const,
+          explanation: "GPS coordinates recorded for variable work location.",
+        }
+      : await resolveAttendanceLocation(
+          context,
+          location,
+          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
+          locale,
+        );
     if (
-      rules.gpsPolicy === "required" &&
-      !locationRequiredForEmployee &&
+      !variableLocationEmployee &&
+      (locationRequiredForEmployee || rules.gpsPolicy === "required") &&
       locationValidation.status !== "verified"
     ) {
       res.status(403).json({
@@ -6514,25 +6520,31 @@ async function recordCurrentAttendance(
     res.status(400).json({ error: message(req, "checkInRequired") });
     return;
   }
-  const locationValidation = location
-    ? await resolveAttendanceLocation(
-        context,
-        location,
-        locationRequiredForEmployee ? "required" : rules.gpsPolicy,
-        locale,
-      )
-    : {
-        status: existing.locationStatus as
-          | "not_required"
-          | "verified"
-          | "outside_geofence"
-          | "low_accuracy"
-          | "pending",
-        explanation: existing.explanation,
-      };
+  const locationValidation = variableLocationEmployee && location
+    ? {
+        status: "recorded" as const,
+        explanation: "GPS coordinates recorded for variable work location.",
+      }
+    : location
+      ? await resolveAttendanceLocation(
+          context,
+          location,
+          locationRequiredForEmployee ? "required" : rules.gpsPolicy,
+          locale,
+        )
+      : {
+          status: existing.locationStatus as
+            | "not_required"
+            | "verified"
+            | "recorded"
+            | "outside_geofence"
+            | "low_accuracy"
+            | "pending",
+          explanation: existing.explanation,
+        };
   if (
-    rules.gpsPolicy === "required" &&
-    !locationRequiredForEmployee &&
+    !variableLocationEmployee &&
+    (locationRequiredForEmployee || rules.gpsPolicy === "required") &&
     locationValidation.status !== "verified"
   ) {
     res.status(403).json({

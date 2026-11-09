@@ -70,6 +70,7 @@ export const employeesTable = pgTable(
     nationalId: text("national_id"),
     biometricCode: text("biometric_code"),
     locationAttendanceEnabled: boolean("location_attendance_enabled").notNull().default(false),
+    attendanceLocationMode: text("attendance_location_mode").notNull().default("fixed"),
     automaticAnnualLeaveEligible: boolean("automatic_annual_leave_eligible")
       .notNull()
       .default(true),
@@ -102,6 +103,10 @@ export const employeesTable = pgTable(
     companyPhoneUnique: uniqueIndex(
       "var_hr_employees_company_phone_uidx",
     ).on(table.companyId, table.phone),
+    employeeAttendanceLocationMode: check(
+      "var_hr_employees_attendance_location_mode_chk",
+      sql`${table.attendanceLocationMode} IN ('fixed', 'variable')`,
+    ),
     employeeNumberFormat: check(
       "var_hr_employees_employee_number_format_chk",
       sql`${table.employeeNumber} ~ '^[1-9][0-9]*$' OR ${table.employeeNumber} ~ '^EMP-[0-9]+$'`,

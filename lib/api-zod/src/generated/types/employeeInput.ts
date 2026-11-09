@@ -23,6 +23,7 @@ export interface EmployeeInput {
   /** @minLength 1 */
   biometricCode?: string;
   locationAttendanceEnabled?: boolean;
+  attendanceLocationMode?: 'fixed' | 'variable';
   automaticAnnualLeaveEligible?: boolean;
   /**
      * @minimum 0

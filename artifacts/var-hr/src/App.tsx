@@ -9184,7 +9184,7 @@ function AddEmployeePage() {
     salary: "0",
     scheduleId: "",
     payrollCycleId: "",
-    locationAttendanceEnabled: false,
+    attendanceLocationMode: "fixed",
     automaticAnnualLeaveEligible: false,
     automaticOvertime: "default",
     jobTitle: "",
@@ -9239,7 +9239,8 @@ function AddEmployeePage() {
           biometricCode: form.biometricCode.trim() || undefined,
           role: form.role as "employee" | "manager",
           payBasis: form.payBasis as "monthly" | "hourly",
-          locationAttendanceEnabled: form.locationAttendanceEnabled,
+          locationAttendanceEnabled: form.attendanceLocationMode === "variable",
+          attendanceLocationMode: form.attendanceLocationMode as "fixed" | "variable",
           automaticAnnualLeaveEligible: form.automaticAnnualLeaveEligible,
           workingHours: Number(form.workingHours),
           workDaysPerMonth: Number(form.workDaysPerMonth),
@@ -9637,9 +9638,17 @@ function AddEmployeePage() {
             <p className="mt-1 text-xs leading-5 text-muted-foreground">إعدادات الحضور واحتساب الإجازات الخاصة بالموظف.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
-              <input type="checkbox" checked={form.locationAttendanceEnabled} onChange={(e) => setForm({ ...form, locationAttendanceEnabled: e.target.checked })} className="size-4 accent-primary" />
-              تفعيل تسجيل مواقع العمل عبر GPS
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span className="mb-2 block">نوع موقع تسجيل الحضور والانصراف</span>
+              <select
+                value={form.attendanceLocationMode}
+                onChange={(e) => setForm({ ...form, attendanceLocationMode: e.target.value })}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="fixed">الموقع الثابت — الالتزام بنطاق موقع العمل المحدد</option>
+                <option value="variable">الموقع المتغير — التسجيل من أي موقع مع حفظ الإحداثيات</option>
+              </select>
+              <span className="mt-1 block text-xs font-normal text-muted-foreground">الثابت يرفض التسجيل خارج النطاق الجغرافي. المتغير يسجل الموقع الفعلي دون اشتراط نطاق ثابت.</span>
             </label>
             <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
               <input type="checkbox" checked={form.automaticAnnualLeaveEligible} onChange={(e) => setForm({ ...form, automaticAnnualLeaveEligible: e.target.checked })} className="size-4 accent-primary" />
@@ -9809,7 +9818,7 @@ function EmployeeProfilePage() {
     role: "employee",
     automaticOvertime: "default",
     automaticAnnualLeaveEligible: true,
-    locationAttendanceEnabled: false,
+    attendanceLocationMode: "fixed",
   });
   useEffect(() => {
     if (employee.data?.payrollCycle?.id) {
@@ -9845,8 +9854,8 @@ function EmployeeProfilePage() {
       automaticOvertime: employee.data.automaticOvertime ?? "default",
       automaticAnnualLeaveEligible:
         employee.data.automaticAnnualLeaveEligible ?? false,
-      locationAttendanceEnabled:
-        employee.data.locationAttendanceEnabled ?? false,
+      attendanceLocationMode:
+        (employee.data as any).attendanceLocationMode ?? "fixed",
     });
     setEditing(true);
   }
@@ -9906,7 +9915,8 @@ function EmployeeProfilePage() {
             | "disabled",
           automaticAnnualLeaveEligible:
             editForm.automaticAnnualLeaveEligible,
-          locationAttendanceEnabled: editForm.locationAttendanceEnabled,
+          locationAttendanceEnabled: editForm.attendanceLocationMode === "variable",
+          attendanceLocationMode: editForm.attendanceLocationMode as "fixed" | "variable",
         } as any,
       },
       {
@@ -10633,9 +10643,17 @@ function EmployeeProfilePage() {
             <section className="space-y-3">
               <h3 className="border-b border-border pb-2 text-sm font-bold text-primary">إعدادات الحضور والاستحقاقات</h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm">
-                  <input type="checkbox" checked={editForm.locationAttendanceEnabled} onChange={(event) => setEditForm({ ...editForm, locationAttendanceEnabled: event.target.checked })} className="size-4 accent-primary" />
-                  تفعيل تسجيل مواقع العمل للموظف
+                <label className="block text-sm font-semibold sm:col-span-2">
+                  <span className="mb-2 block">نوع موقع تسجيل الحضور والانصراف</span>
+                  <select
+                    value={editForm.attendanceLocationMode}
+                    onChange={(event) => setEditForm({ ...editForm, attendanceLocationMode: event.target.value })}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  >
+                    <option value="fixed">الموقع الثابت — الالتزام بنطاق موقع العمل المحدد</option>
+                    <option value="variable">الموقع المتغير — التسجيل من أي موقع مع حفظ الإحداثيات</option>
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">الثابت يرفض التسجيل خارج النطاق الجغرافي. المتغير يسجل الموقع الفعلي دون اشتراط نطاق ثابت.</span>
                 </label>
                 <label className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm">
                   <input type="checkbox" checked={editForm.automaticAnnualLeaveEligible} onChange={(event) => setEditForm({ ...editForm, automaticAnnualLeaveEligible: event.target.checked })} className="size-4 accent-primary" />
@@ -11060,8 +11078,10 @@ function Attendance() {
     window.open(`https://www.google.com/maps?q=${point.latitude},${point.longitude}`, "_blank", "noopener,noreferrer");
   }
   function locationLabel(value?: string | null) {
-    return value === "verified"
-      ? t("locationVerified")
+    return value === "recorded"
+      ? "تم تسجيل الموقع"
+      : value === "verified"
+        ? t("locationVerified")
       : value === "outside_geofence"
         ? t("locationOutside")
         : value === "low_accuracy"
