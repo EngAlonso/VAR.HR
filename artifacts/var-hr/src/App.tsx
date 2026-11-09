@@ -8358,7 +8358,7 @@ function EmployeeAttendanceMovement({
 
   const rows = useMemo(
     () => [...(report.data?.rows ?? [])].sort((a, b) =>
-      String(b.date ?? "").localeCompare(String(a.date ?? "")),
+      String(a.date ?? "").localeCompare(String(b.date ?? "")),
     ),
     [report.data?.rows],
   );
@@ -8622,6 +8622,7 @@ function EmployeeAttendanceMovement({
               <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={(value) => { payrollRangeInitialized.current = true; setFrom(value); }} />
               <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
             </div>
+            <EmployeeManualAttendance employeeId={employeeId} />
             {canManagePayroll ? (
               <Button
                 variant="outline"
@@ -10384,7 +10385,6 @@ function EmployeeProfilePage() {
                   {t("showAttendanceMovement")}
                 </Button>
                 <EmployeeWorkLocations employeeId={employee.data.id} />
-                <EmployeeManualAttendance employeeId={employee.data.id} />
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -17617,7 +17617,7 @@ function EmployeeWorkLocationsPage() {
   const [selectedDate,setSelectedDate] = useState("");
   const ar=locale==="ar";
   useEffect(()=>{let live=true;(async()=>{try{const data=await authRequest<typeof rows>(`/api/employees/${employeeId}/work-locations`);if(live)setRows(data);}catch(e){if(live)setError(e instanceof Error?e.message:(ar?"تعذر تحميل المواقع":"Could not load locations"));}finally{if(live)setLoading(false);}})();return()=>{live=false;};},[employeeId,ar]);
-  const days=useMemo(()=>{const m=new Map<string,typeof rows>();rows.forEach(r=>m.set(r.workDate,[...(m.get(r.workDate)||[]),r]));return [...m.entries()].sort(([x],[y])=>y.localeCompare(x));},[rows]);
+  const days=useMemo(()=>{const m=new Map<string,typeof rows>();rows.forEach(r=>m.set(r.workDate,[...(m.get(r.workDate)||[]),r]));return [...m.entries()].map(([day,items])=>[day,[...items].sort((a,b)=>String(a.recordedAt).localeCompare(String(b.recordedAt))) ] as [string,typeof rows]).sort(([x],[y])=>x.localeCompare(y));},[rows]);
   const chosen=days.find(([d])=>d===selectedDate);
   const weekday=(d:string)=>new Intl.DateTimeFormat(ar?"ar-EG":"en-US",{weekday:"long"}).format(new Date(d+"T12:00:00"));
   const name=employee.data?`${employee.data.firstName} ${employee.data.lastName}`:(ar?"الموظف":"Employee");
