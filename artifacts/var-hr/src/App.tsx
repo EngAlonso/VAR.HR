@@ -11009,10 +11009,80 @@ function Employees() {
   );
 }
 
+function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const [pending, setPending] = useState(false);
+  const isArabic = locale === "ar";
+
+  async function recordLocation() {
+    const comment = window.prompt(
+      isArabic ? "اكتب وصفًا مختصرًا لموقع العمل الحالي:" : "Briefly describe your current work location:",
+    );
+    if (!comment?.trim()) return;
+    if (!navigator.geolocation) {
+      toast.error(isArabic ? "المتصفح لا يدعم تحديد الموقع." : "This browser does not support location access.");
+      return;
+    }
+    setPending(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
+      });
+      await authRequest(`/api/employees/${employeeId}/work-locations`, {
+        method: "POST",
+        body: JSON.stringify({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          comment: comment.trim(),
+        }),
+      });
+      toast.success(isArabic ? "تم تسجيل موقع العمل بنجاح." : "Work location recorded successfully.");
+    } catch (error) {
+      toast.error(
+        error instanceof GeolocationPositionError
+          ? isArabic ? "تعذر تحديد موقعك. اسمح للمتصفح بالوصول إلى الموقع وحاول مرة أخرى." : "Could not get your location. Allow location access and try again."
+          : error instanceof Error
+            ? error.message
+            : isArabic ? "تعذر تسجيل موقع العمل." : "Could not record the work location.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full"
+      disabled={pending}
+      onClick={() => void recordLocation()}
+      data-testid="button-record-work-location"
+    >
+      <MapPin size={16} />
+      {pending
+        ? isArabic ? "جارٍ تسجيل الموقع..." : "Recording location..."
+        : isArabic ? "تسجيل تغيير موقع العمل" : "Record work location change"}
+    </Button>
+  );
+}
+
 function Attendance() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
+  const selfEmployee = useGetEmployee(workspace.data?.employeeId ?? "", {
+    query: {
+      enabled:
+        workspace.data?.role === "employee" &&
+        Boolean(workspace.data?.employeeId),
+      queryKey: getGetEmployeeQueryKey(workspace.data?.employeeId ?? ""),
+    },
+  });
   const [tab, setTab] = useState<"today" | "history">("today");
   const [filters, setFilters] = useState({ from: "", to: "", employeeId: "" });
   const [correction, setCorrection] = useState<any | null>(null);
@@ -11063,6 +11133,7 @@ function Attendance() {
     (item: any) => item.employee.id === workspace.data?.employeeId,
   );
   const action = record?.checkIn && !record.checkOut ? "out" : "in";
+  const canPunch = action === "in" || Boolean(record);
   const employeeDepartment = record?.employee?.department
     ? departmentLabel(record.employee.department, t)
     : t("companyAttendanceView");
@@ -11353,7 +11424,7 @@ function Attendance() {
               <>
                 <Button
                   disabled={
-                    !record ||
+                    !canPunch ||
                     (action === "in"
                       ? checkIn.isPending
                       : checkOut.isPending) ||
@@ -11372,6 +11443,11 @@ function Attendance() {
                 <p className="mt-3 text-center text-[11px] text-sidebar-foreground/45">
                   {t("webEventPolicy")}
                 </p>
+                {workspace.data?.role === "employee" && selfEmployee.data?.locationAttendanceEnabled && (
+              <div className="mt-3">
+                <WorkLocationChangeButton employeeId={selfEmployee.data.id} />
+              </div>
+            )}
               </>
             ) : (
               <p className="mt-7 text-center text-xs text-sidebar-foreground/55">
