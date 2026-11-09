@@ -8298,7 +8298,21 @@ function EmployeeAttendanceMovement({
   const qc = useQueryClient();
   const workspace = useGetWorkspace();
   const canConvertAbsence = workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
+  const canManagePayroll = workspace.data?.capabilities?.includes("payroll.manage") ?? false;
+  const payrollPeriods = useListPayrollPeriods({
+    query: { enabled: canManagePayroll, queryKey: getListPayrollPeriodsQueryKey() },
+  });
+  const createPayrollAdjustment = useCreatePayrollAdjustment();
   const [convertingAttendanceId, setConvertingAttendanceId] = useState("");
+  const [showPayrollAdjustment, setShowPayrollAdjustment] = useState(false);
+  const [payrollAdjustmentForm, setPayrollAdjustmentForm] = useState({
+    periodId: "",
+    type: "addition",
+    category: "variable",
+    amount: "",
+    reason: "",
+  });
+  const [payrollSummaryRefresh, setPayrollSummaryRefresh] = useState(0);
   const [open, setOpen] = useState(fullPage);
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
@@ -8357,7 +8371,55 @@ function EmployeeAttendanceMovement({
     return () => {
       active = false;
     };
-  }, [open, employeeId, from, to]);
+  }, [open, employeeId, from, to, payrollSummaryRefresh]);
+  const editablePayrollPeriods = (payrollPeriods.data ?? []).filter((period: any) =>
+    period.from <= from &&
+    period.to >= to &&
+    !["approved", "finalized", "locked"].includes(String(period.status).toLowerCase()),
+  );
+  useEffect(() => {
+    if (!editablePayrollPeriods.some((period: any) => period.id === payrollAdjustmentForm.periodId)) {
+      setPayrollAdjustmentForm((current) => ({
+        ...current,
+        periodId: editablePayrollPeriods[0]?.id ?? "",
+      }));
+    }
+  }, [editablePayrollPeriods.map((period: any) => period.id).join("|"), payrollAdjustmentForm.periodId]);
+  async function submitPayrollAdjustment(event: FormEvent) {
+    event.preventDefault();
+    const amount = Number(payrollAdjustmentForm.amount);
+    if (!payrollAdjustmentForm.periodId || !Number.isFinite(amount) || amount <= 0 || !payrollAdjustmentForm.reason.trim()) {
+      toast.error(locale === "ar" ? "اختر فترة رواتب وأدخل مبلغًا وسببًا صحيحًا." : "Choose a payroll period and enter a valid amount and reason.");
+      return;
+    }
+    createPayrollAdjustment.mutate(
+      {
+        data: {
+          periodId: payrollAdjustmentForm.periodId,
+          employeeId,
+          type: payrollAdjustmentForm.type as "addition" | "deduction",
+          category: payrollAdjustmentForm.category as "fixed" | "variable",
+          amount,
+          reason: payrollAdjustmentForm.reason.trim(),
+        },
+      },
+      {
+        onSuccess: async () => {
+          toast.success(locale === "ar" ? "تمت إضافة الحركة إلى تسوية الرواتب." : "The adjustment was added to payroll.");
+          setShowPayrollAdjustment(false);
+          setPayrollAdjustmentForm((current) => ({ ...current, amount: "", reason: "" }));
+          setPayrollSummaryRefresh((value) => value + 1);
+          await Promise.all([
+            qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() }),
+            qc.invalidateQueries({ queryKey: getListPayrollAdjustmentsQueryKey({ periodId: payrollAdjustmentForm.periodId }) }),
+            qc.invalidateQueries({ queryKey: getGetPayrollCalculationQueryKey(payrollAdjustmentForm.periodId) }),
+            qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
+          ]);
+        },
+        onError: (error: unknown) => toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment.")),
+      },
+    );
+  }
   const weekday = (value?: string | null) =>
     value
       ? new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale, {
@@ -8473,6 +8535,54 @@ function EmployeeAttendanceMovement({
           </Button>
         )}
       </div>
+      {showPayrollAdjustment ? (
+        <Modal
+          title={locale === "ar" ? "إضافة خصم أو إضافي للموظف" : "Add employee payroll adjustment"}
+          onClose={() => setShowPayrollAdjustment(false)}
+        >
+          <form onSubmit={submitPayrollAdjustment} className="space-y-4">
+            <label className="block text-sm font-semibold">
+              {locale === "ar" ? "فترة الرواتب" : "Payroll period"}
+              <select
+                value={payrollAdjustmentForm.periodId}
+                onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, periodId: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm"
+                required
+              >
+                {editablePayrollPeriods.map((period: any) => (
+                  <option key={period.id} value={period.id}>{period.label} · {period.from} – {period.to}</option>
+                ))}
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm font-semibold">
+                {locale === "ar" ? "نوع الحركة" : "Adjustment type"}
+                <select value={payrollAdjustmentForm.type} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, type: event.target.value })} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+                  <option value="addition">{locale === "ar" ? "إضافي" : "Addition"}</option>
+                  <option value="deduction">{locale === "ar" ? "خصم" : "Deduction"}</option>
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                {locale === "ar" ? "التصنيف" : "Category"}
+                <select value={payrollAdjustmentForm.category} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, category: event.target.value })} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+                  <option value="variable">{locale === "ar" ? "متغير" : "Variable"}</option>
+                  <option value="fixed">{locale === "ar" ? "ثابت" : "Fixed"}</option>
+                </select>
+              </label>
+            </div>
+            <Field label={locale === "ar" ? "المبلغ" : "Amount"} type="number" min={0.01} step="0.01" value={payrollAdjustmentForm.amount} onChange={(value) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, amount: value })} required/>
+            <label className="block text-sm font-semibold">
+              {locale === "ar" ? "السبب" : "Reason"}
+              <textarea value={payrollAdjustmentForm.reason} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, reason: event.target.value })} required className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"/>
+            </label>
+            {!editablePayrollPeriods.length ? <p className="text-xs text-amber-700">{locale === "ar" ? "لا توجد فترة رواتب مفتوحة تشمل الفترة المحددة. أنشئ فترة رواتب مناسبة أولًا." : "No editable payroll period covers the selected dates. Create a matching payroll period first."}</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="quiet" onClick={() => setShowPayrollAdjustment(false)}>{locale === "ar" ? "إلغاء" : "Cancel"}</Button>
+              <Button type="submit" disabled={createPayrollAdjustment.isPending || !editablePayrollPeriods.length}>{createPayrollAdjustment.isPending ? (locale === "ar" ? "جارٍ الحفظ..." : "Saving...") : (locale === "ar" ? "حفظ الحركة" : "Save adjustment")}</Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
       {open && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
@@ -8480,6 +8590,17 @@ function EmployeeAttendanceMovement({
               <Field label={locale === "ar" ? "من تاريخ" : "From date"} type="date" value={from} onChange={setFrom} />
               <Field label={locale === "ar" ? "إلى تاريخ" : "To date"} type="date" value={to} onChange={setTo} />
             </div>
+            {canManagePayroll ? (
+              <Button
+                variant="outline"
+                onClick={() => setShowPayrollAdjustment(true)}
+                disabled={!editablePayrollPeriods.length}
+                data-testid={`button-add-payroll-adjustment-${employeeId}`}
+              >
+                <Coins size={16}/>
+                {locale === "ar" ? "إضافة خصم / إضافي" : "Add deduction / addition"}
+              </Button>
+            ) : null}
             {canPrint && (
               <Button
                 variant="outline"
