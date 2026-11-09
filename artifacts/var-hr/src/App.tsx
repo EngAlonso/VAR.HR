@@ -8315,7 +8315,8 @@ function EmployeeAttendanceMovement({
   });
   const [payrollSummaryRefresh, setPayrollSummaryRefresh] = useState(0);
   const [open, setOpen] = useState(fullPage);
-  const today = new Date().toISOString().slice(0, 10);
+  const localNow = new Date();
+  const today = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
   const [to, setTo] = useState(today);
   const [payrollSummary, setPayrollSummary] = useState<any>(null);
@@ -17447,9 +17448,10 @@ function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
   const qc = useQueryClient();
   const canManage = workspace.data?.capabilities?.includes("attendance.punch") ?? false;
   const now = new Date();
+  const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
   const [open, setOpen] = useState(false);
   const [direction, setDirection] = useState<"in" | "out">("in");
-  const [attendanceDate, setAttendanceDate] = useState(now.toISOString().slice(0, 10));
+  const [attendanceDate, setAttendanceDate] = useState(localToday);
   const [occurredTime, setOccurredTime] = useState(now.toTimeString().slice(0, 5));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
