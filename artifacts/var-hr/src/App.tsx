@@ -8392,9 +8392,10 @@ function EmployeeAttendanceMovement({
       active = false;
     };
   }, [open, employeeId, from, to, payrollSummaryRefresh]);
+  // A manual adjustment belongs to a payroll period selected in the form.
+  // Do not require that period to contain the entire attendance-history date range:
+  // users may inspect a custom range that crosses payroll-cycle boundaries.
   const editablePayrollPeriods = (payrollPeriods.data ?? []).filter((period: any) =>
-    period.from <= from &&
-    period.to >= to &&
     !["approved", "finalized", "locked"].includes(String(period.status).toLowerCase()),
   );
   useEffect(() => {
@@ -8607,7 +8608,7 @@ function EmployeeAttendanceMovement({
               {locale === "ar" ? "السبب" : "Reason"}
               <textarea value={payrollAdjustmentForm.reason} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, reason: event.target.value })} required className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"/>
             </label>
-            {!editablePayrollPeriods.length ? <p className="text-xs text-amber-700">{locale === "ar" ? "لا توجد فترة رواتب مفتوحة تشمل الفترة المحددة. أنشئ فترة رواتب مناسبة أولًا." : "No editable payroll period covers the selected dates. Create a matching payroll period first."}</p> : null}
+            {!editablePayrollPeriods.length ? <p className="text-xs text-amber-700">{locale === "ar" ? "لا توجد فترة رواتب مفتوحة لإضافة الحركة إليها. أنشئ فترة رواتب أو أعد فتح فترة مناسبة أولًا." : "There is no open payroll period available for this adjustment. Create or reopen a suitable period first."}</p> : null}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="quiet" onClick={() => setShowPayrollAdjustment(false)}>{locale === "ar" ? "إلغاء" : "Cancel"}</Button>
               <Button type="submit" disabled={createPayrollAdjustment.isPending || !editablePayrollPeriods.length}>{createPayrollAdjustment.isPending ? (locale === "ar" ? "جارٍ الحفظ..." : "Saving...") : (locale === "ar" ? "حفظ الحركة" : "Save adjustment")}</Button>
