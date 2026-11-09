@@ -8317,8 +8317,26 @@ function EmployeeAttendanceMovement({
   const [open, setOpen] = useState(fullPage);
   const localNow = new Date();
   const today = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
+  const employeeQuery = useGetEmployee(employeeId, {
+    query: {
+      enabled: Boolean(employeeId),
+      queryKey: getGetEmployeeQueryKey(employeeId),
+    },
+  });
   const [from, setFrom] = useState(() => `${today.slice(0, 7)}-01`);
   const [to, setTo] = useState(today);
+  const payrollRangeInitialized = useRef(false);
+  useEffect(() => {
+    const startDay = Number(employeeQuery.data?.payrollCycle?.startDay ?? 1);
+    if (!employeeQuery.data || payrollRangeInitialized.current || !Number.isInteger(startDay) || startDay < 1 || startDay > 31) return;
+    payrollRangeInitialized.current = true;
+    const [year, month, day] = today.split("-").map(Number);
+    const anchor = new Date(Date.UTC(year, month - 1, 1));
+    if (day < startDay) anchor.setUTCMonth(anchor.getUTCMonth() - 1);
+    const daysInCycleMonth = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 0)).getUTCDate();
+    const cycleStart = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), Math.min(startDay, daysInCycleMonth)));
+    setFrom(cycleStart.toISOString().slice(0, 10));
+  }, [employeeQuery.data, today]);
   const [payrollSummary, setPayrollSummary] = useState<any>(null);
   const [payrollSummaryLoading, setPayrollSummaryLoading] = useState(false);
   const [payrollSummaryError, setPayrollSummaryError] = useState("");
