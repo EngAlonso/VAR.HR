@@ -7193,11 +7193,10 @@ function Shell({ children }: { children: ReactNode }) {
               />
             </div>
           </div>
-          <div className="flex min-h-10 w-full min-w-0 items-center justify-end gap-1 sm:flex-1 sm:gap-2">
+          <div className="flex min-h-10 w-full min-w-0 items-center justify-between gap-1 sm:flex-1 sm:justify-end sm:gap-2">
             <div className="hidden text-xs font-medium text-muted-foreground lg:block">
               {auth.account.username} · {roleLabel(workspace.role, t)}
             </div>
-            <NotificationCenter locale={locale} />
             <div className="flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-2">
               <Globe2 size={14} className="shrink-0" />{" "}
               <select
@@ -7214,6 +7213,7 @@ function Shell({ children }: { children: ReactNode }) {
                 ))}
               </select>
             </div>
+            <NotificationCenter locale={locale} />
             <Button
               variant="quiet"
               className="hidden p-2 sm:inline-flex"
