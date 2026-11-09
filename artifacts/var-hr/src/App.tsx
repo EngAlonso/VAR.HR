@@ -9152,7 +9152,10 @@ function AddEmployeePage() {
   const branches = useListBranches();
   const schedules = useListWorkSchedules();
   const cycles = useListPayrollCycles();
+  const managers = useListEmployees({ status: "active" });
   const create = useCreateEmployee();
+  const updateEmployee = useUpdateEmployee();
+  const updateHrRecord = useUpdateEmployeeHrRecord();
   const [credentials, setCredentials] = useState<
     (EmployeeCredential & {
       phone: string;
@@ -9166,9 +9169,13 @@ function AddEmployeePage() {
     workspaceQuery.data?.capabilities?.includes("employees.credentials") ?? false;
   const [form, setForm] = useState({
     employeeName: "",
+    firstNameEn: "",
+    lastNameEn: "",
     nationalId: "",
     phone: "",
     biometricCode: "",
+    role: "employee",
+    payBasis: "monthly",
     workingHours: "8",
     workDaysPerMonth: "26",
     departmentId: "",
@@ -9177,6 +9184,16 @@ function AddEmployeePage() {
     salary: "0",
     scheduleId: "",
     payrollCycleId: "",
+    locationAttendanceEnabled: false,
+    automaticAnnualLeaveEligible: false,
+    automaticOvertime: "default",
+    jobTitle: "",
+    employmentType: "",
+    managerId: "",
+    address: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -9191,17 +9208,15 @@ function AddEmployeePage() {
     const nameParts = employeeName.split(/\s+/).filter(Boolean);
     if (
       nameParts.length === 0 ||
-      !form.nationalId.trim() ||
       !form.phone.trim() ||
-      !form.biometricCode.trim() ||
       !form.departmentId ||
       !form.branchId ||
-      !form.scheduleId ||
+      (form.payBasis === "monthly" && !form.scheduleId) ||
       !form.joinedOn ||
       !Number.isFinite(Number(form.salary)) ||
       Number(form.salary) < 0 ||
       !Number.isFinite(Number(form.workingHours)) ||
-      Number(form.workingHours) < 0 ||
+      Number(form.workingHours) <= 0 ||
       Number(form.workingHours) > 24 ||
       !Number.isInteger(Number(form.workDaysPerMonth)) ||
       Number(form.workDaysPerMonth) < 1 ||
@@ -9217,22 +9232,60 @@ function AddEmployeePage() {
         data: {
           firstName,
           lastName,
+          firstNameEn: form.firstNameEn.trim() || undefined,
+          lastNameEn: form.lastNameEn.trim() || undefined,
           phone: form.phone.trim(),
-          nationalId: form.nationalId.trim(),
-          biometricCode: form.biometricCode.trim(),
+          nationalId: form.nationalId.trim() || undefined,
+          biometricCode: form.biometricCode.trim() || undefined,
+          role: form.role as "employee" | "manager",
+          payBasis: form.payBasis as "monthly" | "hourly",
+          locationAttendanceEnabled: form.locationAttendanceEnabled,
+          automaticAnnualLeaveEligible: form.automaticAnnualLeaveEligible,
           workingHours: Number(form.workingHours),
           workDaysPerMonth: Number(form.workDaysPerMonth),
           salary: Number(form.salary),
           departmentId: form.departmentId,
           branchId: form.branchId,
           joinedOn: form.joinedOn,
-          scheduleId: form.scheduleId,
+          scheduleId: form.payBasis === "monthly" ? form.scheduleId : undefined,
           payrollCycleId: form.payrollCycleId || null,
         },
       },
       {
-        onSuccess: (result: any) => {
+        onSuccess: async (result: any) => {
+          const employeeId = result?.id;
+          const followUpSaves: Promise<unknown>[] = [];
+          if (employeeId && form.automaticOvertime !== "default") {
+            followUpSaves.push(
+              updateEmployee.mutateAsync({
+                employeeId,
+                data: { automaticOvertime: form.automaticOvertime as "enabled" | "disabled" },
+              }),
+            );
+          }
+          const hrRecord = {
+            jobTitle: form.jobTitle.trim() || null,
+            employmentType: form.employmentType.trim() || null,
+            managerId: form.managerId || null,
+            address: form.address.trim() || null,
+            emergencyContactName: form.emergencyContactName.trim() || null,
+            emergencyContactPhone: form.emergencyContactPhone.trim() || null,
+            notes: form.notes.trim() || null,
+          };
+          if (employeeId && Object.values(hrRecord).some((value) => value !== null)) {
+            followUpSaves.push(
+              updateHrRecord.mutateAsync({ employeeId, data: hrRecord as any }),
+            );
+          }
+          let followUpFailed = false;
+          if (followUpSaves.length) {
+            const results = await Promise.allSettled(followUpSaves);
+            followUpFailed = results.some((item) => item.status === "rejected");
+          }
           toast.success(t("employeeAdded"));
+          if (followUpFailed) {
+            toast.error("تم إنشاء الموظف، لكن تعذر حفظ بعض بيانات HR الإضافية. افتح ملف الموظف وراجعها.");
+          }
           qc.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
           const generated = result?.accountCredentials?.generatedPassword;
           const username = result?.accountCredentials?.username;
@@ -9320,9 +9373,18 @@ function AddEmployeePage() {
               />
             </div>
             <Field
+              label="الاسم الأول بالإنجليزية"
+              value={form.firstNameEn}
+              onChange={(value) => setForm({ ...form, firstNameEn: value })}
+            />
+            <Field
+              label="اسم العائلة بالإنجليزية"
+              value={form.lastNameEn}
+              onChange={(value) => setForm({ ...form, lastNameEn: value })}
+            />
+            <Field
               label={t("nationalId")}
               name="nationalId"
-              required
               placeholder={t("nationalIdHint")}
               value={form.nationalId}
               onChange={(value) => setForm({ ...form, nationalId: value })}
@@ -9340,7 +9402,6 @@ function AddEmployeePage() {
               <Field
                 label={t("biometricCode")}
                 name="biometricCode"
-                required
                 placeholder={t("biometricCodeHint")}
                 value={form.biometricCode}
                 onChange={(value) =>
@@ -9364,9 +9425,31 @@ function AddEmployeePage() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              <span className="block">نوع الأجر</span>
+              <select
+                value={form.payBasis}
+                onChange={(e) => setForm({ ...form, payBasis: e.target.value })}
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="monthly">شهري</option>
+                <option value="hourly">بالساعة</option>
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              <span className="block">صفة الموظف</span>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal"
+              >
+                <option value="employee">موظف</option>
+                <option value="manager">{t("roleManager")}</option>
+              </select>
+            </label>
             <div>
               <Field
-                label={t("monthlySalary")}
+                label={form.payBasis === "hourly" ? "أجر الساعة" : t("monthlySalary")}
                 name="salary"
                 required
                 type="number"
@@ -9421,22 +9504,24 @@ function AddEmployeePage() {
             <label className="block text-sm font-semibold">
               <span className="block">{t("shift")}</span>
               <select
-                required
+                required={form.payBasis === "monthly"}
                 name="scheduleId"
                 data-testid="select-employee-shift"
                 value={form.scheduleId}
-                disabled={schedules.isLoading || !schedules.data?.length}
+                disabled={form.payBasis === "hourly" || schedules.isLoading || !schedules.data?.length}
                 onChange={(e) =>
                   setForm({ ...form, scheduleId: e.target.value })
                 }
                 className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="">
-                  {schedules.isLoading
-                    ? t("loading")
-                    : schedules.data?.length
-                      ? t("selectOption")
-                      : t("noShifts")}
+                  {form.payBasis === "hourly"
+                    ? "غير مطلوب للأجر بالساعة"
+                    : schedules.isLoading
+                      ? t("loading")
+                      : schedules.data?.length
+                        ? t("selectOption")
+                        : t("noShifts")}
                 </option>
                 {schedules.data?.map((schedule: any) => (
                   <option
@@ -9542,6 +9627,58 @@ function AddEmployeePage() {
                   </option>
                 ))}
               </select>
+            </label>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 lg:p-6">
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold">إعدادات الحضور والاستحقاقات</h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">إعدادات الحضور واحتساب الإجازات الخاصة بالموظف.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
+              <input type="checkbox" checked={form.locationAttendanceEnabled} onChange={(e) => setForm({ ...form, locationAttendanceEnabled: e.target.checked })} className="size-4 accent-primary" />
+              تفعيل تسجيل مواقع العمل عبر GPS
+            </label>
+            <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
+              <input type="checkbox" checked={form.automaticAnnualLeaveEligible} onChange={(e) => setForm({ ...form, automaticAnnualLeaveEligible: e.target.checked })} className="size-4 accent-primary" />
+              احتساب رصيد الإجازة السنوية تلقائيًا
+            </label>
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span className="mb-2 block">{t("automaticOvertime")}</span>
+              <select value={form.automaticOvertime} onChange={(e) => setForm({ ...form, automaticOvertime: e.target.value })} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal">
+                <option value="default">{t("useCompanyDefault")}</option>
+                <option value="enabled">{t("enabled")}</option>
+                <option value="disabled">{t("disabledSetting")}</option>
+              </select>
+            </label>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 lg:p-6">
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold">{t("hrRecord")}</h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">بيانات الموارد البشرية الإضافية وسجل الموظف.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("jobTitle")} value={form.jobTitle} onChange={(value) => setForm({ ...form, jobTitle: value })} />
+            <Field label={t("employmentType")} value={form.employmentType} onChange={(value) => setForm({ ...form, employmentType: value })} />
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span className="mb-2 block">{t("manager")}</span>
+              <select value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal">
+                <option value="">بدون مدير مباشر</option>
+                {(managers.data || []).filter((item: any) => item.role === "manager").map((item: any) => (
+                  <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>
+                ))}
+              </select>
+            </label>
+            <Field label={t("address")} value={form.address} onChange={(value) => setForm({ ...form, address: value })} />
+            <Field label={t("emergencyContactName")} value={form.emergencyContactName} onChange={(value) => setForm({ ...form, emergencyContactName: value })} />
+            <Field label={t("emergencyContactPhone")} value={form.emergencyContactPhone} onChange={(value) => setForm({ ...form, emergencyContactPhone: value })} />
+            <label className="block text-sm font-semibold sm:col-span-2">
+              <span className="mb-2 block">{t("notes")}</span>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-24 w-full rounded-xl border border-input bg-background p-3 text-sm font-normal" />
             </label>
           </div>
         </Card>
@@ -10316,10 +10453,12 @@ function EmployeeProfilePage() {
           </div>
 
           <div className="border-t border-border pt-1">
+            {!editing && (
             <EmployeeHrPanel
               employeeId={employee.data.id}
               canEdit={canEditEmployees}
             />
+          )}
           </div>
 
           <EmployeeProfileSection
@@ -10518,6 +10657,7 @@ function EmployeeProfilePage() {
               <Button type="submit" disabled={update.isPending || assignSchedule.isPending || assignPayrollCycle.isPending}>{t("saveChanges")}</Button>
             </div>
           </form>
+          <EmployeeHrPanel employeeId={employeeId} canEdit={canEditEmployees} />
         </Modal>
       )}
     </div>
