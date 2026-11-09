@@ -4585,7 +4585,6 @@ router.post(
             eq(employeeAttendanceDevicesTable.employeeId, employee.id),
           ),
         );
-      const activeDevice = existingDevices.find((item) => item.status === "active");
       let [device] = await tx
         .select()
         .from(employeeAttendanceDevicesTable)
