@@ -1,3 +1,4 @@
+
 name: Inspect Aiven Production (Read Only)
 
 on:
@@ -10,11 +11,10 @@ jobs:
   inspect-aiven:
     name: Inspect Live Aiven Schema
     runs-on: ubuntu-latest
+
     environment:
       name: aiven-production
-    env:
-      AIVEN_MIGRATION_DATABASE_URL: ${{ secrets.AIVEN_MIGRATION_DATABASE_URL }}
-      AIVEN_CA_CERT: ${{ secrets.AIVEN_CA_CERT }}
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -34,4 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Inspect live Aiven schema (read-only)
+        env:
+          AIVEN_MIGRATION_DATABASE_URL: ${{ secrets.AIVEN_MIGRATION_DATABASE_URL }}
+          AIVEN_CA_CERT: ${{ secrets.AIVEN_CA_CERT }}
         run: pnpm --filter @workspace/db run inspect:aiven
