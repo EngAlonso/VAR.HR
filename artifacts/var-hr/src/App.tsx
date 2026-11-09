@@ -7173,7 +7173,7 @@ function Shell({ children }: { children: ReactNode }) {
               data-testid="button-mobile-profile"
             >
               <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-[10px] font-bold text-primary">{accountInitials}</span>
-              <span className="min-w-0 truncate text-xs font-semibold">{auth.account.fullName.trim().split(/\\s+/).filter(Boolean).slice(0, 3).join(" ")}</span>
+              <span className="min-w-0 truncate text-xs font-semibold">{auth.account.fullName.trim().split(/\s+/).filter(Boolean).slice(0, 3).join(" ")}</span>
             </Button>
             <div className="hidden text-xs text-muted-foreground sm:block">
               {t("activeWorkspace")}
