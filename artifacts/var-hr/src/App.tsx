@@ -13052,7 +13052,42 @@ function Rules() {
     },
   });
   const balances = useListLeaveBalances();
+  const [deviceApprovalRequired, setDeviceApprovalRequired] = useState(false);
+  const [deviceApprovalLoading, setDeviceApprovalLoading] = useState(true);
+  const [deviceApprovalSaving, setDeviceApprovalSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
+  useEffect(() => {
+    let active = true;
+    authRequest<{ requireApproval: boolean }>("/api/attendance/device-approval")
+      .then((policy) => {
+        if (active) setDeviceApprovalRequired(Boolean(policy.requireApproval));
+      })
+      .catch((error) => {
+        if (active) toast.error(apiErrorMessage(error, "تعذر تحميل إعداد تحقق المتصفح."));
+      })
+      .finally(() => {
+        if (active) setDeviceApprovalLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+  async function saveDeviceApprovalPolicy() {
+    setDeviceApprovalSaving(true);
+    try {
+      const result = await authRequest<{ requireApproval: boolean }>(
+        "/api/attendance/device-approval",
+        {
+          method: "PUT",
+          body: JSON.stringify({ requireApproval: deviceApprovalRequired }),
+        },
+      );
+      setDeviceApprovalRequired(Boolean(result.requireApproval));
+      toast.success(locale === "ar" ? "تم تحديث تحقق متصفح الحضور." : "Attendance browser verification updated.");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث الإعداد." : "Could not update the setting."));
+    } finally {
+      setDeviceApprovalSaving(false);
+    }
+  }
   useEffect(() => {
     if (q.data && !form)
       setForm({
@@ -13157,6 +13192,44 @@ function Rules() {
         }
       />
       <div className="flex flex-col gap-6">
+        {account.accountType === "company_owner" ? (
+          <Card className="p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="font-display text-lg font-semibold">
+                  {locale === "ar" ? "التحقق من متصفح الحضور" : "Attendance browser verification"}
+                </h2>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                  {locale === "ar"
+                    ? "عند التفعيل، يُعتمد أول متصفح للموظف تلقائيًا، وأي متصفح آخر يحتاج موافقة الإدارة قبل تسجيل الحضور أو الانصراف."
+                    : "When enabled, the employee's first browser is trusted automatically. Any other browser requires administrator approval before attendance punches."}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={deviceApprovalRequired}
+                    disabled={deviceApprovalLoading || deviceApprovalSaving}
+                    onChange={(event) => setDeviceApprovalRequired(event.target.checked)}
+                    className="h-4 w-4 rounded border-input accent-primary"
+                    data-testid="toggle-attendance-browser-approval"
+                  />
+                  {deviceApprovalRequired
+                    ? (locale === "ar" ? "مفعل" : "Enabled")
+                    : (locale === "ar" ? "غير مفعل" : "Disabled")}
+                </label>
+                <Button
+                  onClick={saveDeviceApprovalPolicy}
+                  disabled={deviceApprovalLoading || deviceApprovalSaving}
+                  data-testid="button-save-attendance-browser-approval"
+                >
+                  {deviceApprovalSaving ? t("savingPolicy") : t("saveChanges")}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : null}
         <div className="contents">
           <Card className="order-1 p-6">
             <h2 className="font-display text-lg font-semibold">
