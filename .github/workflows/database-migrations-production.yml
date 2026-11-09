@@ -12,7 +12,7 @@ on:
           - "no"
           - "yes"
       confirm_production_migration:
-        description: "Type APPLY-0012 to authorize migrations 0011 and 0012"
+        description: "Type APPLY-0012 to authorize the remaining production migration 0012"
         required: true
         type: string
 
@@ -104,45 +104,73 @@ jobs:
       - name: Inspect live Aiven schema (read-only)
         run: pnpm --filter @workspace/db run inspect:aiven
 
-      - name: Require reviewed 0010 baseline and repository migrations through 0012
+      - name: Verify Aiven starting point and attest already-applied migration history
         run: |
           node --input-type=module <<'NODE'
           import fs from "node:fs";
 
-          const p = JSON.parse(
-            fs.readFileSync(
-              "lib/db/migrations/meta/aiven-baseline-report.json",
-              "utf8"
-            )
-          );
+          const reportPath = "lib/db/migrations/meta/aiven-baseline-report.json";
+          const p = JSON.parse(fs.readFileSync(reportPath, "utf8"));
 
-          if (p.status !== "baselined") {
-            throw new Error("Aiven baseline is not current. Production migration blocked.");
-          }
+          const expectedHistory = [
+            {
+              tag: "0009_mixed_stepford_cuckoos",
+              createdAt: "1792653847229",
+              hash: "81bca87ca14ca43d28c379be1c57a7807fb9b2ee47e4e0fc6f8039d5aa2145a4"
+            },
+            {
+              tag: "0010_acoustic_sway",
+              createdAt: "1792661662565",
+              hash: "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2"
+            },
+            {
+              tag: "0011_flexible_work_schedules",
+              createdAt: "1793808000000",
+              hash: "8352898193757a1a9b49bac06ea68caed3e5fdbc3d7b95be83c2b47aad76b1ca"
+            }
+          ];
 
           if (p.databaseName !== "defaultdb") {
             throw new Error("Unexpected Aiven database name. Review target before proceeding.");
           }
 
-          if (p.matchingSnapshotMigration?.tag !== "0010_acoustic_sway") {
-            throw new Error("Aiven is not at the reviewed 0010 starting schema. No migration will run.");
+          if (p.matchingSnapshotMigration?.tag !== "0011_flexible_work_schedules" ||
+              p.comparison?.matches !== true) {
+            throw new Error("Aiven schema does not match the reviewed 0011 starting schema. No migration will run.");
           }
 
           if (p.latestRepositoryMigration?.tag !== "0012_employee_attendance_location_mode") {
             throw new Error("Repository latest migration is not 0012_employee_attendance_location_mode.");
           }
 
-          if (!p.migrationLedger?.exists) {
-            throw new Error("Aiven Drizzle migration ledger is missing.");
+          const entries = p.migrationLedger?.entries;
+          if (!p.migrationLedger?.exists || !Array.isArray(entries) ||
+              entries.length !== expectedHistory.length) {
+            throw new Error("Aiven migration ledger does not contain the exact reviewed history through 0011.");
           }
 
-          if (!p.migrationLedger.entries?.some(
-            entry => entry.hash === p.baselineMigration?.hash
-          )) {
-            throw new Error("The reviewed baseline migration is missing from Aiven's ledger.");
+          for (let i = 0; i < expectedHistory.length; i++) {
+            const expected = expectedHistory[i];
+            const actual = entries[i];
+            if (actual.hash !== expected.hash ||
+                String(actual.created_at) !== expected.createdAt) {
+              throw new Error(`Aiven migration ledger mismatch at expected ${expected.tag}. No migration will run.`);
+            }
           }
 
-          console.log("Verified Aiven starting point at 0010. Pending migrations will be tested before production.");
+          // The live schema is verified against snapshot 0011 and its complete
+          // migration ledger is verified above. Refresh the attestation fingerprint
+          // from this read-only inspection so migrate:aiven can detect any later drift.
+          p.status = "baselined";
+          p.baselineMigration = {
+            tag: expectedHistory[0].tag,
+            createdAt: Number(expectedHistory[0].createdAt),
+            hash: expectedHistory[0].hash
+          };
+          fs.writeFileSync(reportPath, `${JSON.stringify(p, null, 2)}\\n`);
+
+          console.log("Verified Aiven schema at 0011 and exact ledger history 0009-0011.");
+          console.log("Only migration 0012 remains pending for production.");
           NODE
 
       - name: Bootstrap and apply pending migrations on disposable PostgreSQL
