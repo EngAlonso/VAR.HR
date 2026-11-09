@@ -11044,7 +11044,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       toast.success(isArabic ? "تم تسجيل موقع العمل بنجاح." : "Work location recorded successfully.");
     } catch (error) {
       toast.error(
-        error instanceof GeolocationPositionError
+        Boolean(error && typeof error === "object" && "code" in error)
           ? isArabic ? "تعذر تحديد موقعك. اسمح للمتصفح بالوصول إلى الموقع وحاول مرة أخرى." : "Could not get your location. Allow location access and try again."
           : error instanceof Error
             ? error.message
