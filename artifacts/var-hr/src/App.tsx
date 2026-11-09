@@ -8629,12 +8629,14 @@ function EmployeeAttendanceMovement({
           {from > to ? (
             <Card className="p-4 text-sm text-destructive">{locale === "ar" ? "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" : "Start date must be before end date"}</Card>
           ) : (
-            <Card className="grid gap-3 border-primary/20 bg-primary/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="grid gap-3 border-primary/20 bg-primary/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3">
               <Info label={locale === "ar" ? "الراتب الأساسي للفترة" : "Basic salary for period"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.basicSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
-              <Info label={locale === "ar" ? "الإضافات" : "Additions"} value={payrollSummary ? `${Number(payrollSummary.additions || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
-              <Info label={locale === "ar" ? "الخصومات" : "Deductions"} value={payrollSummary ? `${(Number(payrollSummary.attendanceDeductions || 0) + Number(payrollSummary.otherDeductions || 0)).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "الإضافات اليدوية" : "Manual additions"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.additions || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "مقابل العمل الإضافي" : "Overtime pay"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.overtime || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "بدلات ومضاعفات الوقت" : "Time multiplier premium"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.timeMultiplierPremium || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
+              <Info label={locale === "ar" ? "إجمالي الخصومات" : "Total deductions"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${(Number(payrollSummary.attendanceDeductions || 0) + Number(payrollSummary.otherDeductions || 0)).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
               <Info label={locale === "ar" ? "صافي الراتب المستحق" : "Net salary due"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.netSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
-              {payrollSummaryError ? <p className="text-xs text-destructive sm:col-span-2 lg:col-span-4">{payrollSummaryError}</p> : null}
+              {payrollSummaryError ? <p className="text-xs text-destructive sm:col-span-2 lg:col-span-3">{payrollSummaryError}</p> : null}
             </Card>
           )}
           {report.isLoading ? (
