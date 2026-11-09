@@ -4615,23 +4615,17 @@ router.post(
           .where(eq(employeeAttendanceDevicesTable.id, device.id))
           .returning();
       } else if (device?.status === "pending") {
-        const approveAsFirstBrowser =
-          !activeDevice &&
-          existingDevices.length === 1 &&
-          existingDevices[0]?.id === device.id;
+        // A pending browser is never auto-approved on a later request.
+        // This also prevents a previously revoked/rejected browser from
+        // regaining access by registering again.
         [device] = await tx
           .update(employeeAttendanceDevicesTable)
           .set({
             deviceLabel: parsed.data.deviceLabel.trim(),
-            ...(approveAsFirstBrowser
-              ? { status: "active", approvedAt: now, approvedBy: context.accountId }
-              : {}),
             updatedAt: now,
           })
           .where(eq(employeeAttendanceDevicesTable.id, device.id))
           .returning();
-        firstBrowserBound = approveAsFirstBrowser;
-        shouldAuditRequest = !approveAsFirstBrowser;
       } else if (!device) {
         const approveAsFirstBrowser = existingDevices.length === 0;
         [device] = await tx
@@ -6297,6 +6291,7 @@ async function recordCurrentAttendance(
   const attendanceSettings = await ensureAttendanceRules(context.companyId);
   if (
     attendanceSettings.attendanceDeviceApprovalRequired &&
+    parsed.data.source === "web" &&
     ["employee", "manager"].includes(context.role)
   ) {
     const token = parsed.data.deviceToken?.trim();
