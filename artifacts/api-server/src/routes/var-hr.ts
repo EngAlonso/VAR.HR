@@ -4635,9 +4635,7 @@ router.post(
             tokenHash,
             deviceLabel: parsed.data.deviceLabel.trim(),
             status: approveAsFirstBrowser ? "active" : "pending",
-            ...(approveAsFirstBrowser
-              ? { approvedAt: now, approvedBy: context.accountId }
-              : {}),
+            ...(approveAsFirstBrowser ? { approvedAt: now } : {}),
           })
           .onConflictDoNothing({
             target: [
