@@ -1158,7 +1158,7 @@ const copy = {
     periodsSuppliedByApi: "Periods are supplied by the operational API.",
     calculationHistory: "Calculation history",
     calculated: "Calculated",
-    calculationExplanation: "{locale === "ar" ? "توضيح طريقة الحساب" : "Calculation explanation"}",
+    calculationExplanation: "Calculation explanation",
     selectPeriodToCreatePreview:
       "Choose Calculate to create an explainable calculation preview.",
     payrollCalculationReady: "Payroll calculation ready",
@@ -12271,7 +12271,7 @@ function Attendance() {
               )}
               <details>
                 <summary className="cursor-pointer text-sm font-semibold">
-                  Calculation explanation
+                  {locale === "ar" ? "توضيح طريقة الحساب" : "Calculation explanation"}
                 </summary>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
                   {calculation.data.explanation.map((line) => (
