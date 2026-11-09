@@ -12253,6 +12253,8 @@ function Requests() {
   const canApprovePermissions = capabilities.includes("permissions.approve");
   const currentEmployeeId = workspaceQuery.data?.employeeId;
   const [kind, setKind] = useState<"leave" | "permission">("leave");
+  const [requestSearch, setRequestSearch] = useState("");
+  const [requestStatusFilter, setRequestStatusFilter] = useState("all");
   const [show, setShow] = useState(false);
   const [decision, setDecision] = useState<{
     id: string;
@@ -12388,6 +12390,12 @@ function Requests() {
   }
   const rows: any[] =
     kind === "leave" ? leaves.data || [] : permissions.data || [];
+  const filteredRows = rows.filter((row: any) => {
+    const matchesSearch = `${row.employee?.name ?? ""} ${row.type ?? ""} ${row.reason ?? ""}`
+      .toLowerCase()
+      .includes(requestSearch.trim().toLowerCase());
+    return matchesSearch && (requestStatusFilter === "all" || row.status === requestStatusFilter);
+  });
   return (
     <div className="animate-in">
       <SectionTitle
@@ -12439,13 +12447,29 @@ function Requests() {
                 {t("permission")}
               </Button>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {rows.length} {t("records")}
-            </span>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <input
+                type="search"
+                value={requestSearch}
+                onChange={(event) => setRequestSearch(event.target.value)}
+                placeholder={locale === "ar" ? "ابحث باسم الموظف أو نوع الطلب..." : "Search employee or request type..."}
+                className="h-10 min-w-0 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-64"
+                aria-label={locale === "ar" ? "بحث الطلبات" : "Search requests"}
+              />
+              <select value={requestStatusFilter} onChange={(event) => setRequestStatusFilter(event.target.value)} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
+                <option value="all">{locale === "ar" ? "كل الحالات" : "All statuses"}</option>
+                <option value="pending">{locale === "ar" ? "معلق" : "Pending"}</option>
+                <option value="approved">{locale === "ar" ? "مقبول" : "Approved"}</option>
+                <option value="rejected">{locale === "ar" ? "مرفوض" : "Rejected"}</option>
+              </select>
+              <span className="text-xs text-muted-foreground">
+                {filteredRows.length} {t("records")}
+              </span>
+            </div>
           </div>
-          {rows.length ? (
+          {filteredRows.length ? (
             <div className="divide-y divide-border">
-              {rows.map((r: any) => (
+              {filteredRows.map((r: any) => (
                 <div className="p-5" key={r.id}>
                   <div className="flex flex-col justify-between gap-3 sm:flex-row">
                     <div>
