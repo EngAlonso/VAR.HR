@@ -10200,6 +10200,7 @@ function EmployeeProfilePage() {
             </div>
           </Card>
 
+          {canEditEmployees ? <div className="mb-5"><EmployeeAttendanceDevices employeeId={employee.data.id}/></div> : null}
           <div className="grid gap-4 lg:grid-cols-2">
             <EmployeeProfileSection
               title={t("employeeIdentitySection")}
@@ -17198,6 +17199,85 @@ function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
   const { locale } = useI18n();
   const [, setLocation] = useLocation();
   return <Button variant="outline" onClick={() => setLocation(`/employees/${employeeId}/work-locations`)}><MapPin size={16}/>{locale === "ar" ? "مواقع العمل" : "Work locations"}</Button>;
+}
+
+function EmployeeAttendanceDevices({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const ar = locale === "ar";
+  const [devices, setDevices] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  async function loadDevices() {
+    setError("");
+    try {
+      const rows = await authRequest<Array<any>>(
+        `/api/employees/${employeeId}/attendance-devices`,
+      );
+      setDevices(rows);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (ar ? "تعذر تحميل المتصفحات" : "Could not load browsers"));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    let active = true;
+    authRequest<Array<any>>(`/api/employees/${employeeId}/attendance-devices`)
+      .then((rows) => { if (active) setDevices(rows); })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : (ar ? "تعذر تحميل المتصفحات" : "Could not load browsers")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [employeeId, ar]);
+  async function decide(deviceId: string, decision: "approve" | "reject" | "revoke") {
+    setBusy(deviceId);
+    try {
+      await authRequest(
+        `/api/employees/${employeeId}/attendance-devices/${deviceId}/decision`,
+        { method: "POST", body: JSON.stringify({ decision }) },
+      );
+      toast.success(ar ? "تم تحديث اعتماد المتصفح." : "Browser approval updated.");
+      await loadDevices();
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, ar ? "تعذر تحديث اعتماد المتصفح." : "Could not update browser approval."));
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">{ar ? "متصفحات الحضور المعتمدة" : "Approved attendance browsers"}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{ar ? "راجع طلبات المتصفحات الجديدة واسمح بها أو ارفضها أو ألغِ اعتماد متصفح حالي." : "Review new browser requests, approve or reject them, or revoke an existing browser."}</p>
+        </div>
+        <Button variant="outline" onClick={() => void loadDevices()} disabled={loading || Boolean(busy)}>
+          <RefreshCw size={15}/>{ar ? "تحديث" : "Refresh"}
+        </Button>
+      </div>
+      {loading ? <div className="mt-4"><Skeleton className="h-20"/></div> : error ? <p className="mt-4 text-sm text-destructive">{error}</p> : devices.length ? (
+        <div className="mt-4 divide-y divide-border">
+          {devices.map((device) => (
+            <div key={device.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="break-words text-sm font-semibold">{device.deviceLabel || (ar ? "متصفح غير معروف" : "Unknown browser")}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{ar ? "تاريخ الطلب: " : "Requested: "}{date(device.requestedAt)} · {ar ? "آخر استخدام: " : "Last used: "}{device.lastSeenAt ? date(device.lastSeenAt) : (ar ? "لم يستخدم بعد" : "Not used yet")}</div>
+                <div className="mt-2"><Status value={device.status}/></div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {device.status === "pending" ? <>
+                  <Button size="sm" onClick={() => void decide(device.id, "approve")} disabled={busy === device.id}>{ar ? "موافقة" : "Approve"}</Button>
+                  <Button size="sm" variant="danger" onClick={() => void decide(device.id, "reject")} disabled={busy === device.id}>{ar ? "رفض" : "Reject"}</Button>
+                </> : device.status === "active" ? (
+                  <Button size="sm" variant="danger" onClick={() => void decide(device.id, "revoke")} disabled={busy === device.id}>{ar ? "إلغاء الاعتماد" : "Revoke access"}</Button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <div className="mt-4"><Empty title={ar ? "لا توجد متصفحات مسجلة" : "No registered browsers"} detail={ar ? "سيظهر هنا أول متصفح يستخدمه الموظف عند تفعيل التحقق." : "The employee's first browser will appear here when verification is enabled."}/></div>}
+    </Card>
+  );
 }
 
 function EmployeeWorkLocationsPage() {
