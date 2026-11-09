@@ -8303,6 +8303,7 @@ function EmployeeAttendanceMovement({
     query: { enabled: canManagePayroll, queryKey: getListPayrollPeriodsQueryKey() },
   });
   const createPayrollAdjustment = useCreatePayrollAdjustment();
+  const recalculatePayroll = useCalculatePayroll();
   const [convertingAttendanceId, setConvertingAttendanceId] = useState("");
   const [showPayrollAdjustment, setShowPayrollAdjustment] = useState(false);
   const [payrollAdjustmentForm, setPayrollAdjustmentForm] = useState({
@@ -8404,17 +8405,29 @@ function EmployeeAttendanceMovement({
         },
       },
       {
-        onSuccess: async () => {
-          toast.success(locale === "ar" ? "تمت إضافة الحركة إلى تسوية الرواتب." : "The adjustment was added to payroll.");
+        onSuccess: () => {
           setShowPayrollAdjustment(false);
           setPayrollAdjustmentForm((current) => ({ ...current, amount: "", reason: "" }));
-          setPayrollSummaryRefresh((value) => value + 1);
-          await Promise.all([
-            qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() }),
-            qc.invalidateQueries({ queryKey: getListPayrollAdjustmentsQueryKey({ periodId: payrollAdjustmentForm.periodId }) }),
-            qc.invalidateQueries({ queryKey: getGetPayrollCalculationQueryKey(payrollAdjustmentForm.periodId) }),
-            qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
-          ]);
+          recalculatePayroll.mutate(
+            { periodId: payrollAdjustmentForm.periodId },
+            {
+              onSuccess: async () => {
+                toast.success(locale === "ar" ? "تمت إضافة الحركة وإعادة احتساب الرواتب." : "The adjustment was added and payroll was recalculated.");
+                setPayrollSummaryRefresh((value) => value + 1);
+                await Promise.all([
+                  qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() }),
+                  qc.invalidateQueries({ queryKey: getListPayrollAdjustmentsQueryKey({ periodId: payrollAdjustmentForm.periodId }) }),
+                  qc.invalidateQueries({ queryKey: getGetPayrollCalculationQueryKey(payrollAdjustmentForm.periodId) }),
+                  qc.invalidateQueries({ queryKey: getGetMyPayrollQueryKey() }),
+                  qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
+                ]);
+              },
+              onError: (error: unknown) => {
+                toast.error(apiErrorMessage(error, locale === "ar" ? "تم حفظ الحركة لكن تعذر إعادة احتساب الرواتب. أعد الحساب من صفحة الرواتب." : "Adjustment saved, but payroll recalculation failed. Recalculate from Payroll."));
+                setPayrollSummaryRefresh((value) => value + 1);
+              },
+            },
+          );
         },
         onError: (error: unknown) => toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment.")),
       },
