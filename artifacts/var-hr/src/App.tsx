@@ -11280,7 +11280,61 @@ function Attendance() {
       setGpsState("unavailable");
       toast.warning(t("gpsUnavailable"));
     }
-    const data = location ? { source: "web", ...location } : { source: "web" };
+    let deviceToken: string | undefined;
+    try {
+      const devicePolicy = await authRequest<{ requireApproval: boolean }>(
+        "/api/attendance/device-approval",
+      );
+      if (devicePolicy.requireApproval) {
+        const employeeId = workspace.data?.employeeId;
+        if (!employeeId) throw new Error("تعذر تحديد حساب الموظف الحالي.");
+        const storageKey = `varhr-attendance-browser:${employeeId}`;
+        let savedToken = window.localStorage.getItem(storageKey);
+        if (!savedToken) {
+          if (!window.crypto?.randomUUID) {
+            throw new Error("المتصفح لا يدعم إنشاء رمز تحقق آمن.");
+          }
+          savedToken = window.crypto.randomUUID();
+          window.localStorage.setItem(storageKey, savedToken);
+        }
+        const registration = await authRequest<{ status: string }>(
+          "/api/attendance/device-registration",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              deviceToken: savedToken,
+              deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
+            }),
+          },
+        );
+        if (registration.status !== "active") {
+          setGpsState("not_required");
+          toast.warning(
+            locale === "ar"
+              ? "تم إرسال طلب اعتماد هذا المتصفح. لن يُسمح بالبصمة حتى توافق الإدارة."
+              : "This browser was submitted for approval. Attendance is blocked until an administrator approves it.",
+          );
+          return;
+        }
+        deviceToken = savedToken;
+      }
+    } catch (error) {
+      setGpsState("not_required");
+      toast.error(
+        apiErrorMessage(
+          error,
+          locale === "ar"
+            ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
+            : "Could not verify this attendance browser. No punch was recorded.",
+        ),
+      );
+      return;
+    }
+    const data = {
+      source: "web",
+      ...(location ?? {}),
+      ...(deviceToken ? { deviceToken } : {}),
+    };
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
       onSuccess: () => {
         setGpsState(location ? "captured" : "unavailable");
