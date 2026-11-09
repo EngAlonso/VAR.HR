@@ -8300,7 +8300,14 @@ function EmployeeAttendanceMovement({
   const canConvertAbsence = workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
   const canManagePayroll = workspace.data?.capabilities?.includes("payroll.manage") ?? false;
   const payrollPeriods = useListPayrollPeriods({
-    query: { enabled: canManagePayroll, queryKey: getListPayrollPeriodsQueryKey() },
+    query: {
+      enabled: canManagePayroll,
+      // Payroll periods are tenant-scoped by the API. Include the active company
+      // in the cache key so switching workspaces cannot reuse another company's list.
+      queryKey: [...getListPayrollPeriodsQueryKey(), workspace.data?.company?.id ?? "no-company"],
+      staleTime: 0,
+      refetchOnMount: "always",
+    },
   });
   const createPayrollAdjustment = useCreatePayrollAdjustment();
   const recalculatePayroll = useCalculatePayroll();
@@ -8627,8 +8634,12 @@ function EmployeeAttendanceMovement({
             {canManagePayroll ? (
               <Button
                 variant="outline"
-                onClick={() => setShowPayrollAdjustment(true)}
-                disabled={!editablePayrollPeriods.length}
+                onClick={async () => {
+                  // Refresh the tenant-scoped list before opening the form. A stale
+                  // empty cache must not leave this action disabled indefinitely.
+                  await payrollPeriods.refetch();
+                  setShowPayrollAdjustment(true);
+                }}
                 data-testid={`button-add-payroll-adjustment-${employeeId}`}
               >
                 <Coins size={16}/>
