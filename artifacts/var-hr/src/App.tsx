@@ -10163,6 +10163,7 @@ function EmployeeProfilePage() {
                   {t("showAttendanceMovement")}
                 </Button>
                 <EmployeeWorkLocations employeeId={employee.data.id} />
+                <EmployeeManualAttendance employeeId={employee.data.id} />
                 {(canEditEmployees || canDeleteEmployees) && (
                   <>
                     {canEditEmployees && (
@@ -17199,6 +17200,73 @@ function EmployeeWorkLocations({ employeeId }: { employeeId: string }) {
   const { locale } = useI18n();
   const [, setLocation] = useLocation();
   return <Button variant="outline" onClick={() => setLocation(`/employees/${employeeId}/work-locations`)}><MapPin size={16}/>{locale === "ar" ? "مواقع العمل" : "Work locations"}</Button>;
+}
+
+function EmployeeManualAttendance({ employeeId }: { employeeId: string }) {
+  const { locale } = useI18n();
+  const ar = locale === "ar";
+  const workspace = useGetWorkspace();
+  const qc = useQueryClient();
+  const canManage = workspace.data?.capabilities?.includes("attendance.punch") ?? false;
+  const now = new Date();
+  const [open, setOpen] = useState(false);
+  const [direction, setDirection] = useState<"in" | "out">("in");
+  const [attendanceDate, setAttendanceDate] = useState(now.toISOString().slice(0, 10));
+  const [occurredTime, setOccurredTime] = useState(now.toTimeString().slice(0, 5));
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  if (!canManage) return null;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!attendanceDate || !occurredTime || !reason.trim()) return;
+    setSaving(true);
+    try {
+      const occurredAt = new Date(`${attendanceDate}T${occurredTime}:00`);
+      if (Number.isNaN(occurredAt.getTime())) throw new Error("تاريخ أو وقت غير صحيح.");
+      await authRequest("/api/attendance/manual-event", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId,
+          attendanceDate,
+          occurredAt: occurredAt.toISOString(),
+          direction,
+          reason: reason.trim(),
+        }),
+      });
+      toast.success(ar ? "تمت إضافة البصمة اليدوية." : "Manual attendance punch added.");
+      setOpen(false);
+      setReason("");
+      await qc.invalidateQueries();
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, ar ? "تعذرت إضافة البصمة اليدوية." : "Could not add the manual punch."));
+    } finally {
+      setSaving(false);
+    }
+  }
+  return <>
+    <Button variant="outline" onClick={() => setOpen(true)} data-testid={`button-manual-attendance-${employeeId}`}>
+      <Fingerprint size={16}/>{ar ? "إضافة بصمة يدوية" : "Add manual punch"}
+    </Button>
+    {open ? <Modal title={ar ? "إضافة بصمة يدوية للموظف" : "Add a manual employee punch"} onClose={() => setOpen(false)}>
+      <form onSubmit={submit} className="space-y-4">
+        <label className="block text-sm font-semibold">{ar ? "نوع البصمة" : "Punch type"}
+          <select value={direction} onChange={(event) => setDirection(event.target.value as "in" | "out")} className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm">
+            <option value="in">{ar ? "حضور" : "Check-in"}</option>
+            <option value="out">{ar ? "انصراف" : "Check-out"}</option>
+          </select>
+        </label>
+        <Field label={ar ? "تاريخ يوم الحضور" : "Attendance date"} type="date" value={attendanceDate} onChange={setAttendanceDate} required/>
+        <Field label={ar ? "وقت البصمة" : "Punch time"} type="time" value={occurredTime} onChange={setOccurredTime} required/>
+        <label className="block text-sm font-semibold">{ar ? "سبب الإضافة" : "Reason"}
+          <textarea required value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal" placeholder={ar ? "اكتب سبب إضافة البصمة..." : "Explain why this punch is being added..."}/>
+        </label>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="quiet" onClick={() => setOpen(false)}>{ar ? "إلغاء" : "Cancel"}</Button>
+          <Button type="submit" disabled={saving}>{saving ? (ar ? "جارٍ الحفظ..." : "Saving...") : (ar ? "حفظ البصمة" : "Save punch")}</Button>
+        </div>
+      </form>
+    </Modal> : null}
+  </>;
 }
 
 function EmployeeAttendanceDevices({ employeeId }: { employeeId: string }) {
