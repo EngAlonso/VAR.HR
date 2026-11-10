@@ -6596,6 +6596,31 @@ function PlatformSocialSettings({ locale }: { locale: Locale }) {
 
 function AppFooter({ locale }: { locale: Locale }) {
   const isArabic = locale === "ar";
+  const [socialLinks, setSocialLinks] = useState({
+    facebook: "", instagram: "", linkedin: "", x: "", youtube: "", tiktok: "", whatsapp: "",
+  });
+  useEffect(() => {
+    let active = true;
+    fetch("/api/platform/site-settings", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings) => {
+        if (active && settings?.socialLinks) {
+          setSocialLinks((current) => ({ ...current, ...settings.socialLinks }));
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const socialItems = [
+    { key: "facebook", label: "Facebook", short: "f" },
+    { key: "instagram", label: "Instagram", short: "ig" },
+    { key: "linkedin", label: "LinkedIn", short: "in" },
+    { key: "x", label: "X", short: "𝕏" },
+    { key: "youtube", label: "YouTube", short: "▶" },
+    { key: "tiktok", label: "TikTok", short: "♪" },
+  ] as const;
+  const whatsappDigits = socialLinks.whatsapp.replace(/\D/g, "");
+  const hasSocialLinks = socialItems.some(({ key }) => Boolean(socialLinks[key])) || Boolean(whatsappDigits);
   return (
     <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white" dir={isArabic ? "rtl" : "ltr"}>
       <div className="pointer-events-none absolute -top-28 start-1/3 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]" />
@@ -6620,10 +6645,18 @@ function AppFooter({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "عن المنصة" : "About the platform"}</h3>
-          <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300/70">
-            {isArabic ? "كل أدوات إدارة فريقك في مساحة عمل واحدة، بتجربة بسيطة ومنظمة." : "The tools you need to manage your team, in one organized workspace."}
-          </p>
+          <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "تابعنا وتواصل معنا" : "Follow & contact us"}</h3>
+          <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
+          {hasSocialLinks ? (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {socialItems.map(({ key, label, short }) => socialLinks[key] ? (
+                <a key={key} href={socialLinks[key]} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{short}</a>
+              ) : null)}
+              {whatsappDigits ? <a href={`https://wa.me/${whatsappDigits}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15"><span>◉</span>WhatsApp</a> : null}
+            </div>
+          ) : (
+            <p className="mt-4 text-xs text-slate-400/70">{isArabic ? "سيتم عرض روابط التواصل هنا بعد إضافتها من إعدادات المنصة." : "Social links will appear here once added in platform settings."}</p>
+          )}
         </div>
       </div>
       <div className="relative border-t border-white/10 bg-black/15 px-5 py-5 sm:px-8">
@@ -6635,6 +6668,7 @@ function AppFooter({ locale }: { locale: Locale }) {
     </footer>
   );
 }
+
 function Login({
   onSignedIn,
   setupAvailable,
