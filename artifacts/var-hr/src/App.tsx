@@ -223,7 +223,16 @@ import {
   getListPlatformCompaniesQueryKey,
 } from "@workspace/api-client-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function invalidateAttendanceRuleDependents(qc: QueryClient) {
   const queryKeys = [
@@ -17977,6 +17986,7 @@ function BackupRestore() {
   const { locale, t } = useI18n();
   const workspace = useGetWorkspace();
   const [backups, setBackups] = useState<BackupSummary[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
@@ -23302,21 +23312,32 @@ function PlatformCompanyDetailsPage() {
   });
   const [, setLocation] = useLocation();
 
+  const loadBackups = async () => {
+    if (!params.companyId) return;
+    setBackupsLoading(true);
+    try {
+      const nextBackups = await authRequest<BackupSummary[]>(
+        `/api/backups?scope=company&companyId=${encodeURIComponent(params.companyId)}`,
+      );
+      setBackups(nextBackups);
+    } catch {
+      // Backup loading is independent; it must not block company details.
+      setBackups([]);
+    } finally {
+      setBackupsLoading(false);
+    }
+  };
+
   const load = async () => {
     if (!params.companyId) return;
     setLoading(true);
     setError("");
+    void loadBackups();
     try {
-      const [nextDetails, nextBackups] = await Promise.all([
-        authRequest<PlatformCompanyDetails>(
-          `/api/platform/companies/${encodeURIComponent(params.companyId)}/details`,
-        ),
-        authRequest<BackupSummary[]>(
-          `/api/backups?scope=company&companyId=${encodeURIComponent(params.companyId)}`,
-        ),
-      ]);
+      const nextDetails = await authRequest<PlatformCompanyDetails>(
+        `/api/platform/companies/${encodeURIComponent(params.companyId)}/details`,
+      );
       setDetails(nextDetails);
-      setBackups(nextBackups);
       setCompanyForm({
         name: nextDetails.company.name,
         address: nextDetails.company.address,
@@ -24477,7 +24498,9 @@ function PlatformCompanyDetailsPage() {
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
-              {text("No company backups available.", "لا توجد نسخ للشركة.")}
+              {backupsLoading
+                ? text("Loading backups…", "جاري تحميل النسخ الاحتياطية…")
+                : text("No company backups available.", "لا توجد نسخ للشركة.")}
             </p>
           )}
         </div>
