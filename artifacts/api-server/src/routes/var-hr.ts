@@ -11708,6 +11708,7 @@ async function calculatePayrollPeriod(
         and(
           eq(payrollAdjustmentsTable.companyId, context.companyId),
           isNull(payrollAdjustmentsTable.periodId),
+          inArray(payrollAdjustmentsTable.employeeId, rows.map((row) => row.employee.id)),
           gte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.from),
           lte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.to),
         ),
