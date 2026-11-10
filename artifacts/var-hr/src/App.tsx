@@ -36,6 +36,7 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   ArrowUpRight,
   BarChart3,
   Bell,
