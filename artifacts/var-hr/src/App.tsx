@@ -6932,6 +6932,28 @@ function WorkspaceState({
   );
 }
 
+function ScrollToTopButton({ locale }: { locale: Locale }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 320);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  if (!visible) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label={locale === "ar" ? "العودة إلى أعلى الصفحة" : "Back to top"}
+      title={locale === "ar" ? "العودة للأعلى" : "Back to top"}
+      className="fixed bottom-24 end-5 z-40 grid h-12 w-12 place-items-center rounded-full border border-[#f0d17a]/40 bg-[#d7aa3d] text-[#111923] shadow-[0_10px_30px_rgba(0,0,0,.28)] transition hover:-translate-y-1 hover:bg-[#f0d17a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0d17a] focus-visible:ring-offset-2 md:bottom-7"
+    >
+      <ArrowUp size={21} strokeWidth={2.5} />
+    </button>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
