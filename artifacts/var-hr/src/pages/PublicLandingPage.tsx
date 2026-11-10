@@ -129,7 +129,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
             </button>
           </div>
           <div className="flex items-center gap-2 sm:hidden">
-            <button onClick={() => setLocale(isArabic ? "en" : "ar")} className="rounded-full border border-white/20 px-3 py-2 text-xs">{c.language}</button>
+            <button onClick={() => onLocaleChange(isArabic ? "en" : "ar")} className="rounded-full border border-white/20 px-3 py-2 text-xs">{c.language}</button>
             <button aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)} className="rounded-xl border border-white/15 p-2.5">{menuOpen ? <X size={19}/> : <Menu size={19}/>}</button>
           </div>
         </div>
@@ -224,7 +224,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
           <p className="mt-5 text-sm leading-7 text-slate-500 sm:text-base">{c.modulesDesc}</p>
         </div>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {c.items.map(([title,desc],i)=>{const Icon=featureIcons[i];return <article key={title} className="feature-card rounded-[22px] border border-slate-200/80 bg-white p-6 sm:p-7"><div className={`tone-${featureTones[i]} grid h-12 w-12 place-items-center rounded-2xl`}><Icon size={22}/></div><h3 className="mt-6 text-lg font-extrabold">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-500">{desc}</p><div className="mt-6 flex items-center gap-2 text-[11px] font-bold text-[#a77c25]">{isArabic?"جزء من مساحة عمل واحدة":"Part of one workspace"}<span>↗</span></div></article>})}
+          {c.items.map((item,i)=>{const title=item[0];const desc=item[1];const Icon=featureIcons[i];return <article key={title} className="feature-card rounded-[22px] border border-slate-200/80 bg-white p-6 sm:p-7"><div className={`tone-${featureTones[i]} grid h-12 w-12 place-items-center rounded-2xl`}><Icon size={22}/></div><h3 className="mt-6 text-lg font-extrabold">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-500">{desc}</p><div className="mt-6 flex items-center gap-2 text-[11px] font-bold text-[#a77c25]">{isArabic?"جزء من مساحة عمل واحدة":"Part of one workspace"}<span>↗</span></div></article>})}
         </div>
       </section>
 
