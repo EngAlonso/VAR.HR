@@ -12562,6 +12562,28 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
+    if (!period) {
+      const [closedPeriod] = await db
+        .select({ id: payrollPeriodsTable.id })
+        .from(payrollPeriodsTable)
+        .where(
+          and(
+            eq(payrollPeriodsTable.companyId, context.companyId),
+            lte(payrollPeriodsTable.from, effectiveDate),
+            gte(payrollPeriodsTable.to, effectiveDate),
+            or(
+              eq(payrollPeriodsTable.status, "approved"),
+              eq(payrollPeriodsTable.status, "finalized"),
+              eq(payrollPeriodsTable.status, "locked"),
+            ),
+          ),
+        )
+        .limit(1);
+      if (closedPeriod) {
+        res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
+        return;
+      }
+    }
   }
   const [adjustment] = await db
     .insert(payrollAdjustmentsTable)
