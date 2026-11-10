@@ -6465,6 +6465,28 @@ function EmployeeCredentialManager({
   );
 }
 
+
+function AppFooter({ locale }: { locale: Locale }) {
+  const isArabic = locale === "ar";
+  return (
+    <footer className="border-t border-border/70 bg-background/95 px-4 py-5 sm:px-8">
+      <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-start">
+        <Link href="/" aria-label="VAR HR home" className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-80">
+          <BrandLogo variant="horizontal" className="w-[118px]" />
+        </Link>
+        <p className="text-xs font-medium text-muted-foreground">
+          {isArabic ? "منصة VAR HR لإدارة الموارد البشرية" : "VAR HR workforce management platform"}
+          <span className="mx-2 text-border">•</span>
+          <span>{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</span>
+        </p>
+        <Link href="/" className="text-xs font-bold text-primary transition hover:opacity-75">
+          {isArabic ? "الرئيسية" : "Home"}
+        </Link>
+      </div>
+    </footer>
+  );
+}
+
 function Login({
   onSignedIn,
   setupAvailable,
@@ -6503,12 +6525,14 @@ function Login({
       <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-5xl items-center gap-8 lg:min-h-[calc(100dvh-4rem)] lg:gap-10 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
           <div className="w-full max-w-[300px] overflow-hidden rounded-xl bg-white p-2 shadow-sm">
-            <BrandLogo
-              variant="horizontal"
-              source={loginLogo}
-              className="w-full"
-              alt={authLabel(locale, "brandName")}
-            />
+            <Link href="/" aria-label={locale === "ar" ? "العودة للرئيسية" : "Back to home"} className="block transition-opacity hover:opacity-85">
+              <BrandLogo
+                variant="horizontal"
+                source={loginLogo}
+                className="w-full"
+                alt={authLabel(locale, "brandName")}
+              />
+            </Link>
           </div>
           <div className="mt-12 max-w-md">
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
@@ -6525,12 +6549,14 @@ function Login({
             dir={locale === "ar" ? "rtl" : "ltr"}
           >
             <div className="lg:hidden">
-              <BrandLogo
-                variant="horizontal"
-                source={loginLogo}
-                className="w-[168px]"
-                alt={authLabel(locale, "brandName")}
-              />
+              <Link href="/" aria-label={locale === "ar" ? "العودة للرئيسية" : "Back to home"} className="block transition-opacity hover:opacity-85">
+                <BrandLogo
+                  variant="horizontal"
+                  source={loginLogo}
+                  className="w-[168px]"
+                  alt={authLabel(locale, "brandName")}
+                />
+              </Link>
             </div>
             <button
               type="button"
@@ -6614,6 +6640,7 @@ function Login({
           </p>
         </Card>
       </div>
+      <AppFooter locale={locale} />
     </div>
   );
 }
@@ -6758,6 +6785,7 @@ function InitialFounderSetup({ onComplete }: { onComplete: () => void }) {
           </form>
         </Card>
       </div>
+      <AppFooter locale={locale} />
     </div>
   );
 }
@@ -7249,6 +7277,7 @@ function Shell({ children }: { children: ReactNode }) {
         <main className="mobile-main mx-auto max-w-[1500px] min-w-0 px-3 pb-28 pt-5 sm:px-8 sm:py-9">
           {children}
         </main>
+        <AppFooter locale={locale} />
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
