@@ -6466,6 +6466,134 @@ function EmployeeCredentialManager({
 }
 
 
+function PlatformSocialSettings({ locale }: { locale: Locale }) {
+  const isArabic = locale === "ar";
+  const [settings, setSettings] = useState({
+    siteName: "VAR HR",
+    logoVariant: "horizontal",
+    socialLinks: {
+      facebook: "",
+      instagram: "",
+      linkedin: "",
+      x: "",
+      youtube: "",
+      tiktok: "",
+      whatsapp: "",
+    },
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    authRequest<typeof settings>("/api/platform/site-settings")
+      .then((result) => {
+        if (active) setSettings((current) => ({
+          ...current,
+          siteName: result.siteName || current.siteName,
+          logoVariant: result.logoVariant || current.logoVariant,
+          socialLinks: { ...current.socialLinks, ...result.socialLinks },
+        }));
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : "Could not load social links.");
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const fields = [
+    ["facebook", "Facebook", "https://facebook.com/your-page"],
+    ["instagram", "Instagram", "https://instagram.com/your-account"],
+    ["linkedin", "LinkedIn", "https://linkedin.com/company/your-page"],
+    ["x", "X", "https://x.com/your-account"],
+    ["youtube", "YouTube", "https://youtube.com/@your-channel"],
+    ["tiktok", "TikTok", "https://tiktok.com/@your-account"],
+  ] as const;
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await authRequest("/api/platform/site-settings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          siteName: settings.siteName || "VAR HR",
+          logoVariant: settings.logoVariant || "horizontal",
+          socialLinks: settings.socialLinks,
+        }),
+      });
+      toast.success(isArabic ? "تم حفظ روابط التواصل وستظهر في الفوتر" : "Social links saved and will appear in the footer");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Could not save social links.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-5 border-t border-border pt-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold">{isArabic ? "روابط التواصل الاجتماعي" : "Social media links"}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{isArabic ? "الروابط التي تدخلها هنا ستظهر تلقائيًا أسفل الموقع في الفوتر." : "Links entered here appear automatically in the website footer."}</p>
+        </div>
+        <Globe2 size={18} className="shrink-0 text-primary" />
+      </div>
+      {loading ? (
+        <p className="mt-4 text-xs text-muted-foreground">{isArabic ? "جاري تحميل الإعدادات..." : "Loading settings..."}</p>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {fields.map(([key, label, placeholder]) => (
+              <label className="block" key={key}>
+                <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  dir="ltr"
+                  placeholder={placeholder}
+                  value={settings.socialLinks[key]}
+                  onChange={(event) => setSettings((current) => ({
+                    ...current,
+                    socialLinks: { ...current.socialLinks, [key]: event.target.value },
+                  }))}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                />
+              </label>
+            ))}
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">WhatsApp</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                dir="ltr"
+                placeholder="+20 1XXXXXXXXX"
+                value={settings.socialLinks.whatsapp}
+                onChange={(event) => setSettings((current) => ({
+                  ...current,
+                  socialLinks: { ...current.socialLinks, whatsapp: event.target.value },
+                }))}
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <span className="mt-1.5 block text-[11px] text-muted-foreground">{isArabic ? "اكتب رقم الهاتف فقط بكود الدولة، أو رقم مصري يبدأ بـ 01. لا تضع رابط واتساب." : "Enter the phone number only with country code. Do not enter a WhatsApp URL."}</span>
+            </label>
+          </div>
+          {error && <p role="alert" className="mt-3 text-xs text-destructive">{error}</p>}
+          <div className="mt-4 flex justify-end">
+            <Button onClick={() => void save()} disabled={saving} className="gap-2">
+              {saving ? (isArabic ? "جاري الحفظ..." : "Saving...") : (isArabic ? "حفظ روابط التواصل" : "Save social links")}
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function AppFooter({ locale }: { locale: Locale }) {
   const isArabic = locale === "ar";
   return (
@@ -21401,6 +21529,7 @@ function Platform() {
                   <option value="de">Deutsch</option>
                 </select>
               </label>
+              <PlatformSocialSettings locale={locale} />
               <div className="rounded-lg bg-muted/60 p-3">
                 <div className="font-medium">
                   {text("Backup scope", "نطاق النسخ الاحتياطي")}
