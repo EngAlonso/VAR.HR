@@ -668,6 +668,13 @@ const platformNav: NavItem[] = [
     capability: "platform.view",
   },
   {
+    href: "/platform#settings",
+    key: "platformSettings",
+    icon: Settings,
+    roles: ["platform_owner"],
+    capability: "platform.view",
+  },
+  {
     href: "/backups",
     key: "backupRestore",
     icon: Database,
@@ -705,6 +712,7 @@ const copy = {
     backupRestore: "Backup & restore",
     subscription: "Subscription",
     platformOwner: "Platform owner",
+    platformSettings: "Platform settings",
     accountManagement: "Account management",
     companyNavOverview: "Overview",
     companyNavAccount: "My account",
@@ -2662,6 +2670,7 @@ const pageCopy = {
     presencePercent: "{percent}% حضور",
     lateAbsent: "{late} متأخر · {absent} غائب",
     accountManagement: "إدارة الحسابات",
+    platformSettings: "إعدادات المنصة",
     databaseAdministration: "إدارة قاعدة البيانات",
     accountSettings: "إعدادات الحساب",
     platformOwnerOnly: "للمالك فقط",
@@ -21541,7 +21550,7 @@ function Platform() {
               </Link>
             </div>
           </Card>
-          <Card className="p-5">
+          <Card id="settings" className="p-5">
             <div className="flex items-center gap-2">
               <Settings size={17} className="text-primary" />
               <h2 className="font-display text-lg font-semibold">
