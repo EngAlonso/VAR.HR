@@ -23294,6 +23294,8 @@ function PlatformCompanyDetailsPage() {
     de: "Keine Unternehmensaktivitäten erfasst.",
   }[locale];
   const [details, setDetails] = useState<PlatformCompanyDetails | null>(null);
+  const [operationalData, setOperationalData] = useState<PlatformCompanyDetails["operationalData"] | null>(null);
+  const [operationalDataLoading, setOperationalDataLoading] = useState(false);
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [backupsLoading, setBackupsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23329,8 +23331,24 @@ function PlatformCompanyDetailsPage() {
     }
   };
 
+  const loadOperationalData = async () => {
+    if (!params.companyId || operationalData !== null || operationalDataLoading) return;
+    setOperationalDataLoading(true);
+    try {
+      const result = await authRequest<{ operationalData: PlatformCompanyDetails["operationalData"] }>(
+        `/api/platform/companies/${encodeURIComponent(params.companyId)}/operational-data`,
+      );
+      setOperationalData(result.operationalData);
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : text("Could not load operational records.", "تعذر تحميل السجلات التشغيلية."));
+    } finally {
+      setOperationalDataLoading(false);
+    }
+  };
+
   const load = async () => {
     if (!params.companyId) return;
+    setOperationalData(null);
     setLoading(true);
     setError("");
     void loadBackups();
@@ -24170,7 +24188,7 @@ function PlatformCompanyDetailsPage() {
             />
             <Info
               label={text("Integrity checksum", "بصمة التكامل")}
-              value={details.integrity.checksum.slice(0, 16) + "…"}
+              value={text("Calculated when a backup is created", "تُحسب عند إنشاء نسخة احتياطية")}
             />
           </div>
           <div className="mt-4 space-y-3">
@@ -24508,7 +24526,7 @@ function PlatformCompanyDetailsPage() {
       </Card>
 
       <Card className="p-5">
-        <details>
+        <details onToggle={(event) => { if (event.currentTarget.open) void loadOperationalData(); }}>
           <summary className="cursor-pointer font-semibold">
             {text(
               "View all company-owned operational records",
@@ -24516,7 +24534,7 @@ function PlatformCompanyDetailsPage() {
             )}
           </summary>
           <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/60 p-4 text-xs text-muted-foreground">
-            {JSON.stringify(details.operationalData, null, 2)}
+            {operationalDataLoading ? text("Loading operational records…", "جاري تحميل السجلات التشغيلية…") : JSON.stringify(operationalData ?? {}, null, 2)}
           </pre>
         </details>
       </Card>
