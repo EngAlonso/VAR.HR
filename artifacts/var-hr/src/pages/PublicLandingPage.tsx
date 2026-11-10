@@ -1,5 +1,5 @@
-import { ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
 import arabicLoginLogo from "@assets/file_000000001fc4820a8874d7fbcbaf001b_1787189698147.png";
 
@@ -87,6 +87,13 @@ const featureTones = ["gold", "blue", "violet", "green", "cyan", "rose"];
 
 export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: { onLogin: () => void; locale: "ar" | "en" | "fr" | "de"; onLocaleChange: (locale: "ar" | "en") => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 320);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const isArabic = locale === "ar";
   const c = isArabic ? content.ar : content.en;
   const dir = isArabic ? "rtl" : "ltr";
@@ -282,7 +289,8 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
             <p className="text-sm font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
           </div>
         </div>
-      </footer>>
+      </footer>
+      {showScrollTop && <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label={isArabic ? "العودة إلى أعلى الصفحة" : "Back to top"} title={isArabic ? "العودة للأعلى" : "Back to top"} className="fixed bottom-6 end-6 z-50 grid h-12 w-12 place-items-center rounded-full border border-[#f0d17a]/40 bg-[#d7aa3d] text-[#111923] shadow-[0_10px_30px_rgba(0,0,0,.28)] transition hover:-translate-y-1 hover:bg-[#f0d17a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0d17a] focus-visible:ring-offset-2"><ArrowUp size={21} strokeWidth={2.5}/></button>}
     </main>
   );
 }
