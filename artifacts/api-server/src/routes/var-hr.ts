@@ -12504,7 +12504,7 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
     category: z.enum(["fixed", "variable"]).default("variable"),
     amount: z.number().finite().positive(),
     reason: z.string().trim().min(1),
-    effectiveDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
+    effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   }).safeParse(req.body ?? {});
   if (!parsed.success) {
     res.status(400).json({ error: message(req, "invalidRequest") });
