@@ -275,7 +275,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr] md:gap-12 md:py-14" dir={dir}>
+        <div className="relative mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-7 md:grid-cols-2 lg:grid-cols-[1.25fr_0.9fr_0.95fr_1fr] md:gap-8 md:py-12" dir={dir}>
           <div className="max-w-md">
             <a href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
               <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-10 w-auto max-w-[175px] object-contain"/>
@@ -316,7 +316,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
           </div>
         </div>
         <div className="relative border-t border-white/10 bg-black/15 px-5 py-5 sm:px-8">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 text-center">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-2 text-center">
             <p className="text-xs font-medium text-slate-400">{isArabic ? "جميع الحقوق محفوظة لـ VAR HR" : "All rights reserved to VAR HR"}</p>
             <p className="text-sm font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
           </div>
