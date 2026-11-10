@@ -13,6 +13,8 @@ import {
   employeesTable,
   permissionsTable,
   plansTable,
+  pool,
+  devicesTable,
   subscriptionsTable,
   userAccountsTable,
 } from "@workspace/db";
@@ -686,203 +688,193 @@ router.get(
 );
 
 router.get(
+  "/platform/companies/:companyId/operational-data",
+  async (req, res): Promise<void> => {
+    const context = await requirePlatformOwner(req);
+    if (context.role !== "platform_owner") {
+      res.status(403).json({ error: "Only the Platform Owner can view company data.", code: "PLATFORM_ACCESS_DENIED" });
+      return;
+    }
+    const companyId = Array.isArray(req.params.companyId) ? req.params.companyId[0] : req.params.companyId;
+    const parsedCompanyId = z.string().uuid().safeParse(companyId);
+    if (!parsedCompanyId.success) {
+      res.status(400).json({ error: "A valid company ID is required.", code: "INVALID_COMPANY" });
+      return;
+    }
+    const [company] = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(eq(companiesTable.id, parsedCompanyId.data)).limit(1);
+    if (!company) {
+      res.status(404).json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
+      return;
+    }
+    const backup = await buildBackupPayload("company", company.id);
+    const operationalData = Object.fromEntries(
+      Object.entries(backup.payload.data).filter(([table]) =>
+        !["var_hr_companies", "var_hr_user_accounts", "var_hr_permissions", "var_hr_plans"].includes(table),
+      ),
+    );
+    res.json({ operationalData });
+  },
+);
+
+router.get(
   "/platform/companies/:companyId/details",
   async (req, res): Promise<void> => {
     const context = await requirePlatformOwner(req);
     if (context.role !== "platform_owner") {
-      res.status(403).json({
-        error: "Only the Platform Owner can view company details.",
-        code: "PLATFORM_ACCESS_DENIED",
-      });
+      res.status(403).json({ error: "Only the Platform Owner can view company details.", code: "PLATFORM_ACCESS_DENIED" });
       return;
     }
-    const companyId = Array.isArray(req.params.companyId)
-      ? req.params.companyId[0]
-      : req.params.companyId;
+    const companyId = Array.isArray(req.params.companyId) ? req.params.companyId[0] : req.params.companyId;
     const parsedCompanyId = z.string().uuid().safeParse(companyId);
     if (!parsedCompanyId.success) {
-      res.status(400).json({
-        error: "A valid company ID is required.",
-        code: "INVALID_COMPANY",
-      });
+      res.status(400).json({ error: "A valid company ID is required.", code: "INVALID_COMPANY" });
       return;
     }
-    const [company] = await db
-      .select()
-      .from(companiesTable)
-      .where(eq(companiesTable.id, parsedCompanyId.data))
-      .limit(1);
+    const [company] = await db.select().from(companiesTable)
+      .where(eq(companiesTable.id, parsedCompanyId.data)).limit(1);
     if (!company) {
-      res
-        .status(404)
-        .json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
+      res.status(404).json({ error: "Company not found.", code: "COMPANY_NOT_FOUND" });
       return;
     }
-    const [subscription] = await db
-      .select({ subscription: subscriptionsTable, plan: plansTable })
-      .from(subscriptionsTable)
-      .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id))
-      .where(eq(subscriptionsTable.companyId, company.id))
-      .limit(1);
-    const backup = await buildBackupPayload("company", company.id);
-    const accounts = (backup.payload.data.var_hr_user_accounts ?? []).map(
-      (account) => ({
-        id: String(account.id ?? ""),
-        username: String(account.username ?? ""),
-        accountType: String(account.account_type ?? ""),
-        displayRole: String(account.display_role ?? ""),
-        companyId:
-          account.company_id == null ? null : String(account.company_id),
-        employeeId:
-          account.employee_id == null ? null : String(account.employee_id),
-        active: Boolean(account.active),
-        fullName: String(account.full_name ?? ""),
-        primaryPhone: String(account.primary_phone ?? ""),
-        backupPhones: Array.isArray(account.backup_phones)
-          ? account.backup_phones
-          : [],
-        email: String(account.email ?? ""),
-        backupEmails: Array.isArray(account.backup_emails)
-          ? account.backup_emails
-          : [],
-      }),
-    );
-    const owners = accounts.filter(
-      (account) => account.accountType === "company_owner",
-    );
-    const staff = accounts.filter(
-      (account) =>
-        account.accountType === "staff" || account.accountType === "manager",
-    );
-    const administrativeAccounts = accounts.filter(
-      (account) =>
-        account.accountType !== "company_owner" &&
-        account.accountType !== "employee",
-    );
-    const roleText = (account: (typeof accounts)[number]) =>
-      `${account.accountType} ${account.displayRole}`.toLowerCase();
-    const managers = administrativeAccounts.filter((account) => {
-      const role = roleText(account);
-      return role.includes("manager") && !role.includes("supervisor");
-    });
-    const supervisors = administrativeAccounts.filter((account) =>
-      roleText(account).includes("supervisor"),
-    );
-    const hr = administrativeAccounts.filter((account) => {
-      const role = roleText(account);
-      return role.includes("hr") || role.includes("human resource");
-    });
-    const employees = backup.payload.data.var_hr_employees ?? [];
-    const devices = backup.payload.data.var_hr_devices ?? [];
-    const departments = backup.payload.data.var_hr_departments ?? [];
-    const branches = backup.payload.data.var_hr_branches ?? [];
-    const [auditLogs, authAuditEvents] = await Promise.all([
-      db
-        .select({
-          id: auditLogsTable.id,
-          action: auditLogsTable.action,
-          entityType: auditLogsTable.entityType,
-          entityId: auditLogsTable.entityId,
-          actorType: auditLogsTable.actorType,
-          actorId: auditLogsTable.actorId,
-          createdAt: auditLogsTable.createdAt,
-        })
-        .from(auditLogsTable)
-        .where(eq(auditLogsTable.companyId, company.id))
-        .orderBy(desc(auditLogsTable.createdAt)),
-      db
-        .select({
-          id: authAuditEventsTable.id,
-          action: authAuditEventsTable.action,
-          entityType: authAuditEventsTable.entityType,
-          entityId: authAuditEventsTable.entityId,
-          actorType: sql<string>`'account'`,
-          actorId: authAuditEventsTable.accountId,
-          createdAt: authAuditEventsTable.createdAt,
-        })
-        .from(authAuditEventsTable)
-        .where(eq(authAuditEventsTable.companyId, company.id))
-        .orderBy(desc(authAuditEventsTable.createdAt)),
+
+    const [
+      subscriptionRows,
+      accountRows,
+      employeeResult,
+      deviceResult,
+      departmentResult,
+      branchResult,
+      auditLogs,
+      authAuditEvents,
+      countResult,
+    ] = await Promise.all([
+      db.select({ subscription: subscriptionsTable, plan: plansTable })
+        .from(subscriptionsTable)
+        .innerJoin(plansTable, eq(subscriptionsTable.planId, plansTable.id))
+        .where(eq(subscriptionsTable.companyId, company.id)).limit(1),
+      pool.query('SELECT * FROM "var_hr_user_accounts" WHERE company_id = $1 ORDER BY username', [company.id]),
+      pool.query('SELECT * FROM "var_hr_employees" WHERE company_id = $1 ORDER BY created_at DESC', [company.id]),
+      pool.query('SELECT * FROM "var_hr_devices" WHERE company_id = $1 ORDER BY name', [company.id]),
+      pool.query('SELECT * FROM "var_hr_departments" WHERE company_id = $1 ORDER BY name', [company.id]),
+      pool.query('SELECT * FROM "var_hr_branches" WHERE company_id = $1 ORDER BY name', [company.id]),
+      db.select({
+        id: auditLogsTable.id, action: auditLogsTable.action, entityType: auditLogsTable.entityType,
+        entityId: auditLogsTable.entityId, actorType: auditLogsTable.actorType,
+        actorId: auditLogsTable.actorId, createdAt: auditLogsTable.createdAt,
+      }).from(auditLogsTable).where(eq(auditLogsTable.companyId, company.id))
+        .orderBy(desc(auditLogsTable.createdAt)).limit(100),
+      db.select({
+        id: authAuditEventsTable.id, action: authAuditEventsTable.action, entityType: authAuditEventsTable.entityType,
+        entityId: authAuditEventsTable.entityId, actorType: sql<string>`'account'`,
+        actorId: authAuditEventsTable.accountId, createdAt: authAuditEventsTable.createdAt,
+      }).from(authAuditEventsTable).where(eq(authAuditEventsTable.companyId, company.id))
+        .orderBy(desc(authAuditEventsTable.createdAt)).limit(100),
+      pool.query(`
+        SELECT table_name, COUNT(*)::int AS count FROM (
+          SELECT 'var_hr_departments' AS table_name FROM "var_hr_departments" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_branches' FROM "var_hr_branches" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employees' FROM "var_hr_employees" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_attendance_devices' FROM "var_hr_employee_attendance_devices" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_payroll_cycles' FROM "var_hr_payroll_cycles" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_payroll_cycle_assignments' FROM "var_hr_employee_payroll_cycle_assignments" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_hr_records' FROM "var_hr_employee_hr_records" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_work_locations' FROM "var_hr_employee_work_locations" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_rules' FROM "var_hr_attendance_rules" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_leave_balances' FROM "var_hr_leave_balances" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_payroll_periods' FROM "var_hr_payroll_periods" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_work_schedules' FROM "var_hr_work_schedules" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_holidays' FROM "var_hr_holidays" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_subscriptions' FROM "var_hr_subscriptions" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance' FROM "var_hr_attendance" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_punch_requests' FROM "var_hr_attendance_punch_requests" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_calculations' FROM "var_hr_attendance_calculations" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_time_adjustments' FROM "var_hr_attendance_time_adjustments" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_leave_requests' FROM "var_hr_leave_requests" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_leave_balance_transactions' FROM "var_hr_leave_balance_transactions" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_permission_requests' FROM "var_hr_permission_requests" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_payroll_calculations' FROM "var_hr_payroll_calculations" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_payroll_adjustments' FROM "var_hr_payroll_adjustments" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_devices' FROM "var_hr_devices" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_device_employee_mappings' FROM "var_hr_device_employee_mappings" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_biometric_events' FROM "var_hr_biometric_events" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_biometric_sync_history' FROM "var_hr_biometric_sync_history" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_biometric_device_commands' FROM "var_hr_biometric_device_commands" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_locations' FROM "var_hr_attendance_locations" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_schedule_assignments' FROM "var_hr_employee_schedule_assignments" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_notifications' FROM "var_hr_notifications" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_notification_subscriptions' FROM "var_hr_notification_subscriptions" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_attendance_rule_changes' FROM "var_hr_attendance_rule_changes" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_leave_policies' FROM "var_hr_leave_policies" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_employee_identities' FROM "var_hr_employee_identities" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_audit_logs' FROM "var_hr_audit_logs" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_auth_audit_events' FROM "var_hr_auth_audit_events" WHERE company_id = $1
+          UNION ALL SELECT 'var_hr_user_accounts' FROM "var_hr_user_accounts" WHERE company_id = $1
+        ) company_rows GROUP BY table_name
+      `, [company.id]),
     ]);
+
+    const subscription = subscriptionRows[0];
+    const accounts = accountRows.rows.map((account) => ({
+      id: String(account.id ?? ""), username: String(account.username ?? ""),
+      accountType: String(account.account_type ?? ""), displayRole: String(account.display_role ?? ""),
+      companyId: account.company_id == null ? null : String(account.company_id),
+      employeeId: account.employee_id == null ? null : String(account.employee_id),
+      active: Boolean(account.active), fullName: String(account.full_name ?? ""),
+      primaryPhone: String(account.primary_phone ?? ""),
+      backupPhones: Array.isArray(account.backup_phones) ? account.backup_phones : [],
+      email: String(account.email ?? ""), backupEmails: Array.isArray(account.backup_emails) ? account.backup_emails : [],
+    }));
+    const owners = accounts.filter((account) => account.accountType === "company_owner");
+    const staff = accounts.filter((account) => account.accountType === "staff" || account.accountType === "manager");
+    const administrativeAccounts = accounts.filter((account) => account.accountType !== "company_owner" && account.accountType !== "employee");
+    const roleText = (account: (typeof accounts)[number]) => `${account.accountType} ${account.displayRole}`.toLowerCase();
+    const managers = administrativeAccounts.filter((account) => roleText(account).includes("manager") && !roleText(account).includes("supervisor"));
+    const supervisors = administrativeAccounts.filter((account) => roleText(account).includes("supervisor"));
+    const hr = administrativeAccounts.filter((account) => roleText(account).includes("hr") || roleText(account).includes("human resource"));
+    const employees = employeeResult.rows;
+    const devices = deviceResult.rows;
+    const departments = departmentResult.rows;
+    const branches = branchResult.rows;
     const activity = [...auditLogs, ...authAuditEvents]
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
       .map((event) => {
-        const actor = event.actorId
-          ? accounts.find((account) => account.id === event.actorId)
-          : undefined;
-        return {
-          ...event,
-          actorName: actor?.fullName?.trim() || actor?.username || null,
-        };
+        const actor = event.actorId ? accounts.find((account) => account.id === event.actorId) : undefined;
+        return { ...event, actorName: actor?.fullName?.trim() || actor?.username || null };
       });
-    const operationalData = Object.fromEntries(
-      Object.entries(backup.payload.data)
-        .filter(
-          ([table]) =>
-            ![
-              "var_hr_companies",
-              "var_hr_user_accounts",
-              "var_hr_permissions",
-              "var_hr_plans",
-            ].includes(table),
-        )
-        .map(([table, rows]) => [table, rows]),
-    );
+    const tableCounts = Object.fromEntries(countResult.rows.map((row) => [row.table_name, Number(row.count)]));
     res.json({
       company,
-      subscription: subscription
-        ? {
-            status: subscription.subscription.status,
-            monthlyPrice: subscription.subscription.monthlyPrice,
-            annualPrice: subscription.subscription.annualPrice,
-            employeeLimit:
-              subscription.subscription.employeeLimit ??
-              subscription.plan.employeeLimit,
-            planName: subscription.plan.name,
-          }
-        : null,
-      owners,
-      staff,
-      administrativeAccounts,
+      subscription: subscription ? {
+        status: subscription.subscription.status, monthlyPrice: subscription.subscription.monthlyPrice,
+        annualPrice: subscription.subscription.annualPrice,
+        employeeLimit: subscription.subscription.employeeLimit ?? subscription.plan.employeeLimit,
+        planName: subscription.plan.name,
+      } : null,
+      owners, staff, administrativeAccounts,
       roleGroups: { managers, supervisors, hr },
-      employees,
-      devices,
+      employees, devices,
       organization: {
         departments: departments.map((department) => ({
-          id: String(department.id ?? ""),
-          name: String(department.name ?? ""),
-          nameAr: String(department.name_ar ?? ""),
-          active: Boolean(department.active),
-          managerId:
-            department.manager_id == null
-              ? null
-              : String(department.manager_id),
-          employeeCount: employees.filter(
-            (employee) => employee.department_id === department.id,
-          ).length,
+          id: String(department.id ?? ""), name: String(department.name ?? ""),
+          nameAr: String(department.name_ar ?? ""), active: Boolean(department.active),
+          managerId: department.manager_id == null ? null : String(department.manager_id),
+          employeeCount: employees.filter((employee) => employee.department_id === department.id).length,
         })),
         branchCount: branches.length,
       },
       configuration: {
         defaultScheduleId: company.defaultScheduleId,
-        attendanceRules:
-          backup.payload.data.var_hr_attendance_rules?.length ?? 0,
-        workSchedules: backup.payload.data.var_hr_work_schedules?.length ?? 0,
-        leavePolicies: backup.payload.data.var_hr_leave_balances?.length ?? 0,
-        payrollPeriods: backup.payload.data.var_hr_payroll_periods?.length ?? 0,
-        integrations:
-          (backup.payload.data.var_hr_devices?.length ?? 0) +
-          (backup.payload.data.var_hr_attendance_locations?.length ?? 0),
+        attendanceRules: tableCounts.var_hr_attendance_rules ?? 0,
+        workSchedules: tableCounts.var_hr_work_schedules ?? 0,
+        leavePolicies: tableCounts.var_hr_leave_policies ?? 0,
+        payrollPeriods: tableCounts.var_hr_payroll_periods ?? 0,
+        integrations: (tableCounts.var_hr_devices ?? 0) + (tableCounts.var_hr_attendance_locations ?? 0),
       },
       activity,
-      operationalData,
-      tableCounts: Object.fromEntries(
-        Object.entries(backup.payload.data).map(([table, rows]) => [
-          table,
-          rows.length,
-        ]),
-      ),
-      integrity: backup.payload.manifest.integrity,
+      operationalData: {},
+      tableCounts,
+      integrity: { algorithm: "sha256", checksum: "" },
     });
   },
 );
