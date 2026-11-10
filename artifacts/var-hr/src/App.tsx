@@ -668,7 +668,7 @@ const platformNav: NavItem[] = [
     capability: "platform.view",
   },
   {
-    href: "/platform#settings",
+    href: "/platform/settings",
     key: "platformSettings",
     icon: Settings,
     roles: ["platform_owner"],
@@ -6604,6 +6604,32 @@ function PlatformSocialSettings({ locale }: { locale: Locale }) {
   );
 }
 
+function PlatformSettingsPage() {
+  const { locale, t } = useI18n();
+  const auth = useAuth();
+  const [, setLocation] = useLocation();
+  if (auth.account.accountType !== "platform_owner") {
+    return <WorkspaceState kind="unauthorized" />;
+  }
+  return (
+    <div className="animate-in">
+      <SectionTitle
+        eyebrow={t("platformOwnerOnly")}
+        title={locale === "ar" ? "إعدادات المنصة" : "Platform settings"}
+        detail={locale === "ar" ? "إدارة روابط التواصل التي تظهر أسفل الموقع." : "Manage the social links displayed in the website footer."}
+      />
+      <Card className="max-w-3xl p-5">
+        <PlatformSocialSettings locale={locale} />
+      </Card>
+      <div className="mt-5">
+        <Button variant="outline" onClick={() => setLocation("/platform")}>
+          {locale === "ar" ? "العودة إلى لوحة مالك المنصة" : "Back to platform dashboard"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function AppFooter({ locale }: { locale: Locale }) {
   const isArabic = locale === "ar";
   const [socialLinks, setSocialLinks] = useState({
@@ -7220,7 +7246,7 @@ function Shell({ children }: { children: ReactNode }) {
       : secondaryNav.filter(canSee);
   const mobileNavPool = isPlatformOwner ? visibleNav : nav.filter(canSee);
   const mobilePrimaryKeys = isPlatformOwner
-    ? (["platformOwner", "databaseAdministration", "accountSettings"] as const)
+    ? (["platformOwner", "platformSettings", "databaseAdministration", "accountSettings"] as const)
     : (["overview", "attendance", "requests", "hrProfile"] as const);
   const mobilePrimaryNav = mobilePrimaryKeys
     .map((key) => mobileNavPool.find((item) => item.key === key))
@@ -25269,6 +25295,7 @@ function Router() {
         <Route path="/devices" component={Devices} />
         <Route path="/sync-history" component={SyncHistory} />
         <Route path="/backups" component={BackupRestore} />
+        <Route path="/platform/settings" component={PlatformSettingsPage} />
         <Route path="/platform/database" component={DatabaseAdministration} />
         <Route path="/platform/activity" component={PlatformActivityPage} />
         <Route
