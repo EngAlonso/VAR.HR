@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2, FileChartColumnIncreasing } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2 } from "lucide-react";
 import { useState } from "react";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
 
@@ -7,8 +7,7 @@ const content = {
     nav: ["المميزات", "كيف يعمل", "الأمان", "عن النظام"],
     login: "دخول النظام",
     eyebrow: "إدارة موارد بشرية بمستوى جديد",
-    title: "كل فريقك.
-في مكان واحد.",
+    title: "كل فريقك.\\nفي مكان واحد.",
     desc: "من الحضور والانصراف إلى الرواتب وإدارة الموظفين — رؤية أوضح، قرارات أسرع، وتشغيل أكثر انضباطًا.",
     primary: "ابدأ من هنا — تسجيل الدخول",
     secondary: "اكتشف إمكانيات النظام",
@@ -46,8 +45,7 @@ const content = {
     nav: ["Features", "How it works", "Security", "About"],
     login: "Sign in",
     eyebrow: "A smarter way to manage people",
-    title: "Your entire team.
-One clear picture.",
+    title: "Your entire team.\\nOne clear picture.",
     desc: "From attendance and shifts to payroll and employee records — bring everyday people operations into one connected workspace.",
     primary: "Open your workspace",
     secondary: "Explore the platform",
@@ -183,7 +181,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
                 <div className="grid min-h-[320px] grid-cols-[76px_1fr] sm:grid-cols-[112px_1fr]">
                   <aside className="bg-[#17202d] px-2 py-4 text-white sm:px-3">
                     <div className="mb-5 flex justify-center"><div className="h-7 w-7 rounded-lg border border-[#e0b64a]/40 bg-[#e0b64a]/15"/></div>
-                    {[Users, Clock3, CalendarClock, Wallet, FileChartColumnIncreasing].map((Icon,i)=><div key={i} className={`mb-2 flex items-center gap-2 rounded-lg px-2 py-2.5 ${i===0?"bg-white/10 text-[#f0d17a]":"text-white/45"}`}><Icon size={14}/><span className="hidden text-[9px] sm:inline">{[c.employees,c.attendance,c.requests,c.payroll,c.reports][i]}</span></div>)}
+                    {[Users, Clock3, CalendarClock, Wallet, BarChart3].map((Icon,i)=><div key={i} className={`mb-2 flex items-center gap-2 rounded-lg px-2 py-2.5 ${i===0?"bg-white/10 text-[#f0d17a]":"text-white/45"}`}><Icon size={14}/><span className="hidden text-[9px] sm:inline">{[c.employees,c.attendance,c.requests,c.payroll,c.reports][i]}</span></div>)}
                   </aside>
                   <div className="min-w-0 p-3 sm:p-5">
                     <div className="flex items-start justify-between gap-2"><div><div className="text-[9px] font-semibold text-slate-400">{c.live}</div><div className="mt-1 text-sm font-extrabold sm:text-lg">{c.today}</div></div><div className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[8px] text-slate-500">{isArabic ? "اليوم" : "Today"}⌄</div></div>
