@@ -1,13 +1,14 @@
 import { ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2 } from "lucide-react";
 import { useState } from "react";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
+import arabicLoginLogo from "@assets/file_000000001fc4820a8874d7fbcbaf001b_1787189698147.png";
 
 const content = {
   ar: {
     nav: ["المميزات", "كيف يعمل", "الأمان", "عن النظام"],
     login: "دخول النظام",
     eyebrow: "إدارة موارد بشرية بمستوى جديد",
-    title: "كل فريقك.\\nفي مكان واحد.",
+    title: "كل فريقك.\nفي مكان واحد.",
     desc: "من الحضور والانصراف إلى الرواتب وإدارة الموظفين — رؤية أوضح، قرارات أسرع، وتشغيل أكثر انضباطًا.",
     primary: "ابدأ من هنا — تسجيل الدخول",
     secondary: "اكتشف إمكانيات النظام",
@@ -45,7 +46,7 @@ const content = {
     nav: ["Features", "How it works", "Security", "About"],
     login: "Sign in",
     eyebrow: "A smarter way to manage people",
-    title: "Your entire team.\\nOne clear picture.",
+    title: "Your entire team.\nOne clear picture.",
     desc: "From attendance and shifts to payroll and employee records — bring everyday people operations into one connected workspace.",
     primary: "Open your workspace",
     secondary: "Explore the platform",
@@ -113,8 +114,8 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <header className="relative z-30 border-b border-white/10 bg-[#111923] text-white">
         <div className="mx-auto flex h-[82px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <a href="#" aria-label="VAR HR home" className="flex items-center gap-3">
-            <img src={horizontalLogo} alt="VAR HR" className="h-10 w-auto max-w-[190px] object-contain brightness-0 invert" />
+          <a href="/" aria-label="VAR HR home" className="flex items-center gap-3 rounded-xl bg-white px-3 py-1.5 shadow-sm transition hover:opacity-90">
+            <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-11 w-auto max-w-[190px] object-contain" />
           </a>
           <nav className="hidden items-center gap-9 text-[13px] font-medium text-white/65 lg:flex">
             <button onClick={() => scrollTo("features")} className="transition hover:text-[#f0cf73]">{c.nav[0]}</button>
@@ -253,8 +254,8 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-5 py-8 text-center sm:flex-row sm:px-8 sm:text-start">
-          <img src={horizontalLogo} alt="VAR HR" className="h-8 w-auto max-w-[160px] object-contain"/>
-          <p className="text-xs text-slate-400">{c.footer}</p>
+          <a href="/" aria-label="VAR HR home" className="rounded-lg bg-white px-2 py-1"><img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-9 w-auto max-w-[160px] object-contain"/></a>
+          <p className="text-xs text-slate-400">{c.footer} · {isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
           <button onClick={login} className="text-xs font-extrabold text-[#9b7425] transition hover:text-[#6d5019]">{c.login} ↗</button>
         </div>
       </footer>
