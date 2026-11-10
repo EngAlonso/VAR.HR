@@ -8298,31 +8298,37 @@ function EmployeeAttendanceMovement({
   const workspace = useGetWorkspace();
   const canConvertAbsence = workspace.data?.capabilities?.includes("attendance.absence_leave") ?? false;
   const canManagePayroll = workspace.data?.capabilities?.includes("payroll.manage") ?? false;
-  const payrollPeriods = useListPayrollPeriods({
-    query: {
-      enabled: canManagePayroll,
-      // Payroll periods are tenant-scoped by the API. Include the active company
-      // in the cache key so switching workspaces cannot reuse another company's list.
-      queryKey: [...getListPayrollPeriodsQueryKey(), workspace.data?.company?.id ?? "no-company"],
-      staleTime: 0,
-      refetchOnMount: "always",
-    },
-  });
-  const createPayrollAdjustment = useCreatePayrollAdjustment();
-  const recalculatePayroll = useCalculatePayroll();
   const [convertingAttendanceId, setConvertingAttendanceId] = useState("");
+  const localNow = new Date();
+  const today = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
   const [showPayrollAdjustment, setShowPayrollAdjustment] = useState(false);
   const [payrollAdjustmentForm, setPayrollAdjustmentForm] = useState({
-    periodId: "",
+    effectiveDate: today,
     type: "addition",
     category: "variable",
     amount: "",
     reason: "",
   });
   const [payrollSummaryRefresh, setPayrollSummaryRefresh] = useState(0);
+  const [employeeAdjustments, setEmployeeAdjustments] = useState<any[]>([]);
+  const [employeeAdjustmentsLoading, setEmployeeAdjustmentsLoading] = useState(false);
   const [open, setOpen] = useState(fullPage);
-  const localNow = new Date();
-  const today = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
+  useEffect(() => {
+    if (!open || !employeeId) return;
+    let active = true;
+    setEmployeeAdjustmentsLoading(true);
+    authRequest<any[]>(`/api/payroll/adjustments?employeeId=${encodeURIComponent(employeeId)}`)
+      .then((items) => {
+        if (active) setEmployeeAdjustments(Array.isArray(items) ? items : []);
+      })
+      .catch((error) => {
+        if (active) toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحميل الخصومات والإضافيات." : "Could not load payroll adjustments."));
+      })
+      .finally(() => {
+        if (active) setEmployeeAdjustmentsLoading(false);
+      });
+    return () => { active = false; };
+  }, [open, employeeId, payrollSummaryRefresh, locale]);
   const employeeQuery = useGetEmployee(employeeId, {
     query: {
       enabled: Boolean(employeeId),
@@ -8398,66 +8404,42 @@ function EmployeeAttendanceMovement({
       active = false;
     };
   }, [open, employeeId, from, to, payrollSummaryRefresh]);
-  // A manual adjustment belongs to a payroll period selected in the form.
-  // Do not require that period to contain the entire attendance-history date range:
-  // users may inspect a custom range that crosses payroll-cycle boundaries.
-  const editablePayrollPeriods = (payrollPeriods.data ?? []).filter((period: any) =>
-    !["approved", "finalized", "locked"].includes(String(period.status).toLowerCase()),
-  );
-  useEffect(() => {
-    if (!editablePayrollPeriods.some((period: any) => period.id === payrollAdjustmentForm.periodId)) {
-      setPayrollAdjustmentForm((current) => ({
-        ...current,
-        periodId: editablePayrollPeriods[0]?.id ?? "",
-      }));
-    }
-  }, [editablePayrollPeriods.map((period: any) => period.id).join("|"), payrollAdjustmentForm.periodId]);
   async function submitPayrollAdjustment(event: FormEvent) {
     event.preventDefault();
     const amount = Number(payrollAdjustmentForm.amount);
-    if (!payrollAdjustmentForm.periodId || !Number.isFinite(amount) || amount <= 0 || !payrollAdjustmentForm.reason.trim()) {
-      toast.error(locale === "ar" ? "اختر فترة رواتب وأدخل مبلغًا وسببًا صحيحًا." : "Choose a payroll period and enter a valid amount and reason.");
+    if (
+      !payrollAdjustmentForm.effectiveDate ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !payrollAdjustmentForm.reason.trim()
+    ) {
+      toast.error(locale === "ar" ? "أدخل تاريخًا ومبلغًا وسببًا صحيحًا." : "Enter a valid date, amount, and reason.");
       return;
     }
-    createPayrollAdjustment.mutate(
-      {
-        data: {
-          periodId: payrollAdjustmentForm.periodId,
+    try {
+      await authRequest("/api/payroll/adjustments", {
+        method: "POST",
+        body: JSON.stringify({
           employeeId,
-          type: payrollAdjustmentForm.type as "addition" | "deduction",
-          category: payrollAdjustmentForm.category as "fixed" | "variable",
+          effectiveDate: payrollAdjustmentForm.effectiveDate,
+          type: payrollAdjustmentForm.type,
+          category: payrollAdjustmentForm.category,
           amount,
           reason: payrollAdjustmentForm.reason.trim(),
-        },
-      },
-      {
-        onSuccess: () => {
-          setShowPayrollAdjustment(false);
-          setPayrollAdjustmentForm((current) => ({ ...current, amount: "", reason: "" }));
-          recalculatePayroll.mutate(
-            { periodId: payrollAdjustmentForm.periodId },
-            {
-              onSuccess: async () => {
-                toast.success(locale === "ar" ? "تمت إضافة الحركة وإعادة احتساب الرواتب." : "The adjustment was added and payroll was recalculated.");
-                setPayrollSummaryRefresh((value) => value + 1);
-                await Promise.all([
-                  qc.invalidateQueries({ queryKey: getListPayrollPeriodsQueryKey() }),
-                  qc.invalidateQueries({ queryKey: getListPayrollAdjustmentsQueryKey({ periodId: payrollAdjustmentForm.periodId }) }),
-                  qc.invalidateQueries({ queryKey: getGetPayrollCalculationQueryKey(payrollAdjustmentForm.periodId) }),
-                  qc.invalidateQueries({ queryKey: getGetMyPayrollQueryKey() }),
-                  qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportParams) }),
-                ]);
-              },
-              onError: (error: unknown) => {
-                toast.error(apiErrorMessage(error, locale === "ar" ? "تم حفظ الحركة لكن تعذر إعادة احتساب الرواتب. أعد الحساب من صفحة الرواتب." : "Adjustment saved, but payroll recalculation failed. Recalculate from Payroll."));
-                setPayrollSummaryRefresh((value) => value + 1);
-              },
-            },
-          );
-        },
-        onError: (error: unknown) => toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment.")),
-      },
-    );
+        }),
+      });
+      setShowPayrollAdjustment(false);
+      setPayrollAdjustmentForm((current) => ({
+        ...current,
+        effectiveDate: today,
+        amount: "",
+        reason: "",
+      }));
+      setPayrollSummaryRefresh((value) => value + 1);
+      toast.success(locale === "ar" ? "تم حفظ الحركة المالية وستدخل في حساب فترة الرواتب المطابقة لتاريخها." : "The adjustment was saved and will be included in the payroll period matching its date.");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment."));
+    }
   }
   const weekday = (value?: string | null) =>
     value
@@ -8580,19 +8562,13 @@ function EmployeeAttendanceMovement({
           onClose={() => setShowPayrollAdjustment(false)}
         >
           <form onSubmit={submitPayrollAdjustment} className="space-y-4">
-            <label className="block text-sm font-semibold">
-              {locale === "ar" ? "فترة الرواتب" : "Payroll period"}
-              <select
-                value={payrollAdjustmentForm.periodId}
-                onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, periodId: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-input bg-background p-3 text-sm"
-                required
-              >
-                {editablePayrollPeriods.map((period: any) => (
-                  <option key={period.id} value={period.id}>{period.label} · {period.from} – {period.to}</option>
-                ))}
-              </select>
-            </label>
+            <Field
+              label={locale === "ar" ? "تاريخ الاستحقاق" : "Effective date"}
+              type="date"
+              value={payrollAdjustmentForm.effectiveDate}
+              onChange={(value) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, effectiveDate: value })}
+              required
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm font-semibold">
                 {locale === "ar" ? "نوع الحركة" : "Adjustment type"}
@@ -8614,10 +8590,14 @@ function EmployeeAttendanceMovement({
               {locale === "ar" ? "السبب" : "Reason"}
               <textarea value={payrollAdjustmentForm.reason} onChange={(event) => setPayrollAdjustmentForm({ ...payrollAdjustmentForm, reason: event.target.value })} required className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"/>
             </label>
-            {!editablePayrollPeriods.length ? <p className="text-xs text-amber-700">{locale === "ar" ? "لا توجد فترة رواتب مفتوحة لإضافة الحركة إليها. أنشئ فترة رواتب أو أعد فتح فترة مناسبة أولًا." : "There is no open payroll period available for this adjustment. Create or reopen a suitable period first."}</p> : null}
+            <p className="text-xs text-muted-foreground">
+              {locale === "ar"
+                ? "سيتم حفظ الحركة الآن، وستُرحّل تلقائيًا إلى فترة الرواتب التي تشمل تاريخ الاستحقاق عند احتسابها."
+                : "This entry is saved now and will be assigned automatically to the payroll period containing its effective date when payroll is calculated."}
+            </p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="quiet" onClick={() => setShowPayrollAdjustment(false)}>{locale === "ar" ? "إلغاء" : "Cancel"}</Button>
-              <Button type="submit" disabled={createPayrollAdjustment.isPending || !editablePayrollPeriods.length}>{createPayrollAdjustment.isPending ? (locale === "ar" ? "جارٍ الحفظ..." : "Saving...") : (locale === "ar" ? "حفظ الحركة" : "Save adjustment")}</Button>
+              <Button type="submit">{locale === "ar" ? "حفظ الحركة" : "Save adjustment"}</Button>
             </div>
           </form>
         </Modal>
@@ -8633,12 +8613,7 @@ function EmployeeAttendanceMovement({
             {canManagePayroll ? (
               <Button
                 variant="outline"
-                onClick={async () => {
-                  // Refresh the tenant-scoped list before opening the form. A stale
-                  // empty cache must not leave this action disabled indefinitely.
-                  await payrollPeriods.refetch();
-                  setShowPayrollAdjustment(true);
-                }}
+                onClick={() => setShowPayrollAdjustment(true)}
                 data-testid={`button-add-payroll-adjustment-${employeeId}`}
               >
                 <Coins size={16}/>
@@ -8670,6 +8645,41 @@ function EmployeeAttendanceMovement({
               {payrollSummaryError ? <p className="text-xs text-destructive sm:col-span-2 lg:col-span-3">{payrollSummaryError}</p> : null}
             </Card>
           )}
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="font-semibold">{locale === "ar" ? "الخصومات والإضافيات المسجلة" : "Recorded deductions and additions"}</h4>
+              <span className="rounded-full bg-muted px-2 py-1 text-xs">{employeeAdjustments.length}</span>
+            </div>
+            {employeeAdjustmentsLoading ? (
+              <Skeleton className="h-16" />
+            ) : employeeAdjustments.length ? (
+              <div className="divide-y divide-border">
+                {employeeAdjustments.map((item: any) => (
+                  <div key={item.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={cn("rounded-full px-2 py-1 text-xs font-semibold", item.type === "deduction" ? "bg-rose-500/10 text-rose-700" : "bg-emerald-500/10 text-emerald-700")}>
+                          {item.type === "deduction" ? (locale === "ar" ? "خصم" : "Deduction") : (locale === "ar" ? "إضافي" : "Addition")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{item.effectiveDate ? date(item.effectiveDate) : "—"}</span>
+                      </div>
+                      <p className="mt-1 text-sm font-medium">{item.reason}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.periodLabel
+                          ? (locale === "ar" ? `مُرحّلة إلى: ${item.periodLabel}` : `Assigned to: ${item.periodLabel}`)
+                          : (locale === "ar" ? "بانتظار فترة الرواتب المطابقة للتاريخ" : "Awaiting the matching payroll period")}
+                      </p>
+                    </div>
+                    <strong className="whitespace-nowrap text-sm" dir="ltr">
+                      {Number(item.amount).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} {payrollSummary?.currency || "EGP"}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{locale === "ar" ? "لا توجد خصومات أو إضافيات مسجلة لهذا الموظف." : "No deductions or additions recorded for this employee."}</p>
+            )}
+          </Card>
           {report.isLoading ? (
             <Skeleton className="h-56" />
           ) : report.isError ? (

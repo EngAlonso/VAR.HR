@@ -94,7 +94,8 @@ export const payrollCalculationsTable = pgTable("var_hr_payroll_calculations", {
 export const payrollAdjustmentsTable = pgTable("var_hr_payroll_adjustments", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companiesTable.id),
-  periodId: uuid("period_id").notNull().references(() => payrollPeriodsTable.id),
+  periodId: uuid("period_id").references(() => payrollPeriodsTable.id),
+  effectiveDate: date("effective_date", { mode: "string" }),
   employeeId: uuid("employee_id").notNull().references(() => employeesTable.id),
   type: text("type").notNull(),
   category: text("category").notNull().default("variable"),

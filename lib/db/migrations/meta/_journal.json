@@ -92,6 +92,20 @@
       "when": 1794247200000,
       "tag": "0012_employee_attendance_location_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794312000000,
+      "tag": "0013_payroll_adjustments_effective_date",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794315600000,
+      "tag": "0014_biometric_device_commands",
+      "breakpoints": true
     }
   ]
 }
