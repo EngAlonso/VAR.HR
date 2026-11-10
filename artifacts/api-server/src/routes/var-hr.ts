@@ -181,14 +181,11 @@ import {
   CreateEmployeePayrollCycleAssignmentParams,
   CreateEmployeePayrollCycleAssignmentResponse,
   ListPayrollAdjustmentsQueryParams,
-  ListPayrollAdjustmentsResponse,
   ListWorkSchedulesResponse,
   CreatePayrollPeriodBody,
   CreatePayrollPeriodResponse,
   DeletePayrollPeriodParams,
   DeletePayrollPeriodResponse,
-  CreatePayrollAdjustmentBody,
-  CreatePayrollAdjustmentResponse,
   DeletePayrollAdjustmentParams,
   DeletePayrollAdjustmentResponse,
   FinalizePayrollParams,
@@ -11700,13 +11697,47 @@ async function calculatePayrollPeriod(
         Math.max(0, -transaction.amount),
     );
   }
+  // Claim pending adjustments only when their effective date belongs to this period.
+  // The conditional UPDATE is atomic: concurrent calculations cannot attach the same
+  // pending adjustment to two payroll periods.
+  if (persist) {
+    await db
+      .update(payrollAdjustmentsTable)
+      .set({ periodId: period.id })
+      .where(
+        and(
+          eq(payrollAdjustmentsTable.companyId, context.companyId),
+          isNull(payrollAdjustmentsTable.periodId),
+          gte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.from),
+          lte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.to),
+        ),
+      );
+  }
   const adjustments = await db
     .select()
     .from(payrollAdjustmentsTable)
     .where(
       and(
         eq(payrollAdjustmentsTable.companyId, context.companyId),
-        eq(payrollAdjustmentsTable.periodId, period.id),
+        or(
+          // Old records remain period-linked and retain their original allocation rules.
+          and(
+            eq(payrollAdjustmentsTable.periodId, period.id),
+            isNull(payrollAdjustmentsTable.effectiveDate),
+          ),
+          // New records are included only when their effective date is in the viewed range.
+          and(
+            eq(payrollAdjustmentsTable.periodId, period.id),
+            gte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.from),
+            lte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.to),
+          ),
+          // Read-only employee summaries include pending entries without claiming them.
+          and(
+            isNull(payrollAdjustmentsTable.periodId),
+            gte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.from),
+            lte(payrollAdjustmentsTable.effectiveDate, calculationPeriod.to),
+          ),
+        ),
       ),
     );
   const existingVersions = await db
@@ -11978,18 +12009,20 @@ async function calculatePayrollPeriod(
     // Allocate period-level adjustments by the same scheduled-day ratio used
     // for monthly basic salary so a partial date range never receives the
     // entire period's additions or deductions.
-    const adjustmentProration = options.persist
+    const legacyAdjustmentProration = options.persist
       ? 1
       : scheduledDates.length / Math.max(1, fullPeriodScheduledDates.length);
+    const allocatedAdjustmentAmount = (item: typeof employeeAdjustments[number]) =>
+      item.amount * (item.effectiveDate ? 1 : legacyAdjustmentProration);
     const additions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "addition")
-        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
+        .reduce((total, item) => total + allocatedAdjustmentAmount(item), 0),
     );
     const adjustmentDeductions = moneyValue(
       employeeAdjustments
         .filter((item) => item.type === "deduction")
-        .reduce((total, item) => total + item.amount, 0) * adjustmentProration,
+        .reduce((total, item) => total + allocatedAdjustmentAmount(item), 0),
     );
     const attendanceDeductions = hourlyEmployee
       ? 0
@@ -12089,7 +12122,7 @@ async function calculatePayrollPeriod(
         : []),
       ...employeeAdjustments.map((adjustment) => {
         const allocatedAmount = moneyValue(
-          adjustment.amount * adjustmentProration,
+          allocatedAdjustmentAmount(adjustment),
         );
         return {
           label: adjustment.reason,
@@ -12413,6 +12446,7 @@ router.get("/payroll/adjustments", async (req, res): Promise<void> => {
       adjustment: payrollAdjustmentsTable,
       employee: employeesTable,
       department: departmentsTable,
+      period: payrollPeriodsTable,
     })
     .from(payrollAdjustmentsTable)
     .innerJoin(
@@ -12422,6 +12456,10 @@ router.get("/payroll/adjustments", async (req, res): Promise<void> => {
     .innerJoin(
       departmentsTable,
       eq(employeesTable.departmentId, departmentsTable.id),
+    )
+    .leftJoin(
+      payrollPeriodsTable,
+      eq(payrollAdjustmentsTable.periodId, payrollPeriodsTable.id),
     )
     .where(
       and(
@@ -12436,18 +12474,18 @@ router.get("/payroll/adjustments", async (req, res): Promise<void> => {
     )
     .orderBy(desc(payrollAdjustmentsTable.createdAt));
   res.json(
-    ListPayrollAdjustmentsResponse.parse(
-      rows.map((row) => ({
-        id: row.adjustment.id,
-        periodId: row.adjustment.periodId,
-        employee: employeeReference(row.employee, row.department.name),
-        type: row.adjustment.type,
-        category: row.adjustment.category,
-        amount: row.adjustment.amount,
-        reason: row.adjustment.reason,
-        createdAt: row.adjustment.createdAt.toISOString(),
-      })),
-    ),
+    rows.map((row) => ({
+      id: row.adjustment.id,
+      periodId: row.adjustment.periodId,
+      periodLabel: row.period?.label ?? null,
+      effectiveDate: row.adjustment.effectiveDate,
+      employee: employeeReference(row.employee, row.department.name),
+      type: row.adjustment.type,
+      category: row.adjustment.category,
+      amount: row.adjustment.amount,
+      reason: row.adjustment.reason,
+      createdAt: row.adjustment.createdAt.toISOString(),
+    })),
   );
 });
 
@@ -12457,21 +12495,34 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
     denyCapability(res, req, "payroll.manage");
     return;
   }
-  const parsed = CreatePayrollAdjustmentBody.safeParse(req.body);
+  // periodId remains optional for backward compatibility with the payroll page.
+  // Attendance-history entries are saved independently and use effectiveDate.
+  const parsed = z.object({
+    periodId: z.string().uuid().optional(),
+    employeeId: z.string().uuid(),
+    type: z.enum(["addition", "deduction"]),
+    category: z.enum(["fixed", "variable"]).default("variable"),
+    amount: z.number().finite().positive(),
+    reason: z.string().trim().min(1),
+    effectiveDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
+  }).safeParse(req.body ?? {});
   if (!parsed.success) {
     res.status(400).json({ error: message(req, "invalidRequest") });
     return;
   }
-  const [period] = await db
-    .select()
-    .from(payrollPeriodsTable)
-    .where(
-      and(
-        eq(payrollPeriodsTable.id, parsed.data.periodId),
-        eq(payrollPeriodsTable.companyId, context.companyId),
-      ),
-    )
-    .limit(1);
+  let period: typeof payrollPeriodsTable.$inferSelect | null = null;
+  if (parsed.data.periodId) {
+    [period] = await db
+      .select()
+      .from(payrollPeriodsTable)
+      .where(
+        and(
+          eq(payrollPeriodsTable.id, parsed.data.periodId),
+          eq(payrollPeriodsTable.companyId, context.companyId),
+        ),
+      )
+      .limit(1);
+  }
   const [employee] = await db
     .select({ employee: employeesTable, department: departmentsTable })
     .from(employeesTable)
@@ -12486,21 +12537,34 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
       ),
     )
     .limit(1);
-  if (!period || !employee) {
+  if ((parsed.data.periodId && !period) || !employee) {
     res
       .status(404)
       .json({ error: message(req, "payrollAdjustmentTargetMissing") });
     return;
   }
-  if (isPayrollPeriodImmutableStatus(period.status)) {
+  if (period && isPayrollPeriodImmutableStatus(period.status)) {
     res.status(409).json({ error: message(req, "payrollFinalizedImmutable") });
     return;
+  }
+  const effectiveDate = parsed.data.effectiveDate ??
+    (period ? null : localCalendarDate(new Date(), context.company.timezone));
+  if (effectiveDate) {
+    const parsedDate = new Date(`${effectiveDate}T00:00:00.000Z`);
+    if (
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.toISOString().slice(0, 10) !== effectiveDate
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
   }
   const [adjustment] = await db
     .insert(payrollAdjustmentsTable)
     .values({
       companyId: context.companyId,
-      periodId: period.id,
+      periodId: period?.id ?? null,
+      effectiveDate,
       employeeId: employee.employee.id,
       type: parsed.data.type,
       category: parsed.data.category,
@@ -12516,20 +12580,19 @@ router.post("/payroll/adjustments", async (req, res): Promise<void> => {
     adjustment.id,
     adjustment,
   );
-  res.status(201).json(
-    CreatePayrollAdjustmentResponse.parse({
-      id: adjustment.id,
-      periodId: adjustment.periodId,
-      employee: employeeReference(employee.employee, employee.department.name),
-      type: adjustment.type,
-      category: adjustment.category,
-      amount: adjustment.amount,
-      reason: adjustment.reason,
-      createdAt: adjustment.createdAt.toISOString(),
-    }),
-  );
+  res.status(201).json({
+    id: adjustment.id,
+    periodId: adjustment.periodId,
+    periodLabel: period?.label ?? null,
+    effectiveDate: adjustment.effectiveDate,
+    employee: employeeReference(employee.employee, employee.department.name),
+    type: adjustment.type,
+    category: adjustment.category,
+    amount: adjustment.amount,
+    reason: adjustment.reason,
+    createdAt: adjustment.createdAt.toISOString(),
+  });
 });
-
 router.delete(
   "/payroll/adjustments/:adjustmentId",
   async (req, res): Promise<void> => {
@@ -12559,17 +12622,19 @@ router.delete(
         .json({ error: message(req, "payrollAdjustmentTargetMissing") });
       return;
     }
-    const [period] = await db
-      .select()
-      .from(payrollPeriodsTable)
-      .where(
-        and(
-          eq(payrollPeriodsTable.id, adjustment.periodId),
-          eq(payrollPeriodsTable.companyId, context.companyId),
-        ),
-      )
-      .limit(1);
-    if (isPayrollPeriodImmutableStatus(period?.status)) {
+    const [period] = adjustment.periodId
+      ? await db
+          .select()
+          .from(payrollPeriodsTable)
+          .where(
+            and(
+              eq(payrollPeriodsTable.id, adjustment.periodId),
+              eq(payrollPeriodsTable.companyId, context.companyId),
+            ),
+          )
+          .limit(1)
+      : [null];
+    if (period && isPayrollPeriodImmutableStatus(period.status)) {
       res
         .status(409)
         .json({ error: message(req, "payrollFinalizedImmutable") });
