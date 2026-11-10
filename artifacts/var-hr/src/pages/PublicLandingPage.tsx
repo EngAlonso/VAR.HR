@@ -310,7 +310,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
               ] as const).map(([key, label, short]) => socialLinks[key] ? (
                 <a key={key} href={socialLinks[key]} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{short}</a>
               ) : null)}
-              {socialLinks.whatsapp ? <a href={`https://wa.me/${socialLinks.whatsapp.replace(/\\D/g, "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15">◉ WhatsApp</a> : null}
+              {socialLinks.whatsapp ? <a href={`https://wa.me/${socialLinks.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15">◉ WhatsApp</a> : null}
             </div>
             {!Object.values(socialLinks).some(Boolean) && <p className="mt-3 text-xs text-slate-400/70">{isArabic ? "روابط التواصل ستظهر هنا بعد إضافتها من إعدادات المنصة." : "Social links will appear here once configured."}</p>}
           </div>
