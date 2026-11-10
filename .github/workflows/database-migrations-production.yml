@@ -120,8 +120,8 @@ jobs:
           if (p.databaseName !== "defaultdb") fail("Unexpected Aiven database name.");
           if (p.columnsMatchKnownSnapshot !== true) fail("Aiven does not match a known Drizzle snapshot.");
           if (p.comparison?.matches !== true) fail("Aiven schema comparison did not pass.");
-          if (p.matchingSnapshotMigration?.tag !== "0013_payroll_adjustments_effective_date") {
-            fail("Aiven schema is not exactly at the 0013 snapshot.");
+          if (p.matchingSnapshotMigration?.tag !== "0012_employee_attendance_location_mode") {
+            fail("Aiven schema is not exactly at the 0012 snapshot.");
           }
           if (p.latestRepositoryMigration?.tag !== "0014_biometric_device_commands") {
             fail("Repository latest migration is not 0014.");
@@ -154,9 +154,9 @@ jobs:
           fs.writeFileSync(reportPath, JSON.stringify(p, null, 2) + "\n");
 
           console.log("Verified Aiven database: defaultdb.");
-          console.log("Verified live schema matches migration 0013.");
-          console.log("Verified latest ledger entry matches the 0013 snapshot.");
-          console.log("Only migration 0014 is eligible for production.");
+          console.log("Verified live schema matches migration 0012.");
+          console.log("Verified latest ledger entry matches the 0012 snapshot.");
+          console.log("Migrations 0013 and 0014 are eligible for production, subject to Dev verification.");
           NODE
 
       # Run the complete committed migration chain on disposable PostgreSQL.
