@@ -6683,14 +6683,18 @@ function AppFooter({ locale }: { locale: Locale }) {
         <div>
           <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "تابعنا وتواصل معنا" : "Follow & contact us"}</h3>
           <p className="mt-2 max-w-xs text-xs leading-5 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
-          {hasSocialLinks && (
+          {hasSocialLinks ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {socialItems.map(({ key, label, short }) => socialLinks[key] ? (
-                <a key={key} href={socialLinks[key]} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{short}</a>
-              ) : null)}
-              {whatsappDigits ? <a href={`https://wa.me/${whatsappDigits}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15"><span>◉</span>WhatsApp</a> : null}
+              {socialItems.map((item) => (
+                socialLinks[item.key] ? (
+                  <a key={item.key} href={socialLinks[item.key]} target="_blank" rel="noopener noreferrer" aria-label={item.label} title={item.label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{item.short}</a>
+                ) : null
+              ))}
+              {whatsappDigits ? (
+                <a href={`https://wa.me/${whatsappDigits}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15"><span>◉</span>WhatsApp</a>
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="relative border-t border-white/10 bg-black/15 px-4 py-2 sm:px-6">
