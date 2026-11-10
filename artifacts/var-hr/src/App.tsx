@@ -78,6 +78,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import PublicLandingPage from "@/pages/PublicLandingPage";
 import squareLogo from "@assets/file_0000000078f881f495d25f8c9a2bd674_1787187714141.png";
 import shortLogo from "@assets/file_000000003b5881f4b4050da0a1da0ebf_1787187714190.png";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
@@ -6766,6 +6767,7 @@ function AuthGate() {
   const [loading, setLoading] = useState(true);
   const [setupAvailable, setSetupAvailable] = useState(false);
   const [location, setLocation] = useLocation();
+  const { locale, setLocale } = useI18n();
   const signOut = async () => {
     await authRequest("/api/auth/logout", { method: "POST" }).catch(
       () => undefined,
@@ -6804,21 +6806,31 @@ function AuthGate() {
     }
   }, [account, location, setLocation]);
   if (loading) return <WorkspaceState kind="loading" />;
-  if (!account)
+  if (!account) {
     if (setupAvailable && location === "/setup")
       return <InitialFounderSetup onComplete={() => setLocation("/login")} />;
-  if (!account)
-    return (
-      <Login
-        setupAvailable={setupAvailable}
-        onSignedIn={(next) => {
-          setAccount(next);
-          setLocation(
-            next.accountType === "platform_owner" ? "/platform" : "/",
-          );
-        }}
-      />
-    );
+    if (location === "/login")
+      return (
+        <Login
+          setupAvailable={setupAvailable}
+          onSignedIn={(next) => {
+            setAccount(next);
+            setLocation(
+              next.accountType === "platform_owner" ? "/platform" : "/",
+            );
+          }}
+        />
+      );
+    if (location === "/")
+      return (
+        <PublicLandingPage
+          locale={locale === "ar" ? "ar" : "en"}
+          onLocaleChange={setLocale}
+          onLogin={() => setLocation("/login")}
+        />
+      );
+    return <Redirect to="/" />;
+  }
   return (
     <AuthContext.Provider value={{ account, signOut }}>
       <Router />
