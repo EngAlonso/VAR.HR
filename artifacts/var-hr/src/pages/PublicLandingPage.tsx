@@ -275,17 +275,17 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
-        <div className="relative mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1fr] md:gap-8 md:py-9" dir={dir}>
+        <div className="relative mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1fr] md:gap-6 md:py-5" dir={dir}>
           <div className="max-w-sm">
             <a href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
               <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-9 w-auto max-w-[160px] object-contain"/>
             </a>
-            <p className="mt-3 max-w-sm text-[13px] leading-6 text-slate-300/70">{isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}</p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[#f0d17a]"><ShieldCheck size={15}/>{isArabic ? "إدارة أوضح. قرارات أفضل." : "Clearer management. Better decisions."}</div>
+            <p className="mt-2 max-w-sm text-xs leading-5 text-slate-300/70">{isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}</p>
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-2 py-1 text-[10px] font-semibold text-[#f0d17a]"><ShieldCheck size={15}/>{isArabic ? "إدارة أوضح. قرارات أفضل." : "Clearer management. Better decisions."}</div>
           </div>
           <div>
             <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "استكشف المنصة" : "Explore"}</h3>
-            <div className="mt-3 grid gap-2.5 text-[13px] text-slate-300/70">
+            <div className="mt-2 grid gap-1.5 text-xs text-slate-300/70">
               <a href="#features" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "المميزات" : "Features"}</a>
               <a href="#workflow" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "كيف يعمل النظام" : "How it works"}</a>
               <a href="#security" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "الأمان" : "Security"}</a>
@@ -293,13 +293,13 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
           </div>
           <div>
             <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "ابدأ الآن" : "Get started"}</h3>
-            <p className="mt-3 max-w-xs text-[13px] leading-6 text-slate-300/70">{isArabic ? "اكتشف طريقة أكثر تنظيمًا لإدارة فريقك ومتابعة تفاصيل العمل اليومية." : "Discover a more organized way to manage your team and daily operations."}</p>
+            <p className="mt-2 max-w-xs text-xs leading-5 text-slate-300/70">{isArabic ? "اكتشف طريقة أكثر تنظيمًا لإدارة فريقك ومتابعة تفاصيل العمل اليومية." : "Discover a more organized way to manage your team and daily operations."}</p>
             <button onClick={login} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f0d17a] transition hover:text-white">{c.login}{isArabic?<ArrowLeft size={16}/>:<ArrowRight size={16}/>}</button>
           </div>
           <div>
             <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "تابعنا وتواصل معنا" : "Follow & contact us"}</h3>
             <p className="mt-5 text-sm leading-7 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {([
                 ["facebook", "Facebook", "f"],
                 ["instagram", "Instagram", "ig"],
@@ -312,13 +312,12 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
               ) : null)}
               {socialLinks.whatsapp ? <a href={`https://wa.me/${socialLinks.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15">◉ WhatsApp</a> : null}
             </div>
-            {!Object.values(socialLinks).some(Boolean) && <p className="mt-3 text-xs text-slate-400/70">{isArabic ? "روابط التواصل ستظهر هنا بعد إضافتها من إعدادات المنصة." : "Social links will appear here once configured."}</p>}
           </div>
         </div>
-        <div className="relative border-t border-white/10 bg-black/15 px-4 py-3 sm:px-6">
+        <div className="relative border-t border-white/10 bg-black/15 px-4 py-2 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-2 text-center">
             <p className="text-xs font-medium text-slate-400">{isArabic ? "جميع الحقوق محفوظة لـ VAR HR" : "All rights reserved to VAR HR"}</p>
-            <p className="text-xs font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
+            <p className="text-[11px] font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
           </div>
         </div>
       </footer>
