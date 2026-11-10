@@ -252,13 +252,37 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-5 py-8 text-center sm:flex-row sm:px-8 sm:text-start">
-          <a href="/" aria-label="VAR HR home" className="rounded-lg bg-white px-2 py-1"><img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-9 w-auto max-w-[160px] object-contain"/></a>
-          <p className="text-xs text-slate-400">{c.footer} · {isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
-          <button onClick={login} className="text-xs font-extrabold text-[#9b7425] transition hover:text-[#6d5019]">{c.login} ↗</button>
+      <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white">
+        <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.5fr_1fr_1fr] md:gap-16 md:py-14" dir={dir}>
+          <div className="max-w-md">
+            <a href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
+              <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-10 w-auto max-w-[175px] object-contain"/>
+            </a>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-slate-300/70">{isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}</p>
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-3 py-2 text-xs font-semibold text-[#f0d17a]"><ShieldCheck size={15}/>{isArabic ? "إدارة أوضح. قرارات أفضل." : "Clearer management. Better decisions."}</div>
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "استكشف المنصة" : "Explore"}</h3>
+            <div className="mt-5 grid gap-3 text-sm text-slate-300/70">
+              <a href="#features" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "المميزات" : "Features"}</a>
+              <a href="#workflow" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "كيف يعمل النظام" : "How it works"}</a>
+              <a href="#security" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "الأمان" : "Security"}</a>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "ابدأ الآن" : "Get started"}</h3>
+            <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300/70">{isArabic ? "اكتشف طريقة أكثر تنظيمًا لإدارة فريقك ومتابعة تفاصيل العمل اليومية." : "Discover a more organized way to manage your team and daily operations."}</p>
+            <button onClick={login} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f0d17a] transition hover:text-white">{c.login}{isArabic?<ArrowLeft size={16}/>:<ArrowRight size={16}/>}</button>
+          </div>
         </div>
-      </footer>
+        <div className="relative border-t border-white/10 bg-black/15 px-5 py-5 sm:px-8">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 text-center">
+            <p className="text-xs font-medium text-slate-400">{isArabic ? "جميع الحقوق محفوظة لـ VAR HR" : "All rights reserved to VAR HR"}</p>
+            <p className="text-sm font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
+          </div>
+        </div>
+      </footer>>
     </main>
   );
 }
