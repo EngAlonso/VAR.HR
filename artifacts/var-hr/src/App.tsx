@@ -7320,6 +7320,7 @@ function Shell({ children }: { children: ReactNode }) {
           {children}
         </main>
         <AppFooter locale={locale} />
+        <ScrollToTopButton locale={locale} />
         <nav
           className="mobile-bottom-nav fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 gap-1 rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-[var(--shadow-md)] backdrop-blur-md md:hidden"
           aria-label={t("openNavigation")}
