@@ -1,3 +1,12 @@
+CREATE TABLE IF NOT EXISTS "var_hr_platform_settings" (
+	"id" text PRIMARY KEY DEFAULT 'default' NOT NULL,
+	"site_name" text DEFAULT 'VAR HR' NOT NULL,
+	"logo_variant" text DEFAULT 'horizontal' NOT NULL,
+	"platform_backup_interval_minutes" integer DEFAULT 0 NOT NULL,
+	"company_backup_interval_minutes" integer DEFAULT 0 NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "var_hr_employee_attendance_devices" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"company_id" uuid NOT NULL,
