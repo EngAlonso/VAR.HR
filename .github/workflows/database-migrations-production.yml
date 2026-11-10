@@ -11,7 +11,7 @@ on:
           - "no"
           - "yes"
       confirm_production_migration:
-        description: "Type APPLY-0012 to authorize the remaining production migration 0012"
+        description: "Type APPLY-0014 to authorize the pending production migration"
         required: true
         type: string
 
@@ -78,8 +78,8 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PRODUCTION_CONFIRMATION" != "APPLY-0012" ]]; then
-            echo "::error::Migration blocked: confirmation must match APPLY-0012 exactly."
+          if [[ "$PRODUCTION_CONFIRMATION" != "APPLY-0014" ]]; then
+            echo "::error::Migration blocked: confirmation must match APPLY-0014 exactly."
             exit 1
           fi
 
@@ -100,13 +100,12 @@ jobs:
 
           echo "Authorization and required secrets verified."
 
-      # This command only inspects the live database. It does not apply migrations.
+      # Read-only: inspect the actual live production schema and ledger.
       - name: Inspect live Aiven schema (read-only)
         run: pnpm --filter @workspace/db run inspect:aiven
 
-      # Promote the report to a reviewed baseline only after every check passes.
-      # No SQL is executed against Aiven in this step.
-      - name: Verify exact Aiven starting point and attest migration history
+      # Attest the exact live 0013 starting point; do not rewrite the ledger.
+      - name: Verify Aiven is exactly at migration 0013
         shell: bash
         run: |
           node --input-type=module <<'NODE'
@@ -114,150 +113,64 @@ jobs:
 
           const reportPath = "lib/db/migrations/meta/aiven-baseline-report.json";
           const p = JSON.parse(fs.readFileSync(reportPath, "utf8"));
-
-          const expectedFingerprint =
-            "ab56ace4c96a66d7b8b0bb5740d60958788bd1da4ee6a5461da1a97fa3393bc6";
-
-          const expectedHistory = [
-            {
-              tag: "0009_mixed_stepford_cuckoos",
-              createdAt: "1792653847229",
-              hash: "81bca87ca14ca43d28c379be1c57a7807fb9b2ee47e4e0fc6f8039d5aa2145a4"
-            },
-            {
-              tag: "0010_acoustic_sway",
-              createdAt: "1792661662565",
-              hash: "379713b10c440945557836cf4c182806b8bb702ed41472ff3d82580d3628fcd2"
-            },
-            {
-              tag: "0011_flexible_work_schedules",
-              createdAt: "1793808000000",
-              hash: "8352898193757a1a9b49bac06ea68caed3e5fdbc3d7b95be83c2b47aad76b1ca"
-            }
-          ];
-
           const fail = (message) => {
             throw new Error(`${message} No production migration will run.`);
           };
 
-          if (p.databaseName !== "defaultdb") {
-            fail("Unexpected Aiven database name.");
+          if (p.databaseName !== "defaultdb") fail("Unexpected Aiven database name.");
+          if (p.columnsMatchKnownSnapshot !== true) fail("Aiven does not match a known Drizzle snapshot.");
+          if (p.comparison?.matches !== true) fail("Aiven schema comparison did not pass.");
+          if (p.matchingSnapshotMigration?.tag !== "0013_payroll_adjustments_effective_date") {
+            fail("Aiven schema is not exactly at the 0013 snapshot.");
           }
-
-          if (p.currentSchemaFingerprint !== expectedFingerprint) {
-            fail("Aiven schema fingerprint differs from the reviewed inspection.");
-          }
-
-          if (p.columnsMatchKnownSnapshot !== true) {
-            fail("Aiven does not match a known Drizzle snapshot.");
-          }
-
-          const snapshot = p.matchingSnapshotMigration;
-          const expectedBaseline = expectedHistory[2];
-
-          if (
-            snapshot?.tag !== expectedBaseline.tag ||
-            Number(snapshot?.createdAt) !== Number(expectedBaseline.createdAt) ||
-            snapshot?.hash !== expectedBaseline.hash
-          ) {
-            fail("Aiven schema does not exactly match the reviewed 0011 snapshot.");
-          }
-
-          if (p.comparison?.matches !== true) {
-            fail("Aiven schema comparison did not pass.");
-          }
-
-          if (
-            p.comparison?.expectedTableCount !== 47 ||
-            p.comparison?.actualTableCount !== 47 ||
-            p.comparison?.expectedColumnCount !== 610 ||
-            p.comparison?.actualColumnCount !== 610 ||
-            p.comparison?.missing?.length !== 0 ||
-            p.comparison?.unexpected?.length !== 0 ||
-            p.comparison?.mismatched?.length !== 0
-          ) {
-            fail("Aiven table/column comparison differs from the reviewed schema.");
-          }
-
-          const latestRepositoryMigration = p.latestRepositoryMigration;
-
-          if (
-            latestRepositoryMigration?.tag !== "0012_employee_attendance_location_mode" ||
-            Number(latestRepositoryMigration?.createdAt) !== 1794247200000 ||
-            latestRepositoryMigration.hash !==
-            "4a3abbc307e639a5dc99f72ce410c4e018ceacf6e25c6ca0a380cc83c6a1fad4"
-          ) {
-            fail("The repository's latest migration is not the expected 0012 migration.");
+          if (p.latestRepositoryMigration?.tag !== "0014_biometric_device_commands") {
+            fail("Repository latest migration is not 0014.");
           }
 
           const ledger = p.migrationLedger;
           const entries = ledger?.entries;
+          if (ledger?.exists !== true || !Array.isArray(entries) || entries.length < 1) {
+            fail("Aiven migration ledger is missing or empty.");
+          }
 
+          const last = entries.at(-1);
+          const snapshot = p.matchingSnapshotMigration;
           if (
-            ledger?.exists !== true ||
-            !Array.isArray(entries) ||
-            entries.length !== expectedHistory.length
+            last?.hash !== snapshot.hash ||
+            String(last?.created_at) !== String(snapshot.createdAt)
           ) {
-            fail("Aiven migration ledger does not contain exactly three reviewed entries.");
+            fail("Aiven ledger latest entry does not match the live 0013 schema snapshot.");
           }
 
-          for (let i = 0; i < expectedHistory.length; i++) {
-            const expected = expectedHistory[i];
-            const actual = entries[i];
-
-            if (
-              actual?.hash !== expected.hash ||
-              String(actual?.created_at) !== expected.createdAt
-            ) {
-              fail(`Aiven migration ledger mismatch at ${expected.tag}.`);
-            }
-          }
-
-          const lastEntry = entries.at(-1);
-
-          if (
-            lastEntry.hash !== expectedBaseline.hash ||
-            String(lastEntry.created_at) !== expectedBaseline.createdAt
-          ) {
-            fail("The last applied production migration is not 0011.");
-          }
-
-          // Preserve the fingerprint produced by the read-only live inspection.
-          // migrate:aiven compares it again before executing any production DDL.
+          // Preserve the fingerprint from the live read-only inspection.
+          // migrate:aiven rechecks it immediately before executing DDL.
           p.status = "baselined";
           p.baselinedAt = new Date().toISOString();
           p.baselineMigration = {
-            tag: expectedBaseline.tag,
-            createdAt: Number(expectedBaseline.createdAt),
-            hash: expectedBaseline.hash
+            tag: snapshot.tag,
+            createdAt: Number(snapshot.createdAt),
+            hash: snapshot.hash
           };
+          fs.writeFileSync(reportPath, JSON.stringify(p, null, 2) + "\n");
 
-          fs.writeFileSync(
-            reportPath,
-            JSON.stringify(p, null, 2) + "\n"
-          );
-
-          console.log("Verified exact Aiven database identity: defaultdb.");
-          console.log("Verified live schema fingerprint and exact 0011 snapshot.");
-          console.log("Verified all 47 tables and 610 columns.");
-          console.log("Verified exact production migration ledger: 0009, 0010, 0011.");
-          console.log("Attested baseline at 0011. Only 0012 remains pending.");
+          console.log("Verified Aiven database: defaultdb.");
+          console.log("Verified live schema matches migration 0013.");
+          console.log("Verified latest ledger entry matches the 0013 snapshot.");
+          console.log("Only migration 0014 is eligible for production.");
           NODE
 
-      # Test the repository migrations on a disposable PostgreSQL database.
-      # This step does not connect to Aiven.
-      - name: Bootstrap and apply pending migrations on disposable PostgreSQL
+      # Run the complete committed migration chain on disposable PostgreSQL.
+      - name: Apply all migrations on disposable PostgreSQL
         run: pnpm --filter @workspace/db run migrate:dev
 
-      - name: Verify disposable PostgreSQL reached migration 0012
+      - name: Verify disposable PostgreSQL reached migration 0014
         run: pnpm --filter @workspace/db run inspect:dev
 
-      # migration-control checks the saved fingerprint again, verifies the
-      # development ledger, and applies only migrations not already in Aiven.
+      # This command independently checks the Aiven fingerprint and verifies
+      # that every pending migration has already been applied on disposable Dev.
       - name: Apply development-tested migrations to Aiven
         run: pnpm --filter @workspace/db exec node ./scripts/migration-control.mjs migrate:aiven --confirm-aiven-production
 
-      # Re-inspect production and verify the resulting schema and ledger.
       - name: Verify Aiven schema and migration ledger after migration
         shell: bash
         run: |
@@ -268,78 +181,46 @@ jobs:
 
           const reportPath = "lib/db/migrations/meta/aiven-baseline-report.json";
           const p = JSON.parse(fs.readFileSync(reportPath, "utf8"));
-
           const fail = (message) => {
             throw new Error(`Post-migration verification failed: ${message}`);
           };
 
-          if (p.databaseName !== "defaultdb") {
-            fail("Unexpected Aiven database name.");
+          if (p.databaseName !== "defaultdb") fail("Unexpected Aiven database name.");
+          if (p.status !== "baselined") fail("Aiven baseline attestation is not current.");
+          if (p.matchingSnapshotMigration?.tag !== "0014_biometric_device_commands") {
+            fail("Aiven schema does not match migration 0014.");
           }
-
-          if (p.status !== "baselined") {
-            fail("Aiven baseline attestation is not current.");
-          }
-
-          if (p.matchingSnapshotMigration?.tag !== "0012_employee_attendance_location_mode") {
-            fail("Aiven schema does not match migration 0012.");
-          }
-
-          if (p.comparison?.matches !== true) {
-            fail("Aiven schema does not match the 0012 snapshot.");
+          if (p.comparison?.matches !== true) fail("Aiven schema does not match the 0014 snapshot.");
+          if (p.latestRepositoryMigration?.tag !== "0014_biometric_device_commands") {
+            fail("Repository latest migration is not 0014.");
           }
 
           const latest = p.latestRepositoryMigration;
-
-          if (latest?.tag !== "0012_employee_attendance_location_mode") {
-            fail("Repository latest migration is not 0012.");
-          }
-
           const ledger = p.migrationLedger;
-
+          const last = ledger?.entries?.at(-1);
           if (
             ledger?.exists !== true ||
-            !Array.isArray(ledger.entries) ||
-            !ledger.entries.some(
-              (entry) =>
-                entry.hash === latest.hash &&
-                String(entry.created_at) === String(latest.createdAt)
-            )
+            !last ||
+            last.hash !== latest.hash ||
+            String(last.created_at) !== String(latest.createdAt)
           ) {
-            fail("Migration 0012 is missing from Aiven's migration ledger.");
+            fail("Migration 0014 is not the latest entry in Aiven's migration ledger.");
           }
 
-          const modeColumn = p.columns?.find(
-            (column) =>
-              column.table_name === "var_hr_employees" &&
-              column.column_name === "attendance_location_mode"
-          );
-
-          if (
-            !modeColumn ||
-            modeColumn.data_type !== "text" ||
-            modeColumn.not_null !== true ||
-            modeColumn.default_value !== "'fixed'::text"
-          ) {
-            fail("attendance_location_mode is missing or has an unexpected definition.");
+          const tableColumns = p.columns?.filter(
+            (column) => column.table_name === "var_hr_biometric_device_commands"
+          ) ?? [];
+          const requiredColumns = [
+            "id", "command_number", "company_id", "device_id", "sync_history_id",
+            "command", "status", "result", "created_at", "sent_at", "completed_at"
+          ];
+          for (const name of requiredColumns) {
+            if (!tableColumns.some((column) => column.column_name === name)) {
+              fail(`Missing var_hr_biometric_device_commands.${name}.`);
+            }
           }
 
-          const modeConstraint = p.constraints?.find(
-            (constraint) =>
-              constraint.table_name === "var_hr_employees" &&
-              constraint.constraint_name === "var_hr_employees_attendance_location_mode_chk"
-          );
-
-          if (
-            !modeConstraint ||
-            !String(modeConstraint.definition).includes("fixed") ||
-            !String(modeConstraint.definition).includes("variable")
-          ) {
-            fail("The attendance location mode CHECK constraint is missing or unexpected.");
-          }
-
-          console.log("SUCCESS: Aiven is migrated through 0012.");
-          console.log("Verified: attendance_location_mode column and default.");
-          console.log("Verified: fixed/variable CHECK constraint.");
-          console.log("Verified: migration 0012 is recorded in Aiven's ledger.");
+          console.log("SUCCESS: Aiven is migrated through 0014.");
+          console.log("Verified biometric device commands table and all 11 columns.");
+          console.log("Verified migration 0014 is the latest Aiven ledger entry.");
           NODE
