@@ -12460,7 +12460,10 @@ router.get("/payroll/adjustments", async (req, res): Promise<void> => {
     )
     .leftJoin(
       payrollPeriodsTable,
-      eq(payrollAdjustmentsTable.periodId, payrollPeriodsTable.id),
+      and(
+        eq(payrollAdjustmentsTable.periodId, payrollPeriodsTable.id),
+        eq(payrollPeriodsTable.companyId, context.companyId),
+      ),
     )
     .where(
       and(
