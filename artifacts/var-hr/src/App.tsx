@@ -23295,6 +23295,7 @@ function PlatformCompanyDetailsPage() {
   }[locale];
   const [details, setDetails] = useState<PlatformCompanyDetails | null>(null);
   const [backups, setBackups] = useState<BackupSummary[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
