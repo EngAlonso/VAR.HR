@@ -88,6 +88,20 @@ const featureTones = ["gold", "blue", "violet", "green", "cyan", "rose"];
 export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: { onLogin: () => void; locale: "ar" | "en" | "fr" | "de"; onLocaleChange: (locale: "ar" | "en") => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [socialLinks, setSocialLinks] = useState({
+    facebook: "", instagram: "", linkedin: "", x: "", youtube: "", tiktok: "", whatsapp: "",
+  });
+  useEffect(() => {
+    let active = true;
+    fetch("/api/platform/site-settings", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings) => {
+        if (active && settings?.socialLinks) setSocialLinks((current) => ({ ...current, ...settings.socialLinks }));
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 320);
     handleScroll();
@@ -261,7 +275,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.5fr_1fr_1fr] md:gap-16 md:py-14" dir={dir}>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr] md:gap-12 md:py-14" dir={dir}>
           <div className="max-w-md">
             <a href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
               <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-10 w-auto max-w-[175px] object-contain"/>
@@ -281,6 +295,24 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
             <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "ابدأ الآن" : "Get started"}</h3>
             <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300/70">{isArabic ? "اكتشف طريقة أكثر تنظيمًا لإدارة فريقك ومتابعة تفاصيل العمل اليومية." : "Discover a more organized way to manage your team and daily operations."}</p>
             <button onClick={login} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f0d17a] transition hover:text-white">{c.login}{isArabic?<ArrowLeft size={16}/>:<ArrowRight size={16}/>}</button>
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "تابعنا وتواصل معنا" : "Follow & contact us"}</h3>
+            <p className="mt-5 text-sm leading-7 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {([
+                ["facebook", "Facebook", "f"],
+                ["instagram", "Instagram", "ig"],
+                ["linkedin", "LinkedIn", "in"],
+                ["x", "X", "𝕏"],
+                ["youtube", "YouTube", "▶"],
+                ["tiktok", "TikTok", "♪"],
+              ] as const).map(([key, label, short]) => socialLinks[key] ? (
+                <a key={key} href={socialLinks[key]} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{short}</a>
+              ) : null)}
+              {socialLinks.whatsapp ? <a href={`https://wa.me/${socialLinks.whatsapp.replace(/\\D/g, "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" title="WhatsApp" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-xs font-bold text-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-400/15">◉ WhatsApp</a> : null}
+            </div>
+            {!Object.values(socialLinks).some(Boolean) && <p className="mt-3 text-xs text-slate-400/70">{isArabic ? "روابط التواصل ستظهر هنا بعد إضافتها من إعدادات المنصة." : "Social links will appear here once configured."}</p>}
           </div>
         </div>
         <div className="relative border-t border-white/10 bg-black/15 px-5 py-5 sm:px-8">
