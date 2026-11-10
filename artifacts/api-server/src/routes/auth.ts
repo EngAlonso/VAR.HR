@@ -14,7 +14,6 @@ import {
   permissionsTable,
   plansTable,
   pool,
-  devicesTable,
   subscriptionsTable,
   userAccountsTable,
 } from "@workspace/db";
