@@ -1,6 +1,5 @@
 import { ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, BadgeCheck, BarChart3, CalendarClock, Check, ChevronDown, Fingerprint, Globe2, LockKeyhole, Menu, MousePointer2, ShieldCheck, Users, Wallet, X, MapPin, Clock3, Building2, FileChartColumnIncreasing } from "lucide-react";
 import { useState } from "react";
-import { useI18n } from "@/App";
 import horizontalLogo from "@assets/file_0000000052c481f4a6f60006dda3c286_1787188042959.png";
 
 const content = {
@@ -87,8 +86,7 @@ One clear picture.",
 const featureIcons = [Clock3, Users, CalendarClock, Wallet, MapPin, BarChart3];
 const featureTones = ["gold", "blue", "violet", "green", "cyan", "rose"];
 
-export default function PublicLandingPage({ onLogin }: { onLogin: () => void }) {
-  const { locale, setLocale } = useI18n();
+export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: { onLogin: () => void; locale: "ar" | "en" | "fr" | "de"; onLocaleChange: (locale: "ar" | "en") => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isArabic = locale === "ar";
   const c = isArabic ? content.ar : content.en;
@@ -125,7 +123,7 @@ export default function PublicLandingPage({ onLogin }: { onLogin: () => void }) 
             <button onClick={() => scrollTo("about")} className="transition hover:text-[#f0cf73]">{c.nav[3]}</button>
           </nav>
           <div className="hidden items-center gap-3 sm:flex">
-            <button onClick={() => setLocale(isArabic ? "en" : "ar")} className="rounded-full border border-white/15 px-3.5 py-2 text-xs font-semibold text-white/75 transition hover:border-[#dfb747] hover:text-[#f1d47c]">{c.language}</button>
+            <button onClick={() => onLocaleChange(isArabic ? "en" : "ar")} className="rounded-full border border-white/15 px-3.5 py-2 text-xs font-semibold text-white/75 transition hover:border-[#dfb747] hover:text-[#f1d47c]">{c.language}</button>
             <button onClick={login} className="gold-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition">
               {c.login}{isArabic ? <ArrowLeft size={15}/> : <ArrowRight size={15}/>}
             </button>
@@ -188,7 +186,7 @@ export default function PublicLandingPage({ onLogin }: { onLogin: () => void }) 
                   <div className="min-w-0 p-3 sm:p-5">
                     <div className="flex items-start justify-between gap-2"><div><div className="text-[9px] font-semibold text-slate-400">{c.live}</div><div className="mt-1 text-sm font-extrabold sm:text-lg">{c.today}</div></div><div className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[8px] text-slate-500">{isArabic ? "اليوم" : "Today"}⌄</div></div>
                     <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {[[Users,c.employees,"—"],[Clock3,c.attendance,"—"],[Wallet,c.payroll,"—"]].map(([Icon,label,value],i)=><div key={i} className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3"><div className="flex items-center justify-between"><span className="text-[8px] font-medium text-slate-400">{label as string}</span><span className="text-[#bd9230]"><(Icon as typeof Users) size={13}/></span></div><div className="mt-2 text-lg font-black text-slate-800">{value as string}</div><div className="mt-1 h-1 w-full rounded-full bg-slate-100"><div className={`h-1 rounded-full ${i===0?"w-3/4":i===1?"w-1/2":"w-2/3"} bg-[#d9b34e]`}/></div></div>)}
+                      {[[Users,c.employees,"—"],[Clock3,c.attendance,"—"],[Wallet,c.payroll,"—"]].map(([Icon,label,value],i)=><div key={i} className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3"><div className="flex items-center justify-between"><span className="text-[8px] font-medium text-slate-400">{label as string}</span><span className="text-[#bd9230]"><Icon size={13}/></span></div><div className="mt-2 text-lg font-black text-slate-800">{value as string}</div><div className="mt-1 h-1 w-full rounded-full bg-slate-100"><div className={`h-1 rounded-full ${i===0?"w-3/4":i===1?"w-1/2":"w-2/3"} bg-[#d9b34e]`}/></div></div>)}
                     </div>
                     <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                       <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-bold">{isArabic ? "نظرة على الحضور" : "Attendance overview"}</span><span className="text-[8px] text-slate-400">{isArabic ? "عرض توضيحي" : "Illustrative view"}</span></div>
@@ -241,7 +239,7 @@ export default function PublicLandingPage({ onLogin }: { onLogin: () => void }) 
         <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
           <div><div className="text-xs font-extrabold uppercase tracking-[.2em] text-[#e4c36c]">{isArabic?"الثقة والتحكم":"Trust & control"}</div><h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">{c.trust}</h2><p className="mt-5 text-sm leading-8 text-white/55">{c.trustDesc}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {[[LockKeyhole,isArabic?"وصول منظم":"Controlled access"],[Building2,isArabic?"فصل مساحات الشركات":"Company separation"],[ShieldCheck,isArabic?"متابعة العمليات":"Operational oversight"]].map(([Icon,label],i)=><div key={i} className="glass rounded-2xl p-5"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><(Icon as typeof LockKeyhole) size={20}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
+            {[[LockKeyhole,isArabic?"وصول منظم":"Controlled access"],[Building2,isArabic?"فصل مساحات الشركات":"Company separation"],[ShieldCheck,isArabic?"متابعة العمليات":"Operational oversight"]].map(([Icon,label],i)=><div key={i} className="glass rounded-2xl p-5"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><Icon size={20}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
           </div>
         </div>
       </section>
