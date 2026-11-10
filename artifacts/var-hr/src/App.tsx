@@ -6660,31 +6660,31 @@ function AppFooter({ locale }: { locale: Locale }) {
   return (
     <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white" dir={isArabic ? "rtl" : "ltr"}>
       <div className="pointer-events-none absolute -top-28 start-1/3 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]" />
-      <div className="relative mx-auto grid max-w-[1500px] gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.5fr_1fr_1fr] lg:gap-16 lg:py-14">
-        <div className="max-w-md">
+      <div className="relative mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_1fr] lg:gap-8 lg:py-9">
+        <div className="max-w-sm">
           <Link href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
-            <BrandLogo variant="horizontal" className="w-[142px]" />
+            <BrandLogo variant="horizontal" className="w-[126px]" />
           </Link>
-          <p className="mt-5 max-w-sm text-sm leading-7 text-slate-300/70">
+          <p className="mt-3 max-w-sm text-[13px] leading-6 text-slate-300/70">
             {isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}
           </p>
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-3 py-2 text-xs font-semibold text-[#f0d17a]">
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[#f0d17a]">
             <ShieldCheck size={15} />
             {isArabic ? "إدارة أوضح. قرارات أفضل." : "Clearer management. Better decisions."}
           </div>
         </div>
         <div>
           <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "روابط سريعة" : "Quick links"}</h3>
-          <div className="mt-5 grid gap-3 text-sm text-slate-300/70">
+          <div className="mt-3 grid gap-2.5 text-[13px] text-slate-300/70">
             <Link href="/" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "الرئيسية" : "Home"}</Link>
             <Link href="/login" className="transition-colors hover:text-[#f0d17a]">{isArabic ? "تسجيل الدخول" : "Sign in"}</Link>
           </div>
         </div>
         <div>
           <h3 className="text-sm font-extrabold tracking-wide text-white">{isArabic ? "تابعنا وتواصل معنا" : "Follow & contact us"}</h3>
-          <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
+          <p className="mt-3 max-w-xs text-[13px] leading-6 text-slate-300/70">{isArabic ? "تابع صفحاتنا الرسمية أو تواصل معنا مباشرة." : "Follow our official pages or contact us directly."}</p>
           {hasSocialLinks ? (
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {socialItems.map(({ key, label, short }) => socialLinks[key] ? (
                 <a key={key} href={socialLinks[key]} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="grid h-10 min-w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] px-2 text-xs font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-[#d7aa3d]/60 hover:bg-[#d7aa3d]/10 hover:text-[#f0d17a]">{short}</a>
               ) : null)}
@@ -6695,10 +6695,10 @@ function AppFooter({ locale }: { locale: Locale }) {
           )}
         </div>
       </div>
-      <div className="relative border-t border-white/10 bg-black/15 px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-center gap-2 text-center">
+      <div className="relative border-t border-white/10 bg-black/15 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-1.5 text-center">
           <p className="text-xs font-medium text-slate-400">{isArabic ? "جميع الحقوق محفوظة لـ VAR HR" : "All rights reserved to VAR HR"}</p>
-          <p className="text-sm font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
+          <p className="text-xs font-bold tracking-wide text-[#f0d17a]">{isArabic ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</p>
         </div>
       </div>
     </footer>
