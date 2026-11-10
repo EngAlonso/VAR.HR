@@ -11700,7 +11700,7 @@ async function calculatePayrollPeriod(
   // Claim pending adjustments only when their effective date belongs to this period.
   // The conditional UPDATE is atomic: concurrent calculations cannot attach the same
   // pending adjustment to two payroll periods.
-  if (persist) {
+  if (persist && rows.length) {
     await db
       .update(payrollAdjustmentsTable)
       .set({ periodId: period.id })
