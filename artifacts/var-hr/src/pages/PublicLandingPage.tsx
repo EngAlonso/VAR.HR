@@ -121,7 +121,8 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
       <style>{`
         .var-public { font-family: inherit; }
         .var-public .gold-text { background:linear-gradient(110deg,#f4d77a,#d7a72b 58%,#f5df9a);-webkit-background-clip:text;background-clip:text;color:transparent; }
-        .var-public .hero-grid { background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 92%); }
+        .var-public .hero-grid { background-image:linear-gradient(rgba(22,78,86,.075) 1px,transparent 1px),linear-gradient(90deg,rgba(22,78,86,.075) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 92%); }
+        .var-public .hero-float-card { background:rgba(255,255,255,.82);border:1px solid rgba(22,78,86,.12);backdrop-filter:blur(18px);color:#17202d; }
         .var-public .glass { background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(18px); }
         .var-public .feature-card { transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease; }
         .var-public .feature-card:hover { transform:translateY(-5px);border-color:rgba(216,171,57,.5);box-shadow:0 22px 55px rgba(22,32,48,.09); }
@@ -166,26 +167,26 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>}
       </header>
 
-      <section className="relative isolate overflow-hidden bg-[#111923] text-white">
+      <section className="relative isolate overflow-hidden bg-[#D8E0E2] text-[#17202D]">
         <div className="hero-grid pointer-events-none absolute inset-0 opacity-70"/>
         <div className="pointer-events-none absolute -end-40 -top-48 h-[540px] w-[540px] rounded-full bg-[#c99b32]/15 blur-[110px]"/>
         <div className="pointer-events-none absolute -start-40 bottom-[-240px] h-[500px] w-[500px] rounded-full bg-[#4f9295]/20 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-16 sm:px-8 sm:pb-28 sm:pt-24 lg:grid-cols-[.92fr_1.08fr] lg:gap-16 lg:pb-32 lg:pt-28">
           <div className="relative z-10">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#dfb747]/25 bg-[#dfb747]/10 px-4 py-2 text-xs font-semibold text-[#f0d98f]">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#bd9230]/30 bg-[#d7aa3d]/15 px-4 py-2 text-xs font-semibold text-[#805f16]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#e6bd54] shadow-[0_0_12px_#e6bd54]"/>{c.eyebrow}
             </div>
             <h1 className="whitespace-pre-line text-[clamp(2.8rem,6vw,5.5rem)] font-black leading-[1.12] tracking-[-.045em]">{c.title.split("\n")[0]}<br/><span className="gold-text">{c.title.split("\n")[1]}</span></h1>
-            <p className="mt-7 max-w-xl text-base leading-8 text-white/60 sm:text-lg">{c.desc}</p>
+            <p className="mt-7 max-w-xl text-base leading-8 text-[#53636A] sm:text-lg">{c.desc}</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <button onClick={login} className="gold-button inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl px-7 text-sm font-extrabold transition">
                 {c.primary}{isArabic ? <ArrowLeft size={17}/> : <ArrowRight size={17}/>}
               </button>
-              <button onClick={() => scrollTo("features")} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 px-6 text-sm font-semibold text-white/80 transition hover:border-white/35 hover:bg-white/5">
+              <button onClick={() => scrollTo("features")} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#164E56]/25 px-6 text-sm font-semibold text-[#164E56] transition hover:border-[#164E56]/45 hover:bg-white/45">
                 {c.secondary}{isArabic ? <ArrowLeft size={16}/> : <ArrowRight size={16}/>}
               </button>
             </div>
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-white/45">
+            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-[#607078]">
               <span className="inline-flex items-center gap-2"><ShieldCheck size={15} className="text-[#e5c46b]"/> {isArabic ? "صلاحيات منظمة" : "Role-based access"}</span>
               <span className="inline-flex items-center gap-2"><Building2 size={15} className="text-[#e5c46b]"/> {isArabic ? "مساحات عمل للشركات" : "Company workspaces"}</span>
               <span className="inline-flex items-center gap-2"><Globe2 size={15} className="text-[#e5c46b]"/> {isArabic ? "عربي وإنجليزي" : "Arabic & English"}</span>
@@ -194,7 +195,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
           <div className="relative mx-auto w-full max-w-[650px] lg:me-0">
             <div className="absolute -inset-8 rounded-[40px] bg-[#d8ad43]/10 blur-3xl"/>
-            <div className="relative rounded-[26px] border border-white/15 bg-[#E8EEF0] p-2 shadow-[0_24px_70px_rgba(22,78,86,.16)] sm:rounded-[30px] sm:p-3">
+            <div className="relative rounded-[26px] border border-white/70 bg-[#EEF2F3] p-2 shadow-[0_24px_70px_rgba(22,78,86,.16)] sm:rounded-[30px] sm:p-3">
               <div className="overflow-hidden rounded-[19px] bg-[#f5f7fa] text-[#17202d]">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
                   <div className="flex items-center gap-2.5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#164E56] text-[#e7c66d]"><BarChart3 size={17}/></div><div><div className="text-[11px] font-extrabold tracking-wide">VAR HR</div><div className="text-[9px] text-slate-400">{c.previewLabel}</div></div></div>
@@ -223,11 +224,11 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
                 </div>
               </div>
             </div>
-            <div className="float-card glass absolute -bottom-7 -start-5 hidden items-center gap-3 rounded-2xl px-4 py-3 text-white shadow-2xl sm:flex">
+            <div className="float-card hero-float-card absolute -bottom-7 -start-5 hidden items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl sm:flex">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><Fingerprint size={20}/></div>
-              <div><div className="text-xs font-bold">{isArabic ? "إدارة الحضور" : "Attendance control"}</div><div className="mt-1 text-[10px] text-white/50">{isArabic ? "سجل واضح ومتابعة منظمة" : "Clear records, organized follow-up"}</div></div>
+              <div><div className="text-xs font-bold">{isArabic ? "إدارة الحضور" : "Attendance control"}</div><div className="mt-1 text-[10px] text-[#607078]">{isArabic ? "سجل واضح ومتابعة منظمة" : "Clear records, organized follow-up"}</div></div>
             </div>
-            <div className="float-card glass absolute -end-3 -top-6 hidden items-center gap-2 rounded-xl px-3 py-2.5 text-white shadow-xl sm:flex" style={{animationDelay:"-3s"}}>
+            <div className="float-card hero-float-card absolute -end-3 -top-6 hidden items-center gap-2 rounded-xl px-3 py-2.5 shadow-xl sm:flex" style={{animationDelay:"-3s"}}>
               <BadgeCheck className="text-[#e9ca75]" size={17}/><span className="text-[10px] font-semibold">{isArabic ? "مساحة عمل موحدة" : "One connected workspace"}</span>
             </div>
           </div>
