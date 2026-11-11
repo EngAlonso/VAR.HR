@@ -312,11 +312,28 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       .json({ error: errorMessage(parsed.error), code: "INVALID_CREDENTIALS" });
     return;
   }
-  const [account] = await db
+  let [account] = await db
     .select()
     .from(userAccountsTable)
     .where(eq(userAccountsTable.username, parsed.data.username))
     .limit(1);
+  if (!account) {
+    const [employeeLogin] = await db
+      .select({ account: userAccountsTable })
+      .from(userAccountsTable)
+      .innerJoin(
+        employeesTable,
+        eq(employeesTable.id, userAccountsTable.employeeId),
+      )
+      .where(
+        and(
+          eq(employeesTable.employeeNumber, parsed.data.username),
+          eq(userAccountsTable.accountType, "employee"),
+        ),
+      )
+      .limit(1);
+    account = employeeLogin?.account;
+  }
   if (
     !account ||
     !account.active ||
@@ -330,6 +347,44 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       .status(401)
       .json({ error: "Invalid username or password.", code: "AUTH_INVALID" });
     return;
+  }
+  // Keep legacy employee accounts aligned with the employee number at login.
+  if (account.accountType === "employee" && account.employeeId) {
+    const [linkedEmployee] = await db
+      .select({ employeeNumber: employeesTable.employeeNumber })
+      .from(employeesTable)
+      .where(
+        and(
+          eq(employeesTable.id, account.employeeId),
+          eq(employeesTable.companyId, account.companyId),
+        ),
+      )
+      .limit(1);
+    if (
+      linkedEmployee &&
+      linkedEmployee.employeeNumber !== account.username
+    ) {
+      const [usernameConflict] = await db
+        .select({ id: userAccountsTable.id })
+        .from(userAccountsTable)
+        .where(
+          and(
+            eq(userAccountsTable.username, linkedEmployee.employeeNumber),
+            sql`${userAccountsTable.id} <> ${account.id}`,
+          ),
+        )
+        .limit(1);
+      if (!usernameConflict) {
+        await db
+          .update(userAccountsTable)
+          .set({
+            username: linkedEmployee.employeeNumber,
+            updatedAt: new Date(),
+          })
+          .where(eq(userAccountsTable.id, account.id));
+        account = { ...account, username: linkedEmployee.employeeNumber };
+      }
+    }
   }
   const token = await createSession(account.id);
   await db
