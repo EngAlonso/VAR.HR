@@ -1043,7 +1043,7 @@ const copy = {
       "The workspace has not attached an employee identity to this session.",
     employeeNumber: "Employee number",
     employeeNumberEditHint:
-      "You can change this number manually. Login, attendance history, payroll, and biometric links stay attached to this employee.",
+      "This number is also the employee's login username. When it changes, the login username updates automatically; the account, password, attendance, payroll, and biometric links remain unchanged.",
     deleteSuccessful: "Deleted successfully",
     activateDepartment: "Activate department",
     deactivateDepartment: "Deactivate department",
@@ -1413,7 +1413,7 @@ const copy = {
     employee: "الموظف",
     employeeNumber: "رقم الموظف",
     employeeNumberEditHint:
-      "يمكنك تغيير الرقم يدويًا. يظل تسجيل الدخول وسجل الحضور والرواتب وروابط البصمة مرتبطة بهذا الموظف.",
+      "رقم الموظف هو اسم الدخول أيضًا. عند تغييره يتغير اسم المستخدم تلقائيًا، مع الحفاظ على الحساب وكلمة المرور وسجل الحضور والرواتب وروابط البصمة.",
     deleteSuccessful: "تم الحذف بنجاح",
     activateDepartment: "تفعيل القسم",
     deactivateDepartment: "تعطيل القسم",
@@ -2886,7 +2886,7 @@ const pageCopy = {
     employeeProfile: "Profil de l’employé",
     employeeNumber: "Numéro d’employé",
     employeeNumberEditHint:
-      "Vous pouvez modifier ce numéro. La connexion, l’historique, la paie et les liens biométriques restent liés à cet employé.",
+      "Ce numéro sert aussi d’identifiant de connexion. Sa modification met à jour automatiquement l’identifiant, sans changer le compte, le mot de passe, l’historique, la paie ni les liens biométriques.",
     basicSalary: "Salaire de base",
     deleteSuccessful: "Suppression réussie",
     activateDepartment: "Activer le département",
@@ -3274,7 +3274,7 @@ const pageCopy = {
     employeeProfile: "Mitarbeiterprofil",
     employeeNumber: "Mitarbeiternummer",
     employeeNumberEditHint:
-      "Diese Nummer kann manuell geändert werden. Login, Verlauf, Lohnabrechnung und biometrische Verknüpfungen bleiben diesem Mitarbeitenden zugeordnet.",
+      "Diese Nummer ist auch der Benutzername für die Anmeldung. Bei einer Änderung wird der Benutzername automatisch aktualisiert; Konto, Passwort, Verlauf, Abrechnung und biometrische Verknüpfungen bleiben erhalten.",
     basicSalary: "Grundgehalt",
     deleteSuccessful: "Erfolgreich gelöscht",
     activateDepartment: "Abteilung aktivieren",
@@ -5650,7 +5650,7 @@ function authLabel(
       mobileNumber: "Mobile number",
       mobilePlaceholder: "Enter your phone number",
       passwordPlaceholder: "Enter your password",
-      username: "Username",
+      username: "Employee number / username",
       password: "Password",
       login: "Sign in",
       signingIn: "Signing in…",
@@ -5716,7 +5716,7 @@ function authLabel(
       mobileNumber: "رقم الهاتف المحمول",
       mobilePlaceholder: "ادخل رقم هاتفك",
       passwordPlaceholder: "ادخل رقمك السري",
-      username: "اسم المستخدم",
+      username: "رقم الموظف / اسم المستخدم",
       password: "كلمة المرور",
       login: "تسجيل الدخول",
       signingIn: "جارٍ تسجيل الدخول…",
