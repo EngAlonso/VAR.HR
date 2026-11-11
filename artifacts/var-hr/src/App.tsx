@@ -7286,7 +7286,7 @@ function Shell({ children }: { children: ReactNode }) {
       <aside
         id="workspace-navigation"
         className={cn(
-          "fixed inset-y-0 z-50 flex w-[min(248px,calc(100vw-1rem))] flex-col bg-secondary px-4 py-5 text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 z-50 flex w-[min(248px,calc(100vw-1rem))] flex-col bg-[#164E56] px-4 py-5 text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:translate-x-0",
           open ? "translate-x-0" : "translate-x-[var(--nav-closed-transform)]",
         )}
         style={{
