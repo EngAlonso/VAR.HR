@@ -243,7 +243,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>
         <div className="relative mx-auto -mt-8 max-w-7xl px-5 pb-10 sm:px-8">
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/[.045] p-4 sm:grid-cols-4 sm:p-5">
-            {[["01",c.employees],["02",c.attendance],["03",c.payroll],["04",c.reports]].map(([n,label])=><div key={n} className="flex items-center gap-3 px-2 py-2"><span className="text-xs font-black text-[#dfb747]">{n}</span><span className="text-xs font-semibold text-white/70">{label}</span></div>)}
+            {[["01",c.employees],["02",c.attendance],["03",c.payroll],["04",c.reports]].map(([n,label])=><div key={n} className="flex items-center gap-3 px-2 py-2"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#f5d77d]/35 bg-[#164E56] text-xs font-black text-[#f5d77d] shadow-[0_3px_10px_rgba(0,0,0,.18)]">{n}</span><span className="text-xs font-bold text-white">{label}</span></div>)}
           </div>
         </div>
       </section>
