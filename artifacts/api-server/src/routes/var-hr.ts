@@ -5206,10 +5206,9 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
         await tx
           .update(userAccountsTable)
           .set({
-            ...(employeeNumberChanged
-              ? { username: updatedEmployee.employeeNumber }
-              : {}),
-            ...(phoneChanged ? { primaryPhone: updatedEmployee.phone } : {}),
+            // The phone is the employee's sole login identifier.
+            primaryPhone: updatedEmployee.phone,
+            employeeId: updatedEmployee.id,
             fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
             fullNameEn: `${updatedEmployee.firstNameEn || updatedEmployee.firstName} ${updatedEmployee.lastNameEn || updatedEmployee.lastName}`,
             updatedAt: new Date(),
