@@ -6667,7 +6667,7 @@ function AppFooter({ locale }: { locale: Locale }) {
   const whatsappDigits = socialLinks.whatsapp.replace(/\D/g, "");
   const hasSocialLinks = socialItems.some(({ key }) => Boolean(socialLinks[key])) || Boolean(whatsappDigits);
   return (
-    <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white" dir={isArabic ? "rtl" : "ltr"}>
+    <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#164E56] text-white" dir={isArabic ? "rtl" : "ltr"}>
       <div className="pointer-events-none absolute -top-28 start-1/3 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]" />
       <div className="relative mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_1fr] lg:gap-6 lg:py-5">
         <div className="max-w-sm">
@@ -6748,7 +6748,7 @@ function Login({
   const otherLocale = locale === "ar" ? "en" : "ar";
   return (
     <div
-      className="login-shell min-h-[100dvh] bg-secondary px-4 py-5 text-sidebar-foreground sm:px-8 sm:py-8"
+      className="login-shell min-h-[100dvh] bg-[#164E56] px-4 py-5 text-white sm:px-8 sm:py-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-5xl items-center gap-8 lg:min-h-[calc(100dvh-4rem)] lg:gap-10 lg:grid-cols-[1fr_440px]">
@@ -6764,10 +6764,10 @@ function Login({
             </Link>
           </div>
           <div className="mt-12 max-w-md">
-            <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05]">
+            <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05] text-white">
               {authLabel(locale, "brandHeading")}
             </h1>
-            <p className="mt-6 text-base leading-7 text-sidebar-foreground/60">
+            <p className="mt-6 text-base leading-7 text-white/80">
               {authLabel(locale, "brandDetail")}
             </p>
           </div>
