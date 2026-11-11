@@ -133,7 +133,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         @media(prefers-reduced-motion:reduce){.var-public *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
       `}</style>
 
-      <header className="relative z-30 border-b border-white/10 bg-[#111923] text-white">
+      <header className="relative z-30 border-b border-white/10 bg-[#164E56] text-white">
         <div className="mx-auto flex h-[82px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" aria-label="VAR HR home" className="flex items-center gap-3 rounded-xl bg-white px-3 py-1.5 shadow-sm transition hover:opacity-90">
             <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-11 w-auto max-w-[190px] object-contain" />
@@ -169,7 +169,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
       <section className="relative isolate overflow-hidden bg-[#111923] text-white">
         <div className="hero-grid pointer-events-none absolute inset-0 opacity-70"/>
         <div className="pointer-events-none absolute -end-40 -top-48 h-[540px] w-[540px] rounded-full bg-[#c99b32]/15 blur-[110px]"/>
-        <div className="pointer-events-none absolute -start-40 bottom-[-240px] h-[500px] w-[500px] rounded-full bg-[#3d6489]/20 blur-[100px]"/>
+        <div className="pointer-events-none absolute -start-40 bottom-[-240px] h-[500px] w-[500px] rounded-full bg-[#4f9295]/20 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-16 sm:px-8 sm:pb-28 sm:pt-24 lg:grid-cols-[.92fr_1.08fr] lg:gap-16 lg:pb-32 lg:pt-28">
           <div className="relative z-10">
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#dfb747]/25 bg-[#dfb747]/10 px-4 py-2 text-xs font-semibold text-[#f0d98f]">
@@ -194,14 +194,14 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
           <div className="relative mx-auto w-full max-w-[650px] lg:me-0">
             <div className="absolute -inset-8 rounded-[40px] bg-[#d8ad43]/10 blur-3xl"/>
-            <div className="relative rounded-[26px] border border-white/15 bg-[#202b39] p-2 shadow-[0_35px_100px_rgba(0,0,0,.45)] sm:rounded-[30px] sm:p-3">
+            <div className="relative rounded-[26px] border border-white/15 bg-[#E8EEF0] p-2 shadow-[0_24px_70px_rgba(22,78,86,.16)] sm:rounded-[30px] sm:p-3">
               <div className="overflow-hidden rounded-[19px] bg-[#f5f7fa] text-[#17202d]">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
-                  <div className="flex items-center gap-2.5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#17202d] text-[#e7c66d]"><BarChart3 size={17}/></div><div><div className="text-[11px] font-extrabold tracking-wide">VAR HR</div><div className="text-[9px] text-slate-400">{c.previewLabel}</div></div></div>
+                  <div className="flex items-center gap-2.5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#164E56] text-[#e7c66d]"><BarChart3 size={17}/></div><div><div className="text-[11px] font-extrabold tracking-wide">VAR HR</div><div className="text-[9px] text-slate-400">{c.previewLabel}</div></div></div>
                   <div className="flex items-center gap-2"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-700">{isArabic ? "مساحة العمل" : "Workspace"}</span><div className="h-7 w-7 rounded-full bg-[#e9d9ad]"/></div>
                 </div>
                 <div className="grid min-h-[320px] grid-cols-[76px_1fr] sm:grid-cols-[112px_1fr]">
-                  <aside className="bg-[#17202d] px-2 py-4 text-white sm:px-3">
+                  <aside className="bg-[#164E56] px-2 py-4 text-white sm:px-3">
                     <div className="mb-5 flex justify-center"><div className="h-7 w-7 rounded-lg border border-[#e0b64a]/40 bg-[#e0b64a]/15"/></div>
                     {[Users, Clock3, CalendarClock, Wallet, BarChart3].map((Icon,i)=><div key={i} className={`mb-2 flex items-center gap-2 rounded-lg px-2 py-2.5 ${i===0?"bg-white/10 text-[#f0d17a]":"text-white/45"}`}><Icon size={14}/><span className="hidden text-[9px] sm:inline">{[c.employees,c.attendance,c.requests,c.payroll,c.reports][i]}</span></div>)}
                   </aside>
@@ -267,13 +267,13 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
       </section>
 
       <section id="about" className="px-5 py-24 sm:px-8 lg:py-28">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[30px] bg-[#202b39] px-6 py-14 text-center text-white shadow-[0_28px_80px_rgba(23,32,45,.16)] sm:px-12 sm:py-20">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[30px] bg-[#E8EEF0] px-6 py-14 text-center text-[#17202d] shadow-[0_20px_60px_rgba(22,78,86,.10)] sm:px-12 sm:py-20">
           <div className="pointer-events-none absolute -end-20 -top-36 h-80 w-80 rounded-full bg-[#d7aa3d]/20 blur-[90px]"/>
-          <div className="relative mx-auto max-w-3xl"><div className="mx-auto mb-6 grid h-14 w-14 place-items-center rounded-2xl border border-[#e1b94f]/25 bg-[#e1b94f]/10 text-[#f0d17a]"><MousePointer2 size={23}/></div><h2 className="text-3xl font-black leading-tight sm:text-5xl">{c.cta}</h2><p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/55 sm:text-base">{c.ctaDesc}</p><button onClick={login} className="gold-button mt-9 inline-flex min-h-14 items-center gap-3 rounded-2xl px-8 text-sm font-extrabold transition">{c.login}{isArabic?<ArrowLeft size={17}/>:<ArrowRight size={17}/>}</button></div>
+          <div className="relative mx-auto max-w-3xl"><div className="mx-auto mb-6 grid h-14 w-14 place-items-center rounded-2xl border border-[#e1b94f]/25 bg-[#e1b94f]/10 text-[#f0d17a]"><MousePointer2 size={23}/></div><h2 className="text-3xl font-black leading-tight sm:text-5xl">{c.cta}</h2><p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">{c.ctaDesc}</p><button onClick={login} className="gold-button mt-9 inline-flex min-h-14 items-center gap-3 rounded-2xl px-8 text-sm font-extrabold transition">{c.login}{isArabic?<ArrowLeft size={17}/>:<ArrowRight size={17}/>}</button></div>
         </div>
       </section>
 
-      <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#101923] text-white">
+      <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#164E56] text-white">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1fr] md:gap-6 md:py-5" dir={dir}>
           <div className="max-w-sm">
@@ -321,7 +321,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
           </div>
         </div>
       </footer>
-      {showScrollTop && <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label={isArabic ? "العودة إلى أعلى الصفحة" : "Back to top"} title={isArabic ? "العودة للأعلى" : "Back to top"} className="fixed bottom-6 end-6 z-50 grid h-12 w-12 place-items-center rounded-full border border-[#f0d17a]/40 bg-[#d7aa3d] text-[#111923] shadow-[0_10px_30px_rgba(0,0,0,.28)] transition hover:-translate-y-1 hover:bg-[#f0d17a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0d17a] focus-visible:ring-offset-2"><ArrowUp size={21} strokeWidth={2.5}/></button>}
+      {showScrollTop && <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label={isArabic ? "العودة إلى أعلى الصفحة" : "Back to top"} title={isArabic ? "العودة للأعلى" : "Back to top"} className="fixed bottom-6 end-6 z-50 grid h-12 w-12 place-items-center rounded-full border border-[#f0d17a]/40 bg-[#d7aa3d] text-[#164E56] shadow-[0_10px_30px_rgba(0,0,0,.20)] transition hover:-translate-y-1 hover:bg-[#f0d17a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0d17a] focus-visible:ring-offset-2"><ArrowUp size={21} strokeWidth={2.5}/></button>}
     </main>
   );
 }
