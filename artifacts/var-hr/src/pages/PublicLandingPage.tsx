@@ -134,19 +134,19 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         @media(prefers-reduced-motion:reduce){.var-public *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
       `}</style>
 
-      <header className="relative z-30 border-b border-white/10 bg-[#9EACB0] text-[#17202D]">
+      <header className="relative z-30 border-b border-white/10 bg-[#164E56] text-white">
         <div className="mx-auto flex h-[82px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" aria-label="VAR HR home" className="flex items-center gap-3 rounded-xl bg-white px-3 py-1.5 shadow-sm transition hover:opacity-90">
             <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-11 w-auto max-w-[190px] object-contain" />
           </a>
-          <nav className="hidden items-center gap-9 text-[13px] font-medium text-white/65 lg:flex">
+          <nav className="hidden items-center gap-9 text-[13px] font-medium text-white/80 lg:flex">
             <button onClick={() => scrollTo("features")} className="transition hover:text-[#f0cf73]">{c.nav[0]}</button>
             <button onClick={() => scrollTo("workflow")} className="transition hover:text-[#f0cf73]">{c.nav[1]}</button>
             <button onClick={() => scrollTo("security")} className="transition hover:text-[#f0cf73]">{c.nav[2]}</button>
             <button onClick={() => scrollTo("about")} className="transition hover:text-[#f0cf73]">{c.nav[3]}</button>
           </nav>
           <div className="hidden items-center gap-3 sm:flex">
-            <button onClick={() => onLocaleChange(isArabic ? "en" : "ar")} className="rounded-full border border-white/15 px-3.5 py-2 text-xs font-semibold text-white/75 transition hover:border-[#dfb747] hover:text-[#f1d47c]">{c.language}</button>
+            <button onClick={() => onLocaleChange(isArabic ? "en" : "ar")} className="rounded-full border border-white/15 px-3.5 py-2 text-xs font-semibold text-white/85 transition hover:border-[#dfb747] hover:text-[#f1d47c]">{c.language}</button>
             <button onClick={login} className="gold-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition">
               {c.login}{isArabic ? <ArrowLeft size={15}/> : <ArrowRight size={15}/>}
             </button>
@@ -157,7 +157,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
           </div>
         </div>
         {menuOpen && <div className="absolute inset-x-0 top-full border-t border-white/10 bg-[#9EACB0] p-5 shadow-2xl sm:hidden">
-          <div className="flex flex-col gap-4 text-sm text-white/80">
+          <div className="flex flex-col gap-4 text-sm text-[#17202D]">
             <button onClick={() => scrollTo("features")} className="text-start">{c.nav[0]}</button>
             <button onClick={() => scrollTo("workflow")} className="text-start">{c.nav[1]}</button>
             <button onClick={() => scrollTo("security")} className="text-start">{c.nav[2]}</button>
@@ -260,9 +260,9 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
 
       <section id="security" className="scroll-mt-20 bg-[#9EACB0] py-20 text-[#17202D] lg:py-24">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-          <div><div className="text-xs font-extrabold uppercase tracking-[.2em] text-[#e4c36c]">{isArabic?"الثقة والتحكم":"Trust & control"}</div><h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">{c.trust}</h2><p className="mt-5 text-sm leading-8 text-white/55">{c.trustDesc}</p></div>
+          <div><div className="text-xs font-extrabold uppercase tracking-[.2em] text-[#e4c36c]">{isArabic?"الثقة والتحكم":"Trust & control"}</div><h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">{c.trust}</h2><p className="mt-5 text-sm leading-8 text-[#43545A]">{c.trustDesc}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {securityItems.map(({Icon,label},i)=><div key={i} className="glass rounded-2xl p-5"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><Icon size={20}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
+            {securityItems.map(({Icon,label},i)=><div key={i} className="rounded-2xl border border-white/55 bg-white/45 p-5 shadow-sm"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><Icon size={20}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
           </div>
         </div>
       </section>
@@ -274,14 +274,14 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>
       </section>
 
-      <footer className="relative isolate overflow-hidden border-t border-[#829397]/40 bg-[#9EACB0] text-[#17202D]">
+      <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#164E56] text-white">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1fr] md:gap-6 md:py-5" dir={dir}>
           <div className="max-w-sm">
             <a href="/" aria-label="VAR HR home" className="inline-flex rounded-xl bg-white px-3 py-2 transition-opacity hover:opacity-85">
               <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-9 w-auto max-w-[160px] object-contain"/>
             </a>
-            <p className="mt-2 max-w-sm text-xs leading-5 text-slate-300/70">{isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}</p>
+            <p className="mt-2 max-w-sm text-xs leading-5 text-white/75">{isArabic ? "منصة متكاملة لتنظيم وإدارة الموارد البشرية، ومتابعة فريق العمل من الحضور وحتى الرواتب." : "A connected platform to organize workforce operations, from attendance to payroll."}</p>
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#d7aa3d]/25 bg-[#d7aa3d]/10 px-2 py-1 text-[10px] font-semibold text-[#f0d17a]"><ShieldCheck size={15}/>{isArabic ? "إدارة أوضح. قرارات أفضل." : "Clearer management. Better decisions."}</div>
           </div>
           <div>
