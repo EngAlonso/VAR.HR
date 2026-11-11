@@ -181,7 +181,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         <div className="pointer-events-none absolute -start-40 bottom-[-240px] h-[500px] w-[500px] rounded-full bg-[#4f9295]/20 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-16 sm:px-8 sm:pb-28 sm:pt-24 lg:grid-cols-[.92fr_1.08fr] lg:gap-16 lg:pb-32 lg:pt-28">
           <div className="relative z-10">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#bd9230]/30 bg-[#d7aa3d]/15 px-4 py-2 text-xs font-semibold text-[#805f16]">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#164E56]/35 bg-white/65 px-4 py-2 text-xs font-extrabold text-[#123F46] shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-[#e6bd54] shadow-[0_0_12px_#e6bd54]"/>{c.eyebrow}
             </div>
             <h1 className="whitespace-pre-line text-[clamp(2.8rem,6vw,5.5rem)] font-black leading-[1.12] tracking-[-.045em]">{c.title.split("\n")[0]}<br/><span className="gold-text">{c.title.split("\n")[1]}</span></h1>
