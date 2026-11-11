@@ -5135,7 +5135,7 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
         updateData.phone !== undefined && updateData.phone !== before.phone;
       let linkedEmployeeAccountId: string | undefined;
       if (employeeNumberChanged || phoneChanged) {
-        const [linkedAccount] = await tx
+        let [linkedAccount] = await tx
           .select({ id: userAccountsTable.id })
           .from(userAccountsTable)
           .where(
@@ -5146,6 +5146,31 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
             ),
           )
           .limit(1);
+
+        // Older employee accounts may predate employeeId linking. Recover the
+        // account using its original employee number or the employee's unique
+        // company phone, then attach it so future updates remain reliable.
+        if (!linkedAccount) {
+          const legacyMatch = await tx
+            .select({ id: userAccountsTable.id })
+            .from(userAccountsTable)
+            .where(
+              and(
+                eq(userAccountsTable.companyId, context.companyId),
+                eq(userAccountsTable.accountType, "employee"),
+                or(
+                  eq(userAccountsTable.username, before.employeeNumber),
+                  ...(before.phone ? [eq(userAccountsTable.primaryPhone, before.phone)] : []),
+                ),
+                or(
+                  isNull(userAccountsTable.employeeId),
+                  eq(userAccountsTable.employeeId, before.id),
+                ),
+              ),
+            )
+            .limit(2);
+          if (legacyMatch.length === 1) linkedAccount = legacyMatch[0];
+        }
         if (linkedAccount) {
           if (employeeNumberChanged) {
             const [usernameConflict] = await tx
@@ -5192,9 +5217,12 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
           .where(
             and(
               eq(userAccountsTable.id, linkedEmployeeAccountId),
-              eq(userAccountsTable.employeeId, before.id),
               eq(userAccountsTable.companyId, context.companyId),
               eq(userAccountsTable.accountType, "employee"),
+              or(
+                isNull(userAccountsTable.employeeId),
+                eq(userAccountsTable.employeeId, before.id),
+              ),
             ),
           );
       }
