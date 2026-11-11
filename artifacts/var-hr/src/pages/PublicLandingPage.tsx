@@ -134,7 +134,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         @media(prefers-reduced-motion:reduce){.var-public *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
       `}</style>
 
-      <header className="relative z-30 border-b border-white/10 bg-[#164E56] text-white">
+      <header className="relative z-30 border-b border-white/10 bg-[#9EACB0] text-[#17202D]">
         <div className="mx-auto flex h-[82px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" aria-label="VAR HR home" className="flex items-center gap-3 rounded-xl bg-white px-3 py-1.5 shadow-sm transition hover:opacity-90">
             <img src={isArabic ? arabicLoginLogo : horizontalLogo} alt="VAR HR" className="h-11 w-auto max-w-[190px] object-contain" />
@@ -156,7 +156,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
             <button aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)} className="rounded-xl border border-white/15 p-2.5">{menuOpen ? <X size={19}/> : <Menu size={19}/>}</button>
           </div>
         </div>
-        {menuOpen && <div className="absolute inset-x-0 top-full border-t border-white/10 bg-[#111923] p-5 shadow-2xl sm:hidden">
+        {menuOpen && <div className="absolute inset-x-0 top-full border-t border-white/10 bg-[#9EACB0] p-5 shadow-2xl sm:hidden">
           <div className="flex flex-col gap-4 text-sm text-white/80">
             <button onClick={() => scrollTo("features")} className="text-start">{c.nav[0]}</button>
             <button onClick={() => scrollTo("workflow")} className="text-start">{c.nav[1]}</button>
@@ -167,7 +167,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>}
       </header>
 
-      <section className="relative isolate overflow-hidden bg-[#D8E0E2] text-[#17202D]">
+      <section className="relative isolate overflow-hidden bg-[#9EACB0] text-[#17202D]">
         <div className="hero-grid pointer-events-none absolute inset-0 opacity-70"/>
         <div className="pointer-events-none absolute -end-40 -top-48 h-[540px] w-[540px] rounded-full bg-[#c99b32]/15 blur-[110px]"/>
         <div className="pointer-events-none absolute -start-40 bottom-[-240px] h-[500px] w-[500px] rounded-full bg-[#4f9295]/20 blur-[100px]"/>
@@ -258,7 +258,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>
       </section>
 
-      <section id="security" className="scroll-mt-20 bg-[#111923] py-20 text-white lg:py-24">
+      <section id="security" className="scroll-mt-20 bg-[#9EACB0] py-20 text-[#17202D] lg:py-24">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
           <div><div className="text-xs font-extrabold uppercase tracking-[.2em] text-[#e4c36c]">{isArabic?"الثقة والتحكم":"Trust & control"}</div><h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">{c.trust}</h2><p className="mt-5 text-sm leading-8 text-white/55">{c.trustDesc}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -274,7 +274,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         </div>
       </section>
 
-      <footer className="relative isolate overflow-hidden border-t border-white/10 bg-[#164E56] text-white">
+      <footer className="relative isolate overflow-hidden border-t border-[#829397]/40 bg-[#9EACB0] text-[#17202D]">
         <div className="pointer-events-none absolute -top-28 end-1/4 h-64 w-64 rounded-full bg-[#d7aa3d]/10 blur-[100px]"/>
         <div className="relative mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1fr] md:gap-6 md:py-5" dir={dir}>
           <div className="max-w-sm">
