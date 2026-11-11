@@ -6421,10 +6421,16 @@ function EmployeeCredentialManager({
     if (!canManage) return;
     void authRequest<AuthAccount[]>("/api/auth/accounts")
       .then((accounts) =>
-        setAccount(accounts.find((item) => item.employeeId === employeeId) ?? null),
+        setAccount(
+          accounts.find(
+            (item) =>
+              item.employeeId === employeeId ||
+              (phone && item.accountType === "employee" && item.primaryPhone === phone),
+          ) ?? null,
+        ),
       )
       .catch(() => setAccount(null));
-  }, [canManage, employeeId]);
+  }, [canManage, employeeId, phone]);
   if (!canManage) return null;
   const regenerate = async () => {
     if (!account) return;
@@ -6434,7 +6440,7 @@ function EmployeeCredentialManager({
         `/api/auth/accounts/${account.id}/reset-password`,
         { method: "POST" },
       );
-      setCredentials(result);
+      setCredentials({ ...result, username: phone || account.primaryPhone || result.username });
       toast.success(c.regenerated);
     } catch {
       toast.error(c.passwordFailed);
@@ -6453,7 +6459,7 @@ function EmployeeCredentialManager({
             </div>
             {account ? (
               <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <p>{c.loginUsername}: <span className="font-medium text-foreground">{account.username}</span></p>
+                <p>{c.loginUsername}: <span className="font-medium text-foreground">{phone || account.primaryPhone || account.username}</span></p>
                 <p>{c.accountStatus}: {account.active ? c.active : c.inactive}</p>
               </div>
             ) : (
