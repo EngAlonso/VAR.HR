@@ -119,7 +119,15 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
   return (
     <main dir={dir} className="var-public min-h-screen overflow-hidden bg-[#f7f8fa] text-[#17202d]">
       <style>{`
-        .var-public { font-family: inherit; }
+        .var-public { font-family: inherit; font-weight: 700; }
+        .var-public :is(p, span, a, button, h1, h2, h3, label) { font-weight: 700; }
+        .var-public :is(h1, h2, h3) { font-weight: 900; }
+        .var-public svg { stroke-width: 2.25; }
+        .var-public .hero-benefit { color: #263b40; font-weight: 800; }
+        .var-public .hero-benefit-icon { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:10px; background:#164E56; color:#F5D77D; border:1px solid rgba(22,78,86,.22); box-shadow:0 3px 9px rgba(22,78,86,.16); }
+        .var-public .hero-benefit-icon svg { stroke-width:2.7; }
+        .var-public .security-icon { background:#164E56; color:#F5D77D; border:1px solid rgba(22,78,86,.18); box-shadow:0 4px 12px rgba(22,78,86,.18); }
+        .var-public .tone-gold{background:#fff0bd;color:#805600}.var-public .tone-blue{background:#e3edff;color:#2457a7}.var-public .tone-violet{background:#ece3ff;color:#6340a8}.var-public .tone-green{background:#dcf3e5;color:#176b40}.var-public .tone-cyan{background:#d9f1f4;color:#126b78}.var-public .tone-rose{background:#ffe3e9;color:#a83c55}
         .var-public .gold-text { background:linear-gradient(110deg,#f4d77a,#d7a72b 58%,#f5df9a);-webkit-background-clip:text;background-clip:text;color:transparent; }
         .var-public .hero-grid { background-image:linear-gradient(rgba(22,78,86,.075) 1px,transparent 1px),linear-gradient(90deg,rgba(22,78,86,.075) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 92%); }
         .var-public .hero-float-card { background:rgba(255,255,255,.82);border:1px solid rgba(22,78,86,.12);backdrop-filter:blur(18px);color:#17202d; }
@@ -187,9 +195,9 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
               </button>
             </div>
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-[#607078]">
-              <span className="inline-flex items-center gap-2"><ShieldCheck size={15} className="text-[#e5c46b]"/> {isArabic ? "صلاحيات منظمة" : "Role-based access"}</span>
-              <span className="inline-flex items-center gap-2"><Building2 size={15} className="text-[#e5c46b]"/> {isArabic ? "مساحات عمل للشركات" : "Company workspaces"}</span>
-              <span className="inline-flex items-center gap-2"><Globe2 size={15} className="text-[#e5c46b]"/> {isArabic ? "عربي وإنجليزي" : "Arabic & English"}</span>
+              <span className="hero-benefit inline-flex items-center gap-2"><span className="hero-benefit-icon"><ShieldCheck size={17}/></span>{isArabic ? "صلاحيات منظمة" : "Role-based access"}</span>
+              <span className="hero-benefit inline-flex items-center gap-2"><span className="hero-benefit-icon"><Building2 size={17}/></span>{isArabic ? "مساحات عمل للشركات" : "Company workspaces"}</span>
+              <span className="hero-benefit inline-flex items-center gap-2"><span className="hero-benefit-icon"><Globe2 size={17}/></span>{isArabic ? "عربي وإنجليزي" : "Arabic & English"}</span>
             </div>
           </div>
 
@@ -204,7 +212,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
                 <div className="grid min-h-[320px] grid-cols-[76px_1fr] sm:grid-cols-[112px_1fr]">
                   <aside className="bg-[#164E56] px-2 py-4 text-white sm:px-3">
                     <div className="mb-5 flex justify-center"><div className="h-7 w-7 rounded-lg border border-[#e0b64a]/40 bg-[#e0b64a]/15"/></div>
-                    {[Users, Clock3, CalendarClock, Wallet, BarChart3].map((Icon,i)=><div key={i} className={`mb-2 flex items-center gap-2 rounded-lg px-2 py-2.5 ${i===0?"bg-white/10 text-[#f0d17a]":"text-white/45"}`}><Icon size={14}/><span className="hidden text-[9px] sm:inline">{[c.employees,c.attendance,c.requests,c.payroll,c.reports][i]}</span></div>)}
+                    {[Users, Clock3, CalendarClock, Wallet, BarChart3].map((Icon,i)=><div key={i} className={`mb-2 flex items-center gap-2 rounded-lg px-2 py-2.5 ${i===0?"bg-white/15 text-[#f5d77d]":"text-white/85"}`}><Icon size={14}/><span className="hidden text-[9px] sm:inline">{[c.employees,c.attendance,c.requests,c.payroll,c.reports][i]}</span></div>)}
                   </aside>
                   <div className="min-w-0 p-3 sm:p-5">
                     <div className="flex items-start justify-between gap-2"><div><div className="text-[9px] font-semibold text-slate-400">{c.live}</div><div className="mt-1 text-sm font-extrabold sm:text-lg">{c.today}</div></div><div className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[8px] text-slate-500">{isArabic ? "اليوم" : "Today"}⌄</div></div>
@@ -262,7 +270,7 @@ export default function PublicLandingPage({ onLogin, locale, onLocaleChange }: {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
           <div><div className="text-xs font-extrabold uppercase tracking-[.2em] text-[#e4c36c]">{isArabic?"الثقة والتحكم":"Trust & control"}</div><h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">{c.trust}</h2><p className="mt-5 text-sm leading-8 text-[#43545A]">{c.trustDesc}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {securityItems.map(({Icon,label},i)=><div key={i} className="rounded-2xl border border-white/55 bg-white/45 p-5 shadow-sm"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#e1b94f]/15 text-[#f0d17a]"><Icon size={20}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
+            {securityItems.map(({Icon,label},i)=><div key={i} className="rounded-2xl border border-white/55 bg-white/45 p-5 shadow-sm"><div className="security-icon mb-5 grid h-11 w-11 place-items-center rounded-xl"><Icon size={21}/></div><div className="text-sm font-bold">{label as string}</div></div>)}
           </div>
         </div>
       </section>
