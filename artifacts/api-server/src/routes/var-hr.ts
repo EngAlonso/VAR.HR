@@ -2821,13 +2821,17 @@ async function employeeRows(context: TenantContext, employeeId?: string) {
 }
 
 async function allocateEmployeeNumber(companyId: string): Promise<string> {
-  const existing = await db
-    .select({ employeeNumber: employeesTable.employeeNumber })
-    .from(employeesTable)
-    .where(eq(employeesTable.companyId, companyId));
-  const used = new Set(
-    existing.map((item) => item.employeeNumber.trim().toLowerCase()),
-  );
+  const [existingEmployees, existingUsernames] = await Promise.all([
+    db
+      .select({ employeeNumber: employeesTable.employeeNumber })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId)),
+    db.select({ username: userAccountsTable.username }).from(userAccountsTable),
+  ]);
+  const used = new Set([
+    ...existingEmployees.map((item) => item.employeeNumber.trim().toLowerCase()),
+    ...existingUsernames.map((item) => item.username.trim().toLowerCase()),
+  ]);
   let sequence = 1;
   let candidate = String(sequence);
   while (used.has(candidate.toLowerCase())) {
@@ -4190,23 +4194,6 @@ router.post("/employees", async (req, res): Promise<void> => {
     });
     return;
   }
-  const employeeUsername = parsed.data.phone.trim();
-  if (!employeeUsername) {
-    res.status(400).json({ error: message(req, "invalidRequest") });
-    return;
-  }
-  const [accountUsernameMatch] = await db
-    .select({ id: userAccountsTable.id })
-    .from(userAccountsTable)
-    .where(eq(userAccountsTable.username, employeeUsername))
-    .limit(1);
-  if (accountUsernameMatch) {
-    res.status(409).json({
-      error: "That phone number is already used as a login username.",
-      code: "EMPLOYEE_USERNAME_DUPLICATE",
-    });
-    return;
-  }
   const capacity = await ensureEmployeeCapacity(context.companyId);
   if (!capacity.allowed) {
     res.status(409).json({
@@ -4250,6 +4237,7 @@ router.post("/employees", async (req, res): Promise<void> => {
   }
   let temporaryPassword: string | undefined;
   const employeeNumber = await allocateEmployeeNumber(context.companyId);
+  const employeeUsername = employeeNumber;
   temporaryPassword = generateNumericPassword();
   try {
     await db.transaction(async (tx) => {
@@ -4296,7 +4284,7 @@ router.post("/employees", async (req, res): Promise<void> => {
           username: employeeUsername,
           fullName: `${employee.firstName} ${employee.lastName}`,
           fullNameEn: `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`,
-          primaryPhone: employeeUsername,
+          primaryPhone: employee.phone,
           passwordHash: hashPassword(temporaryPassword!),
           accountType: "employee",
           displayRole: "Employee",
@@ -4356,14 +4344,10 @@ router.post("/employees", async (req, res): Promise<void> => {
       });
       return;
     }
-    if (
-      error instanceof Error &&
-      (error.message.includes("EMPLOYEE_ACCOUNT_CREATE_FAILED") ||
-        error.message.includes("user_accounts_username"))
-    ) {
+    if (constraint?.includes("user_accounts_username")) {
       res.status(409).json({
-        error: "That phone number is already used as a login username.",
-        code: "EMPLOYEE_USERNAME_DUPLICATE",
+        error: message(req, "employeeNumberDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
       });
       return;
     }
@@ -5144,10 +5128,13 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   let employee: typeof employeesTable.$inferSelect | undefined;
   try {
     employee = await db.transaction(async (tx) => {
-      let linkedEmployeeAccountId: string | undefined;
+      const employeeNumberChanged =
+        updateData.employeeNumber !== undefined &&
+        updateData.employeeNumber !== before.employeeNumber;
       const phoneChanged =
         updateData.phone !== undefined && updateData.phone !== before.phone;
-      if (phoneChanged && updateData.phone) {
+      let linkedEmployeeAccountId: string | undefined;
+      if (employeeNumberChanged || phoneChanged) {
         const [linkedAccount] = await tx
           .select({ id: userAccountsTable.id })
           .from(userAccountsTable)
@@ -5160,18 +5147,20 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
           )
           .limit(1);
         if (linkedAccount) {
-          const [usernameConflict] = await tx
-            .select({ id: userAccountsTable.id })
-            .from(userAccountsTable)
-            .where(
-              and(
-                eq(userAccountsTable.username, updateData.phone),
-                sql`${userAccountsTable.id} <> ${linkedAccount.id}`,
-              ),
-            )
-            .limit(1);
-          if (usernameConflict) {
-            throw new Error("EMPLOYEE_PHONE_USERNAME_DUPLICATE");
+          if (employeeNumberChanged) {
+            const [usernameConflict] = await tx
+              .select({ id: userAccountsTable.id })
+              .from(userAccountsTable)
+              .where(
+                and(
+                  eq(userAccountsTable.username, updateData.employeeNumber),
+                  sql`${userAccountsTable.id} <> ${linkedAccount.id}`,
+                ),
+              )
+              .limit(1);
+            if (usernameConflict) {
+              throw new Error("EMPLOYEE_NUMBER_USERNAME_DUPLICATE");
+            }
           }
           linkedEmployeeAccountId = linkedAccount.id;
         }
@@ -5188,12 +5177,14 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
         )
         .returning();
 
-      if (updatedEmployee && linkedEmployeeAccountId && updateData.phone) {
+      if (updatedEmployee && linkedEmployeeAccountId) {
         await tx
           .update(userAccountsTable)
           .set({
-            username: updateData.phone,
-            primaryPhone: updateData.phone,
+            ...(employeeNumberChanged
+              ? { username: updatedEmployee.employeeNumber }
+              : {}),
+            ...(phoneChanged ? { primaryPhone: updatedEmployee.phone } : {}),
             fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
             fullNameEn: `${updatedEmployee.firstNameEn || updatedEmployee.firstName} ${updatedEmployee.lastNameEn || updatedEmployee.lastName}`,
             updatedAt: new Date(),
@@ -5213,22 +5204,26 @@ router.patch("/employees/:employeeId", async (req, res): Promise<void> => {
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message === "EMPLOYEE_PHONE_USERNAME_DUPLICATE"
+      error.message === "EMPLOYEE_NUMBER_USERNAME_DUPLICATE"
     ) {
+      res.status(409).json({
+        error: message(req, "employeeNumberDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
+      });
+      return;
+    }
+    const constraint = postgresUniqueConstraint(error);
+    if (constraint === employeePhoneUniqueConstraint) {
       res.status(409).json({
         error: message(req, "employeePhoneDuplicate"),
         code: "EMPLOYEE_PHONE_DUPLICATE",
       });
       return;
     }
-    const constraint = postgresUniqueConstraint(error);
-    if (
-      constraint === employeePhoneUniqueConstraint ||
-      constraint?.includes("user_accounts_username")
-    ) {
+    if (constraint?.includes("user_accounts_username")) {
       res.status(409).json({
-        error: message(req, "employeePhoneDuplicate"),
-        code: "EMPLOYEE_PHONE_DUPLICATE",
+        error: message(req, "employeeNumberDuplicate"),
+        code: "EMPLOYEE_NUMBER_DUPLICATE",
       });
       return;
     }
