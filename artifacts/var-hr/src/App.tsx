@@ -18905,6 +18905,7 @@ function DatabaseAdministration() {
     return query.get("entity") ?? "";
   });
   const [companyFilter, setCompanyFilter] = useState("");
+  const [page, setPage] = useState(0);
   const [companies, setCompanies] = useState<DatabaseCompany[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
   const [search, setSearch] = useState("");
@@ -18951,7 +18952,7 @@ function DatabaseAdministration() {
         await (() => {
           const entityDefinition = entities.find((item) => item.key === entity);
           return authRequest<AdminDataResponse>(
-          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}`,
+          `/api/platform/database/${entity}?search=${encodeURIComponent(search)}&companyId=${encodeURIComponent(companyFilter)}&limit=100&offset=${page * 100}`,
           ).then((result) => ({
             ...result,
             key: result.key ?? result.entity ?? entity,
@@ -18977,7 +18978,7 @@ function DatabaseAdministration() {
   }, []);
   useEffect(() => {
     if (entity) void load();
-  }, [entity, companyFilter]);
+  }, [entity, companyFilter, page]);
 
   useEffect(() => {
     if (entity !== "users") return;
@@ -19179,11 +19180,11 @@ function DatabaseAdministration() {
            [t("databaseActiveCompanies"), companies.filter((company) => company.active).length],
            [t("databaseVisibleRecords"), data?.rows.length ?? 0],
         ].map(([label, value]) => (
-          <Card className="p-4" key={String(label)}>
+          <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card to-muted/40 p-4 shadow-sm" key={String(label)}>
             <p className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
               {label}
             </p>
-            <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+            <p className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">{value}</p>
           </Card>
         ))}
       </div>
@@ -19231,7 +19232,7 @@ function DatabaseAdministration() {
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={entity}
-                onChange={(event) => setEntity(event.target.value)}
+                onChange={(event) => { setPage(0); setEntity(event.target.value); }}
               >
                 {entities.map((item) => (
                   <option key={item.key} value={item.key}>
@@ -19247,7 +19248,7 @@ function DatabaseAdministration() {
               <select
                 className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 font-normal"
                 value={companyFilter}
-                onChange={(event) => setCompanyFilter(event.target.value)}
+                onChange={(event) => { setPage(0); setCompanyFilter(event.target.value); }}
               >
                  <option value="">{t("allCompanies")}</option>
                 {companies.map((company) => (
@@ -19266,7 +19267,7 @@ function DatabaseAdministration() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") void load();
+                    if (event.key === "Enter") { setPage(0); if (page === 0) void load(); }
                   }}
                   placeholder={t("searchValues")}
                 />
@@ -19431,6 +19432,13 @@ function DatabaseAdministration() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
+            <p className="text-xs text-muted-foreground">{locale === "ar" ? `صفحة ${page + 1} · ${data.rows.length} سجل معروض` : `Page ${page + 1} · ${data.rows.length} records shown`}</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{locale === "ar" ? "السابق" : "Previous"}</Button>
+              <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{locale === "ar" ? "التالي" : "Next"}</Button>
+            </div>
           </div>
         ) : (
           <Empty
