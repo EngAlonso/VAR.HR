@@ -19307,6 +19307,7 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
+          <>
           <div className="hidden w-full overflow-hidden md:block">
             <table className="w-full table-fixed text-left text-xs lg:text-sm rtl:text-right">
               <thead className="bg-muted/60">
@@ -19440,6 +19441,7 @@ function DatabaseAdministration() {
               <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{locale === "ar" ? "التالي" : "Next"}</Button>
             </div>
           </div>
+          </>
         ) : (
           <Empty
             title={t("noRecordsFound")}
