@@ -19209,7 +19209,7 @@ function DatabaseAdministration() {
                         : "border-border text-muted-foreground",
                     )}
                     key={key}
-                    onClick={() => setEntity(key)}
+                    onClick={() => { setPage(0); setEntity(key); }}
                   >
                      {databaseEntityTranslationKeys[key]
                        ? t(databaseEntityTranslationKeys[key])
