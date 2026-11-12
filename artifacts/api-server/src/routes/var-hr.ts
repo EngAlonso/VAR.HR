@@ -8045,6 +8045,86 @@ router.post(
   },
 );
 
+router.post(
+  "/leave/balances/:balanceId/set-used",
+  async (req, res): Promise<void> => {
+    const context = await getTenantContext(req);
+    if (!canUseCapability(context, "leave.manage")) {
+      denyCapability(res, req, "leave.manage");
+      return;
+    }
+    const balanceId = String(req.params.balanceId || "");
+    const used = Number(req.body?.used);
+    const reason = String(req.body?.reason || "").trim();
+    if (!isUuid(balanceId) || !Number.isFinite(used) || used < 0 || used > 9999.99 || !reason || reason.length > 500) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const [balance] = await db
+      .select()
+      .from(leaveBalancesTable)
+      .where(and(
+        eq(leaveBalancesTable.id, balanceId),
+        eq(leaveBalancesTable.companyId, context.companyId),
+      ))
+      .limit(1);
+    if (!balance) {
+      res.status(404).json({ error: message(req, "invalidRequest") });
+      return;
+    }
+    const policy = await effectiveLeavePolicy(context.companyId, balance.type);
+    const nextRemaining = balance.allocated - used - balance.pending;
+    if (policy && !policy.allowNegative && nextRemaining < 0) {
+      res.status(409).json({
+        error: message(req, "leaveExceedsBalance", { type: balance.type }),
+      });
+      return;
+    }
+    const before = balance.allocated - balance.used;
+    const after = balance.allocated - used;
+    const delta = after - before;
+    const updated = await db.transaction(async (tx) => {
+      const [saved] = await tx
+        .update(leaveBalancesTable)
+        .set({ used })
+        .where(and(
+          eq(leaveBalancesTable.id, balance.id),
+          eq(leaveBalancesTable.companyId, context.companyId),
+        ))
+        .returning();
+      if (delta !== 0) {
+        await tx.insert(leaveBalanceTransactionsTable).values({
+          companyId: context.companyId,
+          employeeId: balance.employeeId,
+          leaveType: balance.type,
+          amount: delta,
+          transactionType: "manual_adjustment",
+          beforeBalance: before,
+          afterBalance: after,
+          actorId: context.accountId,
+          reason,
+        });
+      }
+      return saved;
+    });
+    await recordAudit(
+      context.companyId,
+      "manual_adjustment",
+      "leave_balance",
+      balance.id,
+      { used, reason },
+      { allocated: balance.allocated, used: balance.used, remaining: before },
+    );
+    const [employee] = await db
+      .select({ employee: employeesTable, department: departmentsTable })
+      .from(employeesTable)
+      .innerJoin(departmentsTable, eq(employeesTable.departmentId, departmentsTable.id))
+      .where(eq(employeesTable.id, updated.employeeId))
+      .limit(1);
+    res.json(await leaveBalanceResponse(updated, employee.employee, employee.department));
+  },
+);
+
 router.get("/leave/balances", async (req, res): Promise<void> => {
   const context = await getTenantContext(req);
   const canViewScopedEmployeeBalances =
