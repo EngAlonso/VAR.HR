@@ -19473,7 +19473,7 @@ function DatabaseAdministration() {
             <Button variant="quiet" onClick={() => setEditing(null)}>
               {t("cancel")}
             </Button>
-            <Button onClick={() => void saveEdit()} disabled={pending !== ""}>
+            <Button onClick={() => void saveEdit()} disabled={pending !== "" || editReason.trim().length < 10}>
               {pending === "save" ? "…" : t("saveChanges")}
             </Button>
           </div>
