@@ -830,6 +830,60 @@ const copy = {
     databaseLatitude: "Latitude",
     databaseLongitude: "Longitude",
     databaseRadiusMeters: "Radius (meters)",
+    databaseSlug: "Slug",
+    databaseAddress: "Address",
+    databaseTimezone: "Time zone",
+    databaseCurrency: "Currency",
+    databaseCode: "Code",
+    databaseType: "Type",
+    databaseValue: "Value",
+    databaseKey: "Key",
+    databaseLabel: "Label",
+    databaseEmployeeId: "Employee ID",
+    databaseUserId: "User ID",
+    databaseManagerId: "Manager ID",
+    databaseCreatedBy: "Created by",
+    databaseUpdatedBy: "Updated by",
+    databaseDeletedAt: "Deleted at",
+    databaseArchivedAt: "Archived at",
+    databaseStartDate: "Start date",
+    databaseEndDate: "End date",
+    databaseStartTime: "Start time",
+    databaseEndTime: "End time",
+    databaseDate: "Date",
+    databaseCheckIn: "Check-in",
+    databaseCheckOut: "Check-out",
+    databaseDuration: "Duration",
+    databaseMinutes: "Minutes",
+    databaseHours: "Hours",
+    databaseAmount: "Amount",
+    databaseTotal: "Total",
+    databaseRate: "Rate",
+    databaseReason: "Reason",
+    databaseSource: "Source",
+    databaseDevice: "Device",
+    databaseDeviceId: "Device ID",
+    databaseSerialNumber: "Serial number",
+    databaseIpAddress: "IP address",
+    databaseLastSync: "Last sync",
+    databaseExpiresAt: "Expires at",
+    databaseApprovedBy: "Approved by",
+    databaseRequestedBy: "Requested by",
+    databaseMetadata: "Metadata",
+    databaseUnknownPermission: "Permission",
+    databasePermissionDescription: "Allows the action described by this permission.",
+    databaseRoleEmployee: "Employee",
+    databaseRoleManager: "Manager",
+    databaseRoleSupervisor: "Supervisor",
+    databaseRoleHr: "HR",
+    databaseRoleAdmin: "Administrator",
+    databaseRoleCompanyAdmin: "Company administrator",
+    databaseRoleAccountant: "Accountant",
+    databaseRoleSupport: "Support",
+    databaseRoleOwner: "Owner",
+    databaseRoleUser: "User",
+    databaseRolePlatformOwnerValue: "Platform owner",
+    databaseUnknownStatus: "Status value",
     databaseAction: "Action",
     databaseActor: "Actor",
     databaseActorRole: "Actor role",
@@ -2791,6 +2845,60 @@ const pageCopy = {
     databaseLatitude: "خط العرض",
     databaseLongitude: "خط الطول",
     databaseRadiusMeters: "النطاق (بالمتر)",
+    databaseSlug: "المعرّف النصي",
+    databaseAddress: "العنوان",
+    databaseTimezone: "المنطقة الزمنية",
+    databaseCurrency: "العملة",
+    databaseCode: "الكود",
+    databaseType: "النوع",
+    databaseValue: "القيمة",
+    databaseKey: "المفتاح",
+    databaseLabel: "التسمية",
+    databaseEmployeeId: "معرّف الموظف",
+    databaseUserId: "معرّف المستخدم",
+    databaseManagerId: "معرّف المدير",
+    databaseCreatedBy: "أنشأه",
+    databaseUpdatedBy: "آخر من حدّثه",
+    databaseDeletedAt: "تاريخ الحذف",
+    databaseArchivedAt: "تاريخ الأرشفة",
+    databaseStartDate: "تاريخ البداية",
+    databaseEndDate: "تاريخ النهاية",
+    databaseStartTime: "وقت البداية",
+    databaseEndTime: "وقت النهاية",
+    databaseDate: "التاريخ",
+    databaseCheckIn: "تسجيل الحضور",
+    databaseCheckOut: "تسجيل الانصراف",
+    databaseDuration: "المدة",
+    databaseMinutes: "الدقائق",
+    databaseHours: "الساعات",
+    databaseAmount: "المبلغ",
+    databaseTotal: "الإجمالي",
+    databaseRate: "المعدل",
+    databaseReason: "السبب",
+    databaseSource: "المصدر",
+    databaseDevice: "الجهاز",
+    databaseDeviceId: "معرّف الجهاز",
+    databaseSerialNumber: "الرقم التسلسلي",
+    databaseIpAddress: "عنوان IP",
+    databaseLastSync: "آخر مزامنة",
+    databaseExpiresAt: "تاريخ الانتهاء",
+    databaseApprovedBy: "اعتمد بواسطة",
+    databaseRequestedBy: "طلب بواسطة",
+    databaseMetadata: "بيانات إضافية",
+    databaseUnknownPermission: "صلاحية",
+    databasePermissionDescription: "تتيح هذه الصلاحية تنفيذ الإجراء الموضح أعلاه.",
+    databaseRoleEmployee: "موظف",
+    databaseRoleManager: "مدير",
+    databaseRoleSupervisor: "مشرف",
+    databaseRoleHr: "موارد بشرية",
+    databaseRoleAdmin: "مسؤول",
+    databaseRoleCompanyAdmin: "مدير الشركة",
+    databaseRoleAccountant: "محاسب",
+    databaseRoleSupport: "دعم فني",
+    databaseRoleOwner: "مالك",
+    databaseRoleUser: "مستخدم",
+    databaseRolePlatformOwnerValue: "مالك المنصة",
+    databaseUnknownStatus: "حالة",
     databaseAction: "الإجراء",
     databaseActor: "المنفّذ",
     databaseActorRole: "دور المنفّذ",
@@ -18861,6 +18969,125 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   latitude: "databaseLatitude",
   longitude: "databaseLongitude",
   radius_meters: "databaseRadiusMeters",
+  slug: "databaseSlug",
+  address: "databaseAddress",
+  timezone: "databaseTimezone",
+  currency: "databaseCurrency",
+  code: "databaseCode",
+  type: "databaseType",
+  value: "databaseValue",
+  key: "databaseKey",
+  label: "databaseLabel",
+  employee_id: "databaseEmployeeId",
+  user_id: "databaseUserId",
+  manager_id: "databaseManagerId",
+  created_by: "databaseCreatedBy",
+  updated_by: "databaseUpdatedBy",
+  deleted_at: "databaseDeletedAt",
+  archived_at: "databaseArchivedAt",
+  start_date: "databaseStartDate",
+  end_date: "databaseEndDate",
+  start_time: "databaseStartTime",
+  end_time: "databaseEndTime",
+  date: "databaseDate",
+  check_in: "databaseCheckIn",
+  check_out: "databaseCheckOut",
+  check_in_at: "databaseCheckIn",
+  check_out_at: "databaseCheckOut",
+  duration: "databaseDuration",
+  duration_minutes: "databaseMinutes",
+  work_minutes: "databaseMinutes",
+  late_minutes: "databaseMinutes",
+  overtime_minutes: "databaseMinutes",
+  hours: "databaseHours",
+  amount: "databaseAmount",
+  total: "databaseTotal",
+  rate: "databaseRate",
+  reason: "databaseReason",
+  source: "databaseSource",
+  device: "databaseDevice",
+  device_id: "databaseDeviceId",
+  serial_number: "databaseSerialNumber",
+  ip_address: "databaseIpAddress",
+  last_sync_at: "databaseLastSync",
+  expires_at: "databaseExpiresAt",
+  approved_by: "databaseApprovedBy",
+  requested_by: "databaseRequestedBy",
+  metadata: "databaseMetadata",
+};
+const databaseRoleTranslationKeys: Record<string, AppCopyKey> = {
+  employee: "databaseRoleEmployee",
+  manager: "databaseRoleManager",
+  supervisor: "databaseRoleSupervisor",
+  hr: "databaseRoleHr",
+  admin: "databaseRoleAdmin",
+  company_admin: "databaseRoleCompanyAdmin",
+  accountant: "databaseRoleAccountant",
+  support: "databaseRoleSupport",
+  owner: "databaseRoleOwner",
+  user: "databaseRoleUser",
+  platform_owner: "databaseRolePlatformOwnerValue",
+};
+const databaseEnumTranslationKeys: Record<string, AppCopyKey> = {
+  ...databaseRoleTranslationKeys,
+  ...{
+    true: "databaseYes",
+    false: "databaseNo",
+    active: "databaseStatusActive",
+    inactive: "databaseStatusInactive",
+    archived: "databaseStatusArchived",
+    pending: "databaseStatusPending",
+    finalized: "databaseStatusFinalized",
+    draft: "databaseStatusDraft",
+    connected: "databaseStatusConnected",
+    disconnected: "databaseStatusDisconnected",
+    created: "databaseActionCreated",
+    updated: "databaseActionUpdated",
+    support_updated: "databaseActionSupport_updated",
+    database_view: "databaseActionDatabase_view",
+    database_export: "databaseActionDatabase_export",
+    database_support_updated: "databaseActionDatabase_support_updated",
+    database_deleted: "databaseActionDatabase_deleted",
+  },
+};
+const databasePermissionWordKeys: Record<string, AppCopyKey> = {
+  view: "viewDetails",
+  read: "viewDetails",
+  list: "viewDetails",
+  create: "edit",
+  add: "edit",
+  edit: "edit",
+  update: "edit",
+  delete: "deleteRecord",
+  remove: "deleteRecord",
+  manage: "databaseManageAccountPermissions",
+  export: "exportExcel",
+  employee: "databaseEmployees",
+  employees: "databaseEmployees",
+  attendance: "databaseAttendance",
+  payroll: "databasePayrollCalculations",
+  report: "reports",
+  reports: "reports",
+  user: "databaseUsers",
+  users: "databaseUsers",
+  company: "databaseCompanies",
+  companies: "databaseCompanies",
+  branch: "databaseBranches",
+  branches: "databaseBranches",
+  department: "databaseDepartments",
+  departments: "databaseDepartments",
+  shift: "databaseShifts",
+  shifts: "databaseShifts",
+  leave: "databaseLeaveRequests",
+  permission: "databasePermissions",
+  permissions: "databasePermissions",
+  device: "databaseDevices",
+  devices: "databaseDevices",
+  setting: "accountSettings",
+  settings: "accountSettings",
+  platform: "databasePlatformOwner",
+  backup: "databaseBackups",
+  backups: "databaseBackups",
 };
 const databaseStatusValues = new Set([
   "active",
@@ -19198,10 +19425,46 @@ function DatabaseAdministration() {
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
-  const databaseValue = (key: string, value: unknown) => {
+  const databaseColumnLabel = (column: string) =>
+    databaseColumnTranslationKeys[column]
+      ? t(databaseColumnTranslationKeys[column])
+      : locale === "ar"
+        ? t("databaseDataField")
+        : column.replaceAll("_", " ");
+  const databasePermissionLabel = (permission: { key: string; label?: string | null }) => {
+    if (locale !== "ar") return permission.label || permission.key;
+    const words = permission.key
+      .toLowerCase()
+      .split(/[._:/-]+/)
+      .filter(Boolean)
+      .map((word) => databasePermissionWordKeys[word] ? t(databasePermissionWordKeys[word]) : "");
+    const translated = words.filter(Boolean);
+    return translated.length ? translated.join(" · ") : t("databaseUnknownPermission");
+  };
+  const databaseDisplayObject = (value: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !isSensitiveDatabaseField(key))
+        .map(([key, entry]) => [
+          databaseColumnLabel(key),
+          entry && typeof entry === "object" && !Array.isArray(entry)
+            ? databaseDisplayObject(entry as Record<string, unknown>)
+            : typeof entry === "string" && databaseEnumTranslationKeys[entry.toLowerCase()]
+              ? t(databaseEnumTranslationKeys[entry.toLowerCase()])
+              : entry,
+        ]),
+    );
+  const databaseValue = (key: string, value: unknown): string => {
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
-    if (typeof value === "string" && databaseStatusTranslationKeys[value]) {
-      return t(databaseStatusTranslationKeys[value]);
+    if (typeof value === "string") {
+      const normalized = value.toLowerCase();
+      if (databaseStatusTranslationKeys[normalized]) return t(databaseStatusTranslationKeys[normalized]);
+      if (databaseRoleTranslationKeys[normalized]) return t(databaseRoleTranslationKeys[normalized]);
+      if (databaseActionTranslationKeys[normalized]) return t(databaseActionTranslationKeys[normalized]);
+      if (locale === "ar" && key === "status") return t("databaseUnknownStatus");
+    }
+    if (value && typeof value === "object") {
+      return JSON.stringify(databaseDisplayObject(value as Record<string, unknown>), null, 2);
     }
     return String(value ?? "—");
   };
@@ -19251,7 +19514,7 @@ function DatabaseAdministration() {
                   >
                      {databaseEntityTranslationKeys[key]
                        ? t(databaseEntityTranslationKeys[key])
-                       : entities.find((item) => item.key === key)?.label ?? key}
+                       : entities.find((item) => item.key === key)?.label ?? (locale === "ar" ? t("databaseEntity") : key)}
                   </button>
                 ))}
               </div>
@@ -19276,7 +19539,7 @@ function DatabaseAdministration() {
                   <option key={item.key} value={item.key}>
                      {databaseEntityTranslationKeys[item.key]
                        ? t(databaseEntityTranslationKeys[item.key])
-                       : item.label}
+                       : locale === "ar" ? t("databaseEntity") : item.label}
                   </option>
                 ))}
               </select>
@@ -19451,12 +19714,12 @@ function DatabaseAdministration() {
               <div key={String(row.id)} className="min-w-0 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <p className="min-w-0 break-all text-xs font-semibold text-muted-foreground">{String(row.name ?? row.full_name ?? row.employee_number ?? row.id)}</p>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? t("databaseActive") : row.active === false ? t("databaseInactive") : t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")))}</span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{databaseValue("status", row.status ?? row.active)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {visibleColumns.filter((column) => !["id", "company_id"].includes(column)).map((column) => (
                     <div key={column} className="min-w-0 rounded-lg bg-muted/40 p-2">
-                      <p className="text-[10px] font-semibold text-muted-foreground">{databaseColumnTranslationKeys[column] ? t(databaseColumnTranslationKeys[column]) : column.replaceAll("_", " ")}</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground">{databaseColumnLabel(column)}</p>
                       <p className="mt-1 break-words text-xs [overflow-wrap:anywhere]">{typeof row[column] === "object" ? JSON.stringify(row[column]) : databaseValue(column, row[column])}</p>
                     </div>
                   ))}
@@ -19500,7 +19763,7 @@ function DatabaseAdministration() {
             {editFields.map((key) => (
               <Field
                 key={key}
-                label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
+                label={databaseColumnLabel(key)}
                 value={String(editValues[key] ?? "")}
                 onChange={(value) => setEditValues((current) => ({ ...current, [key]: value }))}
               />
@@ -19547,9 +19810,9 @@ function DatabaseAdministration() {
                     <label key={permission.key} className="flex items-start gap-2 rounded-lg border border-border/70 p-3 text-sm hover:bg-muted/40">
                       <input className="mt-1" type="checkbox" checked={accountEditForm.permissions.includes(permission.key)} onChange={(event) => setAccountEditForm((current) => ({ ...current, permissions: event.target.checked ? [...current.permissions, permission.key] : current.permissions.filter((key) => key !== permission.key) }))} />
                       <span className="min-w-0">
-                        <span className="block font-semibold">{permission.label || permission.key}</span>
-                        {permission.description && <span className="mt-1 block text-xs text-muted-foreground">{permission.description}</span>}
-                        <span className="mt-1 block break-all font-mono text-[10px] text-muted-foreground">{permission.key}</span>
+                        <span className="block font-semibold">{databasePermissionLabel(permission)}</span>
+                        {(locale === "ar" ? t("databasePermissionDescription") : permission.description) && <span className="mt-1 block text-xs text-muted-foreground">{locale === "ar" ? t("databasePermissionDescription") : permission.description}</span>}
+                        {locale !== "ar" && <span className="mt-1 block break-all font-mono text-[10px] text-muted-foreground">{permission.key}</span>}
                       </span>
                     </label>
                   ))}
@@ -19573,11 +19836,7 @@ function DatabaseAdministration() {
             {visibleColumns.map((key) => (
               <div className="rounded-lg border border-border p-3" key={key}>
                 <p className="text-xs font-bold uppercase tracking-[.08em] text-muted-foreground">
-                {databaseColumnTranslationKeys[key]
-                  ? t(databaseColumnTranslationKeys[key])
-                  : locale === "ar"
-                    ? t("databaseDataField")
-                    : key.replaceAll("_", " ")}
+                {databaseColumnLabel(key)}
                 </p>
                 <p className="mt-1 break-words text-sm">
                   {details[key] && typeof details[key] === "object"
@@ -19623,17 +19882,17 @@ function DatabaseAdministration() {
                   <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
                      <div>
                        <p className="mb-1 font-semibold text-muted-foreground">{t("beforeValue")}</p>
-                       <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(safeHistoryDisplayValue(entry.before), null, 2)}</pre>
+                       <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(databaseDisplayObject(safeHistoryDisplayValue(entry.before)), null, 2)}</pre>
                      </div>
                      <div>
                        <p className="mb-1 font-semibold text-muted-foreground">{t("afterValue")}</p>
-                       <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(safeHistoryDisplayValue(entry.after), null, 2)}</pre>
+                       <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(databaseDisplayObject(safeHistoryDisplayValue(entry.after)), null, 2)}</pre>
                      </div>
                   </div>
                 )}
                 {entry.metadata && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                     {t("changedFields")}: {String(entry.metadata.fields ?? "—")}
+                     {t("changedFields")}: {Array.isArray(entry.metadata.fields) ? entry.metadata.fields.map((field) => databaseColumnLabel(String(field))).join("، ") : String(entry.metadata.fields ?? "—")}
                   </p>
                 )}
               </div>
