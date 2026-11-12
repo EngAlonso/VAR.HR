@@ -19014,6 +19014,44 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   requested_by: "databaseRequestedBy",
   metadata: "databaseMetadata",
 };
+const databaseColumnArabicWords: Record<string, string> = {
+  salary: "الراتب", basic: "الأساسي", gross: "الإجمالي", net: "الصافي",
+  monthly: "الشهري", annual: "السنوي", yearly: "السنوي", price: "السعر",
+  amount: "المبلغ", payment: "الدفع", pay: "الأجر", type: "النوع",
+  frequency: "دورية", period: "الفترة", plan: "الباقة", employee: "الموظف",
+  employees: "الموظفون", limit: "الحد", count: "العدد", total: "الإجمالي",
+  active: "النشط", status: "الحالة", date: "التاريخ", time: "الوقت",
+  start: "البداية", end: "النهاية", min: "الأدنى", max: "الأقصى",
+  hours: "الساعات", hour: "ساعة", minutes: "الدقائق", minute: "دقيقة",
+  days: "الأيام", day: "اليوم", rate: "المعدل", value: "القيمة",
+  percentage: "النسبة", percent: "النسبة", tax: "الضريبة", discount: "الخصم",
+  bonus: "المكافأة", overtime: "الإضافي", deduction: "الاستقطاع",
+  allowance: "البدل", currency: "العملة", code: "الكود", name: "الاسم",
+  description: "الوصف", notes: "ملاحظات", reason: "السبب", method: "الطريقة",
+  mode: "النمط", enabled: "التفعيل", required: "مطلوب", paid: "مدفوع",
+  created: "الإنشاء", updated: "التحديث", expires: "الانتهاء",
+  subscription: "الاشتراك", renewal: "التجديد", trial: "التجربة",
+  used: "المستخدم", remaining: "المتبقي", balance: "الرصيد",
+  check: "التسجيل", in: "الدخول", out: "الخروج", late: "التأخير",
+  early: "المبكر", leave: "الإجازة", request: "الطلب", approved: "المعتمد",
+  rejected: "المرفوض", branch: "الفرع", department: "القسم", manager: "المدير",
+  device: "الجهاز", serial: "التسلسلي", version: "الإصدار", size: "الحجم",
+  storage: "التخزين", backup: "النسخة", file: "الملف", email: "البريد",
+  phone: "الهاتف", address: "العنوان", city: "المدينة", timezone: "المنطقة",
+};
+const databaseColumnArabicLabels: Record<string, string> = {
+  salary_type: "نوع الراتب", wage_type: "نوع الأجر", pay_type: "نوع الأجر",
+  payment_type: "نوع الدفع", monthly_price: "السعر الشهري", annual_price: "السعر السنوي",
+  employee_limit: "الحد الأقصى للموظفين", max_employees: "الحد الأقصى للموظفين",
+  monthly: "القيمة الشهرية", annual: "القيمة السنوية", salary_amount: "قيمة الراتب",
+  basic_salary: "الراتب الأساسي", net_salary: "صافي الراتب", gross_salary: "إجمالي الراتب",
+  hourly_rate: "أجر الساعة", daily_rate: "الأجر اليومي", overtime_rate: "معدل أجر الإضافي",
+  work_hours: "ساعات العمل", grace_minutes: "دقائق السماح", late_minutes: "دقائق التأخير",
+  overtime_minutes: "دقائق العمل الإضافي", renewal_date: "تاريخ التجديد",
+  next_billing_date: "موعد الفاتورة القادمة", subscription_status: "حالة الاشتراك",
+  plan_name: "اسم الباقة", employee_count: "عدد الموظفين", active_employees: "عدد الموظفين النشطين",
+  user_count: "عدد المستخدمين", active_users: "عدد المستخدمين النشطين",
+};
 const databaseRoleTranslationKeys: Record<string, AppCopyKey> = {
   employee: "databaseRoleEmployee",
   manager: "databaseRoleManager",
@@ -19424,12 +19462,14 @@ function DatabaseAdministration() {
   const supportsDatabaseActions = data
     ? supportedDatabaseActions.has(data.key)
     : false;
-  const databaseColumnLabel = (column: string) =>
-    databaseColumnTranslationKeys[column]
-      ? t(databaseColumnTranslationKeys[column])
-      : locale === "ar"
-        ? t("databaseDataField")
-        : column.replaceAll("_", " ");
+  const databaseColumnLabel = (column: string) => {
+    if (databaseColumnTranslationKeys[column]) return t(databaseColumnTranslationKeys[column]);
+    if (locale === "ar") {
+      if (databaseColumnArabicLabels[column]) return databaseColumnArabicLabels[column];
+      return column.toLowerCase().split(/[_ -]+/).filter(Boolean).map((word) => databaseColumnArabicWords[word] ?? word).join(" ");
+    }
+    return column.replaceAll("_", " ");
+  };
   const databasePermissionLabel = (permission: { key: string; label?: string | null }) => {
     if (locale !== "ar") return permission.label || permission.key;
     const words = permission.key
