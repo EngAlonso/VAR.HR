@@ -13765,6 +13765,8 @@ function Rules() {
     },
   });
   const balances = useListLeaveBalances();
+  const [leaveUsageEdit, setLeaveUsageEdit] = useState<{ id: string; used: string; reason: string } | null>(null);
+  const [leaveUsageSaving, setLeaveUsageSaving] = useState(false);
   const [deviceApprovalRequired, setDeviceApprovalRequired] = useState(false);
   const [deviceApprovalLoading, setDeviceApprovalLoading] = useState(true);
   const [deviceApprovalSaving, setDeviceApprovalSaving] = useState(false);
@@ -13783,6 +13785,32 @@ function Rules() {
       });
     return () => { active = false; };
   }, []);
+  async function saveLeaveUsageEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!leaveUsageEdit || !leaveUsageEdit.reason.trim()) return;
+    const used = Number(leaveUsageEdit.used);
+    if (!Number.isFinite(used) || used < 0 || used > 9999.99) {
+      toast.error(locale === "ar" ? "أدخل عدد أيام مستخدمة صحيح." : "Enter a valid used-days value.");
+      return;
+    }
+    setLeaveUsageSaving(true);
+    try {
+      await authRequest(`/api/leave/balances/${leaveUsageEdit.id}/set-used`, {
+        method: "POST",
+        body: JSON.stringify({ used, reason: leaveUsageEdit.reason.trim() }),
+      });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: getListLeaveBalancesQueryKey() }),
+        qc.invalidateQueries({ queryKey: getListLeaveBalanceTransactionsQueryKey() }),
+      ]);
+      setLeaveUsageEdit(null);
+      toast.success(locale === "ar" ? "تم تحديث الأيام المستخدمة والرصيد المتبقي." : "Used days and remaining balance updated.");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, locale === "ar" ? "تعذر تحديث رصيد الإجازات." : "Could not update leave balance."));
+    } finally {
+      setLeaveUsageSaving(false);
+    }
+  }
   async function saveDeviceApprovalPolicy() {
     setDeviceApprovalSaving(true);
     try {
@@ -14591,10 +14619,19 @@ function Rules() {
                       {balance.remaining} {locale === "ar" ? "يوم متبقٍ" : "days left"}
                     </span>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <span>{locale === "ar" ? "المخصص" : "Allocated"}: {balance.allocated}</span>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                    <span>{locale === "ar" ? "الإجمالي" : "Total"}: {balance.total}</span>
                     <span>{locale === "ar" ? "المستخدم" : "Used"}: {balance.used}</span>
+                    <span>{locale === "ar" ? "المتبقي" : "Remaining"}: {balance.remaining}</span>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 w-full"
+                    onClick={() => setLeaveUsageEdit({ id: balance.id, used: String(balance.used ?? 0), reason: "" })}
+                  >
+                    {locale === "ar" ? "تعديل الأيام المستخدمة" : "Edit used days"}
+                  </Button>
                 </div>
               ))
           ) : (
@@ -14603,6 +14640,41 @@ function Rules() {
             </p>
           )}
         </div>
+        {leaveUsageEdit && (
+          <Modal
+            title={locale === "ar" ? "تعديل رصيد الإجازات المستخدم" : "Edit used leave days"}
+            onClose={() => !leaveUsageSaving && setLeaveUsageEdit(null)}
+          >
+            <form onSubmit={saveLeaveUsageEdit} className="space-y-4">
+              <Field
+                label={locale === "ar" ? "عدد الأيام المستخدمة" : "Used days"}
+                type="number"
+                min={0}
+                step={0.5}
+                value={leaveUsageEdit.used}
+                onChange={(value) => setLeaveUsageEdit({ ...leaveUsageEdit, used: value })}
+                required
+              />
+              <label className="block text-sm font-semibold">
+                {locale === "ar" ? "سبب التعديل" : "Reason for adjustment"}
+                <textarea
+                  required
+                  value={leaveUsageEdit.reason}
+                  onChange={(event) => setLeaveUsageEdit({ ...leaveUsageEdit, reason: event.target.value })}
+                  className="mt-1 min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm font-normal"
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="quiet" onClick={() => setLeaveUsageEdit(null)} disabled={leaveUsageSaving}>
+                  {t("cancel")}
+                </Button>
+                <Button type="submit" disabled={leaveUsageSaving}>
+                  {leaveUsageSaving ? t("savingPolicy") : (locale === "ar" ? "حفظ التعديل" : "Save changes")}
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
         <Button
           type="button"
           onClick={save}
