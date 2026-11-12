@@ -18916,6 +18916,12 @@ function DatabaseAdministration() {
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
+  const [accountRecords, setAccountRecords] = useState<AuthAccount[]>([]);
+  const [permissionOptions, setPermissionOptions] = useState<Array<{ key: string; label: string; description?: string }>>([]);
+  const [accountEditing, setAccountEditing] = useState<AuthAccount | null>(null);
+  const [accountEditForm, setAccountEditForm] = useState({ fullName: "", username: "", primaryPhone: "", displayRole: "", active: true, permissions: [] as string[], password: "" });
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [accountSaving, setAccountSaving] = useState(false);
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -18971,6 +18977,25 @@ function DatabaseAdministration() {
   useEffect(() => {
     if (entity) void load();
   }, [entity, companyFilter]);
+
+  useEffect(() => {
+    if (entity !== "users") return;
+    let cancelled = false;
+    setAccountLoading(true);
+    Promise.all([
+      authRequest<AuthAccount[]>("/api/auth/accounts"),
+      authRequest<Array<{ key: string; label: string; description?: string }>>("/api/auth/permissions"),
+    ]).then(([accounts, permissionList]) => {
+      if (cancelled) return;
+      setAccountRecords(accounts);
+      setPermissionOptions(permissionList);
+    }).catch(() => {
+      if (!cancelled) setError(t("couldNotLoadData"));
+    }).finally(() => {
+      if (!cancelled) setAccountLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [entity]);
   const usesSupportEditor =
     Boolean(data?.supportEditable?.length) &&
     supportedDatabaseActions.has(data?.key ?? "");
@@ -18999,6 +19024,42 @@ function DatabaseAdministration() {
       setError(t("exportFailed"));
     } finally {
       setPending("");
+    }
+  };
+  const openAccountEditor = (row: Record<string, unknown>) => {
+    const account = accountRecords.find((item) => item.id === String(row.id));
+    if (!account) {
+      setError(locale === "ar" ? "تعذر العثور على تفاصيل الحساب. حدّث البيانات وحاول مرة أخرى." : "Account details could not be found. Refresh and try again.");
+      return;
+    }
+    setAccountEditing(account);
+    setAccountEditForm({ fullName: account.fullName, username: account.username, primaryPhone: account.primaryPhone || "", displayRole: account.displayRole, active: account.active, permissions: [...account.permissions], password: "" });
+  };
+  const saveAccountEditor = async () => {
+    if (!accountEditing) return;
+    setAccountSaving(true);
+    setError("");
+    try {
+      const result = await authRequest<{ account: AuthAccount }>(`/api/auth/accounts/${accountEditing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          fullName: accountEditForm.fullName,
+          username: accountEditForm.username,
+          primaryPhone: accountEditForm.primaryPhone,
+          displayRole: accountEditForm.displayRole,
+          active: accountEditForm.active,
+          permissions: accountEditForm.permissions,
+          ...(accountEditForm.password ? { password: accountEditForm.password } : {}),
+        }),
+      });
+      setAccountRecords((current) => current.map((item) => item.id === result.account.id ? result.account : item));
+      setAccountEditing(null);
+      toast.success(locale === "ar" ? "تم تحديث الحساب وصلاحياته بنجاح." : "Account and permissions updated.");
+      await load();
+    } catch (cause) {
+      setError(apiErrorMessage(cause, locale === "ar" ? "تعذر تحديث الحساب." : "Could not update account."));
+    } finally {
+      setAccountSaving(false);
     }
   };
   const openEdit = (row: Record<string, unknown>) => {
@@ -19258,6 +19319,7 @@ function DatabaseAdministration() {
                   ))}
                     {(supportsDatabaseActions ||
                       editFields.length ||
+                      data.key === "users" ||
                       data.canArchive ||
                       data.canDelete) && (
                     <th className="p-3 font-semibold">{t("actions")}</th>
@@ -19304,6 +19366,11 @@ function DatabaseAdministration() {
                                </Button>
                              </>
                            ) : null}
+                          {data.key === "users" ? (
+                            <Button variant="outline" disabled={accountLoading} onClick={() => openAccountEditor(row)}>
+                              {locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account & permissions"}
+                            </Button>
+                          ) : null}
                           {editFields.length ? (
                             <Button variant="outline" onClick={() => openEdit(row)}>
                               {t("edit")}
@@ -19371,6 +19438,50 @@ function DatabaseAdministration() {
             <Button onClick={() => void saveEdit()} disabled={pending !== ""}>
               {pending === "save" ? "…" : t("saveChanges")}
             </Button>
+          </div>
+        </Modal>
+      )}
+      {accountEditing && (
+        <Modal title={locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account & permissions"} onClose={() => setAccountEditing(null)} className="max-w-3xl">
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={locale === "ar" ? "الاسم الكامل" : "Full name"} value={accountEditForm.fullName} onChange={(value) => setAccountEditForm((current) => ({ ...current, fullName: value }))} />
+              <Field label={locale === "ar" ? "اسم المستخدم" : "Username"} value={accountEditForm.username} onChange={(value) => setAccountEditForm((current) => ({ ...current, username: value }))} />
+              <Field label={locale === "ar" ? "رقم الهاتف" : "Phone"} value={accountEditForm.primaryPhone} onChange={(value) => setAccountEditForm((current) => ({ ...current, primaryPhone: value }))} />
+              <Field label={locale === "ar" ? "المسمى الوظيفي" : "Display role"} value={accountEditForm.displayRole} onChange={(value) => setAccountEditForm((current) => ({ ...current, displayRole: value }))} />
+              <Field label={locale === "ar" ? "كلمة مرور جديدة (اختياري)" : "New password (optional)"} type="password" value={accountEditForm.password} onChange={(value) => setAccountEditForm((current) => ({ ...current, password: value }))} />
+            </div>
+            <label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-semibold">
+              <input type="checkbox" checked={accountEditForm.active} onChange={(event) => setAccountEditForm((current) => ({ ...current, active: event.target.checked }))} />
+              {locale === "ar" ? "الحساب نشط ومسموح له بتسجيل الدخول" : "Account is active and can sign in"}
+            </label>
+            <div className="rounded-xl border border-border p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold">{locale === "ar" ? "صلاحيات الحساب" : "Account permissions"}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{locale === "ar" ? "حدد الصلاحيات المسموح بها لهذا الحساب." : "Choose the capabilities available to this account."}</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{accountEditForm.permissions.length} / {permissionOptions.length}</span>
+              </div>
+              {accountLoading ? <Skeleton className="h-24" /> : (
+                <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                  {permissionOptions.map((permission) => (
+                    <label key={permission.key} className="flex items-start gap-2 rounded-lg border border-border/70 p-3 text-sm hover:bg-muted/40">
+                      <input className="mt-1" type="checkbox" checked={accountEditForm.permissions.includes(permission.key)} onChange={(event) => setAccountEditForm((current) => ({ ...current, permissions: event.target.checked ? [...current.permissions, permission.key] : current.permissions.filter((key) => key !== permission.key) }))} />
+                      <span className="min-w-0">
+                        <span className="block font-semibold">{permission.label || permission.key}</span>
+                        {permission.description && <span className="mt-1 block text-xs text-muted-foreground">{permission.description}</span>}
+                        <span className="mt-1 block break-all font-mono text-[10px] text-muted-foreground">{permission.key}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="quiet" onClick={() => setAccountEditing(null)}>{t("cancel")}</Button>
+              <Button disabled={accountSaving || accountEditForm.fullName.trim().length === 0 || accountEditForm.username.trim().length < 3 || (accountEditForm.password.length > 0 && accountEditForm.password.length < 10)} onClick={() => void saveAccountEditor()}>{accountSaving ? "…" : t("saveChanges")}</Button>
+            </div>
           </div>
         </Modal>
       )}
