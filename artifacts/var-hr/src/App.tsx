@@ -837,6 +837,23 @@ const copy = {
     databasePlatformOwner: "Platform Owner",
     databaseUnknownAction: "Recorded action",
     databaseDataField: "Data field",
+    databaseManageAccountPermissions: "Manage account and permissions",
+    databaseAccountDetailsNotFound: "Account details could not be found. Refresh and try again.",
+    databaseAccountUpdated: "Account and permissions updated successfully.",
+    databaseAccountUpdateFailed: "Could not update account.",
+    databaseReasonRequired: "Reason for change (required — at least 10 characters)",
+    databaseFullName: "Full name",
+    databaseUsername: "Username",
+    databaseDisplayRole: "Display role",
+    databaseNewPasswordOptional: "New password (optional)",
+    databaseAccountActiveLogin: "Account is active and can sign in",
+    databaseAccountPermissions: "Account permissions",
+    databaseChoosePermissions: "Choose the capabilities available to this account.",
+    databasePageRecords: "Page {page} · {count} records shown",
+    databasePrevious: "Previous",
+    databaseNext: "Next",
+    databaseActive: "Active",
+    databaseInactive: "Inactive",
     databaseRolePlatformOwner: "Platform Owner",
     databaseYes: "Yes",
     databaseNo: "No",
@@ -2779,6 +2796,23 @@ const pageCopy = {
     databasePlatformOwner: "مالك المنصة",
     databaseUnknownAction: "إجراء مسجل",
     databaseDataField: "حقل بيانات",
+    databaseManageAccountPermissions: "إدارة الحساب والصلاحيات",
+    databaseAccountDetailsNotFound: "تعذر العثور على تفاصيل الحساب. حدّث البيانات وحاول مرة أخرى.",
+    databaseAccountUpdated: "تم تحديث الحساب وصلاحياته بنجاح.",
+    databaseAccountUpdateFailed: "تعذر تحديث الحساب.",
+    databaseReasonRequired: "سبب التعديل (إجباري — 10 أحرف على الأقل)",
+    databaseFullName: "الاسم الكامل",
+    databaseUsername: "اسم المستخدم",
+    databaseDisplayRole: "المسمى الوظيفي",
+    databaseNewPasswordOptional: "كلمة مرور جديدة (اختياري)",
+    databaseAccountActiveLogin: "الحساب نشط ومسموح له بتسجيل الدخول",
+    databaseAccountPermissions: "صلاحيات الحساب",
+    databaseChoosePermissions: "حدد الصلاحيات المسموح بها لهذا الحساب.",
+    databasePageRecords: "صفحة {page} · {count} سجل معروض",
+    databasePrevious: "السابق",
+    databaseNext: "التالي",
+    databaseActive: "نشط",
+    databaseInactive: "متوقف",
     databaseRolePlatformOwner: "مالك المنصة",
     databaseYes: "نعم",
     databaseNo: "لا",
@@ -19031,7 +19065,7 @@ function DatabaseAdministration() {
   const openAccountEditor = (row: Record<string, unknown>) => {
     const account = accountRecords.find((item) => item.id === String(row.id));
     if (!account) {
-      setError(locale === "ar" ? "تعذر العثور على تفاصيل الحساب. حدّث البيانات وحاول مرة أخرى." : "Account details could not be found. Refresh and try again.");
+      setError(t("databaseAccountDetailsNotFound"));
       return;
     }
     setAccountEditing(account);
@@ -19056,10 +19090,10 @@ function DatabaseAdministration() {
       });
       setAccountRecords((current) => current.map((item) => item.id === result.account.id ? result.account : item));
       setAccountEditing(null);
-      toast.success(locale === "ar" ? "تم تحديث الحساب وصلاحياته بنجاح." : "Account and permissions updated.");
+      toast.success(t("databaseAccountUpdated"));
       await load();
     } catch (cause) {
-      setError(apiErrorMessage(cause, locale === "ar" ? "تعذر تحديث الحساب." : "Could not update account."));
+      setError(apiErrorMessage(cause, t("databaseAccountUpdateFailed")));
     } finally {
       setAccountSaving(false);
     }
@@ -19373,7 +19407,7 @@ function DatabaseAdministration() {
                            ) : null}
                           {data.key === "users" ? (
                             <Button variant="outline" disabled={accountLoading} onClick={() => openAccountEditor(row)}>
-                              {locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account & permissions"}
+                              {t("databaseManageAccountPermissions")}
                             </Button>
                           ) : null}
                           {editFields.length ? (
@@ -19413,7 +19447,7 @@ function DatabaseAdministration() {
               <div key={String(row.id)} className="min-w-0 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <p className="min-w-0 break-all text-xs font-semibold text-muted-foreground">{String(row.name ?? row.full_name ?? row.employee_number ?? row.id)}</p>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? (locale === "ar" ? "نشط" : "Active") : row.active === false ? (locale === "ar" ? "متوقف" : "Inactive") : data.label))}</span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? t("databaseActive") : row.active === false ? t("databaseInactive") : t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity"))}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {visibleColumns.filter((column) => !["id", "company_id"].includes(column)).map((column) => (
@@ -19426,7 +19460,7 @@ function DatabaseAdministration() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => setDetails(row)}>{t("viewDetails")}</Button>}
                   {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => void openHistory(row)}>{t("history")}</Button>}
-                  {data.key === "users" && <Button size="sm" variant="outline" onClick={() => openAccountEditor(row)}>{locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account"}</Button>}
+                  {data.key === "users" && <Button size="sm" variant="outline" onClick={() => openAccountEditor(row)}>{t("databaseManageAccountPermissions")}</Button>}
                   {editFields.length > 0 && <Button size="sm" variant="outline" onClick={() => openEdit(row)}>{t("edit")}</Button>}
                   {data.canArchive && <Button size="sm" variant="quiet" onClick={() => void archive(row)}>{t("archive")}</Button>}
                   {data.canDelete && <Button size="sm" variant="danger" onClick={() => void deleteRecord(row)}><Trash2 size={13} />{t("deleteRecord")}</Button>}
@@ -19437,8 +19471,8 @@ function DatabaseAdministration() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
             <p className="text-xs text-muted-foreground">{locale === "ar" ? `صفحة ${page + 1} · ${data.rows.length} سجل معروض` : `Page ${page + 1} · ${data.rows.length} records shown`}</p>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{locale === "ar" ? "السابق" : "Previous"}</Button>
-              <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{locale === "ar" ? "التالي" : "Next"}</Button>
+              <Button size="sm" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{t("databasePrevious")}</Button>
+              <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{t("databaseNext")}</Button>
             </div>
           </div>
           </>
@@ -19469,7 +19503,7 @@ function DatabaseAdministration() {
             ))}
           </div>
           <div className="mt-4">
-            <Field label={locale === "ar" ? "سبب التعديل (إجباري - 10 أحرف على الأقل)" : "Reason for change (required - at least 10 characters)"} value={editReason} onChange={setEditReason} />
+            <Field label={t("databaseReasonRequired")} value={editReason} onChange={setEditReason} />
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="quiet" onClick={() => setEditing(null)}>
@@ -19482,24 +19516,24 @@ function DatabaseAdministration() {
         </Modal>
       )}
       {accountEditing && (
-        <Modal title={locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account & permissions"} onClose={() => setAccountEditing(null)} className="max-w-3xl">
+        <Modal title={t("databaseManageAccountPermissions")} onClose={() => setAccountEditing(null)} className="max-w-3xl">
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={locale === "ar" ? "الاسم الكامل" : "Full name"} value={accountEditForm.fullName} onChange={(value) => setAccountEditForm((current) => ({ ...current, fullName: value }))} />
-              <Field label={locale === "ar" ? "اسم المستخدم" : "Username"} value={accountEditForm.username} onChange={(value) => setAccountEditForm((current) => ({ ...current, username: value }))} />
-              <Field label={locale === "ar" ? "رقم الهاتف" : "Phone"} value={accountEditForm.primaryPhone} onChange={(value) => setAccountEditForm((current) => ({ ...current, primaryPhone: value }))} />
-              <Field label={locale === "ar" ? "المسمى الوظيفي" : "Display role"} value={accountEditForm.displayRole} onChange={(value) => setAccountEditForm((current) => ({ ...current, displayRole: value }))} />
-              <Field label={locale === "ar" ? "كلمة مرور جديدة (اختياري)" : "New password (optional)"} type="password" value={accountEditForm.password} onChange={(value) => setAccountEditForm((current) => ({ ...current, password: value }))} />
+              <Field label={t("databaseFullName")} value={accountEditForm.fullName} onChange={(value) => setAccountEditForm((current) => ({ ...current, fullName: value }))} />
+              <Field label={t("databaseUsername")} value={accountEditForm.username} onChange={(value) => setAccountEditForm((current) => ({ ...current, username: value }))} />
+              <Field label={t("databasePhone")} value={accountEditForm.primaryPhone} onChange={(value) => setAccountEditForm((current) => ({ ...current, primaryPhone: value }))} />
+              <Field label={t("databaseDisplayRole")} value={accountEditForm.displayRole} onChange={(value) => setAccountEditForm((current) => ({ ...current, displayRole: value }))} />
+              <Field label={t("databaseNewPasswordOptional")} type="password" value={accountEditForm.password} onChange={(value) => setAccountEditForm((current) => ({ ...current, password: value }))} />
             </div>
             <label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-semibold">
               <input type="checkbox" checked={accountEditForm.active} onChange={(event) => setAccountEditForm((current) => ({ ...current, active: event.target.checked }))} />
-              {locale === "ar" ? "الحساب نشط ومسموح له بتسجيل الدخول" : "Account is active and can sign in"}
+              {t("databaseAccountActiveLogin")}
             </label>
             <div className="rounded-xl border border-border p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold">{locale === "ar" ? "صلاحيات الحساب" : "Account permissions"}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{locale === "ar" ? "حدد الصلاحيات المسموح بها لهذا الحساب." : "Choose the capabilities available to this account."}</p>
+                  <h3 className="font-semibold">{t("databaseAccountPermissions")}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("databaseChoosePermissions")}</p>
                 </div>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{accountEditForm.permissions.length} / {permissionOptions.length}</span>
               </div>
