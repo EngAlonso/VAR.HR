@@ -19451,7 +19451,7 @@ function DatabaseAdministration() {
               <div key={String(row.id)} className="min-w-0 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <p className="min-w-0 break-all text-xs font-semibold text-muted-foreground">{String(row.name ?? row.full_name ?? row.employee_number ?? row.id)}</p>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? t("databaseActive") : row.active === false ? t("databaseInactive") : t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity"))}</span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? t("databaseActive") : row.active === false ? t("databaseInactive") : t(databaseEntityTranslationKeys[data.key] ?? "databaseEntity")))}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {visibleColumns.filter((column) => !["id", "company_id"].includes(column)).map((column) => (
