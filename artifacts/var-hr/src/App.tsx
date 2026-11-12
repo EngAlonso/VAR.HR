@@ -19167,13 +19167,13 @@ function DatabaseAdministration() {
     return String(value ?? "—");
   };
   return (
-    <div className="animate-in">
+    <div className="animate-in min-w-0 space-y-5 overflow-x-hidden">
       <SectionTitle
         eyebrow={t("platformOwnerOnly")}
         title={t("databaseAdministration")}
          detail={t("databaseAdminDetail")}
       />
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
           {[
            [t("databaseCompanies"), companies.length],
            [t("databaseActiveCompanies"), companies.filter((company) => company.active).length],
@@ -19187,14 +19187,14 @@ function DatabaseAdministration() {
           </Card>
         ))}
       </div>
-      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {databaseGroups.map((group) => {
            const available = group.keys.filter((key) =>
             entities.some((item) => item.key === key),
           );
           if (!available.length) return null;
           return (
-             <Card className="p-4" key={group.label}>
+             <Card className="group relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-muted/50 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" key={group.label}>
                <p className="text-sm font-semibold">
                  {t(databaseGroupTranslationKeys[group.label])}
                </p>
@@ -19202,7 +19202,7 @@ function DatabaseAdministration() {
                 {available.map((key) => (
                   <button
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors hover:border-primary hover:text-primary",
+                      "rounded-xl border px-3 py-2 text-xs font-semibold transition-all hover:border-primary/60 hover:bg-primary/5 hover:text-primary",
                       entity === key
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground",
@@ -19220,12 +19220,12 @@ function DatabaseAdministration() {
           );
         })}
       </div>
-      <Card className="overflow-hidden">
+      <Card className="min-w-0 overflow-hidden border-border/70 shadow-sm">
         <div className="border-b border-border p-5">
            <p className="text-xs font-bold uppercase tracking-[.14em] text-primary">
              {t("dataExplorer")}
           </p>
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.25fr_auto_auto] lg:items-end">
+          <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.25fr_auto_auto] xl:items-end">
             <label className="text-sm font-semibold">
               {t("databaseEntity")}
               <select
@@ -19306,8 +19306,8 @@ function DatabaseAdministration() {
             </p>
           </div>
         ) : data && data.rows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm rtl:text-right">
+          <div className="hidden w-full overflow-hidden md:block">
+            <table className="w-full table-fixed text-left text-xs lg:text-sm rtl:text-right">
               <thead className="bg-muted/60">
                 <tr>
                    {visibleColumns.map((column) => (
@@ -19333,7 +19333,7 @@ function DatabaseAdministration() {
                   <tr key={String(row.id)}>
                      {visibleColumns.map((column) => (
                       <td
-                        className="max-w-[240px] truncate p-3 align-top"
+                        className="break-words p-2 align-top [overflow-wrap:anywhere] lg:p-3"
                         key={column}
                       >
                         {column === "company_name" && row.company_id ? (
@@ -19354,6 +19354,7 @@ function DatabaseAdministration() {
                     ))}
                       {(supportsDatabaseActions ||
                         editFields.length ||
+                        data.key === "users" ||
                         data.canArchive ||
                         data.canDelete) && (
                       <td className="p-3">
@@ -19421,17 +19422,18 @@ function DatabaseAdministration() {
           <p className="mb-4 text-sm text-muted-foreground">
              {t(usesSupportEditor ? "supportEditHint" : "databaseEditHint")}
           </p>
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {editFields.map((key) => (
               <Field
                 key={key}
-                 label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
+                label={databaseColumnTranslationKeys[key] ? t(databaseColumnTranslationKeys[key]) : key.replaceAll("_", " ")}
                 value={String(editValues[key] ?? "")}
-                onChange={(value) =>
-                  setEditValues((current) => ({ ...current, [key]: value }))
-                }
+                onChange={(value) => setEditValues((current) => ({ ...current, [key]: value }))}
               />
             ))}
+          </div>
+          <div className="mt-4">
+            <Field label={locale === "ar" ? "سبب التعديل (إجباري - 10 أحرف على الأقل)" : "Reason for change (required - at least 10 characters)"} value={editReason} onChange={setEditReason} />
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="quiet" onClick={() => setEditing(null)}>
