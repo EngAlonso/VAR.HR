@@ -18949,7 +18949,6 @@ const databaseColumnTranslationKeys: Record<string, AppCopyKey> = {
   name: "databaseName",
   name_ar: "databaseArabicName",
   description: "databaseDescription",
-  manager_id: "databaseManager",
   default_schedule_id: "databaseDefaultSchedule",
   active: "databaseStatus",
   created_at: "databaseCreatedAt",
@@ -19441,19 +19440,23 @@ function DatabaseAdministration() {
     const translated = words.filter(Boolean);
     return translated.length ? translated.join(" · ") : t("databaseUnknownPermission");
   };
-  const databaseDisplayObject = (value: Record<string, unknown>): Record<string, unknown> =>
-    Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !isSensitiveDatabaseField(key))
-        .map(([key, entry]) => [
-          databaseColumnLabel(key),
-          entry && typeof entry === "object" && !Array.isArray(entry)
-            ? databaseDisplayObject(entry as Record<string, unknown>)
-            : typeof entry === "string" && databaseEnumTranslationKeys[entry.toLowerCase()]
-              ? t(databaseEnumTranslationKeys[entry.toLowerCase()])
-              : entry,
-        ]),
-    );
+  const databaseDisplayData = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map((entry) => databaseDisplayData(entry));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .filter(([key]) => !isSensitiveDatabaseField(key))
+          .map(([key, entry]) => [
+            databaseColumnLabel(key),
+            databaseDisplayData(entry),
+          ]),
+      );
+    }
+    if (typeof value === "string" && databaseEnumTranslationKeys[value.toLowerCase()]) {
+      return t(databaseEnumTranslationKeys[value.toLowerCase()]);
+    }
+    return value;
+  };
   const databaseValue = (key: string, value: unknown): string => {
     if (typeof value === "boolean") return value ? t("databaseYes") : t("databaseNo");
     if (typeof value === "string") {
@@ -19464,7 +19467,7 @@ function DatabaseAdministration() {
       if (locale === "ar" && key === "status") return t("databaseUnknownStatus");
     }
     if (value && typeof value === "object") {
-      return JSON.stringify(databaseDisplayObject(value as Record<string, unknown>), null, 2);
+      return JSON.stringify(databaseDisplayData(value), null, 2);
     }
     return String(value ?? "—");
   };
@@ -19650,9 +19653,7 @@ function DatabaseAdministration() {
                           >
                            {String(row[column] ?? t("unknownCompany"))}
                           </button>
-                        ) : typeof row[column] === "object"
-                          ? JSON.stringify(row[column])
-                          : databaseValue(column, row[column])}
+                        ) : databaseValue(column, row[column])}
                       </td>
                     ))}
                       {(supportsDatabaseActions ||
@@ -19720,7 +19721,7 @@ function DatabaseAdministration() {
                   {visibleColumns.filter((column) => !["id", "company_id"].includes(column)).map((column) => (
                     <div key={column} className="min-w-0 rounded-lg bg-muted/40 p-2">
                       <p className="text-[10px] font-semibold text-muted-foreground">{databaseColumnLabel(column)}</p>
-                      <p className="mt-1 break-words text-xs [overflow-wrap:anywhere]">{typeof row[column] === "object" ? JSON.stringify(row[column]) : databaseValue(column, row[column])}</p>
+                      <p className="mt-1 break-words text-xs [overflow-wrap:anywhere]">{databaseValue(column, row[column])}</p>
                     </div>
                   ))}
                 </div>
@@ -19882,17 +19883,21 @@ function DatabaseAdministration() {
                   <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
                      <div>
                        <p className="mb-1 font-semibold text-muted-foreground">{t("beforeValue")}</p>
-                       <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(databaseDisplayObject(safeHistoryDisplayValue(entry.before)), null, 2)}</pre>
+                       <pre className="overflow-auto rounded-md bg-muted p-3">{JSON.stringify(databaseDisplayData(safeHistoryDisplayValue(entry.before)), null, 2)}</pre>
                      </div>
                      <div>
                        <p className="mb-1 font-semibold text-muted-foreground">{t("afterValue")}</p>
-                       <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(databaseDisplayObject(safeHistoryDisplayValue(entry.after)), null, 2)}</pre>
+                       <pre className="overflow-auto rounded-md bg-primary/5 p-3">{JSON.stringify(databaseDisplayData(safeHistoryDisplayValue(entry.after)), null, 2)}</pre>
                      </div>
                   </div>
                 )}
                 {entry.metadata && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                     {t("changedFields")}: {Array.isArray(entry.metadata.fields) ? entry.metadata.fields.map((field) => databaseColumnLabel(String(field))).join("، ") : String(entry.metadata.fields ?? "—")}
+                     {t("changedFields")}: {Array.isArray(entry.metadata.fields)
+                        ? entry.metadata.fields.map((field) => databaseColumnLabel(String(field))).join("، ")
+                        : typeof entry.metadata.fields === "string"
+                          ? entry.metadata.fields.split(",").map((field) => databaseColumnLabel(field.trim())).join("، ")
+                          : String(entry.metadata.fields ?? "—")}
                   </p>
                 )}
               </div>
