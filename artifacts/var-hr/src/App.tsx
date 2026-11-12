@@ -19462,12 +19462,12 @@ function DatabaseAdministration() {
                   ))}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => setDetails(row)}>{t("viewDetails")}</Button>}
-                  {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => void openHistory(row)}>{t("history")}</Button>}
-                  {data.key === "users" && <Button size="sm" variant="outline" onClick={() => openAccountEditor(row)}>{t("databaseManageAccountPermissions")}</Button>}
-                  {editFields.length > 0 && <Button size="sm" variant="outline" onClick={() => openEdit(row)}>{t("edit")}</Button>}
-                  {data.canArchive && <Button size="sm" variant="quiet" onClick={() => void archive(row)}>{t("archive")}</Button>}
-                  {data.canDelete && <Button size="sm" variant="danger" onClick={() => void deleteRecord(row)}><Trash2 size={13} />{t("deleteRecord")}</Button>}
+                  {supportsDatabaseActions && <Button className="px-2.5 py-1.5 text-xs" variant="outline" onClick={() => setDetails(row)}>{t("viewDetails")}</Button>}
+                  {supportsDatabaseActions && <Button className="px-2.5 py-1.5 text-xs" variant="outline" onClick={() => void openHistory(row)}>{t("history")}</Button>}
+                  {data.key === "users" && <Button className="px-2.5 py-1.5 text-xs" variant="outline" onClick={() => openAccountEditor(row)}>{t("databaseManageAccountPermissions")}</Button>}
+                  {editFields.length > 0 && <Button className="px-2.5 py-1.5 text-xs" variant="outline" onClick={() => openEdit(row)}>{t("edit")}</Button>}
+                  {data.canArchive && <Button className="px-2.5 py-1.5 text-xs" variant="quiet" onClick={() => void archive(row)}>{t("archive")}</Button>}
+                  {data.canDelete && <Button className="px-2.5 py-1.5 text-xs" variant="danger" onClick={() => void deleteRecord(row)}><Trash2 size={13} />{t("deleteRecord")}</Button>}
                 </div>
               </div>
             ))}
@@ -19475,8 +19475,8 @@ function DatabaseAdministration() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
             <p className="text-xs text-muted-foreground">{t("databasePage")} {page + 1} · {data.rows.length} {t("databaseRecordsShown")}</p>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{t("databasePrevious")}</Button>
-              <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{t("databaseNext")}</Button>
+              <Button className="px-2.5 py-1.5 text-xs" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{t("databasePrevious")}</Button>
+              <Button className="px-2.5 py-1.5 text-xs" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{t("databaseNext")}</Button>
             </div>
           </div>
           </>
