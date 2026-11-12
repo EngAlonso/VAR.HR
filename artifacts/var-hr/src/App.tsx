@@ -19406,6 +19406,32 @@ function DatabaseAdministration() {
               </tbody>
             </table>
           </div>
+          <div className="grid gap-3 p-3 md:hidden">
+            {data.rows.map((row) => (
+              <div key={String(row.id)} className="min-w-0 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <p className="min-w-0 break-all text-xs font-semibold text-muted-foreground">{String(row.name ?? row.full_name ?? row.employee_number ?? row.id)}</p>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{String(row.status ?? (row.active === true ? (locale === "ar" ? "نشط" : "Active") : row.active === false ? (locale === "ar" ? "متوقف" : "Inactive") : data.label))}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {visibleColumns.filter((column) => !["id", "company_id"].includes(column)).map((column) => (
+                    <div key={column} className="min-w-0 rounded-lg bg-muted/40 p-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground">{databaseColumnTranslationKeys[column] ? t(databaseColumnTranslationKeys[column]) : column.replaceAll("_", " ")}</p>
+                      <p className="mt-1 break-words text-xs [overflow-wrap:anywhere]">{typeof row[column] === "object" ? JSON.stringify(row[column]) : databaseValue(column, row[column])}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => setDetails(row)}>{t("viewDetails")}</Button>}
+                  {supportsDatabaseActions && <Button size="sm" variant="outline" onClick={() => void openHistory(row)}>{t("history")}</Button>}
+                  {data.key === "users" && <Button size="sm" variant="outline" onClick={() => openAccountEditor(row)}>{locale === "ar" ? "إدارة الحساب والصلاحيات" : "Manage account"}</Button>}
+                  {editFields.length > 0 && <Button size="sm" variant="outline" onClick={() => openEdit(row)}>{t("edit")}</Button>}
+                  {data.canArchive && <Button size="sm" variant="quiet" onClick={() => void archive(row)}>{t("archive")}</Button>}
+                  {data.canDelete && <Button size="sm" variant="danger" onClick={() => void deleteRecord(row)}><Trash2 size={13} />{t("deleteRecord")}</Button>}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <Empty
             title={t("noRecordsFound")}
