@@ -362,6 +362,7 @@ const entities: Record<string, EntityConfig> = {
     editable: ["schedule_name", "work_start", "work_end", "required_hours", "grace_minutes", "overtime_eligible"],
     hasUpdatedAt: true,
     companyColumn: "company_id",
+    orderColumn: "updated_at",
   },
   attendance_calculations: {
     table: "var_hr_attendance_calculations",
