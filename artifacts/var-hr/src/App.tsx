@@ -19614,7 +19614,7 @@ function DatabaseAdministration() {
           <>
           <div className="grid gap-3 p-4 sm:grid-cols-2 2xl:grid-cols-3">
             {data.rows.map((row) => {
-              const recordTitle = String(row.name ?? row.full_name ?? row.employee_name ?? row.first_name ?? row.employee_number ?? t("databaseRecord"));
+              const recordTitle = String(row.name ?? row.full_name ?? row.employee_name ?? row.first_name ?? row.employee_number ?? t("databaseEntity"));
               const summaryColumns = visibleColumns.filter((column) => !/^(id|company_id|created_at|updated_at|deleted_at)$/.test(column) && !/(^|_)id$/.test(column));
               const cardColumns = summaryColumns.slice(0, 8);
               const hasActions = supportsDatabaseActions || editFields.length > 0 || data.key === "users" || data.canArchive || data.canDelete;
@@ -19623,7 +19623,7 @@ function DatabaseAdministration() {
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm font-bold leading-6 text-foreground">{recordTitle}</p>
-                      {row.company_name ? (
+                      {row.company_name && row.company_id ? (
                         <button className="mt-1 max-w-full truncate text-xs font-semibold text-primary hover:underline" onClick={() => row.company_id && setLocation("/platform/companies/" + encodeURIComponent(String(row.company_id)))}>
                           {String(row.company_name)}
                         </button>
