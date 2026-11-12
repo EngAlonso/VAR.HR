@@ -854,6 +854,8 @@ const copy = {
     databaseNext: "Next",
     databaseActive: "Active",
     databaseInactive: "Inactive",
+    databasePage: "Page",
+    databaseRecordsShown: "records shown",
     databaseRolePlatformOwner: "Platform Owner",
     databaseYes: "Yes",
     databaseNo: "No",
@@ -2813,6 +2815,8 @@ const pageCopy = {
     databaseNext: "التالي",
     databaseActive: "نشط",
     databaseInactive: "متوقف",
+    databasePage: "صفحة",
+    databaseRecordsShown: "سجل معروض",
     databaseRolePlatformOwner: "مالك المنصة",
     databaseYes: "نعم",
     databaseNo: "لا",
@@ -19469,7 +19473,7 @@ function DatabaseAdministration() {
             ))}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
-            <p className="text-xs text-muted-foreground">{locale === "ar" ? `صفحة ${page + 1} · ${data.rows.length} سجل معروض` : `Page ${page + 1} · ${data.rows.length} records shown`}</p>
+            <p className="text-xs text-muted-foreground">{t("databasePage")} {page + 1} · {data.rows.length} {t("databaseRecordsShown")}</p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>{t("databasePrevious")}</Button>
               <Button size="sm" variant="outline" disabled={data.rows.length < 100 || loading} onClick={() => setPage((current) => current + 1)}>{t("databaseNext")}</Button>
