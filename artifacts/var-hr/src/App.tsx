@@ -7337,7 +7337,7 @@ function Shell({ children }: { children: ReactNode }) {
         >
           <X size={18} />
         </Button>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch]">
           <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-sidebar-foreground/45">
             {t("workspace")}
           </div>
