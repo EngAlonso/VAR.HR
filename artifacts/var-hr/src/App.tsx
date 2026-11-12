@@ -18913,6 +18913,7 @@ function DatabaseAdministration() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [editValues, setEditValues] = useState<Record<string, unknown>>({});
+  const [editReason, setEditReason] = useState("");
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<AdminHistoryEntry[] | null>(null);
   const [historyTitle, setHistoryTitle] = useState("");
@@ -19064,6 +19065,7 @@ function DatabaseAdministration() {
   };
   const openEdit = (row: Record<string, unknown>) => {
     setEditing(row);
+    setEditReason("");
     setEditValues(
       Object.fromEntries(
         editFields.map((key) => [key, row[key] ?? ""]),
@@ -19079,7 +19081,7 @@ function DatabaseAdministration() {
         : `/api/platform/database/${data.key}/${editing.id}`;
       await authRequest(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({ values: editValues }),
+        body: JSON.stringify({ values: editValues, companyId: String(editing.company_id ?? editing.id ?? companyFilter), reason: editReason.trim() }),
       });
       setEditing(null);
       await load();
