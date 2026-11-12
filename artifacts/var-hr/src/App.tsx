@@ -797,6 +797,7 @@ const copy = {
     databaseAttendance: "Attendance",
     databaseHolidays: "Holidays",
     databaseLeaveRequests: "Leave requests",
+    databaseLeaveBalances: "Annual leave balances",
     databasePermissionRequests: "Permission requests",
     databasePayrollPeriods: "Payroll periods",
     databasePayrollCalculations: "Payroll calculations",
@@ -2812,6 +2813,7 @@ const pageCopy = {
     databaseAttendance: "الحضور",
     databaseHolidays: "العطلات",
     databaseLeaveRequests: "طلبات الإجازات",
+    databaseLeaveBalances: "أرصدة الإجازات السنوية",
     databasePermissionRequests: "طلبات الأذونات",
     databasePayrollPeriods: "فترات الرواتب",
     databasePayrollCalculations: "حسابات الرواتب",
@@ -19000,6 +19002,7 @@ const databaseEntityTranslationKeys: Record<string, AppCopyKey> = {
   attendance: "databaseAttendance",
   holidays: "databaseHolidays",
   leave_requests: "databaseLeaveRequests",
+  leave_balances: "databaseLeaveBalances",
   permission_requests: "databasePermissionRequests",
   payroll_periods: "databasePayrollPeriods",
   payroll_calculations: "databasePayrollCalculations",
@@ -19257,6 +19260,7 @@ const databaseGroups = [
     label: "Leave, payroll and platform support",
     keys: [
       "leave_requests",
+      "leave_balances",
       "permission_requests",
       "payroll_periods",
       "payroll_calculations",
@@ -19298,6 +19302,9 @@ function DatabaseAdministration() {
   const [accountEditForm, setAccountEditForm] = useState({ fullName: "", username: "", primaryPhone: "", displayRole: "", active: true, permissions: [] as string[], password: "" });
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountSaving, setAccountSaving] = useState(false);
+  const [leaveBalanceEditing, setLeaveBalanceEditing] = useState<Record<string, unknown> | null>(null);
+  const [leaveBalanceForm, setLeaveBalanceForm] = useState({ allocated: "", used: "", reason: "" });
+  const [leaveBalanceSaving, setLeaveBalanceSaving] = useState(false);
   if (auth.account.accountType !== "platform_owner") {
     return <WorkspaceState kind="unauthorized" />;
   }
@@ -19470,6 +19477,53 @@ function DatabaseAdministration() {
       );
     } finally {
       setPending("");
+    }
+  };
+  const openLeaveBalanceEditor = (row: Record<string, unknown>) => {
+    setLeaveBalanceEditing(row);
+    setLeaveBalanceForm({
+      allocated: String(row.allocated ?? "0"),
+      used: String(row.used ?? "0"),
+      reason: "",
+    });
+  };
+  const saveLeaveBalance = async () => {
+    if (!leaveBalanceEditing) return;
+    const allocated = Number(leaveBalanceForm.allocated);
+    const used = Number(leaveBalanceForm.used);
+    const pendingDays = Number(leaveBalanceEditing.pending ?? 0);
+    const reason = leaveBalanceForm.reason.trim();
+    if (!Number.isFinite(allocated) || !Number.isFinite(used) || allocated < 0 || used < 0 || allocated > 9999.99 || used > 9999.99) {
+      setError(locale === "ar" ? "أدخل أرقامًا صحيحة للرصيد والأيام المستخدمة." : "Enter valid total and used leave days.");
+      return;
+    }
+    if (allocated - used - pendingDays < 0) {
+      setError(locale === "ar" ? "الرصيد المخصص يجب أن يغطي الأيام المستخدمة والمعلقة." : "The total must cover used and pending leave days.");
+      return;
+    }
+    if (reason.length < 10) {
+      setError(locale === "ar" ? "اكتب سبب التعديل (10 أحرف على الأقل)." : "Enter a reason of at least 10 characters.");
+      return;
+    }
+    setLeaveBalanceSaving(true);
+    setError("");
+    try {
+      await authRequest(`/api/platform/leave-balances/${leaveBalanceEditing.id}/support`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          companyId: String(leaveBalanceEditing.company_id),
+          allocated,
+          used,
+          reason,
+        }),
+      });
+      setLeaveBalanceEditing(null);
+      toast.success(locale === "ar" ? "تم تحديث الرصيد السنوي وتسجيل الحركة." : "Annual leave balance updated and recorded.");
+      await load();
+    } catch (cause) {
+      setError(apiErrorMessage(cause, locale === "ar" ? "تعذر تحديث الرصيد السنوي." : "Could not update the annual leave balance."));
+    } finally {
+      setLeaveBalanceSaving(false);
     }
   };
   const archive = async (row: Record<string, unknown>) => {
@@ -19729,7 +19783,7 @@ function DatabaseAdministration() {
               const recordTitle = String(row.name ?? row.full_name ?? row.employee_name ?? row.first_name ?? row.employee_number ?? t("databaseEntity"));
               const summaryColumns = visibleColumns.filter((column) => !/^(id|company_id|created_at|updated_at|deleted_at)$/.test(column) && !/(^|_)id$/.test(column));
               const cardColumns = summaryColumns.slice(0, 8);
-              const hasActions = supportsDatabaseActions || editFields.length > 0 || data.key === "users" || data.canArchive || data.canDelete;
+              const hasActions = supportsDatabaseActions || editFields.length > 0 || data.key === "users" || data.key === "leave_balances" || data.canArchive || data.canDelete;
               return (
                 <article key={String(row.id)} className="group min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
                   <div className="flex min-w-0 items-start justify-between gap-3">
@@ -19760,6 +19814,7 @@ function DatabaseAdministration() {
                     <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/70 pt-3">
                       {supportsDatabaseActions ? <><Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => setDetails(row)}><Eye size={13} /> {t("viewDetails")}</Button><Button className="px-3 py-1.5 text-xs" variant="outline" disabled={pending !== ""} onClick={() => void openHistory(row)}>{t("history")}</Button></> : null}
                       {data.key === "users" ? <Button className="px-3 py-1.5 text-xs" variant="outline" disabled={accountLoading} onClick={() => openAccountEditor(row)}>{t("databaseManageAccountPermissions")}</Button> : null}
+                      {data.key === "leave_balances" && ["annual", "annual leave"].includes(String(row.type ?? "").trim().toLowerCase()) ? <Button className="px-3 py-1.5 text-xs" variant="outline" disabled={pending !== "" || leaveBalanceSaving} onClick={() => openLeaveBalanceEditor(row)}>{locale === "ar" ? "تعديل الرصيد السنوي" : "Edit annual balance"}</Button> : null}
                       {editFields.length > 0 ? <Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => openEdit(row)}>{t("edit")}</Button> : null}
                       {data.canArchive ? <Button className="px-3 py-1.5 text-xs" variant="quiet" disabled={pending !== ""} onClick={() => void archive(row)}>{t("archive")}</Button> : null}
                       {data.canDelete ? <Button className="px-3 py-1.5 text-xs" variant="danger" disabled={pending !== ""} onClick={() => void deleteRecord(row)}><Trash2 size={13} /> {t("deleteRecord")}</Button> : null}
@@ -19813,6 +19868,36 @@ function DatabaseAdministration() {
             <Button onClick={() => void saveEdit()} disabled={pending !== "" || editReason.trim().length < 10}>
               {pending === "save" ? "…" : t("saveChanges")}
             </Button>
+          </div>
+        </Modal>
+      )}
+      {leaveBalanceEditing && (
+        <Modal title={locale === "ar" ? "تعديل الرصيد السنوي" : "Edit annual leave balance"} onClose={() => setLeaveBalanceEditing(null)} className="max-w-xl">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <p className="font-bold">{String(leaveBalanceEditing.employee_name ?? leaveBalanceEditing.employee_id ?? "")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{String(leaveBalanceEditing.company_name ?? "")}</p>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-background p-2"><p className="text-xs text-muted-foreground">{locale === "ar" ? "المخصص" : "Allocated"}</p><p className="mt-1 font-bold tabular-nums">{Number(leaveBalanceEditing.allocated ?? 0).toFixed(2)}</p></div>
+                <div className="rounded-lg bg-background p-2"><p className="text-xs text-muted-foreground">{locale === "ar" ? "المستخدم" : "Used"}</p><p className="mt-1 font-bold tabular-nums">{Number(leaveBalanceEditing.used ?? 0).toFixed(2)}</p></div>
+                <div className="rounded-lg bg-background p-2"><p className="text-xs text-muted-foreground">{locale === "ar" ? "المتبقي" : "Remaining"}</p><p className="mt-1 font-bold tabular-nums">{(Number(leaveBalanceEditing.allocated ?? 0) - Number(leaveBalanceEditing.used ?? 0) - Number(leaveBalanceEditing.pending ?? 0)).toFixed(2)}</p></div>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={locale === "ar" ? "إجمالي الرصيد السنوي" : "Total annual allowance"} type="number" value={leaveBalanceForm.allocated} onChange={(value) => setLeaveBalanceForm((current) => ({ ...current, allocated: value }))} />
+              <Field label={locale === "ar" ? "الأيام المستخدمة" : "Used days"} type="number" value={leaveBalanceForm.used} onChange={(value) => setLeaveBalanceForm((current) => ({ ...current, used: value }))} />
+            </div>
+            <div className="rounded-lg bg-primary/5 p-3 text-sm font-semibold">
+              {locale === "ar" ? "المتبقي بعد التعديل: " : "Remaining after change: "}
+              {(Number(leaveBalanceForm.allocated || 0) - Number(leaveBalanceForm.used || 0) - Number(leaveBalanceEditing.pending ?? 0)).toFixed(2)}
+              {locale === "ar" ? " يوم" : " days"}
+              {Number(leaveBalanceEditing.pending ?? 0) > 0 ? <p className="mt-1 text-xs font-normal text-muted-foreground">{locale === "ar" ? `يتضمن الحساب ${Number(leaveBalanceEditing.pending).toFixed(2)} يومًا معلقًا.` : `${Number(leaveBalanceEditing.pending).toFixed(2)} pending days are also deducted.`}</p> : null}
+            </div>
+            <Field label={locale === "ar" ? "سبب التعديل (إجباري)" : "Reason for change (required)"} value={leaveBalanceForm.reason} onChange={(value) => setLeaveBalanceForm((current) => ({ ...current, reason: value }))} />
+            <div className="flex justify-end gap-2">
+              <Button variant="quiet" onClick={() => setLeaveBalanceEditing(null)}>{t("cancel")}</Button>
+              <Button onClick={() => void saveLeaveBalance()} disabled={leaveBalanceSaving || leaveBalanceForm.reason.trim().length < 10}>{leaveBalanceSaving ? "…" : t("saveChanges")}</Button>
+            </div>
           </div>
         </Modal>
       )}
