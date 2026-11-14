@@ -11841,9 +11841,13 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
           ? isArabic
             ? "تم رفض إذن الموقع. Safari لا يستطيع إظهار نافذة السماح مرة أخرى تلقائيًا بعد الرفض. افتح إعدادات iPhone > الخصوصية والأمان > خدمات الموقع، واسمح للموقع أثناء استخدام Safari، ثم ارجع واضغط تسجيل تغيير موقع العمل مرة أخرى."
             : "Location permission was denied. Safari cannot show the permission prompt again automatically after a denial. Open iPhone Settings > Privacy & Security > Location Services, allow location access for Safari, then return and retry."
-          : error instanceof Error && error.message === "GEOLOCATION_TIMEOUT"
-            ? isArabic ? "انتهت مهلة تحديد الموقع. فعّل خدمات الموقع وميزة الموقع الدقيق ثم حاول مرة أخرى." : "Location request timed out. Enable Location Services and Precise Location, then try again."
-            : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
+          : geoCode === 2
+            ? isArabic
+              ? "خدمات الموقع أو GPS مقفولة على الجهاز، لذلك لم نتمكن من تحديد موقعك. افتح إعدادات iPhone > الخصوصية والأمان > خدمات الموقع، وشغّل خدمات الموقع والموقع الدقيق لـ Safari، ثم حاول مرة أخرى."
+              : "GPS or Location Services are turned off on this device. Open iPhone Settings > Privacy & Security > Location Services, turn them on, enable Precise Location for Safari, and try again."
+            : error instanceof Error && error.message === "GEOLOCATION_TIMEOUT"
+              ? isArabic ? "لم يستجب GPS في الوقت المحدد. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS did not respond in time. Make sure Location Services and Precise Location are enabled, then try again."
+              : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
               ? isArabic ? "أعاد GPS إحداثيات غير صالحة. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS returned invalid coordinates. Enable Location Services and Precise Location, then try again."
               : isArabic ? "تعذر تحديد موقعك. راجع إذن الموقع في Safari ثم حاول مرة أخرى." : "Could not get your location. Check Safari location permission and try again."
         : error instanceof Error
@@ -11986,17 +11990,25 @@ function Attendance() {
         };
       } catch (error) {
         setGpsState("unavailable");
-        const denied = (error as GeolocationPositionError)?.code === 1;
+        const geoCode = (error as GeolocationPositionError)?.code;
         toast.warning(
-          denied
+          geoCode === 1
             ? locale === "ar"
-              ? "تم رفض إذن الموقع. Safari لن يعرض طلب السماح تلقائيًا بعد الرفض. افتح إعدادات iPhone > الخصوصية والأمان > خدمات الموقع، واسمح للموقع أثناء استخدام Safari مع تفعيل الموقع الدقيق، ثم ارجع واضغط تسجيل الحضور مرة أخرى."
-              : "Location permission was denied. Safari cannot prompt again automatically. In iPhone Settings > Privacy & Security > Location Services, allow location for Safari and enable Precise Location, then return and retry."
-            : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
+              ? "أنت رفضت السماح للموقع بالوصول إلى GPS. لم يتم تسجيل الحضور. افتح إعدادات iPhone > الخصوصية والأمان > خدمات الموقع > Safari، وغيّر الإذن إلى أثناء استخدام التطبيق، ثم حاول مرة أخرى."
+              : "You denied location permission. Attendance was not recorded. Open iPhone Settings > Privacy & Security > Location Services > Safari, allow location while using the app, then retry."
+            : geoCode === 2
               ? locale === "ar"
-                ? "إحداثيات GPS غير صالحة. لم يتم إرسال الحضور. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى."
-                : "GPS returned invalid coordinates. Attendance was not sent. Enable Location Services and Precise Location, then retry."
-              : t("gpsUnavailable"),
+                ? "خدمات الموقع أو GPS مقفولة على الآيفون. لم يتم تسجيل الحضور. شغّل خدمات الموقع من إعدادات الخصوصية والأمان، وفعّل الموقع الدقيق لـ Safari، ثم حاول مرة أخرى."
+                : "GPS or Location Services are turned off on the iPhone. Attendance was not recorded. Turn on Location Services in Privacy & Security and enable Precise Location for Safari, then retry."
+              : error instanceof Error && error.message === "GEOLOCATION_TIMEOUT"
+                ? locale === "ar"
+                  ? "GPS لم يستجب في الوقت المحدد. تأكد من تشغيل خدمات الموقع والموقع الدقيق، ثم حاول مرة أخرى."
+                  : "GPS did not respond in time. Make sure Location Services and Precise Location are enabled, then retry."
+                : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
+                  ? locale === "ar"
+                    ? "إحداثيات GPS غير صالحة. لم يتم إرسال الحضور. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى."
+                    : "GPS returned invalid coordinates. Attendance was not sent. Enable Location Services and Precise Location, then retry."
+                  : t("gpsUnavailable"),
         );
         return;
       }
