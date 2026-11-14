@@ -11761,9 +11761,9 @@ function getBrowserPosition(timeoutMs = 15000): Promise<GeolocationPosition> {
           if (settled) return;
           settled = true;
           window.clearTimeout(timer);
-          const latitude = position?.coords?.latitude;
-          const longitude = position?.coords?.longitude;
-          const accuracy = position?.coords?.accuracy;
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
           if (
             !Number.isFinite(latitude) ||
             !Number.isFinite(longitude) ||
