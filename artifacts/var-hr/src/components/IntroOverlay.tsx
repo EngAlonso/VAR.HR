@@ -38,6 +38,15 @@ export function IntroOverlay() {
       >
         <source src={INTRO_VIDEO_URL} type="video/mp4" />
       </video>
+
+      <button
+        type="button"
+        onClick={() => setVisible(false)}
+        aria-label="تخطي المقدمة"
+        className="absolute right-4 top-4 z-20 rounded-full border border-white/35 bg-black/55 px-5 py-2.5 text-sm font-bold text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#071a33] sm:right-6 sm:top-6 sm:px-6 sm:py-3"
+      >
+        تخطي المقدمة <span aria-hidden="true">»</span>
+      </button>
     </div>
   );
 }
