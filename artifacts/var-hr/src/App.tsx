@@ -11804,7 +11804,25 @@ function getBrowserPosition(timeoutMs = 15000): Promise<GeolocationPosition> {
 function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
   const { locale } = useI18n();
   const [pending, setPending] = useState(false);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
   const isArabic = locale === "ar";
+
+  async function loadLocations() {
+    setLocationsLoading(true);
+    try {
+      const result = await authRequest<any[]>(`/api/employees/${employeeId}/work-locations`);
+      setLocations(Array.isArray(result) ? result : []);
+    } catch {
+      setLocations([]);
+    } finally {
+      setLocationsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadLocations();
+  }, [employeeId]);
 
   async function recordLocation() {
     const comment = window.prompt(
@@ -11818,7 +11836,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
     setPending(true);
     try {
       const position = await getBrowserPosition(15000);
-      await authRequest(`/api/employees/${employeeId}/work-locations`, {
+      const result = await authRequest<{ duplicate?: boolean }>(`/api/employees/${employeeId}/work-locations`, {
         method: "POST",
         body: JSON.stringify({
           latitude: position.coords.latitude,
@@ -11827,7 +11845,12 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
           comment: comment.trim(),
         }),
       });
-      toast.success(isArabic ? "تم تسجيل موقع العمل بنجاح." : "Work location recorded successfully.");
+      if (result?.duplicate) {
+        toast.info(isArabic ? "الموقع ده مسجل عندك بالفعل، لم يتم تسجيله مرة تانية." : "This location is already registered. It was not added again.");
+      } else {
+        toast.success(isArabic ? "تم تسجيل موقع العمل بنجاح." : "Work location recorded successfully.");
+      }
+      await loadLocations();
     } catch (error) {
       const geolocationError =
         error instanceof Error &&
@@ -11860,21 +11883,54 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
   }
 
   return (
-    <Button
-      variant="outline"
-      className="w-full"
-      disabled={pending}
-      onClick={() => void recordLocation()}
-      data-testid="button-record-work-location"
-    >
-      <MapPin size={16} />
-      {pending
-        ? isArabic ? "جارٍ تسجيل الموقع..." : "Recording location..."
-        : isArabic ? "تسجيل تغيير موقع العمل" : "Record work location change"}
-    </Button>
+    <div className="w-full space-y-3">
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={pending}
+        onClick={() => void recordLocation()}
+        data-testid="button-record-work-location"
+      >
+        <MapPin size={16} />
+        {pending
+          ? isArabic ? "جارٍ تسجيل الموقع..." : "Recording location..."
+          : isArabic ? "تسجيل تغيير موقع العمل" : "Record work location change"}
+      </Button>
+      <section className="rounded-lg border bg-card p-3 space-y-3" data-testid="section-saved-work-locations">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold text-sm">{isArabic ? "مواقع العمل المسجلة" : "Registered work locations"}</h3>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">{locations.length}</span>
+        </div>
+        {locationsLoading ? (
+          <p className="text-sm text-muted-foreground">{isArabic ? "جارٍ تحميل المواقع..." : "Loading locations..."}</p>
+        ) : locations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{isArabic ? "لا توجد مواقع عمل مسجلة حتى الآن." : "No work locations have been registered yet."}</p>
+        ) : (
+          <div className="space-y-2">
+            {locations.slice(0, 8).map((location) => (
+              <a
+                key={location.id}
+                href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-start justify-between gap-3 rounded-md border p-2 hover:bg-muted/50"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{location.comment || (isArabic ? "موقع عمل" : "Work location")}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {location.recordedAt ? new Date(location.recordedAt).toLocaleString(isArabic ? "ar-EG" : "en-US") : ""}
+                  </span>
+                </span>
+                <MapPin size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
+              </a>
+            ))}
+            {locations.length > 8 && <p className="text-xs text-muted-foreground">{isArabic ? `يتم عرض أحدث 8 مواقع من أصل ${locations.length}.` : `Showing the latest 8 of ${locations.length} locations.`}</p>}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
-
 function Attendance() {
   const { t, locale } = useI18n();
   const qc = useQueryClient();
