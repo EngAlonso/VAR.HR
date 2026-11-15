@@ -4973,6 +4973,40 @@ router.post(
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
     }
+    const existingLocations = await db
+      .select({
+        latitude: employeeWorkLocationsTable.latitude,
+        longitude: employeeWorkLocationsTable.longitude,
+      })
+      .from(employeeWorkLocationsTable)
+      .where(
+        and(
+          eq(employeeWorkLocationsTable.companyId, context.companyId),
+          eq(employeeWorkLocationsTable.employeeId, employee.id),
+        ),
+      );
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const isDuplicateLocation = existingLocations.some((location) => {
+      const lat1 = Number(location.latitude);
+      const lon1 = Number(location.longitude);
+      const lat2 = parsed.data.latitude;
+      const lon2 = parsed.data.longitude;
+      const earthRadiusMeters = 6371000;
+      const deltaLat = toRadians(lat2 - lat1);
+      const deltaLon = toRadians(lon2 - lon1);
+      const haversine =
+        Math.sin(deltaLat / 2) ** 2 +
+        Math.cos(toRadians(lat1)) *
+          Math.cos(toRadians(lat2)) *
+          Math.sin(deltaLon / 2) ** 2;
+      const distanceMeters =
+        2 * earthRadiusMeters * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+      return distanceMeters <= 30;
+    });
+    if (isDuplicateLocation) {
+      res.status(200).json({ duplicate: true });
+      return;
+    }
     const recordedAt = new Date();
     const [row] = await db
       .insert(employeeWorkLocationsTable)
