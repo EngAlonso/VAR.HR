@@ -8758,7 +8758,6 @@ function EmployeeAttendanceMovement({
     amount: "",
     reason: "",
   });
-  const [payrollSummaryRefresh, setPayrollSummaryRefresh] = useState(0);
   const [employeeAdjustments, setEmployeeAdjustments] = useState<any[]>([]);
   const [employeeAdjustmentsLoading, setEmployeeAdjustmentsLoading] = useState(false);
   const [open, setOpen] = useState(fullPage);
@@ -8824,35 +8823,31 @@ function EmployeeAttendanceMovement({
     [report.data?.rows],
   );
   useEffect(() => {
-    if (!open || !employeeId || !from || !to || from > to) {
-      setPayrollSummary(null);
-      setPayrollSummaryError("");
-      return;
-    }
-    let active = true;
+    // Changing the selected dates invalidates the displayed calculation only.
+    // Payroll is calculated exclusively when the user presses the Calculate button.
+    setPayrollSummary(null);
+    setPayrollSummaryError("");
+  }, [from, to, employeeId]);
+
+  async function calculateEmployeePayroll() {
+    if (!employeeId || !from || !to || from > to || payrollSummaryLoading) return;
     setPayrollSummaryLoading(true);
     setPayrollSummaryError("");
-    authRequest<any>(
-      `/api/payroll/employee-summary?employeeId=${encodeURIComponent(employeeId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-    )
-      .then((summary) => {
-        if (active) setPayrollSummary(summary);
-      })
-      .catch((error) => {
-        if (active) {
-          setPayrollSummary(null);
-          setPayrollSummaryError(
-            error instanceof Error ? error.message : "تعذر حساب الراتب للفترة المحددة",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setPayrollSummaryLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [open, employeeId, from, to, payrollSummaryRefresh]);
+    setPayrollSummary(null);
+    try {
+      const summary = await authRequest<any>(
+        `/api/payroll/employee-summary?employeeId=${encodeURIComponent(employeeId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      );
+      setPayrollSummary(summary);
+    } catch (error) {
+      setPayrollSummaryError(
+        error instanceof Error ? error.message : "تعذر حساب الراتب للفترة المحددة",
+      );
+    } finally {
+      setPayrollSummaryLoading(false);
+    }
+  }
+
   async function submitPayrollAdjustment(event: FormEvent) {
     event.preventDefault();
     const amount = Number(payrollAdjustmentForm.amount);
@@ -8884,7 +8879,8 @@ function EmployeeAttendanceMovement({
         amount: "",
         reason: "",
       }));
-      setPayrollSummaryRefresh((value) => value + 1);
+      setPayrollSummary(null);
+      setPayrollSummaryError("");
       toast.success(locale === "ar" ? "تم حفظ الحركة المالية وستدخل في حساب فترة الرواتب المطابقة لتاريخها." : "The adjustment was saved and will be included in the payroll period matching its date.");
     } catch (error) {
       toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment."));
@@ -9085,6 +9081,22 @@ function EmployeeAttendanceMovement({
             <Card className="p-4 text-sm text-destructive">{locale === "ar" ? "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" : "Start date must be before end date"}</Card>
           ) : (
             <Card className="grid gap-3 border-primary/20 bg-primary/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-3">
+                <p className="text-sm text-muted-foreground">
+                  {locale === "ar" ? "حدد الفترة المطلوبة ثم اضغط لحساب الراتب." : "Select the period, then calculate the salary."}
+                </p>
+                <Button
+                  type="button"
+                  onClick={calculateEmployeePayroll}
+                  disabled={payrollSummaryLoading || !employeeId || !from || !to || from > to}
+                  data-testid={`button-calculate-employee-payroll-${employeeId}`}
+                >
+                  {payrollSummaryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calculator className="mr-2 h-4 w-4" />}
+                  {payrollSummaryLoading
+                    ? (locale === "ar" ? "جارٍ حساب الراتب…" : "Calculating salary…")
+                    : (locale === "ar" ? "احسب الراتب" : "Calculate salary")}
+                </Button>
+              </div>
               <Info label={locale === "ar" ? "الراتب الأساسي للفترة" : "Basic salary for period"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.basicSalary || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
               <Info label={locale === "ar" ? "الإضافات اليدوية" : "Manual additions"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.additions || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
               <Info label={locale === "ar" ? "مقابل العمل الإضافي" : "Overtime pay"} value={payrollSummaryLoading ? "…" : payrollSummary ? `${Number(payrollSummary.overtime || 0).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")} ${payrollSummary.currency || "EGP"}` : "—"} />
