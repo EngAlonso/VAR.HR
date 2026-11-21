@@ -1,0 +1,193 @@
+name: VAR HR fresh Aiven database migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_fresh_database:
+        description: "Confirm the NEW Aiven database is empty and contains no application tables or migration history"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+      production_confirmation:
+        description: "Type CREATE-FRESH-0014 to authorize creating the schema from migration 0000 through 0014"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: varhr-aiven-production-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate-fresh-aiven:
+    name: Verify empty Aiven, test full chain, migrate, and verify
+    runs-on: ubuntu-latest
+    environment:
+      name: aiven-production
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: var_hr_migration_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d var_hr_migration_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/var_hr_migration_test
+      AIVEN_MIGRATION_DATABASE_URL: ${{ secrets.AIVEN_MIGRATION_DATABASE_URL }}
+      AIVEN_CA_CERT: ${{ secrets.AIVEN_CA_CERT }}
+
+    steps:
+      - name: Check out reviewed code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate explicit authorization and Aiven secrets
+        shell: bash
+        env:
+          FRESH_DATABASE_CONFIRMED: ${{ inputs.confirm_fresh_database }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.production_confirmation }}
+        run: |
+          if [[ "$FRESH_DATABASE_CONFIRMED" != "yes" ]]; then
+            echo "::error::Migration blocked: confirm that this is the new empty database."
+            exit 1
+          fi
+
+          if [[ "$PRODUCTION_CONFIRMATION" != "CREATE-FRESH-0014" ]]; then
+            echo "::error::Migration blocked: confirmation must match CREATE-FRESH-0014 exactly."
+            exit 1
+          fi
+
+          if [[ -z "$AIVEN_MIGRATION_DATABASE_URL" || -z "$AIVEN_CA_CERT" ]]; then
+            echo "::error::Missing AIVEN_MIGRATION_DATABASE_URL or AIVEN_CA_CERT in the aiven-production environment."
+            exit 1
+          fi
+
+          if [[ "$AIVEN_MIGRATION_DATABASE_URL" != *".aivencloud.com"* ]]; then
+            echo "::error::The configured database URL is not an Aiven host."
+            exit 1
+          fi
+
+          echo "Authorization and required Aiven secrets verified."
+
+      - name: Verify migration journal boundaries
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const journal = JSON.parse(fs.readFileSync("lib/db/migrations/meta/_journal.json", "utf8"));
+          const entries = journal.entries ?? [];
+          if (entries.length !== 15) throw new Error(`Expected 15 migrations (0000-0014), found ${entries.length}.`);
+          if (entries[0]?.tag !== "0000_same_stryfe") throw new Error("Unexpected first migration.");
+          if (entries.at(-1)?.tag !== "0014_biometric_device_commands") throw new Error("Unexpected latest migration.");
+          console.log(`Verified complete migration chain: ${entries[0].tag} through ${entries.at(-1).tag}.`);
+          NODE
+
+      - name: Apply the complete migration chain to disposable PostgreSQL
+        run: pnpm --filter @workspace/db run migrate:dev
+
+      - name: Verify disposable PostgreSQL matches the latest schema
+        run: pnpm --filter @workspace/db run inspect:dev
+
+      # Read-only preflight. Any existing public table, Drizzle ledger, or
+      # Drizzle schema blocks the production write.
+      - name: Verify the actual Aiven target is completely fresh (read-only)
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from "pg";
+          const { Pool } = pg;
+          const rawUrl = process.env.AIVEN_MIGRATION_DATABASE_URL;
+          const parsed = new URL(rawUrl);
+          if (!parsed.hostname.endsWith(".aivencloud.com")) throw new Error("Target is not an Aiven host.");
+          const rawCa = process.env.AIVEN_CA_CERT;
+          if (!rawCa?.includes("-----BEGIN CERTIFICATE-----")) throw new Error("AIVEN_CA_CERT is missing or invalid.");
+          const ca = rawCa.replace(/\\n/g, "\n").trim();
+          const pool = new Pool({
+            host: parsed.hostname,
+            port: Number(parsed.port || 5432),
+            user: decodeURIComponent(parsed.username),
+            password: decodeURIComponent(parsed.password),
+            database: decodeURIComponent(parsed.pathname.replace(/^\/+/, "")),
+            ssl: { ca, rejectUnauthorized: true },
+            max: 1
+          });
+          try {
+            const identity = await pool.query("SELECT current_database() AS database_name, current_setting('server_version') AS server_version");
+            const tables = await pool.query(`
+              SELECT schemaname, tablename
+              FROM pg_tables
+              WHERE schemaname = 'public'
+                AND tablename NOT LIKE 'pg_%'
+                AND tablename NOT LIKE 'sql_%'
+              ORDER BY tablename
+            `);
+            const ledger = await pool.query("SELECT to_regclass('drizzle.__drizzle_migrations') IS NOT NULL AS exists");
+            const drizzleSchema = await pool.query("SELECT to_regnamespace('drizzle') IS NOT NULL AS exists");
+            console.log("Aiven database:", identity.rows[0].database_name);
+            console.log("PostgreSQL:", identity.rows[0].server_version);
+            console.log("Existing public tables:", tables.rows.length);
+            console.log("Drizzle schema exists:", drizzleSchema.rows[0].exists);
+            console.log("Drizzle migration ledger exists:", ledger.rows[0].exists);
+            if (tables.rows.length !== 0 || ledger.rows[0].exists || drizzleSchema.rows[0].exists) {
+              throw new Error("Aiven target is not completely fresh. No production DDL was executed; inspect the target manually.");
+            }
+            console.log("PASS: Aiven target is empty and has no migration history.");
+          } finally {
+            await pool.end();
+          }
+          NODE
+
+      - name: Apply migrations 0000 through 0014 to the confirmed empty Aiven database
+        run: pnpm --filter @workspace/db exec drizzle-kit migrate --config ./drizzle.aiven.config.ts
+
+      - name: Verify Aiven schema and complete migration ledger
+        run: |
+          pnpm --filter @workspace/db run inspect:aiven
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const reportPath = "lib/db/migrations/meta/aiven-baseline-report.json";
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const journal = JSON.parse(fs.readFileSync("lib/db/migrations/meta/_journal.json", "utf8"));
+          const fail = (message) => { throw new Error(`Aiven post-migration verification failed: ${message}`); };
+          const expected = journal.entries;
+          const actual = report.migrationLedger?.entries ?? [];
+          const latest = expected.at(-1);
+          if (report.columnsMatchKnownSnapshot !== true) fail("Aiven columns do not match a known Drizzle snapshot.");
+          if (report.comparison?.matches !== true) fail("Aiven schema does not match the latest snapshot.");
+          if (report.matchingSnapshotMigration?.tag !== latest?.tag) fail("Aiven is not at the latest repository migration.");
+          if (actual.length !== expected.length) fail(`Expected ${expected.length} ledger entries, found ${actual.length}.`);
+          if (actual.at(-1)?.hash !== report.latestRepositoryMigration?.hash) fail("Latest migration hash does not match the repository.");
+          if (String(actual.at(-1)?.created_at) !== String(latest?.when)) fail("Latest migration timestamp does not match the repository.");
+          const commandColumns = report.columns?.filter((column) => column.table_name === "var_hr_biometric_device_commands") ?? [];
+          for (const name of ["id", "command_number", "company_id", "device_id", "sync_history_id", "command", "status", "result", "created_at", "sent_at", "completed_at"]) {
+            if (!commandColumns.some((column) => column.column_name === name)) fail(`Missing biometric command column: ${name}`);
+          }
+          console.log("SUCCESS: fresh Aiven database migrated from 0000 through 0014.");
+          console.log(`Verified ${actual.length} migration ledger entries and the biometric device commands table.`);
+          NODE
