@@ -120,8 +120,10 @@ jobs:
         shell: bash
         run: |
           node --input-type=module <<'NODE'
-          import pg from "pg";
-          const { Pool } = pg;
+          import { createRequire } from "node:module";
+          // Resolve pg from the @workspace/db package, where pnpm installs it.
+          const require = createRequire(new URL("./lib/db/package.json", `file://${process.cwd()}/`));
+          const { Pool } = require("pg");
           const rawUrl = process.env.AIVEN_MIGRATION_DATABASE_URL;
           const parsed = new URL(rawUrl);
           if (!parsed.hostname.endsWith(".aivencloud.com")) throw new Error("Target is not an Aiven host.");
