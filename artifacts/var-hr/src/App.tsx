@@ -8760,6 +8760,7 @@ function EmployeeAttendanceMovement({
   });
   const [employeeAdjustments, setEmployeeAdjustments] = useState<any[]>([]);
   const [employeeAdjustmentsLoading, setEmployeeAdjustmentsLoading] = useState(false);
+  const [employeeAdjustmentsRefresh, setEmployeeAdjustmentsRefresh] = useState(0);
   const [open, setOpen] = useState(fullPage);
   useEffect(() => {
     if (!open || !employeeId) return;
@@ -8776,7 +8777,7 @@ function EmployeeAttendanceMovement({
         if (active) setEmployeeAdjustmentsLoading(false);
       });
     return () => { active = false; };
-  }, [open, employeeId, payrollSummaryRefresh, locale]);
+  }, [open, employeeId, employeeAdjustmentsRefresh, locale]);
   const employeeQuery = useGetEmployee(employeeId, {
     query: {
       enabled: Boolean(employeeId),
@@ -8881,6 +8882,7 @@ function EmployeeAttendanceMovement({
       }));
       setPayrollSummary(null);
       setPayrollSummaryError("");
+      setEmployeeAdjustmentsRefresh((value) => value + 1);
       toast.success(locale === "ar" ? "تم حفظ الحركة المالية وستدخل في حساب فترة الرواتب المطابقة لتاريخها." : "The adjustment was saved and will be included in the payroll period matching its date.");
     } catch (error) {
       toast.error(apiErrorMessage(error, locale === "ar" ? "تعذرت إضافة الخصم أو الإضافي." : "Could not add the payroll adjustment."));
