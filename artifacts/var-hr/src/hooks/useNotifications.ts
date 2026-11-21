@@ -16,7 +16,6 @@ import { registerNotificationServiceWorker } from '@/lib/notification-service-wo
 
 const SUBSCRIPTION_STORAGE_KEY = 'var-hr:notifications:subscribed';
 const DEFAULT_PAGE_SIZE = 8;
-const DEFAULT_POLLING_INTERVAL = 30_000;
 
 type NotificationPageWithCursor = NotificationPage & {
   hasNextPage?: boolean;
@@ -25,7 +24,6 @@ type NotificationPageWithCursor = NotificationPage & {
 export interface UseNotificationsOptions {
   pageSize?: number;
   initialPage?: number;
-  pollingInterval?: number;
 }
 
 export interface UseNotificationsResult {
@@ -114,10 +112,6 @@ export function useNotifications(
   const queryClient = useQueryClient();
   const [page, setPage] = useState(Math.max(1, options.initialPage ?? 1));
   const pageSize = Math.min(100, Math.max(1, options.pageSize ?? DEFAULT_PAGE_SIZE));
-  const pollingInterval = Math.max(
-    5_000,
-    options.pollingInterval ?? DEFAULT_POLLING_INTERVAL,
-  );
   const [permission, setPermission] = useState<
     NotificationPermission | 'unsupported'
   >(() => {
@@ -136,8 +130,10 @@ export function useNotifications(
   const notificationsQuery = useListNotifications(queryParams, {
     query: {
       queryKey: getListNotificationsQueryKey(queryParams),
-      refetchInterval: pollingInterval,
-      refetchIntervalInBackground: false,
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   });
@@ -154,8 +150,8 @@ export function useNotifications(
 
   const refreshNotifications = async () => {
     const queryKey = getListNotificationsQueryKey();
-    await queryClient.invalidateQueries({ queryKey });
-    return queryClient.refetchQueries({ queryKey });
+    // invalidateQueries already refetches active observers; avoid a second request.
+    return queryClient.invalidateQueries({ queryKey, refetchType: "active" });
   };
 
   useEffect(() => {

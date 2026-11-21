@@ -226,9 +226,11 @@ import {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
+      // Keep server data warm while navigating; refresh stale data when the user returns.
+      staleTime: 60_000,
+      gcTime: 10 * 60_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   },

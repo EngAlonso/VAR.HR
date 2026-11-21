@@ -38,6 +38,16 @@ app.use(express.text({ type: ["text/plain", "application/x-www-form-urlencoded"]
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// HR API responses contain employee, attendance, and payroll data.
+ // Keep them out of browser/CDN HTTP caches; React Query provides the scoped in-memory cache.
+app.use("/api", (req, res, next) => {
+  if (req.method === "GET") {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Vary", "Cookie, Authorization");
+  }
+  next();
+});
+
 app.use("/api", router);
 app.use("/iclock", iclockRouter);
 app.use("/api/iclock", iclockRouter);
