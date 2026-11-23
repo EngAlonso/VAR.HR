@@ -11821,10 +11821,29 @@ function getBrowserPosition(timeoutMs = 15000): Promise<GeolocationPosition> {
 
 function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
   const { locale } = useI18n();
+  const workspace = useGetWorkspace();
   const [pending, setPending] = useState(false);
   const [locations, setLocations] = useState<any[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
   const isArabic = locale === "ar";
+  const companyToday = useMemo(() => {
+    const companyTimezone =
+      (workspace.data?.company as any)?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: companyTimezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) =>
+      parts.find((item) => item.type === type)?.value ?? "";
+    return `${part("year")}-${part("month")}-${part("day")}`;
+  }, [workspace.data?.company]);
+  const todayLocations = useMemo(
+    () => locations.filter((location) => location.workDate === companyToday),
+    [locations, companyToday],
+  );
 
   async function loadLocations() {
     setLocationsLoading(true);
@@ -11916,16 +11935,16 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       </Button>
       <section className="rounded-lg border bg-card p-3 space-y-3" data-testid="section-saved-work-locations">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-semibold text-sm">{isArabic ? "مواقع العمل المسجلة" : "Registered work locations"}</h3>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">{locations.length}</span>
+          <h3 className="font-semibold text-sm">{isArabic ? "زيارات اليوم" : "Today's visits"}</h3>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">{todayLocations.length}</span>
         </div>
         {locationsLoading ? (
           <p className="text-sm text-muted-foreground">{isArabic ? "جارٍ تحميل المواقع..." : "Loading locations..."}</p>
-        ) : locations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{isArabic ? "لا توجد مواقع عمل مسجلة حتى الآن." : "No work locations have been registered yet."}</p>
+        ) : todayLocations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{isArabic ? "لا توجد زيارات مسجلة اليوم." : "No visits have been recorded today."}</p>
         ) : (
           <div className="space-y-2">
-            {locations.slice(0, 8).map((location) => (
+            {todayLocations.map((location) => (
               <a
                 key={location.id}
                 href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
@@ -11934,7 +11953,8 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
                 className="flex items-start justify-between gap-3 rounded-md border p-2 hover:bg-muted/50"
               >
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium">{location.comment || (isArabic ? "موقع عمل" : "Work location")}</span>
+                  <span className="block text-sm font-medium">{isArabic ? "زيارة موقع عمل" : "Work location visit"}</span>
+                  <span className="block text-sm text-muted-foreground">{location.comment?.trim() || (isArabic ? "لا يوجد تعليق مسجل." : "No comment recorded.")}</span>
                   <span className="block text-xs text-muted-foreground">
                     {location.recordedAt ? new Date(location.recordedAt).toLocaleString(isArabic ? "ar-EG" : "en-US") : ""}
                   </span>
@@ -11942,7 +11962,6 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
                 <MapPin size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
               </a>
             ))}
-            {locations.length > 8 && <p className="text-xs text-muted-foreground">{isArabic ? `يتم عرض أحدث 8 مواقع من أصل ${locations.length}.` : `Showing the latest 8 of ${locations.length} locations.`}</p>}
           </div>
         )}
       </section>
