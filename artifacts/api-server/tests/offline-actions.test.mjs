@@ -67,8 +67,10 @@ test("offline sync retries on mobile browsers and sends the original attendance 
 
 test("confirmed duplicate offline attendance events are removed without blocking later queued actions", () => {
   assert.match(route, /parsed\.data\.offlineEventId && existing\.checkIn[\s\S]*?duplicate: true/);
-  assert.match(route, /parsed\.data\.offlineEventId \? \{ duplicate: true \} : \{\}/);
-  assert.match(queue, /response\.status === 409 && result\?\.duplicate === true/);
+  assert.match(route, /code: "ATTENDANCE_ALREADY_RECORDED"/);
+  assert.match(queue, /result\?\.duplicate === true/);
+  assert.match(queue, /result\?\.code === "ATTENDANCE_ALREADY_RECORDED"/);
+  assert.match(queue, /response\.status === 409/);
   assert.match(queue, /await removeOfflineAction\(action\.id\);\s*synced \+= 1;\s*continue;/);
   assert.match(queue, /Authentication, validation, and transient server errors/);
 });
