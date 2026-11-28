@@ -81,6 +81,11 @@ import {
   Zap,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import {
+  enqueueOfflineAction,
+  getOfflineActionCount,
+  syncOfflineActions,
+} from "@/lib/offline-actions";
 import PublicLandingPage from "@/pages/PublicLandingPage";
 import squareLogo from "@assets/file_0000000078f881f495d25f8c9a2bd674_1787187714141.png";
 import shortLogo from "@assets/file_000000003b5881f4b4050da0a1da0ebf_1787187714190.png";
@@ -11859,6 +11864,9 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
 
   useEffect(() => {
     void loadLocations();
+    const onSyncComplete = () => { void loadLocations(); };
+    window.addEventListener("varhr-offline-sync-complete", onSyncComplete);
+    return () => window.removeEventListener("varhr-offline-sync-complete", onSyncComplete);
   }, [employeeId]);
 
   async function recordLocation() {
@@ -11871,16 +11879,45 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       return;
     }
     setPending(true);
+    let queuedAction: {
+      id: string;
+      employeeId: string;
+      kind: "work-location";
+      path: string;
+      body: Record<string, unknown>;
+      createdAt: string;
+    } | null = null;
     try {
-      const position = await getBrowserPosition(15000);
-      const result = await authRequest<{ duplicate?: boolean }>(`/api/employees/${employeeId}/work-locations`, {
+      const position = await getBrowserPosition(navigator.onLine ? 15000 : 30000);
+      const capturedAt = new Date().toISOString();
+      const offlineEventId = window.crypto?.randomUUID?.();
+      if (!offlineEventId) throw new Error("المتصفح لا يدعم إنشاء معرف آمن للعملية.");
+      const body = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracyMeters: position.coords.accuracy,
+        comment: comment.trim(),
+        capturedAt,
+        offlineEventId,
+      };
+      queuedAction = {
+        id: offlineEventId,
+        employeeId,
+        kind: "work-location",
+        path: `/api/employees/${employeeId}/work-locations`,
+        body,
+        createdAt: capturedAt,
+      };
+      if (!navigator.onLine) {
+        await enqueueOfflineAction(queuedAction);
+        toast.info(isArabic
+          ? "تم حفظ الزيارة على الجهاز، وستُرسل تلقائيًا عند عودة الإنترنت."
+          : "Visit saved on this device and will sync automatically when internet returns.");
+        return;
+      }
+      const result = await authRequest<{ duplicate?: boolean }>(queuedAction.path, {
         method: "POST",
-        body: JSON.stringify({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracyMeters: position.coords.accuracy,
-          comment: comment.trim(),
-        }),
+        body: JSON.stringify(body),
       });
       if (result?.duplicate) {
         toast.info(isArabic ? "الموقع ده مسجل عندك بالفعل، لم يتم تسجيله مرة تانية." : "This location is already registered. It was not added again.");
@@ -11889,6 +11926,20 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       }
       await loadLocations();
     } catch (error) {
+      if (queuedAction && (error instanceof TypeError || !navigator.onLine)) {
+        try {
+          await enqueueOfflineAction(queuedAction);
+          toast.info(isArabic
+            ? "انقطع الإنترنت؛ تم حفظ الزيارة على الجهاز وستُرسل تلقائيًا عند عودة الاتصال."
+            : "Connection lost. Visit saved on this device and will sync automatically.");
+          return;
+        } catch {
+          toast.error(isArabic
+            ? "تعذر حفظ الزيارة دون إنترنت على هذا الجهاز."
+            : "Could not save the visit offline on this device.");
+          return;
+        }
+      }
       const geolocationError =
         error instanceof Error &&
         (error.message.startsWith("GEOLOCATION_") ||
@@ -11906,9 +11957,9 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
               ? "خدمات الموقع أو GPS مقفولة على الجهاز، لذلك لم نتمكن من تحديد موقعك. افتح إعدادات iPhone > الخصوصية والأمان > خدمات الموقع، وشغّل خدمات الموقع والموقع الدقيق لـ Safari، ثم حاول مرة أخرى."
               : "GPS or Location Services are turned off on this device. Open iPhone Settings > Privacy & Security > Location Services, turn them on, enable Precise Location for Safari, and try again."
             : error instanceof Error && error.message === "GEOLOCATION_TIMEOUT"
-              ? isArabic ? "لم يستجب GPS في الوقت المحدد. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS did not respond in time. Make sure Location Services and Precise Location are enabled, then try again."
+              ? isArabic ? "لم يستجب GPS في الوقت المحدد. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS did not respond in time. Make sure Location Services and Precise Location are enabled, then retry."
               : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
-              ? isArabic ? "أعاد GPS إحداثيات غير صالحة. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS returned invalid coordinates. Enable Location Services and Precise Location, then try again."
+              ? isArabic ? "أعاد GPS إحداثيات غير صالحة. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى." : "GPS returned invalid coordinates. Enable Location Services and Precise Location, then retry."
               : isArabic ? "تعذر تحديد موقعك. راجع إذن الموقع في Safari ثم حاول مرة أخرى." : "Could not get your location. Check Safari location permission and try again."
         : error instanceof Error
           ? error.message
@@ -11991,6 +12042,77 @@ function Attendance() {
     reason: "",
   });
   const [gpsState, setGpsState] = useState("not_required");
+  const [offlinePendingCount, setOfflinePendingCount] = useState(0);
+  useEffect(() => {
+    const employeeId = workspace.data?.employeeId;
+    if (!employeeId || !navigator.onLine) return;
+    const policyCacheKey = `varhr-attendance-device-policy:${employeeId}`;
+    const deviceTokenKey = `varhr-attendance-browser:${employeeId}`;
+    void authRequest<{ requireApproval: boolean }>("/api/attendance/device-approval")
+      .then(async (policy) => {
+        if (!policy.requireApproval) {
+          window.localStorage.setItem(policyCacheKey, JSON.stringify({ requireApproval: false }));
+          return;
+        }
+        const token = window.localStorage.getItem(deviceTokenKey);
+        let approvedDeviceToken: string | null = null;
+        if (token) {
+          try {
+            const registration = await authRequest<{ status: string }>("/api/attendance/device-registration", {
+              method: "POST",
+              body: JSON.stringify({
+                deviceToken: token,
+                deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
+              }),
+            });
+            if (registration.status === "active") approvedDeviceToken = token;
+          } catch {
+            approvedDeviceToken = null;
+          }
+        }
+        window.localStorage.setItem(policyCacheKey, JSON.stringify({
+          requireApproval: true,
+          approvedDeviceToken,
+        }));
+      })
+      .catch(() => undefined);
+  }, [workspace.data?.employeeId]);
+  useEffect(() => {
+    const employeeId = workspace.data?.employeeId;
+    if (!employeeId) return;
+    let active = true;
+    const refreshQueue = async () => {
+      try {
+        const count = await getOfflineActionCount(employeeId);
+        if (active) setOfflinePendingCount(count);
+      } catch {
+        if (active) setOfflinePendingCount(0);
+      }
+    };
+    const syncQueue = async () => {
+      try {
+        const result = await syncOfflineActions(employeeId);
+        if (result.synced > 0) {
+          await qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
+          await qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
+        }
+        if (active) setOfflinePendingCount(result.remaining);
+      } catch {
+        await refreshQueue();
+      }
+    };
+    const onQueueChanged = () => { void refreshQueue(); };
+    void syncQueue();
+    window.addEventListener("online", syncQueue);
+    window.addEventListener("focus", syncQueue);
+    window.addEventListener("varhr-offline-queue-updated", onQueueChanged);
+    return () => {
+      active = false;
+      window.removeEventListener("online", syncQueue);
+      window.removeEventListener("focus", syncQueue);
+      window.removeEventListener("varhr-offline-queue-updated", onQueueChanged);
+    };
+  }, [workspace.data?.employeeId, qc]);
   const today = useGetAttendanceToday();
   const employees = useListEmployees({ status: "active" });
   const history = useListAttendanceHistory({
@@ -12066,6 +12188,12 @@ function Attendance() {
   }
   async function event(kind: "in" | "out") {
     setGpsState("requesting");
+    const employeeId = workspace.data?.employeeId;
+    if (!employeeId) {
+      setGpsState("unavailable");
+      toast.error(locale === "ar" ? "تعذر تحديد حساب الموظف." : "Could not identify the employee account.");
+      return;
+    }
     let location: {
       latitude: number;
       longitude: number;
@@ -12074,7 +12202,7 @@ function Attendance() {
     } | null = null;
     if (navigator.geolocation) {
       try {
-        const position = await getBrowserPosition(12000);
+        const position = await getBrowserPosition(navigator.onLine ? 12000 : 30000);
         location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -12100,7 +12228,7 @@ function Attendance() {
                 : error instanceof Error && error.message === "GEOLOCATION_INVALID_COORDINATES"
                   ? locale === "ar"
                     ? "إحداثيات GPS غير صالحة. لم يتم إرسال الحضور. تأكد من تشغيل خدمات الموقع والموقع الدقيق ثم حاول مرة أخرى."
-                    : "GPS returned invalid coordinates. Attendance was not sent. Enable Location Services and Precise Location, then retry."
+                    : "GPS returned invalid coordinates. Enable Location Services and Precise Location, then retry."
                   : t("gpsUnavailable"),
         );
         return;
@@ -12110,61 +12238,141 @@ function Attendance() {
       toast.warning(t("gpsUnavailable"));
       return;
     }
+
     let deviceToken: string | undefined;
+    const policyCacheKey = `varhr-attendance-device-policy:${employeeId}`;
+    const deviceTokenKey = `varhr-attendance-browser:${employeeId}`;
     try {
-      const devicePolicy = await authRequest<{ requireApproval: boolean }>(
-        "/api/attendance/device-approval",
-      );
-      if (devicePolicy.requireApproval) {
-        const employeeId = workspace.data?.employeeId;
-        if (!employeeId) throw new Error("تعذر تحديد حساب الموظف الحالي.");
-        const storageKey = `varhr-attendance-browser:${employeeId}`;
-        let savedToken = window.localStorage.getItem(storageKey);
-        if (!savedToken) {
-          if (!window.crypto?.randomUUID) {
-            throw new Error("المتصفح لا يدعم إنشاء رمز تحقق آمن.");
+      if (!navigator.onLine) {
+        const cachedPolicy = window.localStorage.getItem(policyCacheKey);
+        const cached = cachedPolicy ? JSON.parse(cachedPolicy) : null;
+        if (!cached || typeof cached.requireApproval !== "boolean") {
+          throw new Error(locale === "ar"
+            ? "افتح صفحة الحضور مرة واحدة بالإنترنت قبل استخدام التسجيل دون اتصال."
+            : "Open attendance once while online before using offline punches.");
+        }
+        if (cached.requireApproval) {
+          if (!cached.approvedDeviceToken) {
+            throw new Error(locale === "ar"
+              ? "يجب اعتماد هذا المتصفح أثناء الاتصال بالإنترنت قبل التسجيل دون اتصال."
+              : "This browser must be approved while online before offline punches are available.");
           }
-          savedToken = window.crypto.randomUUID();
-          window.localStorage.setItem(storageKey, savedToken);
+          deviceToken = cached.approvedDeviceToken;
         }
-        const registration = await authRequest<{ status: string }>(
-          "/api/attendance/device-registration",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              deviceToken: savedToken,
-              deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
-            }),
-          },
+      } else {
+        const devicePolicy = await authRequest<{ requireApproval: boolean }>(
+          "/api/attendance/device-approval",
         );
-        if (registration.status !== "active") {
-          setGpsState("not_required");
-          toast.warning(
-            locale === "ar"
-              ? "تم إرسال طلب اعتماد هذا المتصفح. لن يُسمح بالبصمة حتى توافق الإدارة."
-              : "This browser was submitted for approval. Attendance is blocked until an administrator approves it.",
+        if (devicePolicy.requireApproval) {
+          let savedToken = window.localStorage.getItem(deviceTokenKey);
+          if (!savedToken) {
+            if (!window.crypto?.randomUUID) {
+              throw new Error("المتصفح لا يدعم إنشاء رمز تحقق آمن.");
+            }
+            savedToken = window.crypto.randomUUID();
+            window.localStorage.setItem(deviceTokenKey, savedToken);
+          }
+          const registration = await authRequest<{ status: string }>(
+            "/api/attendance/device-registration",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                deviceToken: savedToken,
+                deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
+              }),
+            },
           );
-          return;
+          if (registration.status !== "active") {
+            window.localStorage.setItem(policyCacheKey, JSON.stringify({
+              requireApproval: true,
+              approvedDeviceToken: null,
+            }));
+            setGpsState("not_required");
+            toast.warning(
+              locale === "ar"
+                ? "تم إرسال طلب اعتماد هذا المتصفح. لن يُسمح بالبصمة حتى توافق الإدارة."
+                : "This browser was submitted for approval. Attendance is blocked until an administrator approves it.",
+            );
+            return;
+          }
+          deviceToken = savedToken;
+          window.localStorage.setItem(policyCacheKey, JSON.stringify({
+            requireApproval: true,
+            approvedDeviceToken: savedToken,
+          }));
+        } else {
+          window.localStorage.setItem(policyCacheKey, JSON.stringify({
+            requireApproval: false,
+          }));
         }
-        deviceToken = savedToken;
       }
     } catch (error) {
+      let cachedPolicy: any = null;
+      try {
+        const cachedPolicyText = window.localStorage.getItem(policyCacheKey);
+        cachedPolicy = cachedPolicyText ? JSON.parse(cachedPolicyText) : null;
+      } catch {
+        cachedPolicy = null;
+      }
+      const canUseCachedPolicy =
+        (error instanceof TypeError || !navigator.onLine) &&
+        cachedPolicy &&
+        typeof cachedPolicy.requireApproval === "boolean" &&
+        (!cachedPolicy.requireApproval || Boolean(cachedPolicy.approvedDeviceToken));
+      if (canUseCachedPolicy) {
+        if (cachedPolicy.requireApproval) {
+          deviceToken = cachedPolicy.approvedDeviceToken;
+        }
+      } else {
+        setGpsState("not_required");
+        toast.error(
+          apiErrorMessage(
+            error,
+            locale === "ar"
+              ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
+              : "Could not verify this attendance browser. No punch was recorded.",
+          ),
+        );
+        return;
+      }
+    }
+
+    const offlineEventId = window.crypto?.randomUUID?.();
+    if (!offlineEventId) {
       setGpsState("not_required");
-      toast.error(
-        apiErrorMessage(
-          error,
-          locale === "ar"
-            ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
-            : "Could not verify this attendance browser. No punch was recorded.",
-        ),
-      );
+      toast.error(locale === "ar" ? "المتصفح لا يدعم إنشاء معرف آمن للعملية." : "This browser cannot create a secure event identifier.");
       return;
     }
     const data = {
       source: "web",
       ...(location ?? {}),
       ...(deviceToken ? { deviceToken } : {}),
+      offlineEventId,
     };
+    const path = `/api/attendance/check-${kind === "in" ? "in" : "out"}`;
+    const queueAction = async () => {
+      await enqueueOfflineAction({
+        id: offlineEventId,
+        employeeId,
+        kind: "attendance",
+        path,
+        body: data,
+        createdAt: location?.capturedAt ?? new Date().toISOString(),
+      });
+      setGpsState("pending");
+      toast.info(locale === "ar"
+        ? "تم حفظ عملية الحضور على الجهاز، وستُرسل تلقائيًا عند عودة الإنترنت."
+        : "Attendance saved on this device and will sync automatically when internet returns.");
+    };
+    if (!navigator.onLine) {
+      try {
+        await queueAction();
+      } catch {
+        setGpsState("unavailable");
+        toast.error(locale === "ar" ? "تعذر حفظ الحضور دون اتصال على هذا الجهاز." : "Could not save attendance offline on this device.");
+      }
+      return;
+    }
     (kind === "in" ? checkIn : checkOut).mutate({ data } as any, {
       onSuccess: () => {
         setGpsState(location ? "captured" : "unavailable");
@@ -12174,10 +12382,20 @@ function Attendance() {
         qc.invalidateQueries({ queryKey: getGetAttendanceTodayQueryKey() });
         qc.invalidateQueries({ queryKey: getListAttendanceHistoryQueryKey() });
       },
-      onError: (error: unknown) =>
-        toast.error(apiErrorMessage(error, t("attendanceNotAccepted"))),
+      onError: async (error: unknown) => {
+        if (error instanceof TypeError || !navigator.onLine) {
+          try {
+            await queueAction();
+          } catch {
+            toast.error(locale === "ar" ? "تعذر حفظ العملية محليًا بعد انقطاع الاتصال." : "Could not save the action locally after the connection was lost.");
+          }
+          return;
+        }
+        toast.error(apiErrorMessage(error, t("attendanceNotAccepted")));
+      },
     });
   }
+
   function openCorrection(item: any) {
     setCorrection({
       id: item.id,
@@ -12327,6 +12545,13 @@ function Attendance() {
           </div>
         }
       />
+      {offlinePendingCount > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm" role="status" data-testid="offline-pending-banner">
+          {locale === "ar"
+            ? `هناك ${offlinePendingCount} عملية محفوظة على الجهاز تنتظر المزامنة. ستُرسل تلقائيًا عند عودة الإنترنت.`
+            : `${offlinePendingCount} action(s) saved on this device are waiting to sync. They will upload automatically when internet returns.`}
+        </div>
+      )}
       {tab === "today" ? (
         <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
           <Card className="bg-secondary p-6 text-sidebar-foreground">

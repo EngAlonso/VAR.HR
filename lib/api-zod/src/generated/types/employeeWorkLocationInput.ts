@@ -27,4 +27,7 @@ export interface EmployeeWorkLocationInput {
      * @maxLength 1000
      */
   comment: string;
+  /** @nullable */
+  capturedAt?: string | null;
+  offlineEventId?: string;
 }

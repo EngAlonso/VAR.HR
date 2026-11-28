@@ -1719,7 +1719,8 @@ export const CheckInBody = zod.object({
   "accuracyMeters": zod.number().nullish(),
   "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkInBodySourceDefault),
-  "deviceToken": zod.string().min(checkInBodyDeviceTokenMin).max(checkInBodyDeviceTokenMax).optional()
+  "deviceToken": zod.string().min(checkInBodyDeviceTokenMin).max(checkInBodyDeviceTokenMax).optional(),
+  "offlineEventId": zod.uuid().optional()
 })
 
 export const CheckInResponse = zod.object({
@@ -1763,7 +1764,8 @@ export const CheckOutBody = zod.object({
   "accuracyMeters": zod.number().nullish(),
   "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkOutBodySourceDefault),
-  "deviceToken": zod.string().min(checkOutBodyDeviceTokenMin).max(checkOutBodyDeviceTokenMax).optional()
+  "deviceToken": zod.string().min(checkOutBodyDeviceTokenMin).max(checkOutBodyDeviceTokenMax).optional(),
+  "offlineEventId": zod.uuid().optional()
 })
 
 export const CheckOutResponse = zod.object({
@@ -1900,7 +1902,9 @@ export const CreateEmployeeWorkLocationBody = zod.object({
   "latitude": zod.number().min(createEmployeeWorkLocationBodyLatitudeMin).max(createEmployeeWorkLocationBodyLatitudeMax),
   "longitude": zod.number().min(createEmployeeWorkLocationBodyLongitudeMin).max(createEmployeeWorkLocationBodyLongitudeMax),
   "accuracyMeters": zod.number().min(createEmployeeWorkLocationBodyAccuracyMetersMin).nullish(),
-  "comment": zod.string().min(1).max(createEmployeeWorkLocationBodyCommentMax)
+  "comment": zod.string().min(1).max(createEmployeeWorkLocationBodyCommentMax),
+  "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "offlineEventId": zod.uuid().optional()
 })
 
 export const CreateEmployeeWorkLocationResponse = zod.object({
