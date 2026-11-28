@@ -12104,10 +12104,12 @@ function Attendance() {
     const onQueueChanged = () => { void refreshQueue(); };
     void syncQueue();
     window.addEventListener("online", syncQueue);
+    window.addEventListener("focus", syncQueue);
     window.addEventListener("varhr-offline-queue-updated", onQueueChanged);
     return () => {
       active = false;
       window.removeEventListener("online", syncQueue);
+      window.removeEventListener("focus", syncQueue);
       window.removeEventListener("varhr-offline-queue-updated", onQueueChanged);
     };
   }, [workspace.data?.employeeId, qc]);
