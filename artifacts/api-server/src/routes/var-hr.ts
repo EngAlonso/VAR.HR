@@ -6559,7 +6559,7 @@ async function recordCurrentAttendance(
         // Mark only this known terminal duplicate so the client can safely
         // remove it without blocking later queued events.
         ...(parsed.data.offlineEventId && existing.checkIn
-          ? { duplicate: true }
+          ? { duplicate: true, code: "ATTENDANCE_ALREADY_RECORDED" }
           : {}),
       });
       return;
@@ -6685,7 +6685,9 @@ async function recordCurrentAttendance(
     }
     res.status(409).json({
       error: message(req, "checkOutAlready"),
-      ...(parsed.data.offlineEventId ? { duplicate: true } : {}),
+      ...(parsed.data.offlineEventId
+        ? { duplicate: true, code: "ATTENDANCE_ALREADY_RECORDED" }
+        : {}),
     });
     return;
   }
