@@ -54,3 +54,12 @@ test("offline work-location visits preserve capture time and remain separate fro
   assert.match(route, /workDate: recordedDate/);
   assert.match(queue, /action\.kind === "work-location"/);
 });
+
+
+test("offline sync retries on mobile browsers and sends the original attendance capture time", () => {
+  assert.match(queue, /setInterval\(\(\) =>/);
+  assert.match(queue, /15000/);
+  assert.match(queue, /action\.kind === "attendance"/);
+  assert.match(queue, /capturedAt: action\.createdAt/);
+  assert.match(queue, /varhr-offline-sync-error/);
+});
