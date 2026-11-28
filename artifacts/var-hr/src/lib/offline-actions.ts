@@ -136,16 +136,26 @@ async function runOfflineSync(
       // Keep the action in IndexedDB. The periodic retry will try again.
       break;
     }
+    const result = await response.clone().json().catch(() => null);
     if (!response.ok) {
+      // A later offline check-in/out may be a duplicate because an earlier
+      // attempt was already accepted online or by another queued request.
+      // The API explicitly marks only these known terminal conflicts.
+      if (response.status === 409 && result?.duplicate === true) {
+        await removeOfflineAction(action.id);
+        synced += 1;
+        continue;
+      }
       const errorText = await response.clone().text().catch(() => "");
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("varhr-offline-sync-error", {
           detail: { status: response.status, message: errorText.slice(0, 500), actionId: action.id },
         }));
       }
+      // Authentication, validation, and transient server errors must not be
+      // discarded or skipped; keep this action and preserve queue ordering.
       break;
     }
-    const result = await response.json().catch(() => null);
     if (action.kind === "work-location" && result?.duplicate !== true && response.status !== 201) {
       break;
     }
