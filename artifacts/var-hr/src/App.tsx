@@ -11864,6 +11864,9 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
 
   useEffect(() => {
     void loadLocations();
+    const onSyncComplete = () => { void loadLocations(); };
+    window.addEventListener("varhr-offline-sync-complete", onSyncComplete);
+    return () => window.removeEventListener("varhr-offline-sync-complete", onSyncComplete);
   }, [employeeId]);
 
   async function recordLocation() {
@@ -12040,6 +12043,40 @@ function Attendance() {
   });
   const [gpsState, setGpsState] = useState("not_required");
   const [offlinePendingCount, setOfflinePendingCount] = useState(0);
+  useEffect(() => {
+    const employeeId = workspace.data?.employeeId;
+    if (!employeeId || !navigator.onLine) return;
+    const policyCacheKey = `varhr-attendance-device-policy:${employeeId}`;
+    const deviceTokenKey = `varhr-attendance-browser:${employeeId}`;
+    void authRequest<{ requireApproval: boolean }>("/api/attendance/device-approval")
+      .then(async (policy) => {
+        if (!policy.requireApproval) {
+          window.localStorage.setItem(policyCacheKey, JSON.stringify({ requireApproval: false }));
+          return;
+        }
+        const token = window.localStorage.getItem(deviceTokenKey);
+        let approvedDeviceToken: string | null = null;
+        if (token) {
+          try {
+            const registration = await authRequest<{ status: string }>("/api/attendance/device-registration", {
+              method: "POST",
+              body: JSON.stringify({
+                deviceToken: token,
+                deviceLabel: navigator.userAgent.slice(0, 160) || "Web browser",
+              }),
+            });
+            if (registration.status === "active") approvedDeviceToken = token;
+          } catch {
+            approvedDeviceToken = null;
+          }
+        }
+        window.localStorage.setItem(policyCacheKey, JSON.stringify({
+          requireApproval: true,
+          approvedDeviceToken,
+        }));
+      })
+      .catch(() => undefined);
+  }, [workspace.data?.employeeId]);
   useEffect(() => {
     const employeeId = workspace.data?.employeeId;
     if (!employeeId) return;
@@ -12268,8 +12305,13 @@ function Attendance() {
         }
       }
     } catch (error) {
-      const cachedPolicyText = window.localStorage.getItem(policyCacheKey);
-      const cachedPolicy = cachedPolicyText ? JSON.parse(cachedPolicyText) : null;
+      let cachedPolicy: any = null;
+      try {
+        const cachedPolicyText = window.localStorage.getItem(policyCacheKey);
+        cachedPolicy = cachedPolicyText ? JSON.parse(cachedPolicyText) : null;
+      } catch {
+        cachedPolicy = null;
+      }
       const canUseCachedPolicy =
         (error instanceof TypeError || !navigator.onLine) &&
         cachedPolicy &&
