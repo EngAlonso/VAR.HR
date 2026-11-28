@@ -22,4 +22,5 @@ export interface AttendanceEventInput {
      * @maxLength 256
      */
   deviceToken?: string;
+  offlineEventId?: string;
 }
