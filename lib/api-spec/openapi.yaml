@@ -3219,6 +3219,7 @@ components:
           enum: [web, mobile, biometric, manual]
           default: web
         deviceToken: { type: string, minLength: 32, maxLength: 256 }
+        offlineEventId: { type: string, format: uuid }
     AttendanceDeviceRegistrationInput:
       type: object
       required: [deviceToken, deviceLabel]
@@ -3258,6 +3259,8 @@ components:
         longitude: { type: number, minimum: -180, maximum: 180 }
         accuracyMeters: { type: ["number", "null"], minimum: 0 }
         comment: { type: string, minLength: 1, maxLength: 1000 }
+        capturedAt: { type: ["string", "null"], format: date-time }
+        offlineEventId: { type: string, format: uuid }
     EmployeeWorkLocation:
       type: object
       required:
