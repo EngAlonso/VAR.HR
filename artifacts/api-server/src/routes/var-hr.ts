@@ -6554,6 +6554,13 @@ async function recordCurrentAttendance(
           req,
           existing.checkIn ? "checkInAlready" : "attendanceRecordExists",
         ),
+        // An offline retry with a different idempotency key can arrive after
+        // the same employee already checked in online or via another queued action.
+        // Mark only this known terminal duplicate so the client can safely
+        // remove it without blocking later queued events.
+        ...(parsed.data.offlineEventId && existing.checkIn
+          ? { duplicate: true }
+          : {}),
       });
       return;
     }
@@ -6676,7 +6683,10 @@ async function recordCurrentAttendance(
         return;
       }
     }
-    res.status(409).json({ error: message(req, "checkOutAlready") });
+    res.status(409).json({
+      error: message(req, "checkOutAlready"),
+      ...(parsed.data.offlineEventId ? { duplicate: true } : {}),
+    });
     return;
   }
   if (locationRequiredForEmployee && !existing.checkIn) {
