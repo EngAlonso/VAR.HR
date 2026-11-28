@@ -5007,13 +5007,29 @@ router.post(
       res.status(200).json({ duplicate: true });
       return;
     }
-    const recordedAt = new Date();
+    const recordedAt = parsed.data.capturedAt
+      ? new Date(parsed.data.capturedAt)
+      : new Date();
+    const capturedAgeMs = Date.now() - recordedAt.getTime();
+    const recordedDate = localCalendarDate(recordedAt, context.company.timezone);
+    if (
+      Number.isNaN(recordedAt.getTime()) ||
+      (parsed.data.capturedAt &&
+        (!Number.isFinite(capturedAgeMs) ||
+          capturedAgeMs > 24 * 60 * 60 * 1000 ||
+          capturedAgeMs < -5 * 60 * 1000 ||
+          (recordedDate !== localCalendarDate(new Date(), context.company.timezone) &&
+            recordedDate !== localCalendarDate(new Date(Date.now() - 24 * 60 * 60 * 1000), context.company.timezone))))
+    ) {
+      res.status(400).json({ error: message(req, "invalidRequest") });
+      return;
+    }
     const [row] = await db
       .insert(employeeWorkLocationsTable)
       .values({
         companyId: context.companyId,
         employeeId: employee.id,
-        workDate: localCalendarDate(recordedAt, context.company.timezone),
+        workDate: recordedDate,
         latitude: parsed.data.latitude,
         longitude: parsed.data.longitude,
         accuracyMeters: parsed.data.accuracyMeters ?? null,
@@ -6408,12 +6424,14 @@ async function recordCurrentAttendance(
     ? ""
     : localCalendarDate(eventAt, context.company.timezone);
   const validCapturedDate =
-    direction === "in"
-      ? eventDate === TODAY
-      : eventDate === TODAY || eventDate === dateOffset(TODAY, 1);
+    eventDate === TODAY || eventDate === dateOffset(TODAY, -1);
+  const capturedAgeMs = now.getTime() - eventAt.getTime();
   if (
     Number.isNaN(eventAt.getTime()) ||
-    (parsed.data.capturedAt && !validCapturedDate)
+    (parsed.data.capturedAt &&
+      (!validCapturedDate ||
+        capturedAgeMs > 24 * 60 * 60 * 1000 ||
+        capturedAgeMs < -5 * 60 * 1000))
   ) {
     res.status(400).json({ error: message(req, "gpsTimestampInvalid") });
     return;
@@ -6448,7 +6466,7 @@ async function recordCurrentAttendance(
   }
 
   let existing: typeof attendanceTable.$inferSelect | undefined;
-  let attendanceDate = TODAY;
+  let attendanceDate = eventDate || TODAY;
   if (direction === "in") {
     [existing] = await db
       .select()
@@ -6457,7 +6475,7 @@ async function recordCurrentAttendance(
         and(
           eq(attendanceTable.companyId, context.companyId),
           eq(attendanceTable.employeeId, context.employeeId),
-          eq(attendanceTable.date, TODAY),
+          eq(attendanceTable.date, attendanceDate),
         ),
       )
       .limit(1);
@@ -6513,6 +6531,22 @@ async function recordCurrentAttendance(
 
   if (direction === "in") {
     if (existing) {
+      const savedLocation =
+        existing.location && typeof existing.location === "object" &&
+        !Array.isArray(existing.location)
+          ? (existing.location as Record<string, any>).checkIn
+          : null;
+      if (
+        parsed.data.offlineEventId &&
+        savedLocation?.offlineEventId === parsed.data.offlineEventId
+      ) {
+        const rows = await getAttendanceRows(context, attendanceDate, attendanceDate);
+        const row = rows.find((item) => item.attendance.id === existing!.id);
+        if (row) {
+          res.status(201).json(CheckInResponse.parse(attendanceResponse(row)));
+          return;
+        }
+      }
       res.status(409).json({
         error: message(
           req,
@@ -6579,7 +6613,15 @@ async function recordCurrentAttendance(
         source: parsed.data.source,
         locationStatus: locationValidation.status,
         location: location
-          ? { checkIn: { ...location, capturedAt: eventAt.toISOString() } }
+          ? {
+              checkIn: {
+                ...location,
+                capturedAt: eventAt.toISOString(),
+                ...(parsed.data.offlineEventId
+                  ? { offlineEventId: parsed.data.offlineEventId }
+                  : {}),
+              },
+            }
           : null,
         explanation: holiday
           ? `${locationValidation.explanation} Company holiday.`
@@ -6616,6 +6658,22 @@ async function recordCurrentAttendance(
     return;
   }
   if (existing.checkOut) {
+    const savedLocation =
+      existing.location && typeof existing.location === "object" &&
+      !Array.isArray(existing.location)
+        ? (existing.location as Record<string, any>).checkOut
+        : null;
+    if (
+      parsed.data.offlineEventId &&
+      savedLocation?.offlineEventId === parsed.data.offlineEventId
+    ) {
+      const rows = await getAttendanceRows(context, attendanceDate, attendanceDate);
+      const row = rows.find((item) => item.attendance.id === existing!.id);
+      if (row) {
+        res.status(201).json(CheckOutResponse.parse(attendanceResponse(row)));
+        return;
+      }
+    }
     res.status(409).json({ error: message(req, "checkOutAlready") });
     return;
   }
@@ -6694,7 +6752,13 @@ async function recordCurrentAttendance(
              !Array.isArray(existing.location)
                ? existing.location
                : {}),
-             checkOut: { ...location, capturedAt: eventAt.toISOString() },
+             checkOut: {
+               ...location,
+               capturedAt: eventAt.toISOString(),
+               ...(parsed.data.offlineEventId
+                 ? { offlineEventId: parsed.data.offlineEventId }
+                 : {}),
+             },
            }
          : existing.location,
       explanation: `${earlyDeparture ? message(req, "earlyDeparture") : ""}${location ? `${locationValidation.explanation} ` : ""}${holiday ? "Company holiday. " : ""}${message(req, "workedHours", { worked: metrics.workedHours.toFixed(2), overtime: metrics.overtimeHours.toFixed(2) })}`,
