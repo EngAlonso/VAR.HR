@@ -5019,7 +5019,7 @@ router.post(
           capturedAgeMs > 24 * 60 * 60 * 1000 ||
           capturedAgeMs < -5 * 60 * 1000 ||
           (recordedDate !== localCalendarDate(new Date(), context.company.timezone) &&
-            recordedDate !== localCalendarDate(new Date(Date.now() - 24 * 60 * 60 * 1000), context.company.timezone))))
+            recordedDate !== dateOffset(localCalendarDate(new Date(), context.company.timezone), -1))))
     ) {
       res.status(400).json({ error: message(req, "invalidRequest") });
       return;
