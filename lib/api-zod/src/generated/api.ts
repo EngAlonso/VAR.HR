@@ -1764,7 +1764,8 @@ export const CheckOutBody = zod.object({
   "accuracyMeters": zod.number().nullish(),
   "capturedAt": zod.iso.datetime({"offset":true}).nullish(),
   "source": zod.enum(['web', 'mobile', 'biometric', 'manual']).default(checkOutBodySourceDefault),
-  "deviceToken": zod.string().min(checkOutBodyDeviceTokenMin).max(checkOutBodyDeviceTokenMax).optional()
+  "deviceToken": zod.string().min(checkOutBodyDeviceTokenMin).max(checkOutBodyDeviceTokenMax).optional(),
+  "offlineEventId": zod.uuid().optional()
 })
 
 export const CheckOutResponse = zod.object({
