@@ -90,10 +90,24 @@ export async function getOfflineActionCount(employeeId: string): Promise<number>
 }
 
 let syncInProgress: Promise<{ synced: number; remaining: number }> | null = null;
+let retryTimer: number | null = null;
+let retryEmployeeId: string | null = null;
+
+function ensureAutomaticRetry(employeeId: string): void {
+  if (typeof window === "undefined") return;
+  retryEmployeeId = employeeId;
+  if (retryTimer !== null) return;
+  // Network state events are unreliable on some mobile browsers. Keep retrying
+  // while the attendance page is open, even if navigator.onLine is stale.
+  retryTimer = window.setInterval(() => {
+    if (retryEmployeeId) void syncOfflineActions(retryEmployeeId);
+  }, 15000);
+}
 
 export function syncOfflineActions(
   employeeId: string,
 ): Promise<{ synced: number; remaining: number }> {
+  ensureAutomaticRetry(employeeId);
   if (syncInProgress) return syncInProgress;
   syncInProgress = runOfflineSync(employeeId).finally(() => {
     syncInProgress = null;
@@ -104,24 +118,33 @@ export function syncOfflineActions(
 async function runOfflineSync(
   employeeId: string,
 ): Promise<{ synced: number; remaining: number }> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) {
-    return { synced: 0, remaining: await getOfflineActionCount(employeeId) };
-  }
   const actions = await listOfflineActions(employeeId);
   let synced = 0;
   for (const action of actions) {
     let response: Response;
     try {
+      const body = action.kind === "attendance" && !("capturedAt" in action.body)
+        ? { ...action.body, capturedAt: action.createdAt }
+        : action.body;
       response = await fetch(action.path, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(action.body),
+        body: JSON.stringify(body),
       });
     } catch {
+      // Keep the action in IndexedDB. The periodic retry will try again.
       break;
     }
-    if (!response.ok) break;
+    if (!response.ok) {
+      const errorText = await response.clone().text().catch(() => "");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("varhr-offline-sync-error", {
+          detail: { status: response.status, message: errorText.slice(0, 500), actionId: action.id },
+        }));
+      }
+      break;
+    }
     const result = await response.json().catch(() => null);
     if (action.kind === "work-location" && result?.duplicate !== true && response.status !== 201) {
       break;
