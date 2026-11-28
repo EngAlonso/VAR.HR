@@ -141,7 +141,11 @@ async function runOfflineSync(
       // A later offline check-in/out may be a duplicate because an earlier
       // attempt was already accepted online or by another queued request.
       // The API explicitly marks only these known terminal conflicts.
-      if (response.status === 409 && result?.duplicate === true) {
+      if (
+        response.status === 409 &&
+        (result?.duplicate === true ||
+          result?.code === "ATTENDANCE_ALREADY_RECORDED")
+      ) {
         await removeOfflineAction(action.id);
         synced += 1;
         continue;
