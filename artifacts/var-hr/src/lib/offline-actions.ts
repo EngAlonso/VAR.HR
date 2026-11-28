@@ -13,6 +13,12 @@ const DATABASE_NAME = "var-hr-offline";
 const STORE_NAME = "queued-actions";
 const DATABASE_VERSION = 1;
 
+function notifyQueueChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("varhr-offline-queue-updated"));
+  }
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
@@ -46,6 +52,7 @@ export async function enqueueOfflineAction(action: OfflineAction): Promise<void>
   } finally {
     database.close();
   }
+  notifyQueueChanged();
 }
 
 export async function listOfflineActions(employeeId: string): Promise<OfflineAction[]> {
@@ -75,6 +82,7 @@ export async function removeOfflineAction(id: string): Promise<void> {
   } finally {
     database.close();
   }
+  notifyQueueChanged();
 }
 
 export async function getOfflineActionCount(employeeId: string): Promise<number> {
