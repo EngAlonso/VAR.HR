@@ -89,7 +89,19 @@ export async function getOfflineActionCount(employeeId: string): Promise<number>
   return (await listOfflineActions(employeeId)).length;
 }
 
-export async function syncOfflineActions(
+let syncInProgress: Promise<{ synced: number; remaining: number }> | null = null;
+
+export function syncOfflineActions(
+  employeeId: string,
+): Promise<{ synced: number; remaining: number }> {
+  if (syncInProgress) return syncInProgress;
+  syncInProgress = runOfflineSync(employeeId).finally(() => {
+    syncInProgress = null;
+  });
+  return syncInProgress;
+}
+
+async function runOfflineSync(
   employeeId: string,
 ): Promise<{ synced: number; remaining: number }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
