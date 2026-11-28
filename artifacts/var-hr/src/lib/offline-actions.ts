@@ -129,5 +129,9 @@ async function runOfflineSync(
     await removeOfflineAction(action.id);
     synced += 1;
   }
-  return { synced, remaining: await getOfflineActionCount(employeeId) };
+  const remaining = await getOfflineActionCount(employeeId);
+  if (synced > 0 && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("varhr-offline-sync-complete"));
+  }
+  return { synced, remaining };
 }
