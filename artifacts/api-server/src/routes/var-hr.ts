@@ -6423,8 +6423,10 @@ async function recordCurrentAttendance(
   const eventDate = Number.isNaN(eventAt.getTime())
     ? ""
     : localCalendarDate(eventAt, context.company.timezone);
+  const currentCompanyDate = localCalendarDate(now, context.company.timezone);
   const validCapturedDate =
-    eventDate === TODAY || eventDate === dateOffset(TODAY, -1);
+    eventDate === currentCompanyDate ||
+    eventDate === dateOffset(currentCompanyDate, -1);
   const capturedAgeMs = now.getTime() - eventAt.getTime();
   if (
     Number.isNaN(eventAt.getTime()) ||
