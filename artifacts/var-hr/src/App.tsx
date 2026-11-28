@@ -11885,7 +11885,7 @@ function WorkLocationChangeButton({ employeeId }: { employeeId: string }) {
       createdAt: string;
     } | null = null;
     try {
-      const position = await getBrowserPosition(15000);
+      const position = await getBrowserPosition(navigator.onLine ? 15000 : 30000);
       const capturedAt = new Date().toISOString();
       const offlineEventId = window.crypto?.randomUUID?.();
       if (!offlineEventId) throw new Error("المتصفح لا يدعم إنشاء معرف آمن للعملية.");
@@ -12163,7 +12163,7 @@ function Attendance() {
     } | null = null;
     if (navigator.geolocation) {
       try {
-        const position = await getBrowserPosition(12000);
+        const position = await getBrowserPosition(navigator.onLine ? 12000 : 30000);
         location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -12268,16 +12268,29 @@ function Attendance() {
         }
       }
     } catch (error) {
-      setGpsState("not_required");
-      toast.error(
-        apiErrorMessage(
-          error,
-          locale === "ar"
-            ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
-            : "Could not verify this attendance browser. No punch was recorded.",
-        ),
-      );
-      return;
+      const cachedPolicyText = window.localStorage.getItem(policyCacheKey);
+      const cachedPolicy = cachedPolicyText ? JSON.parse(cachedPolicyText) : null;
+      const canUseCachedPolicy =
+        (error instanceof TypeError || !navigator.onLine) &&
+        cachedPolicy &&
+        typeof cachedPolicy.requireApproval === "boolean" &&
+        (!cachedPolicy.requireApproval || Boolean(cachedPolicy.approvedDeviceToken));
+      if (canUseCachedPolicy) {
+        if (cachedPolicy.requireApproval) {
+          deviceToken = cachedPolicy.approvedDeviceToken;
+        }
+      } else {
+        setGpsState("not_required");
+        toast.error(
+          apiErrorMessage(
+            error,
+            locale === "ar"
+              ? "تعذر التحقق من متصفح الحضور. لم يتم تسجيل البصمة."
+              : "Could not verify this attendance browser. No punch was recorded.",
+          ),
+        );
+        return;
+      }
     }
 
     const offlineEventId = window.crypto?.randomUUID?.();
